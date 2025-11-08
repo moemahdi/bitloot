@@ -18,7 +18,6 @@ async function bootstrap(): Promise<void> {
 
   app.use(urlencoded({ extended: true }));
   app.use(json({ limit: '1mb' }));
-  app.setGlobalPrefix('api');
 
   app.useGlobalPipes(
     new ValidationPipe({

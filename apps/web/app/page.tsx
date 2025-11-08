@@ -22,15 +22,21 @@ export default function Home(): React.ReactNode {
       >
         <p>✅ It works!</p>
         <p style={{ fontSize: '0.875rem', color: '#999', marginTop: '1rem' }}>
-          API:{' '}
-          <a href="http://localhost:4000/api/healthz" style={{ color: '#4CAF50' }}>
-            localhost:4000/api/healthz
+          Health Check:{' '}
+          <a href="http://localhost:4000/healthz" style={{ color: '#4CAF50' }}>
+            /healthz
           </a>
         </p>
         <p style={{ fontSize: '0.875rem', color: '#999', marginTop: '0.5rem' }}>
-          Docs:{' '}
+          Swagger Docs:{' '}
           <a href="http://localhost:4000/api/docs" style={{ color: '#4CAF50' }}>
-            localhost:4000/api/docs
+            /api/docs
+          </a>
+        </p>
+        <p style={{ fontSize: '0.875rem', color: '#999', marginTop: '0.5rem' }}>
+          Demo Product:{' '}
+          <a href="http://localhost:3000/product/demo-product" style={{ color: '#4CAF50' }}>
+            /product/demo-product
           </a>
         </p>
       </div>

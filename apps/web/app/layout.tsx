@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 
 import './globals.css';
+import { Providers } from '../src/lib/providers';
 
 export const metadata: Metadata = {
   title: 'BitLoot — Crypto E-Commerce',
@@ -25,7 +26,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }):
       <head>
         <link rel="manifest" href="/manifest.json" />
       </head>
-      <body>{children}</body>
+      <body>
+        <Providers>{children}</Providers>
+      </body>
     </html>
   );
 }
