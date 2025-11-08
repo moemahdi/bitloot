@@ -83,9 +83,13 @@ bitloot/
 | `npm run dev:web`      | Start Web only         |
 | `npm run type-check`   | Check types (strict)   |
 | `npm run lint`         | Check code quality     |
+| `npm run lint:fix`     | Auto-fix lint issues   |
+| `npm run format`       | Check formatting       |
+| `npm run format:fix`   | Auto-format code       |
 | `npm run test`         | Run tests              |
 | `npm run build`        | Build all workspaces   |
 | `npm run sdk:gen`      | Generate SDK from API  |
+| `npm run quality:full` | Run all quality checks |
 | `docker compose up -d` | Start Postgres + Redis |
 | `docker compose down`  | Stop services          |
 
@@ -131,4 +135,14 @@ bitloot/
 
 ---
 
-**Level 0 Ready! 🚀**
+## 🔧 Java 21 Configuration (for SDK Generation)
+
+**Status:** ✅ Installed and configured in system PATH
+
+- **Location:** `C:\Program Files\Java\jdk-21`
+- **Verify:** `java -version` (should show Java 21.0.9 LTS)
+- **Usage:** `npm run sdk:gen` works directly (no PATH override needed)
+
+---
+
+**Level 0 Complete! 🚀 Ready for Level 1 (Auth)**

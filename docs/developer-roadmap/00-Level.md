@@ -1,19 +1,44 @@
 # Task: Level 0 — Workshop (project bootstrap, from empty repo → dev servers running clean)
 
+## ✅ Status: COMPLETE
+
+**Date Completed:** November 8, 2025  
+**All 8 bootstrap tasks:** ✅ 100% Complete  
+**Verification:** All smoke tests passing, SDK generation working
+
+---
+
+## 📊 Completion Summary
+
+| Task               | Status      | Details                                                             |
+| ------------------ | ----------- | ------------------------------------------------------------------- |
+| Monorepo layout    | ✅          | npm workspaces configured (api, web, sdk)                           |
+| TypeScript/ESLint  | ✅          | Strict mode, runtime-safe rules, no `any` allowed                   |
+| Docker Compose     | ✅          | Postgres 16 + Redis 7, health checks configured                     |
+| NestJS API         | ✅          | Swagger docs, OpenAPI endpoint at `/api/docs-json`                  |
+| Next.js Web        | ✅          | PWA configured, React 19, feature-based structure                   |
+| SDK Generator      | ✅          | OpenAPI → TypeScript-Fetch, generates clients                       |
+| Scripts & Commands | ✅          | All quality checks, dev servers, build commands                     |
+| CI/CD Pipeline     | ✅          | GitHub Actions workflow with lint, type-check, test, build          |
+| Documentation      | ✅          | Complete with QUICK_REFERENCE, LEVEL_0_COMPLETE, BOOTSTRAP_COMPLETE |
+| **OVERALL**        | **✅ 100%** | **Level 0 bootstrap ready for Level 1 development**                 |
+
+---
+
 ## Analysis
 
-Level 0 is where you set up the **monorepo, environments, quality gates, and local infrastructure** (Postgres + Redis). When you’re done, you can run **API + Web** together, auto-generate the **SDK** from Swagger, and ship PRs with green CI. Nothing fancy—just rock-solid foundations so Levels 1–7 are painless.
+Level 0 is where you set up the **monorepo, environments, quality gates, and local infrastructure** (Postgres + Redis). When you're done, you can run **API + Web** together, auto-generate the **SDK** from Swagger, and ship PRs with green CI. Nothing fancy—just rock-solid foundations so Levels 1–7 are painless.
 
 ## Plan
 
-1. Create monorepo layout (web, api, sdk).
-2. Add strict TypeScript, ESLint/Prettier, testing.
-3. Wire Docker Compose: Postgres, Redis.
-4. Bootstrap NestJS (API) with Swagger + config.
-5. Bootstrap Next.js 16 (Web) as PWA.
-6. Configure OpenAPI → SDK generator (packages/sdk).
-7. Add scripts, Git hooks, and GitHub Actions CI.
-8. Smoke test: `npm run dev:all` shows both apps healthy.
+1. ✅ Create monorepo layout (web, api, sdk).
+2. ✅ Add strict TypeScript, ESLint/Prettier, testing.
+3. ✅ Wire Docker Compose: Postgres, Redis.
+4. ✅ Bootstrap NestJS (API) with Swagger + config.
+5. ✅ Bootstrap Next.js 16 (Web) as PWA.
+6. ✅ Configure OpenAPI → SDK generator (packages/sdk).
+7. ✅ Add scripts, Git hooks, and GitHub Actions CI.
+8. ✅ Smoke test: `npm run dev:all` shows both apps healthy.
 
 ## Technical Approach
 
@@ -521,7 +546,26 @@ jobs:
 
 ## Verification
 
+### ✅ Verified Complete (November 8, 2025)
+
 - ✅ `docker compose ps` shows Postgres + Redis healthy.
+- ✅ `GET /api/healthz` returns `{ ok: true }`.
+- ✅ Next.js homepage renders at http://localhost:3000.
+- ✅ Swagger docs accessible at http://localhost:4000/api/docs.
+- ✅ OpenAPI JSON available at http://localhost:4000/api/docs-json.
+- ✅ `npm run sdk:gen` generates TypeScript clients successfully.
+- ✅ `npm run lint`, `npm run type-check`, `npm run test`, `npm run build` all pass.
+- ✅ CI/CD pipeline configured and ready.
+- ✅ Both API and Web servers start cleanly with `npm run dev:all`.
+
+### Java 21 Configuration (for SDK generation)
+
+Since OpenAPI generator requires Java 11+, Java 21 has been installed and configured:
+
+- **Location**: `C:\Program Files\Java\jdk-21`
+- **Status**: Added to Windows system PATH via `setx`
+- **Verification**: `java -version` returns Java 21.0.9 LTS
+- **SDK Command**: `npm run sdk:gen` works directly (no PATH override needed)
 - ✅ `GET /api/healthz` returns `{ ok: true }`.
 - ✅ Next.js homepage renders.
 - ✅ `npm run sdk:gen` produces `packages/sdk/src/generated` without errors.
@@ -529,20 +573,71 @@ jobs:
 
 ## Commands (copy/paste)
 
+### Running Level 0 (Development)
+
 ```bash
-# 1) Infra
+# 1) Start infrastructure (Postgres + Redis)
 docker compose up -d
 
-# 2) Dev servers
-npm run dev:api
-npm run dev:web
-npm run dev:all  # both
+# 2) Start all dev servers (API + Web)
+npm run dev:all
 
-# 3) Quality loop
-npm run format && npm run lint --max-warnings 0 && npm run type-check && npm run test && npm run build
-
-# 4) SDK (after API is running)
-npm run sdk:gen
+# Or separately in different terminals:
+npm run dev:api   # NestJS on port 4000
+npm run dev:web   # Next.js on port 3000
 ```
+
+### Quality Checks & Building
+
+```bash
+# Type check
+npm run type-check
+
+# Lint check
+npm run lint
+
+# Auto-fix lint issues
+npm run lint:fix
+
+# Format check
+npm run format
+
+# Auto-format code
+npm run format:fix
+
+# Run tests
+npm run test
+
+# Build all workspaces
+npm run build
+
+# Comprehensive quality check script
+npm run quality:full
+```
+
+### SDK Generation
+
+```bash
+# Generate TypeScript SDK from OpenAPI (requires API running on port 4000)
+npm run sdk:gen
+
+# Output: packages/sdk/src/generated/ with typed clients
+```
+
+---
+
+## What's Ready for Level 1
+
+✅ **Complete infrastructure** — Postgres, Redis, Docker configured  
+✅ **Monorepo structure** — 3 workspaces with shared config  
+✅ **Type safety** — Strict TypeScript, ESLint runtime-safe rules  
+✅ **API scaffold** — NestJS with Swagger, 11 modules ready  
+✅ **Web scaffold** — Next.js 16 PWA with feature structure  
+✅ **SDK generation** — OpenAPI → TypeScript clients working  
+✅ **CI/CD** — GitHub Actions pipeline configured  
+✅ **Quality gates** — Scripts and pre-merge checks ready
+
+**Next:** Proceed to Level 1 (Auth) — OTP, JWT, password flows  
+See: [`01-Level.md`](./01-Level.md)
 
 ---

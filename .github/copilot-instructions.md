@@ -52,7 +52,9 @@ All documentation is located in root level (Level 0 Developer Workflow) and `doc
 
 ## ✅ Level 0 — Developer Workflow (COMPLETED)
 
-**Status:** ✅ **COMPLETE** — All bootstrap tasks executed successfully
+**Status:** ✅ **COMPLETE** — All 10 bootstrap tasks executed successfully  
+**Completion Date:** November 8, 2025  
+**Verification:** All smoke tests passing, SDK generation working, Java 21 configured
 
 The following Level 0 documentation exists at the **root level** of the repository:
 
@@ -63,23 +65,38 @@ The following Level 0 documentation exists at the **root level** of the reposito
 - **[LEVEL_0_VERIFICATION.md](../docs/developer-workflow/00-Level/LEVEL_0_VERIFICATION.md)** — Setup validation & smoke tests checklist
 - **[QUICK_REFERENCE.md](../docs/developer-workflow/00-Level/QUICK_REFERENCE.md)** — Quick command reference card
 
-### What Was Built in Level 0
+### What Was Built in Level 0 (10/10 Tasks ✅)
 
 ✅ **Monorepo Structure** — `apps/api`, `apps/web`, `packages/sdk` workspaces  
 ✅ **Strict TypeScript + ESLint** — No `any`, runtime-safe rules enforced  
-✅ **Docker Infrastructure** — Postgres 16 + Redis 7 (docker-compose.yml)  
-✅ **NestJS API** — Bootstrap with Swagger docs, health check, validation  
-✅ **Next.js PWA** — App Router, React 19, dark theme, manifest  
-✅ **SDK Generator** — OpenAPI to TypeScript client framework  
+✅ **Docker Infrastructure** — Postgres 16 + Redis 7 (docker-compose.yml, both healthy)  
+✅ **NestJS API** — Bootstrap with Swagger docs at `/api/docs`, health check, validation  
+✅ **Next.js PWA** — App Router, React 19, dark theme, manifest, PWA-ready  
+✅ **SDK Generator** — OpenAPI to TypeScript-Fetch client framework (working)  
 ✅ **GitHub Actions CI/CD** — Lint, type-check, test, build pipeline  
-✅ **Configuration Files** — tsconfig.base.json, .eslintrc.cjs, .prettierrc, .env setup
+✅ **Configuration Files** — tsconfig.base.json, .eslintrc.cjs, .prettierrc, .env setup  
+✅ **SDK Generation** — Generates TypeScript clients from OpenAPI spec (`npm run sdk:gen`)  
+✅ **Java 21 Configuration** — Installed at `C:\Program Files\Java\jdk-21`, in system PATH
 
 ### Getting Started After Level 0
 
 1. `npm install` — Install all dependencies
 2. `docker compose up -d` — Start Postgres + Redis
-3. `npm run dev:all` — Start API + Web servers
-4. Follow **LEVEL_0_VERIFICATION.md** for validation
+3. `npm run dev:all` — Start API + Web servers (both running smoothly)
+4. `npm run sdk:gen` — Generate SDK from OpenAPI spec (works directly, no PATH override needed)
+5. Follow **LEVEL_0_VERIFICATION.md** for validation
+
+### Infrastructure Status
+
+| Component       | Status | Details                                      |
+| --------------- | ------ | -------------------------------------------- |
+| Docker Postgres | ✅     | Postgres 16, healthy, port 5432              |
+| Docker Redis    | ✅     | Redis 7, healthy, port 6379                  |
+| NestJS API      | ✅     | Running on port 4000, Swagger at `/api/docs` |
+| Next.js Web     | ✅     | Running on port 3000, PWA manifest ready     |
+| SDK Generator   | ✅     | OpenAPI endpoint: `/api/docs-json`           |
+| Java 21         | ✅     | `C:\Program Files\Java\jdk-21`, in PATH      |
+| Quality Checks  | ✅     | All passing (type-check, lint, test, build)  |
 
 ### Next Phase
 
@@ -235,12 +252,22 @@ const n = parseInt('42');
 ## ⚙️ 6) Daily Workflow
 
 ```bash
-npm run dev:all           # PWA + API
-npm run sdk:dev           # Regenerate SDK after ANY API change
-npm run type-check && npm run lint && npm run test && npm run build
+npm run dev:all           # PWA + API (both running)
+npm run sdk:gen           # Regenerate SDK after ANY API change (works directly with Java 21)
+npm run quality:full      # Run ALL quality checks (type-check, lint, format, test, build)
 ```
 
 Quality loop: `format` → `lint:fix` → `type-check` → `test` → `build`
+
+**Individual checks (if needed):**
+
+```bash
+npm run type-check        # TypeScript strict mode validation
+npm run lint              # ESLint runtime-safety rules
+npm run format            # Prettier formatting check
+npm run test              # Unit & integration tests
+npm run build             # Build all workspaces
+```
 
 **Why SDK-first here:** The SDK formalizes all BitLoot operations and keeps 3rd-party details server-side only
 
