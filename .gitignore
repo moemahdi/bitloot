@@ -43,9 +43,6 @@ yarn-error.log*
 .DS_Store
 Thumbs.db
 
-# Generated
-packages/sdk/src/generated/
-
 # Docker volumes
 db_data/
 redis_data/
