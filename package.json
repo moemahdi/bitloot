@@ -1,0 +1,43 @@
+{
+  "name": "bitloot",
+  "version": "0.0.1",
+  "description": "Crypto-only e-commerce for instant delivery of digital goods",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:all": "concurrently -k \"npm:dev:api\" \"npm:dev:web\"",
+    "dev:api": "npm --workspace apps/api run start:dev",
+    "dev:web": "npm --workspace apps/web run dev",
+    "build": "npm --workspace apps/api run build && npm --workspace apps/web run build",
+    "type-check": "tsc -b",
+    "lint": "eslint . --ext .ts,.tsx",
+    "lint:fix": "eslint . --ext .ts,.tsx --fix",
+    "format": "prettier --check .",
+    "format:fix": "prettier --write .",
+    "test": "npm --workspace apps/api run test && npm --workspace apps/web run test",
+    "sdk:gen": "npm --workspace packages/sdk run generate",
+    "clean": "rm -rf apps/*/dist apps/*/node_modules packages/*/node_modules packages/sdk/src/generated",
+    "quality": "node scripts/quality-check.js",
+    "quality:type-check": "node scripts/quality-check.js type-check",
+    "quality:lint": "node scripts/quality-check.js lint",
+    "quality:format": "node scripts/quality-check.js format",
+    "quality:test": "node scripts/quality-check.js test",
+    "quality:build": "node scripts/quality-check.js build",
+    "quality:full": "node scripts/quality-check.js all --continue"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.15.0",
+    "@typescript-eslint/eslint-plugin": "^8.15.0",
+    "@typescript-eslint/parser": "^8.15.0",
+    "concurrently": "^9.0.1",
+    "eslint": "^9.15.0",
+    "eslint-config-prettier": "^9.1.0",
+    "globals": "^15.12.0",
+    "prettier": "^3.3.3",
+    "typescript": "^5.6.3",
+    "typescript-eslint": "^8.15.0"
+  }
+}

@@ -1,0 +1,10 @@
+generatorName: typescript-fetch
+inputSpec: http://localhost:4000/api-json
+output: ./src/generated
+additionalProperties:
+  supportsES6: true
+  withInterfaces: true
+  typescriptThreePlus: true
+  modelPropertyNaming: camelCase
+globalProperties:
+  skipFormModel: 'false'

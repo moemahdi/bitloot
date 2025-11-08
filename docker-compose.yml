@@ -1,0 +1,43 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: bitloot-db
+    environment:
+      POSTGRES_USER: bitloot
+      POSTGRES_PASSWORD: bitloot
+      POSTGRES_DB: bitloot
+    ports:
+      - '5432:5432'
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U bitloot']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - bitloot
+
+  redis:
+    image: redis:7-alpine
+    container_name: bitloot-redis
+    ports:
+      - '6379:6379'
+    command: ['redis-server', '--appendonly', 'yes']
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - bitloot
+
+volumes:
+  db_data:
+  redis_data:
+
+networks:
+  bitloot:
+    driver: bridge
