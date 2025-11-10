@@ -77,7 +77,7 @@ export class R2StorageClient {
     this.bucketName = config.bucketName ?? 'bitloot-keys';
 
     // Initialize S3Client pointing to R2
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
+     
     this.s3 = new S3Client({
       region: 'auto',
       endpoint: this.endpoint,
@@ -155,16 +155,16 @@ export class R2StorageClient {
         },
       };
 
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
+       
       const command = new PutObjectCommand(input);
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+       
       const response = await this.s3.send(command);
 
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+       
       const etag = response.ETag ?? 'unknown';
       this.logger.log(`✅ Key uploaded to R2: ${objectKey} (ETag: ${etag})`);
 
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+       
       return etag;
     } catch (error) {
       const message = this.extractErrorMessage(error);
@@ -220,13 +220,13 @@ export class R2StorageClient {
         ResponseContentDisposition: `attachment; filename="bitloot-key-${params.orderId}.json"`,
       };
 
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
+       
       const command = new GetObjectCommand(input);
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
+       
       const url = await getSignedUrl(this.s3, command, { expiresIn: expiresInSeconds });
 
       this.logger.log(`✅ Signed URL generated: ${objectKey}`);
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+       
       return url;
     } catch (error) {
       const message = this.extractErrorMessage(error);
@@ -261,13 +261,13 @@ export class R2StorageClient {
     try {
       this.logger.debug(`Deleting key from R2: ${objectKey}`);
 
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
+       
       const command = new DeleteObjectCommand({
         Bucket: this.bucketName,
         Key: objectKey,
       });
 
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+       
       await this.s3.send(command);
       this.logger.log(`✅ Key deleted from R2: ${objectKey}`);
     } catch (error) {
@@ -306,16 +306,16 @@ export class R2StorageClient {
     try {
       this.logger.debug(`Verifying key exists: ${objectKey}`);
 
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
+       
       const command = new GetObjectCommand({
         Bucket: this.bucketName,
         Key: objectKey,
       });
 
       // Try to get object metadata without downloading body
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+       
       const response = await this.s3.send(command);
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+       
       const exists = response.ContentLength !== undefined && response.ContentLength > 0;
 
       if (exists) {
@@ -358,7 +358,7 @@ export class R2StorageClient {
       this.logger.debug('Performing R2 health check...');
 
       // Try to list objects with max 1 result (minimal operation)
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
+       
       const command = new GetObjectCommand({
         Bucket: this.bucketName,
         Key: '.health-check',
@@ -366,7 +366,7 @@ export class R2StorageClient {
 
       // This will likely fail with 404, but that's OK - we're just checking connectivity
       try {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+         
         await this.s3.send(command);
       } catch (error) {
         const message = this.extractErrorMessage(error);

@@ -9,11 +9,11 @@ vi.mock('@aws-sdk/s3-request-presigner');
 
 describe('R2StorageClient', () => {
   let client: R2StorageClient;
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call
+   
   const s3Mock = mockClient(S3Client);
 
   beforeEach(() => {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+     
     s3Mock.reset();
 
     const mockConfig = {
@@ -27,7 +27,7 @@ describe('R2StorageClient', () => {
   });
 
   afterEach(() => {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+     
     s3Mock.reset();
   });
 

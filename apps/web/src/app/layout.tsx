@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 
-import './globals.css';
-import { Providers } from '../src/lib/providers';
+import '@/design-system/styles/globals.css';
+import { Providers } from '../lib/providers';
 
 export const metadata: Metadata = {
   title: 'BitLoot — Crypto E-Commerce',

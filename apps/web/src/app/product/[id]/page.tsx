@@ -1,4 +1,4 @@
-import CheckoutForm from '../../../src/features/checkout/CheckoutForm';
+import CheckoutForm from '@/features/checkout/CheckoutForm';
 
 export default function ProductPage(): React.ReactElement {
   return (

@@ -29,6 +29,7 @@ All documentation is located in root level (Level 0 Developer Workflow) and `doc
 
 - **`../docs/PRD.md`** — Product Requirements Document (feature specs, user flows)
 - **`../docs/project-description.md`** — High-level project overview & architecture
+- **[design-system.md](../docs//design-system.md)** — ✅ Shadcn/UI setup (46 components), Tailwind v4 config, Vercel theme (OKLch), dark mode
 - **`../docs/sdk.md`** — SDK design, structure, and generation workflow
 - **`../docs/nowpayments-API-documentation.md`** — NOWPayments integration guide & IPN specs
 - **`../docs/kinguin-API-documentation.md`** — Kinguin Sales Manager API (v1) full reference
@@ -139,40 +140,40 @@ SEE DOCS AT: docs\developer-workflow\01-Level
 
 | Phase | Documentation | Status | Details |
 |-------|---------------|--------|---------|
-| **Phase 1** | `../docs/developer-workflow/02-Level/PHASE1/01_LEVEL_2_PHASE1_PROGRESS.md` | ✅ Complete | Database foundation — Entities, migrations, indexes |
-| | `../docs/developer-workflow/02-Level/PHASE1/02_LEVEL_2_PHASE1_COMPLETE.md` | ✅ Complete | Orders, order_items, payment entities created |
-| | `../docs/developer-workflow/02-Level/PHASE1/03_LEVEL_2_PHASE1_SUMMARY.md` | ✅ Complete | 7/7 tasks, all migrations executed |
-| **Phase 2** | `../docs/developer-workflow/02-Level/PHASE2/01_LEVEL_2_PHASE2_PROGRESS.md` | ✅ Complete | Payment module integration (13 tasks) |
-| | `../docs/developer-workflow/02-Level/PHASE2/02_LEVEL_2_PHASE2_FINAL.md` | ✅ Complete | NOWPayments API integration, 39/39 tests passing |
-| **Phase 3** | `../docs/developer-workflow/02-Level/PHASE3/01_LEVEL_2_PHASE3_PLAN.md` | ✅ Complete | Webhook security architecture & design |
-| | `../docs/developer-workflow/02-Level/PHASE3/02_LEVEL_2_PHASE3_ARCHITECTURE.md` | ✅ Complete | HMAC-SHA512, idempotency patterns |
-| | `../docs/developer-workflow/02-Level/PHASE3/03_LEVEL_2_PHASE3_IMPLEMENTATION_CHECKLIST.md` | ✅ Complete | 8 webhook security tasks detailed |
-| | `../docs/developer-workflow/02-Level/PHASE3/04_LEVEL_2_PHASE3_QUICK_START.md` | ✅ Complete | Quick reference for webhook setup |
-| | `../docs/developer-workflow/02-Level/PHASE3/05_LEVEL_2_PHASE3_KICKOFF_SUMMARY.md` | ✅ Complete | Phase 3 kickoff overview |
-| | `../docs/developer-workflow/02-Level/PHASE3/06_LEVEL_2_PHASE3_PROGRESS_1.md` | ✅ Complete | Initial implementation progress |
-| | `../docs/developer-workflow/02-Level/PHASE3/07_LEVEL_2_PHASE3_PROGRESS_2.md` | ✅ Complete | Final implementation progress |
-| | `../docs/developer-workflow/02-Level/PHASE3/08_LEVEL_2_PHASE3_COMPLETE.md` | ✅ Complete | Phase 3 completion summary |
-| | `../docs/developer-workflow/02-Level/PHASE3/09_LEVEL_2_PHASE3_CODE_REVIEW.md` | ✅ Complete | Code review findings & sign-off |
-| **Phase 4** | `../docs/developer-workflow/02-Level/PHASE4/01_L2_PHASE_4_TEST_COMPLETION.md` | ✅ Complete | Test suite execution (39 tests Phase 2) |
-| | `../docs/developer-workflow/02-Level/PHASE4/02_L2_PHASE_4_TASK_8_ASYNC_ENDPOINTS.md` | ✅ Complete | Async payment endpoints implementation |
-| | `../docs/developer-workflow/02-Level/PHASE4/03_L2_PHASE_4_TASK_9_FRONTEND_POLLING.md` | ✅ Complete | Frontend real-time status polling |
-| | `../docs/developer-workflow/02-Level/PHASE4/04_L2_PHASE_4_TASK_10_QUALITY_GATES.md` | ✅ Complete | Quality gates (lint, type-check, test, build) |
-| | `../docs/developer-workflow/02-Level/PHASE4/05_L2_PHASE4_COMPLETE.md` | ✅ Complete | Phase 4 completion summary |
-| **Phase 5** | `../docs/developer-workflow/02-Level/PHASE5/01_L2_PHASE5_START.md` | ✅ Complete | E2E testing & QA plan kickoff |
-| | `../docs/developer-workflow/02-Level/PHASE5/02_L2_PHASE5_TASK2_COMPLETE.md` | ✅ Complete | Admin payment dashboard completed |
-| | `../docs/developer-workflow/02-Level/PHASE5/03_L2_PHASE5_TASK3_COMPLETE.md` | ✅ Complete | Webhook log viewer completed |
-| | `../docs/developer-workflow/02-Level/PHASE5/04_L2_PHASE5_PROGRESS.md` | ✅ Complete | Mid-phase progress checkpoint |
-| | `../docs/developer-workflow/02-Level/PHASE5/04_L2_PHASE5_TASK4_COMPLETE.md` | ✅ Complete | Reports page completed |
-| | `../docs/developer-workflow/02-Level/PHASE5/05_L2_PHASE5_TASK5_COMPLETE.md` | ✅ Complete | Ngrok tunneling setup completed |
-| | `../docs/developer-workflow/02-Level/PHASE5/06_L2_PHASE5_TASK6_COMPLETE.md` | ✅ Complete | E2E IPN simulation completed |
-| | `../docs/developer-workflow/02-Level/PHASE5/07_L2_PHASE5_TASK7_NGROK_SETUP_COMPLETE.md` | ✅ Complete | Ngrok production integration tested |
-| | `../docs/developer-workflow/02-Level/PHASE5/08_L2_PHASE5_TASK8_E2E_TESTING_GUIDE.md` | ✅ Complete | Complete E2E testing guide & checklist |
-| | `../docs/developer-workflow/02-Level/PHASE5/09_L2_PHASE5_OTHER_TASKS_COMPLETE.md` | ✅ Complete | Frontend & misc tasks finalized |
-| | `../docs/developer-workflow/02-Level/PHASE5/10_L2_PHASE5_PHASE5_COMPLETE.md` | ✅ Complete | Phase 5 final completion summary |
+| **[01_LEVEL_2_PHASE1_PROGRESS.md]** | ✅ Complete | Database foundation — Entities, migrations, indexes |
+| | **[02_LEVEL_2_PHASE1_COMPLETE.md](../docs/developer-workflow/02-Level/PHASE1/02_LEVEL_2_PHASE1_COMPLETE.md)** | ✅ Complete | Orders, order_items, payment entities created |
+| | **[03_LEVEL_2_PHASE1_SUMMARY.md]** | ✅ Complete | 7/7 tasks, all migrations executed |
+| **Phase 2** | **[01_LEVEL_2_PHASE2_PROGRESS.md]** | ✅ Complete | Payment module integration (13 tasks) |
+| | **[02_LEVEL_2_PHASE2_FINAL.md](../docs/developer-workflow/02-Level/PHASE2/02_LEVEL_2_PHASE2_FINAL.md)** | ✅ Complete | NOWPayments API integration, 39/39 tests passing |
+| **Phase 3** | **[01_LEVEL_2_PHASE3_PLAN.md]** | ✅ Complete | Webhook security architecture & design |
+| | **[02_LEVEL_2_PHASE3_ARCHITECTURE.md](../docs/developer-workflow/02-Level/PHASE3/02_LEVEL_2_PHASE3_ARCHITECTURE.md)** | ✅ Complete | HMAC-SHA512, idempotency patterns |
+| | **[03_LEVEL_2_PHASE3_IMPLEMENTATION_CHECKLIST.md] | ✅ Complete | 8 webhook security tasks detailed |
+| | **[04_LEVEL_2_PHASE3_QUICK_START.md]** | ✅ Complete | Quick reference for webhook setup |
+| | **[05_LEVEL_2_PHASE3_KICKOFF_SUMMARY.md]** | ✅ Complete | Phase 3 kickoff overview |
+| | **[06_LEVEL_2_PHASE3_PROGRESS_1.md]** | ✅ Complete | Initial implementation progress |
+| | **[07_LEVEL_2_PHASE3_PROGRESS_2.md]** | ✅ Complete | Final implementation progress |
+| | **[08_LEVEL_2_PHASE3_COMPLETE.md](../docs/developer-workflow/02-Level/PHASE3/08_LEVEL_2_PHASE3_COMPLETE.md)** | ✅ Complete | Phase 3 completion summary |
+| | **[09_LEVEL_2_PHASE3_CODE_REVIEW.md](../docs/developer-workflow/02-Level/PHASE3/09_LEVEL_2_PHASE3_CODE_REVIEW.md)** | ✅ Complete | Code review findings & sign-off |
+| **Phase 4** | **[01_L2_PHASE_4_TEST_COMPLETION.md]** | ✅ Complete | Test suite execution (39 tests Phase 2) |
+| | **[02_L2_PHASE_4_TASK_8_ASYNC_ENDPOINTS.md]** | ✅ Complete | Async payment endpoints implementation |
+| | **[03_L2_PHASE_4_TASK_9_FRONTEND_POLLING.md]** | ✅ Complete | Frontend real-time status polling |
+| | **[04_L2_PHASE_4_TASK_10_QUALITY_GATES.md]** | ✅ Complete | Quality gates (lint, type-check, test, build) |
+| | **[05_L2_PHASE4_COMPLETE.md](../docs/developer-workflow/02-Level/PHASE4/05_L2_PHASE4_COMPLETE.md)** | ✅ Complete | Phase 4 completion summary |
+| **Phase 5** | **[01_L2_PHASE5_START.md]** | ✅ Complete | E2E testing & QA plan kickoff |
+| | **[02_L2_PHASE5_TASK2_COMPLETE.md]** | ✅ Complete | Admin payment dashboard completed |
+| | **[03_L2_PHASE5_TASK3_COMPLETE.md]** | ✅ Complete | Webhook log viewer completed |
+| | **[04_L2_PHASE5_PROGRESS.md]** | ✅ Complete | Mid-phase progress checkpoint |
+| | **[04_L2_PHASE5_TASK4_COMPLETE.md]** | ✅ Complete | Reports page completed |
+| | **[05_L2_PHASE5_TASK5_COMPLETE.md]** | ✅ Complete | Ngrok tunneling setup completed |
+| | **[06_L2_PHASE5_TASK6_COMPLETE.md]** | ✅ Complete | E2E IPN simulation completed |
+| | **[07_L2_PHASE5_TASK7_NGROK_SETUP_COMPLETE.md]** | ✅ Complete | Ngrok production integration tested |
+| | **[08_L2_PHASE5_TASK8_E2E_TESTING_GUIDE.md]** | ✅ Complete | Complete E2E testing guide & checklist |
+| | **[09_L2_PHASE5_OTHER_TASKS_COMPLETE.md](../docs/developer-workflow/02-Level/PHASE5/09_L2_PHASE5_OTHER_TASKS_COMPLETE.md)** | ✅ Complete | Frontend & misc tasks finalized |
+| | **[10_L2_PHASE5_PHASE5_COMPLETE.md](../docs/developer-workflow/02-Level/PHASE5/10_L2_PHASE5_PHASE5_COMPLETE.md)** | ✅ Complete | Phase 5 final completion summary |
 
 #### Master Completion Status
 
-- **`LEVEL_2_FINAL_COMPLETION_STATUS.md`** — Executive summary (56/56 tasks, all success criteria met)
+- **[LEVEL_2_FINAL_COMPLETION_STATUS.md](../docs//developer-workflow//02-Level/LEVEL_2_FINAL_COMPLETION_STATUS.md)** | ✅  — Executive summary (56/56 tasks, all success criteria met)
 
 ### Level 2 Achievement Overview
 
