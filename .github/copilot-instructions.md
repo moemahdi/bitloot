@@ -29,7 +29,7 @@ All documentation is located in root level (Level 0 Developer Workflow) and `doc
 
 - **`../docs/PRD.md`** — Product Requirements Document (feature specs, user flows)
 - **`../docs/project-description.md`** — High-level project overview & architecture
-- **[design-system.md](../docs//design-system.md)** — ✅ Shadcn/UI setup (46 components), Tailwind v4 config, Vercel theme (OKLch), dark mode
+- **[design-system.md] — ✅ Shadcn/UI setup (46 components), Tailwind v4 config, Vercel theme (OKLch), dark mode
 - **`../docs/sdk.md`** — SDK design, structure, and generation workflow
 - **`../docs/nowpayments-API-documentation.md`** — NOWPayments integration guide & IPN specs
 - **`../docs/kinguin-API-documentation.md`** — Kinguin Sales Manager API (v1) full reference
@@ -153,7 +153,7 @@ SEE DOCS AT: docs\developer-workflow\01-Level
 |                                     | **[06_LEVEL_2_PHASE3_PROGRESS_1.md]**                                                                                       | ✅ Complete                                         | Initial implementation progress                  |
 |                                     | **[07_LEVEL_2_PHASE3_PROGRESS_2.md]**                                                                                       | ✅ Complete                                         | Final implementation progress                    |
 |                                     | **[08_LEVEL_2_PHASE3_COMPLETE.md](../docs/developer-workflow/02-Level/PHASE3/08_LEVEL_2_PHASE3_COMPLETE.md)**               | ✅ Complete                                         | Phase 3 completion summary                       |
-|                                     | **[09_LEVEL_2_PHASE3_CODE_REVIEW.md](../docs/developer-workflow/02-Level/PHASE3/09_LEVEL_2_PHASE3_CODE_REVIEW.md)**         | ✅ Complete                                         | Code review findings & sign-off                  |
+|                                     | **[09_LEVEL_2_PHASE3_CODE_REVIEW.md]**         | ✅ Complete                                         | Code review findings & sign-off                  |
 | **Phase 4**                         | **[01_L2_PHASE_4_TEST_COMPLETION.md]**                                                                                      | ✅ Complete                                         | Test suite execution (39 tests Phase 2)          |
 |                                     | **[02_L2_PHASE_4_TASK_8_ASYNC_ENDPOINTS.md]**                                                                               | ✅ Complete                                         | Async payment endpoints implementation           |
 |                                     | **[03_L2_PHASE_4_TASK_9_FRONTEND_POLLING.md]**                                                                              | ✅ Complete                                         | Frontend real-time status polling                |
@@ -169,7 +169,7 @@ SEE DOCS AT: docs\developer-workflow\01-Level
 |                                     | **[07_L2_PHASE5_TASK7_NGROK_SETUP_COMPLETE.md]**                                                                            | ✅ Complete                                         | Ngrok production integration tested              |
 |                                     | **[08_L2_PHASE5_TASK8_E2E_TESTING_GUIDE.md]**                                                                               | ✅ Complete                                         | Complete E2E testing guide & checklist           |
 |                                     | **[09_L2_PHASE5_OTHER_TASKS_COMPLETE.md](../docs/developer-workflow/02-Level/PHASE5/09_L2_PHASE5_OTHER_TASKS_COMPLETE.md)** | ✅ Complete                                         | Frontend & misc tasks finalized                  |
-|                                     | **[10_L2_PHASE5_PHASE5_COMPLETE.md](../docs/developer-workflow/02-Level/PHASE5/10_L2_PHASE5_PHASE5_COMPLETE.md)**           | ✅ Complete                                         | Phase 5 final completion summary                 |
+|                                     | **[10_L2_PHASE5_PHASE5_COMPLETE.md]**           | ✅ Complete                                         | Phase 5 final completion summary                 |
 
 #### Master Completion Status
 

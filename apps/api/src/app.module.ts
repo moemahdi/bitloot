@@ -15,9 +15,10 @@ import { StorageService } from './modules/storage/storage.service';
 import { EmailsService } from './modules/emails/emails.service';
 import { NowPaymentsClient } from './modules/payments/nowpayments.client';
 import { WebhooksModule } from './modules/webhooks/webhooks.module';
+import { AdminModule } from './modules/admin/admin.module';
 import { BullQueues, PaymentsQueue, FulfillmentQueue } from './jobs/queues';
 import { PaymentProcessorService } from './jobs/payment-processor.service';
-import { FulfillmentProcessorService } from './jobs/fulfillment-processor.service';
+import { FulfillmentProcessor } from './jobs/fulfillment.processor';
 
 @Module({
   imports: [
@@ -45,6 +46,7 @@ import { FulfillmentProcessorService } from './jobs/fulfillment-processor.servic
     FulfillmentQueue,
     // Feature modules
     WebhooksModule,
+    AdminModule,
   ],
   controllers: [HealthController, OrdersController, PaymentsController],
   providers: [
@@ -64,7 +66,7 @@ import { FulfillmentProcessorService } from './jobs/fulfillment-processor.servic
     EmailsService,
     // BullMQ Processors (must be registered as providers to be instantiated)
     PaymentProcessorService,
-    FulfillmentProcessorService,
+    FulfillmentProcessor,
   ],
 })
 export class AppModule {}
