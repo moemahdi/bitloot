@@ -4,16 +4,103 @@ All URIs are relative to *http://localhost*
 
 | Method | HTTP request | Description |
 |------------- | ------------- | -------------|
-| [**paymentsControllerCreate**](PaymentsApi.md#paymentscontrollercreate) | **POST** /payments/create | Create a fake payment |
-| [**paymentsControllerIpn**](PaymentsApi.md#paymentscontrolleripn) | **POST** /payments/ipn | Fake IPN webhook to trigger fulfillment |
+| [**paymentsControllerAdminListPayments**](PaymentsApi.md#paymentscontrolleradminlistpayments) | **GET** /payments/admin/list | [ADMIN] List all payments with pagination |
+| [**paymentsControllerCreate**](PaymentsApi.md#paymentscontrollercreate) | **POST** /payments/create | Create payment invoice |
+| [**paymentsControllerGetJobStatus**](PaymentsApi.md#paymentscontrollergetjobstatus) | **GET** /payments/jobs/{jobId}/status | Get payment job status |
+| [**paymentsControllerIpn**](PaymentsApi.md#paymentscontrolleripn) | **POST** /payments/ipn | NOWPayments IPN webhook |
 
+
+
+## paymentsControllerAdminListPayments
+
+> PaymentsControllerAdminListPayments200Response paymentsControllerAdminListPayments(page, limit, status, provider, orderId)
+
+[ADMIN] List all payments with pagination
+
+Requires admin role in JWT token
+
+### Example
+
+```ts
+import {
+  Configuration,
+  PaymentsApi,
+} from '';
+import type { PaymentsControllerAdminListPaymentsRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const config = new Configuration({ 
+    // Configure HTTP bearer authorization: JWT-auth
+    accessToken: "YOUR BEARER TOKEN",
+  });
+  const api = new PaymentsApi(config);
+
+  const body = {
+    // string
+    page: page_example,
+    // string
+    limit: limit_example,
+    // string
+    status: status_example,
+    // string
+    provider: provider_example,
+    // string
+    orderId: orderId_example,
+  } satisfies PaymentsControllerAdminListPaymentsRequest;
+
+  try {
+    const data = await api.paymentsControllerAdminListPayments(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **page** | `string` |  | [Defaults to `undefined`] |
+| **limit** | `string` |  | [Defaults to `undefined`] |
+| **status** | `string` |  | [Defaults to `undefined`] |
+| **provider** | `string` |  | [Defaults to `undefined`] |
+| **orderId** | `string` |  | [Defaults to `undefined`] |
+
+### Return type
+
+[**PaymentsControllerAdminListPayments200Response**](PaymentsControllerAdminListPayments200Response.md)
+
+### Authorization
+
+[JWT-auth](../README.md#JWT-auth)
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Paginated payments list |  -  |
+| **401** | Unauthorized or missing JWT |  -  |
+| **403** | Forbidden: user is not admin |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
 
 ## paymentsControllerCreate
 
 > PaymentResponseDto paymentsControllerCreate(createPaymentDto)
 
-Create a fake payment
+Create payment invoice
 
 ### Example
 
@@ -74,11 +161,79 @@ No authorization required
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
 
+## paymentsControllerGetJobStatus
+
+> paymentsControllerGetJobStatus(jobId)
+
+Get payment job status
+
+### Example
+
+```ts
+import {
+  Configuration,
+  PaymentsApi,
+} from '';
+import type { PaymentsControllerGetJobStatusRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new PaymentsApi();
+
+  const body = {
+    // string
+    jobId: jobId_example,
+  } satisfies PaymentsControllerGetJobStatusRequest;
+
+  try {
+    const data = await api.paymentsControllerGetJobStatus(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **jobId** | `string` |  | [Defaults to `undefined`] |
+
+### Return type
+
+`void` (Empty response body)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: Not defined
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Job status with progress |  -  |
+| **404** | Job not found |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
 ## paymentsControllerIpn
 
 > IpnResponseDto paymentsControllerIpn(ipnRequestDto)
 
-Fake IPN webhook to trigger fulfillment
+NOWPayments IPN webhook
+
+Receive payment status updates from NOWPayments. Signature verified with HMAC-SHA512.
 
 ### Example
 
@@ -134,7 +289,9 @@ No authorization required
 ### HTTP response details
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
-| **200** |  |  -  |
+| **200** | Webhook processed successfully |  -  |
+| **400** | Invalid request body |  -  |
+| **401** | Invalid HMAC signature |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 

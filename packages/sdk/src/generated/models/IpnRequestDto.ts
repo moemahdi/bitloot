@@ -20,17 +20,41 @@ import { mapValues } from '../runtime';
  */
 export interface IpnRequestDto {
     /**
-     * 
+     * Order ID that maps to NOWPayments invoice order_id
      * @type {string}
      * @memberof IpnRequestDto
      */
     orderId: string;
     /**
-     * 
+     * NOWPayments external payment ID (same as invoiceId)
      * @type {string}
      * @memberof IpnRequestDto
      */
     externalId: string;
+    /**
+     * Payment status from NOWPayments (waiting, confirming, finished, failed, etc)
+     * @type {string}
+     * @memberof IpnRequestDto
+     */
+    status: string;
+    /**
+     * Amount paid in crypto
+     * @type {number}
+     * @memberof IpnRequestDto
+     */
+    payAmount?: number;
+    /**
+     * Cryptocurrency code
+     * @type {string}
+     * @memberof IpnRequestDto
+     */
+    payCurrency?: string;
+    /**
+     * Number of confirmations
+     * @type {number}
+     * @memberof IpnRequestDto
+     */
+    confirmations?: number;
 }
 
 /**
@@ -39,6 +63,7 @@ export interface IpnRequestDto {
 export function instanceOfIpnRequestDto(value: object): value is IpnRequestDto {
     if (!('orderId' in value) || value['orderId'] === undefined) return false;
     if (!('externalId' in value) || value['externalId'] === undefined) return false;
+    if (!('status' in value) || value['status'] === undefined) return false;
     return true;
 }
 
@@ -54,6 +79,10 @@ export function IpnRequestDtoFromJSONTyped(json: any, ignoreDiscriminator: boole
         
         'orderId': json['orderId'],
         'externalId': json['externalId'],
+        'status': json['status'],
+        'payAmount': json['payAmount'] == null ? undefined : json['payAmount'],
+        'payCurrency': json['payCurrency'] == null ? undefined : json['payCurrency'],
+        'confirmations': json['confirmations'] == null ? undefined : json['confirmations'],
     };
 }
 
@@ -70,6 +99,10 @@ export function IpnRequestDtoToJSONTyped(value?: IpnRequestDto | null, ignoreDis
         
         'orderId': value['orderId'],
         'externalId': value['externalId'],
+        'status': value['status'],
+        'payAmount': value['payAmount'],
+        'payCurrency': value['payCurrency'],
+        'confirmations': value['confirmations'],
     };
 }
 

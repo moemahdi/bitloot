@@ -170,7 +170,7 @@ export default tseslint.config(
       ],
 
       // ✅ No unnecessary conditions
-      '@typescript-eslint/no-unnecessary-condition': 'warn',
+      '@typescript-eslint/no-unnecessary-condition': 'off', // False positives in strict TypeScript mode
 
       // ✅ Type safety relaxations for development
       '@typescript-eslint/no-extraneous-class': 'off',

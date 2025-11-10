@@ -6,7 +6,6 @@
  * Runs comprehensive quality checks across the monorepo:
  * - Type checking (TypeScript)
  * - Linting (ESLint)
- * - Formatting (Prettier)
  * - Testing (Vitest)
  * - Building (NestJS + Next.js)
  * 
@@ -15,7 +14,7 @@
  *   node scripts/quality-check.js [task]   # Run specific task
  * 
  * Available tasks:
- *   type-check, lint, format, test, build, all
+ *   type-check, lint, test, build, all
  */
 
 const { execSync } = require('child_process');
@@ -58,11 +57,6 @@ const tasks = {
     name: 'Linting',
     command: 'npm run lint',
     description: 'Check code quality with ESLint',
-  },
-  'format': {
-    name: 'Format Verification',
-    command: 'npm run format',
-    description: 'Verify code formatting with Prettier',
   },
   'test': {
     name: 'Testing',

@@ -59,11 +59,11 @@ bitloot/
 │  │  │  └─ main.ts
 │  │  └─ package.json
 │  │
-│  └─ web/                    # Next.js 16 PWA frontend
-│     ├─ app/                 # Routes (thin layer only)
-│     ├─ features/            # Feature components & hooks
-│     ├─ public/              # Static assets & manifest
-│     └─ package.json
+│  └─ web/src/                # Next.js 16 PWA frontend
+│       ├─ app/               # Routes (thin layer only)
+│       ├─ features/          # Feature components & hooks
+│       ├─ public/            # Static assets & manifest
+│       └─ package.json
 │
 ├─ packages/
 │  └─ sdk/                    # Generated TypeScript SDK (from OpenAPI)

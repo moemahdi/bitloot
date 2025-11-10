@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, BadRequestException, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Order } from './order.entity';
@@ -7,6 +7,8 @@ import { CreateOrderDto, OrderResponseDto, OrderItemResponseDto } from './dto/cr
 
 @Injectable()
 export class OrdersService {
+  private readonly logger = new Logger(OrdersService.name);
+
   constructor(
     @InjectRepository(Order) private readonly ordersRepo: Repository<Order>,
     @InjectRepository(OrderItem) private readonly itemsRepo: Repository<OrderItem>,
@@ -66,6 +68,122 @@ export class OrdersService {
       relations: ['items'],
     });
     return this.mapToResponse(order, order.items);
+  }
+
+  /**
+   * Mark order as waiting for payment confirmation
+   * Transition: created → waiting
+   * Called when NOWPayments confirms payment is being received
+   */
+  async markWaiting(orderId: string): Promise<Order> {
+    const order = await this.ordersRepo.findOne({ where: { id: orderId }, relations: ['items'] });
+    if (order === null) throw new NotFoundException(`Order ${orderId} not found`);
+
+    if (order.status !== 'created') {
+      throw new BadRequestException(
+        `Cannot mark as waiting: order status is ${order.status}, expected created`,
+      );
+    }
+
+    order.status = 'waiting';
+    this.logger.log(`Order ${orderId} marked as waiting (payment in progress)`);
+    return this.ordersRepo.save(order);
+  }
+
+  /**
+   * Mark order as confirming blockchain confirmations
+   * Transition: waiting → confirming
+   * Called when NOWPayments reports payment is confirming
+   */
+  async markConfirming(orderId: string): Promise<Order> {
+    const order = await this.ordersRepo.findOne({ where: { id: orderId }, relations: ['items'] });
+    if (order === null) throw new NotFoundException(`Order ${orderId} not found`);
+
+    if (order.status !== 'waiting' && order.status !== 'created') {
+      throw new BadRequestException(`Cannot mark as confirming: order status is ${order.status}`);
+    }
+
+    order.status = 'confirming';
+    this.logger.log(`Order ${orderId} marked as confirming (awaiting blockchain confirmations)`);
+    return this.ordersRepo.save(order);
+  }
+
+  /**
+   * Mark order as underpaid (non-refundable)
+   * Transition: * → underpaid (terminal)
+   * Called when NOWPayments reports underpayment
+   */
+  async markUnderpaid(orderId: string): Promise<Order> {
+    const order = await this.ordersRepo.findOne({ where: { id: orderId }, relations: ['items'] });
+    if (order === null) throw new NotFoundException(`Order ${orderId} not found`);
+
+    if (order.status === 'fulfilled' || order.status === 'paid') {
+      throw new BadRequestException(
+        `Cannot mark as underpaid: order is already in terminal state ${order.status}`,
+      );
+    }
+
+    order.status = 'underpaid';
+    this.logger.warn(
+      `Order ${orderId} marked as underpaid (NON-REFUNDABLE, insufficient payment received)`,
+    );
+    return this.ordersRepo.save(order);
+  }
+
+  /**
+   * Mark order as failed
+   * Transition: * → failed (terminal)
+   * Called when NOWPayments reports payment failure
+   */
+  async markFailed(orderId: string, reason?: string): Promise<Order> {
+    const order = await this.ordersRepo.findOne({ where: { id: orderId }, relations: ['items'] });
+    if (order === null) throw new NotFoundException(`Order ${orderId} not found`);
+
+    if (order.status === 'fulfilled') {
+      throw new BadRequestException(`Cannot mark as failed: order is already fulfilled`);
+    }
+
+    order.status = 'failed';
+    this.logger.error(`Order ${orderId} marked as failed. Reason: ${reason ?? 'unknown'}`);
+    return this.ordersRepo.save(order);
+  }
+
+  /**
+   * Mark order as fulfilled (keys delivered)
+   * Transition: paid → fulfilled (terminal)
+   * Called after keys are generated and stored in R2
+   */
+  async markFulfilled(orderId: string): Promise<Order> {
+    const order = await this.ordersRepo.findOne({ where: { id: orderId }, relations: ['items'] });
+    if (order === null) throw new NotFoundException(`Order ${orderId} not found`);
+
+    if (order.status !== 'paid') {
+      throw new BadRequestException(
+        `Cannot fulfill: order status is ${order.status}, expected paid`,
+      );
+    }
+
+    order.status = 'fulfilled';
+    this.logger.log(`Order ${orderId} marked as fulfilled (keys delivered)`);
+    return this.ordersRepo.save(order);
+  }
+
+  /**
+   * Check if order can transition to a given status
+   * Validates state machine transitions
+   */
+  isValidTransition(fromStatus: string, toStatus: string): boolean {
+    const validTransitions: Record<string, string[]> = {
+      created: ['waiting', 'confirming', 'paid', 'failed'],
+      waiting: ['confirming', 'paid', 'underpaid', 'failed'],
+      confirming: ['paid', 'underpaid', 'failed'],
+      paid: ['fulfilled', 'failed'],
+      underpaid: [], // terminal
+      failed: [], // terminal
+      fulfilled: [], // terminal
+    };
+
+    return (validTransitions[fromStatus] ?? []).includes(toStatus);
   }
 
   private mapToResponse(order: Order, items: OrderItem[]): OrderResponseDto {

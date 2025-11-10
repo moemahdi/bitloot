@@ -7,6 +7,7 @@
 Name | Type
 ------------ | -------------
 `ok` | boolean
+`message` | string
 
 ## Example
 
@@ -15,7 +16,8 @@ import type { IpnResponseDto } from ''
 
 // TODO: Update the object below with actual values
 const example = {
-  "ok": null,
+  "ok": true,
+  "message": Payment processed,
 } satisfies IpnResponseDto
 
 console.log(example)

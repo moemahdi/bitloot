@@ -8,6 +8,10 @@ Name | Type
 ------------ | -------------
 `orderId` | string
 `externalId` | string
+`status` | string
+`payAmount` | number
+`payCurrency` | string
+`confirmations` | number
 
 ## Example
 
@@ -16,8 +20,12 @@ import type { IpnRequestDto } from ''
 
 // TODO: Update the object below with actual values
 const example = {
-  "orderId": null,
-  "externalId": null,
+  "orderId": 550e8400-e29b-41d4-a716-446655440000,
+  "externalId": fake_550e8400-...,
+  "status": finished,
+  "payAmount": 0.001234,
+  "payCurrency": btc,
+  "confirmations": 0,
 } satisfies IpnRequestDto
 
 console.log(example)

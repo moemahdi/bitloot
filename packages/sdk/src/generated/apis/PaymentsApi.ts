@@ -19,6 +19,7 @@ import type {
   IpnRequestDto,
   IpnResponseDto,
   PaymentResponseDto,
+  PaymentsControllerAdminListPayments200Response,
 } from '../models/index';
 import {
     CreatePaymentDtoFromJSON,
@@ -29,10 +30,24 @@ import {
     IpnResponseDtoToJSON,
     PaymentResponseDtoFromJSON,
     PaymentResponseDtoToJSON,
+    PaymentsControllerAdminListPayments200ResponseFromJSON,
+    PaymentsControllerAdminListPayments200ResponseToJSON,
 } from '../models/index';
+
+export interface PaymentsControllerAdminListPaymentsRequest {
+    page: string;
+    limit: string;
+    status: string;
+    provider: string;
+    orderId: string;
+}
 
 export interface PaymentsControllerCreateRequest {
     createPaymentDto: CreatePaymentDto;
+}
+
+export interface PaymentsControllerGetJobStatusRequest {
+    jobId: string;
 }
 
 export interface PaymentsControllerIpnRequest {
@@ -45,7 +60,101 @@ export interface PaymentsControllerIpnRequest {
 export class PaymentsApi extends runtime.BaseAPI {
 
     /**
-     * Create a fake payment
+     * Requires admin role in JWT token
+     * [ADMIN] List all payments with pagination
+     */
+    async paymentsControllerAdminListPaymentsRaw(requestParameters: PaymentsControllerAdminListPaymentsRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<PaymentsControllerAdminListPayments200Response>> {
+        if (requestParameters['page'] == null) {
+            throw new runtime.RequiredError(
+                'page',
+                'Required parameter "page" was null or undefined when calling paymentsControllerAdminListPayments().'
+            );
+        }
+
+        if (requestParameters['limit'] == null) {
+            throw new runtime.RequiredError(
+                'limit',
+                'Required parameter "limit" was null or undefined when calling paymentsControllerAdminListPayments().'
+            );
+        }
+
+        if (requestParameters['status'] == null) {
+            throw new runtime.RequiredError(
+                'status',
+                'Required parameter "status" was null or undefined when calling paymentsControllerAdminListPayments().'
+            );
+        }
+
+        if (requestParameters['provider'] == null) {
+            throw new runtime.RequiredError(
+                'provider',
+                'Required parameter "provider" was null or undefined when calling paymentsControllerAdminListPayments().'
+            );
+        }
+
+        if (requestParameters['orderId'] == null) {
+            throw new runtime.RequiredError(
+                'orderId',
+                'Required parameter "orderId" was null or undefined when calling paymentsControllerAdminListPayments().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        if (requestParameters['page'] != null) {
+            queryParameters['page'] = requestParameters['page'];
+        }
+
+        if (requestParameters['limit'] != null) {
+            queryParameters['limit'] = requestParameters['limit'];
+        }
+
+        if (requestParameters['status'] != null) {
+            queryParameters['status'] = requestParameters['status'];
+        }
+
+        if (requestParameters['provider'] != null) {
+            queryParameters['provider'] = requestParameters['provider'];
+        }
+
+        if (requestParameters['orderId'] != null) {
+            queryParameters['orderId'] = requestParameters['orderId'];
+        }
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("JWT-auth", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/payments/admin/list`;
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => PaymentsControllerAdminListPayments200ResponseFromJSON(jsonValue));
+    }
+
+    /**
+     * Requires admin role in JWT token
+     * [ADMIN] List all payments with pagination
+     */
+    async paymentsControllerAdminListPayments(requestParameters: PaymentsControllerAdminListPaymentsRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PaymentsControllerAdminListPayments200Response> {
+        const response = await this.paymentsControllerAdminListPaymentsRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Create payment invoice
      */
     async paymentsControllerCreateRaw(requestParameters: PaymentsControllerCreateRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<PaymentResponseDto>> {
         if (requestParameters['createPaymentDto'] == null) {
@@ -76,7 +185,7 @@ export class PaymentsApi extends runtime.BaseAPI {
     }
 
     /**
-     * Create a fake payment
+     * Create payment invoice
      */
     async paymentsControllerCreate(requestParameters: PaymentsControllerCreateRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PaymentResponseDto> {
         const response = await this.paymentsControllerCreateRaw(requestParameters, initOverrides);
@@ -84,7 +193,44 @@ export class PaymentsApi extends runtime.BaseAPI {
     }
 
     /**
-     * Fake IPN webhook to trigger fulfillment
+     * Get payment job status
+     */
+    async paymentsControllerGetJobStatusRaw(requestParameters: PaymentsControllerGetJobStatusRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<void>> {
+        if (requestParameters['jobId'] == null) {
+            throw new runtime.RequiredError(
+                'jobId',
+                'Required parameter "jobId" was null or undefined when calling paymentsControllerGetJobStatus().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/payments/jobs/{jobId}/status`;
+        urlPath = urlPath.replace(`{${"jobId"}}`, encodeURIComponent(String(requestParameters['jobId'])));
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.VoidApiResponse(response);
+    }
+
+    /**
+     * Get payment job status
+     */
+    async paymentsControllerGetJobStatus(requestParameters: PaymentsControllerGetJobStatusRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<void> {
+        await this.paymentsControllerGetJobStatusRaw(requestParameters, initOverrides);
+    }
+
+    /**
+     * Receive payment status updates from NOWPayments. Signature verified with HMAC-SHA512.
+     * NOWPayments IPN webhook
      */
     async paymentsControllerIpnRaw(requestParameters: PaymentsControllerIpnRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<IpnResponseDto>> {
         if (requestParameters['ipnRequestDto'] == null) {
@@ -115,7 +261,8 @@ export class PaymentsApi extends runtime.BaseAPI {
     }
 
     /**
-     * Fake IPN webhook to trigger fulfillment
+     * Receive payment status updates from NOWPayments. Signature verified with HMAC-SHA512.
+     * NOWPayments IPN webhook
      */
     async paymentsControllerIpn(requestParameters: PaymentsControllerIpnRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<IpnResponseDto> {
         const response = await this.paymentsControllerIpnRaw(requestParameters, initOverrides);

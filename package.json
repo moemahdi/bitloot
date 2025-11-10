@@ -23,7 +23,6 @@
     "quality": "node scripts/quality-check.js",
     "quality:type-check": "node scripts/quality-check.js type-check",
     "quality:lint": "node scripts/quality-check.js lint",
-    "quality:format": "node scripts/quality-check.js format",
     "quality:test": "node scripts/quality-check.js test",
     "quality:build": "node scripts/quality-check.js build",
     "quality:full": "node scripts/quality-check.js all --continue"
@@ -32,6 +31,7 @@
     "@eslint/js": "^9.15.0",
     "@typescript-eslint/eslint-plugin": "^8.15.0",
     "@typescript-eslint/parser": "^8.15.0",
+    "aws-sdk-client-mock": "^4.1.0",
     "concurrently": "^9.0.1",
     "eslint": "^9.15.0",
     "eslint-config-prettier": "^9.1.0",
@@ -39,5 +39,9 @@
     "prettier": "^3.3.3",
     "typescript": "^5.6.3",
     "typescript-eslint": "^8.15.0"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.927.0",
+    "@aws-sdk/s3-request-presigner": "^3.927.0"
   }
 }

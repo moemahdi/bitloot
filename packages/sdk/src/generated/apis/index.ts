@@ -3,3 +3,4 @@
 export * from './HealthApi';
 export * from './OrdersApi';
 export * from './PaymentsApi';
+export * from './WebhooksApi';

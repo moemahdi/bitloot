@@ -10,7 +10,8 @@
     "src"
   ],
   "scripts": {
-    "generate": "openapi-generator-cli generate -g typescript-fetch -i http://localhost:4000/api/docs-json -o src/generated --skip-validate-spec",
+    "generate": "openapi-generator-cli generate -g typescript-fetch -i http://localhost:4000/api/docs-json -o src/generated --skip-validate-spec && node fix-sdk-runtime.js",
+    "sdk:dev": "npm run generate && npm run build",
     "build": "tsc",
     "clean": "rm -rf dist src/generated"
   },
