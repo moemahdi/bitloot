@@ -25,6 +25,7 @@ export default [
       '.vscode',
       '.idea',
       'packages/sdk/src/generated/**', // SDK is generated, don't lint
+      'packages/sdk/fix-sdk-runtime.js', // Post-generation fix script
       '**/*.config.mjs', // Don't lint eslint/next config files themselves
       'scripts/**', // Don't lint utility scripts
     ],

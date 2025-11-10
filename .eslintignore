@@ -1,0 +1,40 @@
+
+# Build outputs
+dist/
+build/
+*.min.js
+
+# Dependencies
+node_modules/
+
+# Generated SDK
+packages/sdk/src/generated/
+packages/sdk/fix-sdk-runtime.js
+
+# Next.js
+.next/
+out/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker
+Dockerfile
+docker-compose.yml
+
+# Misc
+coverage/
+*.log
+*.pid

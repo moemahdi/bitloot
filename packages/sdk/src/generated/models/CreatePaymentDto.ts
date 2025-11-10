@@ -20,11 +20,35 @@ import { mapValues } from '../runtime';
  */
 export interface CreatePaymentDto {
     /**
-     * 
+     * Order ID (UUID)
      * @type {string}
      * @memberof CreatePaymentDto
      */
     orderId: string;
+    /**
+     * Customer email address
+     * @type {string}
+     * @memberof CreatePaymentDto
+     */
+    email: string;
+    /**
+     * Total price amount
+     * @type {string}
+     * @memberof CreatePaymentDto
+     */
+    priceAmount: string;
+    /**
+     * Price currency (fiat)
+     * @type {string}
+     * @memberof CreatePaymentDto
+     */
+    priceCurrency: string;
+    /**
+     * Cryptocurrency to accept (optional, user chooses at payment page)
+     * @type {string}
+     * @memberof CreatePaymentDto
+     */
+    payCurrency?: string;
 }
 
 /**
@@ -32,6 +56,9 @@ export interface CreatePaymentDto {
  */
 export function instanceOfCreatePaymentDto(value: object): value is CreatePaymentDto {
     if (!('orderId' in value) || value['orderId'] === undefined) return false;
+    if (!('email' in value) || value['email'] === undefined) return false;
+    if (!('priceAmount' in value) || value['priceAmount'] === undefined) return false;
+    if (!('priceCurrency' in value) || value['priceCurrency'] === undefined) return false;
     return true;
 }
 
@@ -46,6 +73,10 @@ export function CreatePaymentDtoFromJSONTyped(json: any, ignoreDiscriminator: bo
     return {
         
         'orderId': json['orderId'],
+        'email': json['email'],
+        'priceAmount': json['priceAmount'],
+        'priceCurrency': json['priceCurrency'],
+        'payCurrency': json['payCurrency'] == null ? undefined : json['payCurrency'],
     };
 }
 
@@ -61,6 +92,10 @@ export function CreatePaymentDtoToJSONTyped(value?: CreatePaymentDto | null, ign
     return {
         
         'orderId': value['orderId'],
+        'email': value['email'],
+        'priceAmount': value['priceAmount'],
+        'priceCurrency': value['priceCurrency'],
+        'payCurrency': value['payCurrency'],
     };
 }
 

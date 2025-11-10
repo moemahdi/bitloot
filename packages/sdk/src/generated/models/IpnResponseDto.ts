@@ -20,11 +20,17 @@ import { mapValues } from '../runtime';
  */
 export interface IpnResponseDto {
     /**
-     * 
+     * Webhook processed successfully
      * @type {boolean}
      * @memberof IpnResponseDto
      */
     ok: boolean;
+    /**
+     * Optional message
+     * @type {string}
+     * @memberof IpnResponseDto
+     */
+    message?: string;
 }
 
 /**
@@ -46,6 +52,7 @@ export function IpnResponseDtoFromJSONTyped(json: any, ignoreDiscriminator: bool
     return {
         
         'ok': json['ok'],
+        'message': json['message'] == null ? undefined : json['message'],
     };
 }
 
@@ -61,6 +68,7 @@ export function IpnResponseDtoToJSONTyped(value?: IpnResponseDto | null, ignoreD
     return {
         
         'ok': value['ok'],
+        'message': value['message'],
     };
 }
 

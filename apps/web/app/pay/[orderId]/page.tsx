@@ -3,15 +3,6 @@
 import { useSearchParams, useRouter, useParams } from 'next/navigation';
 import { useMutation } from '@tanstack/react-query';
 import { useState } from 'react';
-import { PaymentsApi, Configuration } from '@bitloot/sdk';
-import type { IpnResponseDto } from '@bitloot/sdk';
-
-// Initialize SDK client
-const apiConfig = new Configuration({
-  basePath: 'http://localhost:4000',
-});
-
-const paymentsClient = new PaymentsApi(apiConfig);
 
 export default function PayPage(): React.ReactElement {
   const router = useRouter();
@@ -22,13 +13,35 @@ export default function PayPage(): React.ReactElement {
 
   const [isProcessing, setIsProcessing] = useState(false);
 
-  // Call IPN mutation using SDK
+  // Call IPN endpoint directly (webhook endpoint not in SDK yet)
   const confirmPayment = useMutation({
-    mutationFn: async (): Promise<IpnResponseDto> => {
-      const result = await paymentsClient.paymentsControllerIpn({
-        ipnRequestDto: { orderId, externalId: ext },
+    mutationFn: async (): Promise<{ ok: boolean; processed: boolean }> => {
+      const payload = {
+        payment_id: ext,
+        invoice_id: orderId,
+        order_id: orderId,
+        payment_status: 'finished',
+        price_amount: 1,
+        price_currency: 'usd',
+        pay_amount: 0.00021,
+        pay_currency: 'btc',
+        received_amount: 0.00021,
+        received_currency: 'btc',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+
+      const response = await fetch('http://localhost:4000/webhooks/nowpayments/ipn', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
       });
-      return result;
+
+      if (!response.ok) {
+        throw new Error(`IPN call failed with ${response.status}`);
+      }
+
+      return response.json() as Promise<{ ok: boolean; processed: boolean }>;
     },
     onSuccess: () => {
       // Redirect to success page

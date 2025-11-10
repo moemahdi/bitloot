@@ -7,6 +7,10 @@
 Name | Type
 ------------ | -------------
 `orderId` | string
+`email` | string
+`priceAmount` | string
+`priceCurrency` | string
+`payCurrency` | string
 
 ## Example
 
@@ -15,7 +19,11 @@ import type { CreatePaymentDto } from ''
 
 // TODO: Update the object below with actual values
 const example = {
-  "orderId": null,
+  "orderId": 550e8400-e29b-41d4-a716-446655440000,
+  "email": customer@example.com,
+  "priceAmount": 49.99,
+  "priceCurrency": usd,
+  "payCurrency": btc,
 } satisfies CreatePaymentDto
 
 console.log(example)

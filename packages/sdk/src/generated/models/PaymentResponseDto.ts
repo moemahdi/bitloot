@@ -20,25 +20,74 @@ import { mapValues } from '../runtime';
  */
 export interface PaymentResponseDto {
     /**
-     * 
-     * @type {string}
+     * NOWPayments invoice ID
+     * @type {number}
      * @memberof PaymentResponseDto
      */
-    externalId: string;
+    invoiceId: number;
     /**
-     * 
+     * Invoice URL for customer to complete payment
      * @type {string}
      * @memberof PaymentResponseDto
      */
-    paymentUrl: string;
+    invoiceUrl: string;
+    /**
+     * Status tracking URL
+     * @type {string}
+     * @memberof PaymentResponseDto
+     */
+    statusUrl: string;
+    /**
+     * Cryptocurrency payment address
+     * @type {string}
+     * @memberof PaymentResponseDto
+     */
+    payAddress: string;
+    /**
+     * Amount to pay in fiat
+     * @type {number}
+     * @memberof PaymentResponseDto
+     */
+    priceAmount: number;
+    /**
+     * Amount to pay in crypto
+     * @type {number}
+     * @memberof PaymentResponseDto
+     */
+    payAmount: number;
+    /**
+     * Cryptocurrency code
+     * @type {string}
+     * @memberof PaymentResponseDto
+     */
+    payCurrency: string;
+    /**
+     * Payment status
+     * @type {string}
+     * @memberof PaymentResponseDto
+     */
+    status: string;
+    /**
+     * Payment expiration date (ISO string)
+     * @type {string}
+     * @memberof PaymentResponseDto
+     */
+    expirationDate: string;
 }
 
 /**
  * Check if a given object implements the PaymentResponseDto interface.
  */
 export function instanceOfPaymentResponseDto(value: object): value is PaymentResponseDto {
-    if (!('externalId' in value) || value['externalId'] === undefined) return false;
-    if (!('paymentUrl' in value) || value['paymentUrl'] === undefined) return false;
+    if (!('invoiceId' in value) || value['invoiceId'] === undefined) return false;
+    if (!('invoiceUrl' in value) || value['invoiceUrl'] === undefined) return false;
+    if (!('statusUrl' in value) || value['statusUrl'] === undefined) return false;
+    if (!('payAddress' in value) || value['payAddress'] === undefined) return false;
+    if (!('priceAmount' in value) || value['priceAmount'] === undefined) return false;
+    if (!('payAmount' in value) || value['payAmount'] === undefined) return false;
+    if (!('payCurrency' in value) || value['payCurrency'] === undefined) return false;
+    if (!('status' in value) || value['status'] === undefined) return false;
+    if (!('expirationDate' in value) || value['expirationDate'] === undefined) return false;
     return true;
 }
 
@@ -52,8 +101,15 @@ export function PaymentResponseDtoFromJSONTyped(json: any, ignoreDiscriminator: 
     }
     return {
         
-        'externalId': json['externalId'],
-        'paymentUrl': json['paymentUrl'],
+        'invoiceId': json['invoiceId'],
+        'invoiceUrl': json['invoiceUrl'],
+        'statusUrl': json['statusUrl'],
+        'payAddress': json['payAddress'],
+        'priceAmount': json['priceAmount'],
+        'payAmount': json['payAmount'],
+        'payCurrency': json['payCurrency'],
+        'status': json['status'],
+        'expirationDate': json['expirationDate'],
     };
 }
 
@@ -68,8 +124,15 @@ export function PaymentResponseDtoToJSONTyped(value?: PaymentResponseDto | null,
 
     return {
         
-        'externalId': value['externalId'],
-        'paymentUrl': value['paymentUrl'],
+        'invoiceId': value['invoiceId'],
+        'invoiceUrl': value['invoiceUrl'],
+        'statusUrl': value['statusUrl'],
+        'payAddress': value['payAddress'],
+        'priceAmount': value['priceAmount'],
+        'payAmount': value['payAmount'],
+        'payCurrency': value['payCurrency'],
+        'status': value['status'],
+        'expirationDate': value['expirationDate'],
     };
 }
 

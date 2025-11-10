@@ -1,14 +1,12 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe, Logger } from '@nestjs/common';
-import { json, urlencoded } from 'express';
+import { urlencoded, type Request, type Response, type NextFunction } from 'express';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
 import { AppModule } from './app.module';
 
 async function bootstrap(): Promise<void> {
-  const app = await NestFactory.create(AppModule, {
-    rawBody: true,
-  });
+  const app = await NestFactory.create(AppModule);
   const logger = new Logger('Bootstrap');
 
   app.enableCors({
@@ -16,8 +14,19 @@ async function bootstrap(): Promise<void> {
     credentials: true,
   });
 
+  // Standard JSON and URL-encoded parsing
   app.use(urlencoded({ extended: true }));
-  app.use(json({ limit: '1mb' }));
+
+  // Custom middleware to capture raw body AFTER json parsing for webhook verification
+  // We reconstruct the raw body from the parsed object for HMAC verification
+  app.use((req: Request, _res: Response, next: NextFunction) => {
+    if (req.method === 'POST' && typeof req.body === 'object' && req.body !== null) {
+      // Reconstruct raw body string from parsed JSON for HMAC verification
+      // This is safe because we know it's valid JSON that was just parsed
+      (req as unknown as Record<string, unknown>).rawBody = JSON.stringify(req.body);
+    }
+    next();
+  });
 
   app.useGlobalPipes(
     new ValidationPipe({

@@ -6,8 +6,15 @@
 
 Name | Type
 ------------ | -------------
-`externalId` | string
-`paymentUrl` | string
+`invoiceId` | number
+`invoiceUrl` | string
+`statusUrl` | string
+`payAddress` | string
+`priceAmount` | number
+`payAmount` | number
+`payCurrency` | string
+`status` | string
+`expirationDate` | string
 
 ## Example
 
@@ -16,8 +23,15 @@ import type { PaymentResponseDto } from ''
 
 // TODO: Update the object below with actual values
 const example = {
-  "externalId": null,
-  "paymentUrl": null,
+  "invoiceId": 123456,
+  "invoiceUrl": https://nowpayments.io/invoice/...,
+  "statusUrl": https://nowpayments.io/status/...,
+  "payAddress": bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh,
+  "priceAmount": 49.99,
+  "payAmount": 0.001234,
+  "payCurrency": btc,
+  "status": waiting,
+  "expirationDate": 2025-11-08T23:59:59Z,
 } satisfies PaymentResponseDto
 
 console.log(example)
