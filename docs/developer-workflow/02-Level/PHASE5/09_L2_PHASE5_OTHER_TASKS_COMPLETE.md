@@ -456,6 +456,7 @@
    - ✅ Retry strategy for clock skew
 
 3. **State Machine with Consistency (payment-state-machine.ts):**
+
    ```typescript
    // All transitions documented:
    waiting → confirming → finished (success)
@@ -569,6 +570,7 @@
    - ✅ Clear policy communication
 
 5. **Success Page Handling (orders/[id]/success/page.tsx):**
+
    ```typescript
    <p className="text-sm text-green-800 dark:text-green-200">
      <strong>Status:</strong> {orderData.status.toUpperCase()}

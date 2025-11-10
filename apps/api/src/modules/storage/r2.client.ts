@@ -77,7 +77,7 @@ export class R2StorageClient {
     this.bucketName = config.bucketName ?? 'bitloot-keys';
 
     // Initialize S3Client pointing to R2
-     
+
     this.s3 = new S3Client({
       region: 'auto',
       endpoint: this.endpoint,
@@ -155,16 +155,13 @@ export class R2StorageClient {
         },
       };
 
-       
       const command = new PutObjectCommand(input);
-       
+
       const response = await this.s3.send(command);
 
-       
       const etag = response.ETag ?? 'unknown';
       this.logger.log(`✅ Key uploaded to R2: ${objectKey} (ETag: ${etag})`);
 
-       
       return etag;
     } catch (error) {
       const message = this.extractErrorMessage(error);
@@ -220,13 +217,12 @@ export class R2StorageClient {
         ResponseContentDisposition: `attachment; filename="bitloot-key-${params.orderId}.json"`,
       };
 
-       
       const command = new GetObjectCommand(input);
-       
+
       const url = await getSignedUrl(this.s3, command, { expiresIn: expiresInSeconds });
 
       this.logger.log(`✅ Signed URL generated: ${objectKey}`);
-       
+
       return url;
     } catch (error) {
       const message = this.extractErrorMessage(error);
@@ -261,13 +257,11 @@ export class R2StorageClient {
     try {
       this.logger.debug(`Deleting key from R2: ${objectKey}`);
 
-       
       const command = new DeleteObjectCommand({
         Bucket: this.bucketName,
         Key: objectKey,
       });
 
-       
       await this.s3.send(command);
       this.logger.log(`✅ Key deleted from R2: ${objectKey}`);
     } catch (error) {
@@ -306,16 +300,15 @@ export class R2StorageClient {
     try {
       this.logger.debug(`Verifying key exists: ${objectKey}`);
 
-       
       const command = new GetObjectCommand({
         Bucket: this.bucketName,
         Key: objectKey,
       });
 
       // Try to get object metadata without downloading body
-       
+
       const response = await this.s3.send(command);
-       
+
       const exists = response.ContentLength !== undefined && response.ContentLength > 0;
 
       if (exists) {
@@ -358,7 +351,7 @@ export class R2StorageClient {
       this.logger.debug('Performing R2 health check...');
 
       // Try to list objects with max 1 result (minimal operation)
-       
+
       const command = new GetObjectCommand({
         Bucket: this.bucketName,
         Key: '.health-check',
@@ -366,7 +359,6 @@ export class R2StorageClient {
 
       // This will likely fail with 404, but that's OK - we're just checking connectivity
       try {
-         
         await this.s3.send(command);
       } catch (error) {
         const message = this.extractErrorMessage(error);

@@ -385,12 +385,12 @@ We’ll go from “open VS Code” → “what to edit” → “when to move on
 
 ### 🗂 Files to work on
 
-| File                                               | Purpose                 |
-| -------------------------------------------------- | ----------------------- |
-| `apps/web/src/design-system/primitives/*`         | Reusable UI components. |
-| `apps/web/src/design-system/styles/globals.css`   | Global styles & theme.  |
-| `apps/web/src/features/chat/TawkWidget.tsx`       | Chat integration.       |
-| `.env.production`                                  | Real API keys, domains. |
+| File                                            | Purpose                 |
+| ----------------------------------------------- | ----------------------- |
+| `apps/web/src/design-system/primitives/*`       | Reusable UI components. |
+| `apps/web/src/design-system/styles/globals.css` | Global styles & theme.  |
+| `apps/web/src/features/chat/TawkWidget.tsx`     | Chat integration.       |
+| `.env.production`                               | Real API keys, domains. |
 
 ✅ **Done when:** Everything feels fast, secure, and smooth — ready for public release.
 

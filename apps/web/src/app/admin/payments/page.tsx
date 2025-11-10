@@ -29,7 +29,7 @@ interface PaymentsListResponse {
 
 const LIMIT = 20;
 
-export default function AdminPaymentsPage() {
+export default function AdminPaymentsPage(): React.ReactElement | null {
   const router = useRouter();
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState('');
@@ -92,28 +92,28 @@ export default function AdminPaymentsPage() {
   });
 
   // Handle filter changes
-  const handleStatusFilterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+  const handleStatusFilterChange = (e: React.ChangeEvent<HTMLSelectElement>): void => {
     setStatusFilter(e.target.value);
     setPage(1);
   };
 
-  const handleProviderFilterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+  const handleProviderFilterChange = (e: React.ChangeEvent<HTMLSelectElement>): void => {
     setProviderFilter(e.target.value);
     setPage(1);
   };
 
-  const handleOrderIdFilterChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleOrderIdFilterChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
     setOrderIdFilter(e.target.value);
     setPage(1);
   };
 
   // Apply filters
-  const applyFilters = () => {
+  const applyFilters = (): void => {
     void refetch();
   };
 
   // Format date
-  const formatDate = (dateString: string) => {
+  const formatDate = (dateString: string): string => {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
@@ -124,7 +124,7 @@ export default function AdminPaymentsPage() {
   };
 
   // Get status badge color
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status: string): string => {
     switch (status) {
       case 'finished':
         return 'bg-green-100 text-green-800';

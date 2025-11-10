@@ -35,7 +35,7 @@ interface WebhooksListResponse {
 
 const LIMIT = 20;
 
-export default function AdminWebhooksPage() {
+export default function AdminWebhooksPage(): React.ReactElement {
   const router = useRouter();
 
   // State
@@ -110,32 +110,32 @@ export default function AdminWebhooksPage() {
   });
 
   // Filter handlers
-  const handleWebhookTypeFilterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+  const handleWebhookTypeFilterChange = (e: React.ChangeEvent<HTMLSelectElement>): void => {
     setWebhookTypeFilter(e.target.value);
     setPage(1);
   };
 
-  const handleProcessedFilterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+  const handleProcessedFilterChange = (e: React.ChangeEvent<HTMLSelectElement>): void => {
     setProcessedFilter(e.target.value);
     setPage(1);
   };
 
-  const handlePaymentStatusFilterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+  const handlePaymentStatusFilterChange = (e: React.ChangeEvent<HTMLSelectElement>): void => {
     setPaymentStatusFilter(e.target.value);
     setPage(1);
   };
 
-  const handleExternalIdFilterChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleExternalIdFilterChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
     setExternalIdFilter(e.target.value);
     setPage(1);
   };
 
-  const applyFilters = () => {
+  const applyFilters = (): void => {
     void refetch();
   };
 
   // Utility functions
-  const formatDate = (dateString: string) => {
+  const formatDate = (dateString: string): string => {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
@@ -145,15 +145,15 @@ export default function AdminWebhooksPage() {
     });
   };
 
-  const getProcessedColor = (processed: boolean) => {
+  const getProcessedColor = (processed: boolean): string => {
     return processed ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800';
   };
 
-  const getSignatureValidColor = (valid: boolean) => {
+  const getSignatureValidColor = (valid: boolean): string => {
     return valid ? 'bg-blue-100 text-blue-800' : 'bg-red-100 text-red-800';
   };
 
-  const getPaymentStatusColor = (status?: string) => {
+  const getPaymentStatusColor = (status?: string): string => {
     switch (status) {
       case 'finished':
         return 'bg-green-100 text-green-800';

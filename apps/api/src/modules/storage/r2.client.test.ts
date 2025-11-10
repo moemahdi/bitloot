@@ -9,11 +9,10 @@ vi.mock('@aws-sdk/s3-request-presigner');
 
 describe('R2StorageClient', () => {
   let client: R2StorageClient;
-   
+
   const s3Mock = mockClient(S3Client);
 
   beforeEach(() => {
-     
     s3Mock.reset();
 
     const mockConfig = {
@@ -27,7 +26,6 @@ describe('R2StorageClient', () => {
   });
 
   afterEach(() => {
-     
     s3Mock.reset();
   });
 

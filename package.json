@@ -23,7 +23,6 @@
     "quality": "node scripts/quality-check.js",
     "quality:type-check": "node scripts/quality-check.js type-check",
     "quality:lint": "node scripts/quality-check.js lint",
-    "quality:format": "node scripts/quality-check.js format",
     "quality:test": "node scripts/quality-check.js test",
     "quality:build": "node scripts/quality-check.js build",
     "quality:full": "node scripts/quality-check.js all --continue"
