@@ -92,14 +92,18 @@ export class FulfillmentGateway
 
     // Heartbeat: Detect stale connections every 30 seconds
     setInterval(() => {
-      this.server.emit('heartbeat', { timestamp: new Date().toISOString() });
+      this.server?.emit('heartbeat', { timestamp: new Date().toISOString() });
     }, 30000);
 
     // Cleanup: Remove disconnected sockets from tracking maps every 60 seconds
     setInterval(() => {
-      const activeSocketIds = new Set(
-        Array.from(this.server.sockets.sockets.keys()),
-      );
+      // Guard: Only run if server is fully initialized
+      if (this.server?.sockets?.sockets === undefined) {
+        return;
+      }
+
+      const socketKeys = this.server.sockets.sockets.keys();
+      const activeSocketIds = new Set(Array.from(socketKeys));
 
       // Clean order subscriptions
       for (const [orderId, socketIds] of this.orderSubscriptions.entries()) {

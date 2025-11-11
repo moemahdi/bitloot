@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { FulfillmentGateway } from './fulfillment.gateway';
-import { FulfillmentService } from './fulfillment.service';
+import { FulfillmentModule } from './fulfillment.module';
 
 /**
  * WebSocket Module for real-time fulfillment updates
@@ -15,7 +15,6 @@ import { FulfillmentService } from './fulfillment.service';
  *
  * Features:
  * - JWT-based authentication
- * 
  * - Per-order subscriptions
  * - Admin-only system updates
  * - Automatic connection cleanup
@@ -40,12 +39,16 @@ import { FulfillmentService } from './fulfillment.service';
  */
 @Module({
   imports: [
+    // Import FulfillmentModule which has all required dependencies
+    FulfillmentModule,
+    // JWT for WebSocket authentication
     JwtModule.register({
       secret: process.env.JWT_SECRET ?? 'your-secret-key',
       signOptions: { expiresIn: '24h' },
     }),
   ],
-  providers: [FulfillmentGateway, FulfillmentService],
+  // Only provide the gateway - all services come from FulfillmentModule
+  providers: [FulfillmentGateway],
   exports: [FulfillmentGateway],
 })
 export class WebSocketModule {}

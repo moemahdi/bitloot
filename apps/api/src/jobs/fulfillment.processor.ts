@@ -1,10 +1,13 @@
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Logger } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import type { Job } from 'bullmq';
 import { FulfillmentService } from '../modules/fulfillment/fulfillment.service';
 import { OrdersService } from '../modules/orders/orders.service';
 import { FulfillmentGateway } from '../modules/fulfillment/fulfillment.gateway';
 import { QUEUE_NAMES } from './queues';
+import { WebhookLog } from '../database/entities/webhook-log.entity';
 
 interface FulfillmentJobResult {
   orderId: string;
@@ -46,6 +49,8 @@ export class FulfillmentProcessor extends WorkerHost {
     private readonly fulfillmentService: FulfillmentService,
     private readonly ordersService: OrdersService,
     private readonly fulfillmentGateway: FulfillmentGateway,
+    @InjectRepository(WebhookLog)
+    private readonly webhookLogsRepo: Repository<WebhookLog>,
   ) {
     super();
   }
@@ -118,27 +123,110 @@ export class FulfillmentProcessor extends WorkerHost {
         fulfillmentStatus: 'in_progress',
       });
 
-      // Step 3: Execute fulfillment (all Phase 3 integrations handled here)
-      const fulfillmentResult =
-        await this.fulfillmentService.fulfillOrder(orderId);
+        // Route by job.name to support multiple phases per plan
+      const jobName = job.name;
+      if (jobName === 'reserve') {
+        // Phase: start reservation with Kinguin
+        const result = await this.fulfillmentService.startReservation(orderId);
+        this.fulfillmentGateway.emitFulfillmentStatusChange({
+          orderId,
+          status: order.status ?? 'paid',
+          fulfillmentStatus: `reservation:${result.status}`,
+        });
 
-      // Ensure we have a valid signed URL
-      const signedUrl =
-        typeof fulfillmentResult === 'object' &&
-        fulfillmentResult !== null &&
-        'signedUrl' in fulfillmentResult &&
-        typeof fulfillmentResult.signedUrl === 'string'
-          ? fulfillmentResult.signedUrl
-          : null;
-
-      if (signedUrl === null) {
-        throw new Error(
-          'Fulfillment service did not return valid signed URL',
-        );
+        // Do not mark fulfilled here; wait for webhook to finalize
+        return {
+          orderId,
+          status: 'reserved',
+          message: `Reservation ${result.reservationId} created (status: ${result.status})`,
+        };
       }
 
-      // Step 4: Update order to fulfilled
-      const finalOrder = await this.ordersService.fulfill(orderId, signedUrl);
+      if (jobName === 'kinguin.webhook') {
+        // Handle webhook-driven finalize
+        const dataObj: Record<string, unknown> =
+          typeof job.data === 'object' && job.data !== null ? job.data : {};
+        const reservationId =
+          typeof dataObj.reservationId === 'string' ? dataObj.reservationId : '';
+        const eventStatus = typeof dataObj.status === 'string' ? dataObj.status : '';
+
+        if (reservationId === '') {
+          throw new Error('kinguin.webhook job missing reservationId');
+        }
+
+        // Only finalize on ready/delivered
+        if (eventStatus === 'ready' || eventStatus === 'delivered') {
+          const { orderId: resolvedOrderId } = await this.fulfillmentService.finalizeDelivery(
+            reservationId,
+          );
+
+          const finalOrder = await this.ordersService.markFulfilled(resolvedOrderId);
+
+          // Mark webhook log as processed (idempotency bookkeeping)
+          try {
+            const log = await this.webhookLogsRepo.findOne({
+              where: {
+                externalId: reservationId,
+                webhookType: 'kinguin_webhook',
+                processed: false,
+              },
+              order: { createdAt: 'DESC' },
+            });
+            if (log !== null) {
+              log.processed = true;
+              log.orderId = resolvedOrderId;
+              log.result = { success: true, action: 'fulfilled' } as Record<string, unknown>;
+              await this.webhookLogsRepo.save(log);
+            }
+          } catch (e) {
+            const msg = e instanceof Error ? e.message : String(e);
+            this.logger.warn(`[Fulfillment] Failed to mark webhook processed: ${msg}`);
+          }
+
+          this.fulfillmentGateway.emitFulfillmentStatusChange({
+            orderId: resolvedOrderId,
+            status: finalOrder.status ?? 'fulfilled',
+            fulfillmentStatus: 'completed',
+            items:
+              typeof finalOrder.items === 'object' && Array.isArray(finalOrder.items)
+                ? (finalOrder.items as unknown as Record<string, unknown>[])
+                : undefined,
+          });
+
+          return {
+            orderId: resolvedOrderId,
+            status: 'fulfilled',
+            message: `Order ${resolvedOrderId} fulfilled via webhook`,
+            itemsProcessed:
+              typeof finalOrder.items === 'object' && Array.isArray(finalOrder.items)
+                ? finalOrder.items.length
+                : 0,
+          };
+        }
+
+        {
+          const statusLabel = eventStatus !== '' ? eventStatus : 'unknown';
+          this.fulfillmentGateway.emitFulfillmentStatusChange({
+            orderId,
+            status: order.status ?? 'processing',
+            fulfillmentStatus: `webhook:${statusLabel}`,
+          });
+        }
+
+        {
+          const statusLabel = eventStatus !== '' ? eventStatus : 'unknown';
+          return {
+            orderId,
+            status: 'processing',
+            message: `Webhook received: ${statusLabel}`,
+          };
+        }
+      }
+
+      // Default: execute full fulfillment now
+      const _fulfillmentResult = await this.fulfillmentService.fulfillOrder(orderId);
+
+      const finalOrder = await this.ordersService.markFulfilled(orderId);
 
       // Step 5: Emit fulfillment completed
       this.fulfillmentGateway.emitFulfillmentStatusChange({

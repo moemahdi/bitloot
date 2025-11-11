@@ -29,6 +29,88 @@ export class StorageService {
   }
 
   /**
+   * Save keys JSON (encrypted) to R2 and return storage reference
+   *
+   * Per Level 3 plan helper signature. Internally uses AES-256-GCM
+   * and the same R2 object layout as uploadAndGetSignedUrl.
+   *
+   * @returns storageRef string (e.g., "orders/{orderId}/key.json")
+   */
+  async saveKeysJson(orderId: string, codes: string[]): Promise<string> {
+    try {
+      if (typeof orderId !== 'string' || orderId.length === 0) {
+        throw new Error('orderId must be a non-empty string');
+      }
+      if (!Array.isArray(codes) || codes.length === 0) {
+        throw new Error('codes must be a non-empty array');
+      }
+
+      this.logger.debug(`[STORAGE] Saving keys JSON for order: ${orderId}`);
+
+      // Combine codes as a newline-delimited payload for encryption
+      const plainKey = codes.join('\n');
+
+      // Encrypt
+      const encryptionKey = generateEncryptionKey();
+      const encrypted = encryptKey(plainKey, encryptionKey);
+
+      // Upload
+      await this.r2StorageClient.uploadEncryptedKey({
+        orderId,
+        encryptedKey: encrypted.encryptedKey,
+        encryptionIv: encrypted.iv,
+        authTag: encrypted.authTag,
+      });
+
+      const storageRef = `orders/${orderId}/key.json`;
+      this.logger.log(`[STORAGE] Keys saved to R2: ${storageRef}`);
+      return storageRef;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.logger.error(`[STORAGE] saveKeysJson failed: ${message}`);
+      throw new InternalServerErrorException(`Failed to save keys JSON: ${message}`);
+    }
+  }
+
+  /**
+   * Generate signed URL from a storage reference
+   *
+   * Per Level 3 plan helper signature.
+   */
+  async getSignedUrl(storageRef: string, expiresIn: number): Promise<string> {
+    try {
+      if (typeof storageRef !== 'string' || storageRef.length === 0) {
+        throw new Error('storageRef must be a non-empty string');
+      }
+      if (typeof expiresIn !== 'number' || expiresIn < 1) {
+        throw new Error('expiresIn must be a positive number of seconds');
+      }
+
+      // Expecting format: orders/{orderId}/key.json
+      const match = storageRef.match(/^orders\/([^/]+)\/key\.json$/);
+      if (match === null) {
+        throw new Error('storageRef format unsupported; expected orders/{orderId}/key.json');
+      }
+      const group = match[1];
+      if (typeof group !== 'string' || group.length === 0) {
+        throw new Error('orderId missing in storageRef');
+      }
+      const orderId = group;
+
+      const url = await this.r2StorageClient.generateSignedUrl({
+        orderId,
+        expiresInSeconds: expiresIn,
+      });
+      this.logger.debug(`[STORAGE] Signed URL generated for ${storageRef}`);
+      return url;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.logger.error(`[STORAGE] getSignedUrl failed: ${message}`);
+      throw new InternalServerErrorException(`Failed to generate signed URL: ${message}`);
+    }
+  }
+
+  /**
    * Upload encrypted key and generate signed URL
    *
    * Steps:

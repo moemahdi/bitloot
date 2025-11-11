@@ -19,6 +19,9 @@ import { AdminModule } from './modules/admin/admin.module';
 import { BullQueues, PaymentsQueue, FulfillmentQueue } from './jobs/queues';
 import { PaymentProcessorService } from './jobs/payment-processor.service';
 import { FulfillmentProcessor } from './jobs/fulfillment.processor';
+import { FulfillmentModule } from './modules/fulfillment/fulfillment.module';
+import { WebSocketModule } from './modules/fulfillment/websocket.module';
+import { KinguinModule } from './modules/kinguin/kinguin.module';
 
 @Module({
   imports: [
@@ -47,6 +50,11 @@ import { FulfillmentProcessor } from './jobs/fulfillment.processor';
     // Feature modules
     WebhooksModule,
     AdminModule,
+    // Fulfillment & WebSocket modules (providers for services/gateway)
+    FulfillmentModule,
+    WebSocketModule,
+    // Kinguin integration module (controller + services + queue)
+    KinguinModule,
   ],
   controllers: [HealthController, OrdersController, PaymentsController],
   providers: [

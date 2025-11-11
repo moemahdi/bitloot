@@ -130,7 +130,16 @@ export function useFulfillmentWebSocket(
     onKeyDelivered?: (event: KeyDeliveredEvent) => void;
     onError?: (event: FulfillmentErrorEvent) => void;
   } = {},
-) {
+): {
+  isConnected: boolean;
+  statusChange: FulfillmentStatusChange | null;
+  paymentConfirmed: PaymentConfirmedEvent | null;
+  keyDelivered: KeyDeliveredEvent | null;
+  error: FulfillmentErrorEvent | null;
+  subscribe: () => void;
+  unsubscribe: () => void;
+  socket: unknown;
+} {
   const [isConnected, setIsConnected] = useState(false);
   const [statusChange, setStatusChange] = useState<FulfillmentStatusChange | null>(
     null,
@@ -330,7 +339,16 @@ export function useAdminWebSocket(
     onWebhookReceived?: (event: unknown) => void;
     onConnectionStats?: (stats: unknown) => void;
   } = {},
-) {
+): {
+  isConnected: boolean;
+  allUpdates: FulfillmentStatusChange | null;
+  jobEvents: unknown[];
+  webhookEvents: unknown[];
+  connectionStats: unknown;
+  getConnections: () => void;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  socket: any;
+} {
   const [isConnected, setIsConnected] = useState(false);
   const [allUpdates, setAllUpdates] = useState<FulfillmentStatusChange | null>(null);
   const [jobEvents, setJobEvents] = useState<unknown[]>([]);

@@ -1,41 +1,46 @@
+# BitLoot SDK Integration Guide
+
 ## ✅ Why SDK-based integration is a good idea
 
 Using an SDK between your frontend and backend means:
 
-- Your **frontend communicates with your own API**, not directly with third-party APIs (secure).
-- You get a **typed interface** for all BitLoot operations (orders, payments, users, etc.).
-- It enables **offline caching, optimistic updates**, and **version control** of your API layer.
+- Your **frontend communicates exclusively with your own NestJS API**, never directly with third-party APIs like Kinguin, NOWPayments, or Resend, ensuring **security** by keeping secrets and tokens server-side only.
+- You get a **type-safe interface** for all BitLoot operations (orders, payments, users, fulfillment, etc.), generated from the backend OpenAPI schema for zero drift and improved developer experience.
+- It enables integration with caching, optimistic updates, and version control of your API layer — allowing offline-ready UX and smoother frontend state management.
 
-Essentially, you’ll have a **BitLoot SDK** that the PWA imports — instead of calling raw REST endpoints.
+Essentially, you’ll have a **BitLoot SDK** imported in the PWA frontend that wraps strong typing and consistent backend route calls instead of accessing raw REST endpoints.
 
----
+***
 
 ## ⚙️ SDK Design for BitLoot
 
-You can expose your NestJS endpoints (internal API routes) via a **typed client SDK**.
+The SDK is a typed client wrapped around your NestJS backend API routes, auto-generated with OpenAPI tools and enhanced manually for additional utilities.
 
 ### Example SDK structure
 
 ```
 sdk/
- ├── index.ts
- ├── api/
- │   ├── auth.ts
- │   ├── orders.ts
- │   ├── payments.ts
- │   ├── products.ts
- │   ├── user.ts
- │   └── r2.ts
- ├── types/
- │   ├── order.ts
- │   ├── product.ts
- │   └── user.ts
- └── utils/http.ts
+ ├── index.ts
+ ├── api/
+ │   ├── auth.ts
+ │   ├── orders.ts
+ │   ├── payments.ts
+ │   ├── products.ts
+ │   ├── fulfillment.ts
+ │   ├── user.ts
+ │   └── r2.ts
+ ├── types/
+ │   ├── order.ts
+ │   ├── product.ts
+ │   ├── user.ts
+ │   ├── fulfillment.ts
+ │   └── payment.ts
+ └── utils/http.ts
 ```
 
-Each file wraps your backend endpoints with type-safe methods (using OpenAPI, Axios, or Fetch).
+Each file precisely wraps backend endpoints with typed methods using Axios or Fetch with OpenAPI generated types.
 
-Example:
+### SDK example usage:
 
 ```ts
 // sdk/api/orders.ts
@@ -43,18 +48,18 @@ import { http } from '../utils/http';
 import { Order, PaymentStatus } from '../types/order';
 
 export async function createOrder(data: {
-  email: string;
-  items: { productId: string; qty: number }[];
+  email: string;
+  items: { productId: string; qty: number }[];
 }): Promise<Order> {
-  return http.post('/orders', data);
+  return http.post('/orders', data);
 }
 
 export async function getOrderStatus(id: string): Promise<PaymentStatus> {
-  return http.get(`/orders/${id}/status`);
+  return http.get(`/orders/${id}/status`);
 }
 ```
 
-This lets your frontend do:
+Frontend usage:
 
 ```ts
 import { createOrder, getOrderStatus } from '@bitloot/sdk';
@@ -63,82 +68,82 @@ const order = await createOrder({ email, items });
 const status = await getOrderStatus(order.id);
 ```
 
----
+***
 
-## 🔒 Why you must NOT directly call 3rd-party SDKs in frontend
+## 🔒 Why NOT call 3rd-party SDKs directly from frontend
 
-For example:
+Examples:
 
-- **Kinguin API** requires Bearer tokens (merchant secrets).
-- **NOWPayments** exposes crypto wallet addresses.
-- **Resend API** sends emails and OTPs.
-  All of these must remain **server-side only**.
+- **Kinguin API** requires secret Bearer tokens.
+- **NOWPayments** exposes sensitive crypto wallet addresses.
+- **Resend API** handles email/OTP sending with private keys.
 
-➡️ The frontend SDK should only call your NestJS routes:
+These secrets and sensitive operations **must remain server-side only** for security and compliance.
+
+Frontend calls should always be:
 
 ```
-Frontend → BitLoot SDK → NestJS API → (NOWPayments / Kinguin / Resend)
+Frontend (Next.js) → BitLoot SDK → NestJS API → (3rd-party APIs)
 ```
 
-Your backend handles:
+Your backend manages:
 
-- Auth & rate limiting
-- HMAC verification
-- IPN/webhook processing
-- Secrets storage
+- Authentication, authorization, and rate limiting.
+- HMAC signature verification for webhooks.
+- IPN and webhook processing.
+- Secure secret storage (API keys, tokens).
+- Data validation and business logic orchestration.
 
-This makes your frontend lightweight and secure.
+This keeps frontend lightweight, secure, and focused solely on UI and SDK calls.
 
----
+***
 
 ## 🧩 SDK Integration Flow
 
-| Layer                  | Purpose                             | Calls                                          |
-| ---------------------- | ----------------------------------- | ---------------------------------------------- |
-| **Frontend (Next.js)** | User UI + SDK calls                 | `sdk.orders.create()`, `sdk.auth.login()`      |
-| **BitLoot SDK**        | Type-safe wrapper for NestJS routes | `/api/orders`, `/api/auth`, `/api/payments`    |
-| **NestJS Backend**     | Business logic & integrations       | Calls **NOWPayments**, **Kinguin**, **Resend** |
-| **3rd-Party APIs**     | External services                   | Fulfills payments, products, emails            |
+| Layer                  | Purpose                                | Calls                                        |
+| ---------------------- | ------------------------------------- | -------------------------------------------- |
+| **Frontend (Next.js)** | User interface + calls BitLoot SDK     | `sdk.orders.create()`, `sdk.auth.login()`, `sdk.fulfillment.getStatus()` |
+| **BitLoot SDK**        | Typed wrapper around NestJS routes     | `/api/orders`, `/api/auth`, `/api/fulfillment`, `/api/payments`           |
+| **NestJS Backend**     | Business logic, security, 3rd-party API wrappers | Calls Kinguin, NOWPayments, Resend APIs, Cloudflare R2 storage             |
+| **3rd-Party APIs**     | External services                      | Process payments, orders, email OTP, keys storage                         |
 
----
+***
 
-## 💡 Recommended extras
+## 💡 Recommended Extras
 
-1. **Auto-generate SDK types**
-   Use OpenAPI + `nestjs-swagger` to auto-generate your client SDK with [openapi-typescript-codegen](https://www.npmjs.com/package/openapi-typescript-codegen).
-   → This ensures every backend endpoint has matching frontend types.
+1. **Auto-generate SDK types**  
+   Use OpenAPI + `nestjs-swagger` to generate client SDK with [openapi-typescript-codegen](https://www.npmjs.com/package/openapi-typescript-codegen). This guarantees type-safe frontend/backend contract with zero divergence.
 
-2. **Error handling**
-   Add unified response wrappers:
+2. **Unified Error Handling**  
+   Wrap all responses in a consistent format:  
+   ```ts
+   { success: true, data: {...} } | { success: false, error: "Error message" }
+   ```
 
-   ```ts
-   { success: true, data: {...} } or { success: false, error: "Invalid OTP" }
-   ```
+3. **Auth-aware Requests**  
+   Automatically inject JWT access tokens and handle refresh logic within the SDK HTTP client.
 
-3. **Auth-aware requests**
-   Include access tokens or refresh logic (JWT) automatically in SDK headers.
+4. **Offline & Caching Support**  
+   Integrate TanStack Query (React Query) to handle caching, background retries, and loading states seamlessly in the PWA.
 
-4. **Offline & caching (optional)**
-   Wrap with TanStack Query to handle caching, retry, and loading states in the PWA.
-
----
+***
 
 ## 🚀 Summary
 
-| Advantage                    | Why It Matters                                    |
+| Advantage                    | Explanation                                      |
 | ---------------------------- | ------------------------------------------------- |
-| ✅ Security                  | Keeps Kinguin/NOWPayments secrets in backend only |
-| ✅ DX (Developer Experience) | Typed, versioned client layer                     |
-| ✅ Maintainability           | One SDK update = frontend + backend sync          |
-| ✅ Offline-ready             | Works seamlessly with TanStack Query & Zustand    |
-| ✅ Easier scaling            | SDK can be reused for admin panel or mobile apps  |
+| ✅ Security                  | Secrets remain only on backend (Kinguin, NOWPayments, Resend) |
+| ✅ Developer Experience      | Typed, versioned client SDK generated from backend OpenAPI |
+| ✅ Maintainability           | One SDK update keeps frontend and backend in sync |
+| ✅ Offline-ready             | Works well with TanStack Query & Zustand for caching and offline support |
+| ✅ Scalability                | SDK reusable across frontend, admin panel, mobile apps |
 
----
+***
 
 ### TL;DR
 
-✅ Yes — using your own SDK between **frontend (Next.js)** and **backend (NestJS)** is the right approach.
-⚠️ Just ensure the SDK talks **only to your NestJS API**, never directly to Kinguin, NOWPayments, or Resend.
-💡 Generate the SDK from your NestJS OpenAPI schema for type safety and zero drift.
+Using your own SDK between **Next.js frontend** and **NestJS backend** is the recommended approach.  
+Do **not** call Kinguin, NOWPayments, or Resend APIs directly from frontend.  
+Generate SDK from your backend OpenAPI schema for type safety and to prevent API drift.
 
----
+***

@@ -1,4 +1,5 @@
 import { Injectable, Logger, NotFoundException, BadRequestException, InternalServerErrorException } from '@nestjs/common';
+import * as crypto from 'crypto';
 import { KinguinClient, CreateOrderRequest, CreateOrderResponse, OrderStatusResponse } from '../fulfillment/kinguin.client';
 
 /**
@@ -205,7 +206,7 @@ export class KinguinService {
    * Validate Kinguin webhook authenticity
    *
    * Verifies webhook signature using HMAC to ensure it came from Kinguin
-   * Implementation depends on Kinguin's webhook signing algorithm (TBD)
+   * Uses HMAC-SHA512 with shared secret in env KINGUIN_WEBHOOK_SECRET
    *
    * @param _payload Raw webhook payload
    * @param _signature HMAC signature from X-KINGUIN-SIGNATURE header
@@ -219,17 +220,36 @@ export class KinguinService {
    */
   validateWebhook(_payload: string, _signature: string): boolean {
     try {
-      // TODO: Implement HMAC verification once Kinguin webhook signature algorithm is confirmed
-      // For now, return true to allow development to proceed
-      // Pattern (reference from NOWPayments):
-      //   const hmac = crypto.createHmac('sha512', process.env.KINGUIN_WEBHOOK_SECRET!)
-      //     .update(payload)
-      //     .digest('hex');
-      //   return crypto.timingSafeEqual(Buffer.from(hmac), Buffer.from(signature, 'hex'));
+      const secret = process.env.KINGUIN_WEBHOOK_SECRET ?? '';
+      if (secret.length === 0) {
+        this.logger.error('[KINGUIN] ❌ KINGUIN_WEBHOOK_SECRET not configured');
+        return false;
+      }
 
-      this.logger.warn('[KINGUIN] ⚠️ Webhook validation not yet implemented - allowing all webhooks');
+      if (typeof _signature !== 'string' || _signature.length === 0) {
+        this.logger.warn('[KINGUIN] ❌ Missing or invalid webhook signature');
+        return false;
+      }
 
-      return true;
+      const computed = crypto.createHmac('sha512', secret).update(_payload).digest('hex');
+
+      this.logger.debug(`[KINGUIN] Signature verification:
+        Secret: ${secret.substring(0, 20)}...
+        Payload: ${_payload.substring(0, 50)}...
+        Computed: ${computed.substring(0, 32)}...
+        Provided: ${_signature.substring(0, 32)}...`);
+
+      // timingSafeEqual throws if buffer lengths differ; guard lengths first
+      if (computed.length !== _signature.length) {
+        this.logger.warn('[KINGUIN] ❌ Signature length mismatch');
+        return false;
+      }
+
+      const valid = crypto.timingSafeEqual(Buffer.from(computed), Buffer.from(_signature));
+      if (!valid) {
+        this.logger.warn('[KINGUIN] ❌ Webhook signature verification failed');
+      }
+      return valid;
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
       this.logger.error(`[KINGUIN] ❌ Webhook validation failed: ${errorMsg}`);

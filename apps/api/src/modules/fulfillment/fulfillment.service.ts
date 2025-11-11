@@ -3,11 +3,16 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
+import { QUEUE_NAMES } from '../../jobs/queues';
 import { Order, type OrderStatus } from '../orders/order.entity';
 import { OrderItem } from '../orders/order-item.entity';
 import { KinguinClient } from './kinguin.client';
 import { R2StorageClient } from '../storage/r2.client';
 import { generateEncryptionKey, encryptKey } from '../storage/encryption.util';
+import { DeliveryService } from './delivery.service';
+import { EmailsService } from '../emails/emails.service';
+import { Key } from '../orders/key.entity';
+import { OrdersService } from '../orders/orders.service';
 
 /**
  * Fulfillment orchestration service
@@ -37,9 +42,13 @@ export class FulfillmentService {
   constructor(
     @InjectRepository(Order) private readonly orderRepo: Repository<Order>,
     @InjectRepository(OrderItem) private readonly orderItemRepo: Repository<OrderItem>,
+    @InjectRepository(Key) private readonly keyRepo: Repository<Key>,
     private readonly kinguinClient: KinguinClient,
     private readonly r2StorageClient: R2StorageClient,
-    @InjectQueue('fulfillment') private readonly fulfillmentQueue: Queue,
+    @InjectQueue(QUEUE_NAMES.FULFILLMENT) private readonly fulfillmentQueue: Queue,
+    private readonly deliveryService: DeliveryService,
+    private readonly emailsService: EmailsService,
+    private readonly ordersService: OrdersService,
   ) {}
 
   /**
@@ -72,6 +81,7 @@ export class FulfillmentService {
         throw new BadRequestException(`Order not found: ${orderId}`);
       }
 
+
       if (order.items === null || order.items === undefined || order.items.length === 0) {
         throw new BadRequestException(`Order has no items: ${orderId}`);
       }
@@ -85,7 +95,7 @@ export class FulfillmentService {
         this.logger.debug(`[FULFILLMENT] Processing item: ${item.id} (product: ${item.productId})`);
 
         try {
-          const itemResult = await this.fulfillItem(orderId, item);
+          const itemResult = await this.fulfillItem(orderId, item, order.email);
           results.push(itemResult);
         } catch (error) {
           const message = error instanceof Error ? error.message : String(error);
@@ -94,16 +104,17 @@ export class FulfillmentService {
         }
       }
 
-      // Update order status to fulfilled
-      await this.orderRepo.update(
-        { id: orderId },
-        {
-          status: 'fulfilled' as OrderStatus,
-          updatedAt: new Date(),
-        },
-      );
-
-      this.logger.debug(`[FULFILLMENT] Order ${orderId} marked as fulfilled`);
+      // Send completion email once with primary signed URL
+      try {
+        const primary = results[0];
+        if (primary !== undefined && typeof order.email === 'string' && order.email.length > 0) {
+          await this.emailsService.sendOrderCompleted(order.email, primary.signedUrl);
+          this.logger.debug(`[FULFILLMENT] Order completion email queued for ${order.email}`);
+        }
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        this.logger.warn(`[FULFILLMENT] Failed to send completion email: ${msg}`);
+      }
 
       return {
         orderId,
@@ -125,7 +136,7 @@ export class FulfillmentService {
    * @param item Order item to fulfill
    * @returns Item fulfillment result with signed URL
    */
-  private async fulfillItem(orderId: string, item: OrderItem): Promise<ItemFulfillmentResult> {
+  private async fulfillItem(orderId: string, item: OrderItem, _customerEmail?: string): Promise<ItemFulfillmentResult> {
     try {
       // In MVP, simulate key fetching
       this.logger.debug(`[FULFILLMENT] Simulating key fetch for product: ${item.productId}`);
@@ -136,6 +147,15 @@ export class FulfillmentService {
       // Generate encryption key
       const encryptionKey = generateEncryptionKey();
       this.logger.debug(`[FULFILLMENT] Generated encryption key: 32 bytes`);
+
+      // Store encryption key in delivery service vault (MVP in-memory)
+      try {
+        this.deliveryService.storeEncryptionKey(orderId, encryptionKey);
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        this.logger.error(`[FULFILLMENT] Failed to store encryption key: ${msg}`);
+        throw e;
+      }
 
       // Encrypt the key with AES-256-GCM
       const encrypted = encryptKey(plainKey, encryptionKey);
@@ -168,6 +188,11 @@ export class FulfillmentService {
         },
       );
 
+      // Create a Key record for audit (storageRef points to R2 object)
+      const storageRef = `orders/${orderId}/key.json`;
+      const keyEntity = this.keyRepo.create({ orderItemId: item.id, storageRef });
+      await this.keyRepo.save(keyEntity);
+
       this.logger.debug(`[FULFILLMENT] Updated order item ${item.id} with signed URL`);
 
       return {
@@ -185,6 +210,93 @@ export class FulfillmentService {
   }
 
   /**
+   * Start Kinguin reservation for an order (Phase 3: startReservation)
+   * Saves reservation ID on the order for tracking
+   */
+  async startReservation(orderId: string): Promise<{ reservationId: string; status: string }> {
+    const order = await this.orderRepo.findOne({ where: { id: orderId }, relations: ['items'] });
+    if (order === null) {
+      throw new BadRequestException(`Order not found: ${orderId}`);
+    }
+    if (order.items === null || order.items === undefined || order.items.length === 0) {
+      throw new BadRequestException(`Order has no items: ${orderId}`);
+    }
+
+    const offerId = order.items[0]?.productId ?? 'demo-product';
+    const quantity = order.items.length;
+
+    this.logger.debug(
+      `[FULFILLMENT] Starting reservation: order=${orderId}, offerId=${offerId}, qty=${quantity}`,
+    );
+    const reservation = await this.kinguinClient.createOrder({ offerId, quantity });
+
+    await this.ordersService.setReservationId(orderId, reservation.id);
+
+    this.logger.log(
+      `[FULFILLMENT] Reservation created: order=${orderId}, reservation=${reservation.id}`,
+    );
+    return { reservationId: reservation.id, status: reservation.status };
+  }
+
+  /**
+   * Finalize delivery using Kinguin reservation ID (Phase 3: finalizeDelivery)
+   * Fetches delivered key, encrypts, uploads to R2, updates items, and sends email
+   */
+  async finalizeDelivery(reservationId: string): Promise<{ orderId: string; signedUrl: string }> {
+    const order = await this.orderRepo.findOne({
+      where: { kinguinReservationId: reservationId },
+      relations: ['items'],
+    });
+    if (order === null) {
+      throw new BadRequestException(`Order not found for reservation: ${reservationId}`);
+    }
+
+    this.logger.debug(`[FULFILLMENT] Finalizing delivery for reservation: ${reservationId}`);
+    const status = await this.kinguinClient.getOrderStatus(order.id);
+    if (status.status !== 'ready' || status.key === undefined || status.key === null || status.key === '') {
+      throw new BadRequestException(
+        `Reservation not ready for delivery: status=${status.status}`,
+      );
+    }
+
+    const plainKey = status.key;
+    const encryptionKey = generateEncryptionKey();
+    this.deliveryService.storeEncryptionKey(order.id, encryptionKey);
+
+    const encrypted = encryptKey(plainKey, encryptionKey);
+
+    await this.r2StorageClient.uploadEncryptedKey({
+      orderId: order.id,
+      encryptedKey: encrypted.encryptedKey,
+      encryptionIv: encrypted.iv,
+      authTag: encrypted.authTag,
+    });
+
+    const signedUrl = await this.r2StorageClient.generateSignedUrl({
+      orderId: order.id,
+      expiresInSeconds: 15 * 60,
+    });
+
+    for (const item of order.items) {
+      await this.orderItemRepo.update({ id: item.id }, { signedUrl, updatedAt: new Date() });
+      const storageRef = `orders/${order.id}/key.json`;
+      const keyEntity = this.keyRepo.create({ orderItemId: item.id, storageRef });
+      await this.keyRepo.save(keyEntity);
+    }
+
+    try {
+      if (order.email !== undefined && order.email !== '') {
+        await this.emailsService.sendOrderCompleted(order.email, signedUrl);
+      }
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      this.logger.warn(`[FULFILLMENT] Email send failed: ${msg}`);
+    }
+
+    return { orderId: order.id, signedUrl };
+  }
+
+  /**
    * Enqueue fulfillment as background job
    *
    * @param orderId Order ID to fulfill
@@ -194,19 +306,7 @@ export class FulfillmentService {
     try {
       this.logger.debug(`[FULFILLMENT] Enqueuing fulfillment for order: ${orderId}`);
 
-      const job = await this.fulfillmentQueue.add(
-        'fulfillOrder',
-        { orderId },
-        {
-          attempts: 3,
-          backoff: {
-            type: 'exponential',
-            delay: 2000,
-          },
-          removeOnComplete: true,
-          removeOnFail: false,
-        },
-      );
+      const job = await this.fulfillmentQueue.add('fulfillOrder', { orderId });
 
       this.logger.debug(`[FULFILLMENT] Fulfillment enqueued with job ID: ${job.id}`);
 

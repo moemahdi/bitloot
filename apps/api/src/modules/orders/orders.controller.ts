@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Patch } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { CreateOrderDto, OrderResponseDto } from './dto/create-order.dto';
 import { OrdersService } from './orders.service';
@@ -19,6 +19,17 @@ export class OrdersController {
   @ApiOperation({ summary: 'Get order by ID' })
   @ApiResponse({ status: 200, type: OrderResponseDto })
   get(@Param('id') id: string): Promise<OrderResponseDto> {
+    return this.orders.get(id);
+  }
+
+  @Patch(':id/reservation')
+  @ApiOperation({ summary: 'Set Kinguin reservation ID (test/internal use)' })
+  @ApiResponse({ status: 200, type: OrderResponseDto })
+  async setReservation(
+    @Param('id') id: string,
+    @Body() body: { reservationId: string },
+  ): Promise<OrderResponseDto> {
+    await this.orders.setReservationId(id, body.reservationId);
     return this.orders.get(id);
   }
 }

@@ -33,6 +33,32 @@ export class OrdersService {
     return this.mapToResponse(savedOrder, [savedItem]);
   }
 
+  /**
+   * Set Kinguin reservation ID on an order
+   * Used after reservation is created with Kinguin
+   */
+  async setReservationId(orderId: string, reservationId: string): Promise<Order> {
+    const order = await this.ordersRepo.findOne({ where: { id: orderId }, relations: ['items'] });
+    if (order === null) throw new NotFoundException(`Order ${orderId} not found`);
+
+    order.kinguinReservationId = reservationId;
+    this.logger.log(`Order ${orderId} linked to reservation ${reservationId}`);
+    return this.ordersRepo.save(order);
+  }
+
+  /**
+   * Find order by Kinguin reservation ID
+   * Returns mapped DTO or null if not found
+   */
+  async findByReservation(reservationId: string): Promise<OrderResponseDto | null> {
+    const order = await this.ordersRepo.findOne({
+      where: { kinguinReservationId: reservationId },
+      relations: ['items'],
+    });
+    if (order === null) return null;
+    return this.mapToResponse(order, order.items);
+  }
+
   async markPaid(orderId: string): Promise<OrderResponseDto> {
     const order = await this.ordersRepo.findOneOrFail({
       where: { id: orderId },

@@ -1,7 +1,16 @@
-import { Controller, Post, Get, Body, Param, Headers, HttpCode, Logger, UnauthorizedException, NotFoundException } from '@nestjs/common';
+import { Controller, Post, Get, Body, Param, Headers, HttpCode, Logger, UnauthorizedException, NotFoundException, UsePipes, ValidationPipe, Req } from '@nestjs/common';
+import { Request } from 'express';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { QUEUE_NAMES } from '../../jobs/queues';
+import { WebhookLog } from '../../database/entities/webhook-log.entity';
 import { ApiTags, ApiOperation, ApiResponse, ApiHeader } from '@nestjs/swagger';
 import { KinguinService } from './kinguin.service';
+import { OrdersService } from '../orders/orders.service';
 import { OrderStatusResponse } from '../fulfillment/kinguin.client';
+import { WebhookPayloadDto } from './dto/webhook.dto';
 
 /**
  * Kinguin Controller
@@ -32,7 +41,12 @@ import { OrderStatusResponse } from '../fulfillment/kinguin.client';
 export class KinguinController {
   private readonly logger = new Logger(KinguinController.name);
 
-  constructor(private readonly kinguinService: KinguinService) {}
+  constructor(
+    private readonly kinguinService: KinguinService,
+    private readonly ordersService: OrdersService,
+    @InjectQueue(QUEUE_NAMES.FULFILLMENT) private readonly fulfillmentQueue: Queue,
+    @InjectRepository(WebhookLog) private readonly webhookLogsRepo: Repository<WebhookLog>,
+  ) {}
 
   /**
    * Webhook endpoint - Receive order delivery notifications from Kinguin
@@ -75,25 +89,32 @@ export class KinguinController {
   })
   @ApiResponse({ status: 200, schema: { properties: { ok: { type: 'boolean' } } } })
   @ApiResponse({ status: 401, description: 'Invalid webhook signature' })
-  handleWebhook(
-    @Body() payload: Record<string, unknown>,
+  @UsePipes(new ValidationPipe({ whitelist: true }))
+  async handleWebhook(
+    @Body() payload: WebhookPayloadDto,
     @Headers('x-kinguin-signature') signature: string | undefined,
-  ): { ok: boolean } {
+    @Req() req: Request,
+  ): Promise<{ ok: boolean }> {
     // 1. Validate signature header exists
     if (signature === undefined || typeof signature !== 'string' || signature.length === 0) {
       this.logger.warn('[KINGUIN_WEBHOOK] ❌ Missing X-KINGUIN-SIGNATURE header');
       throw new UnauthorizedException('Missing X-KINGUIN-SIGNATURE header');
     }
 
-    // 2. Validate payload structure
-    const rawPayload = JSON.stringify(payload);
+    // 2. Get raw body from middleware (captured before JSON parsing and DTO transformation)
+    // This ensures HMAC is verified against the exact payload sent by Kinguin
+    const rawPayload = (req as unknown as Record<string, unknown>).rawBody as string | undefined;
 
     if (rawPayload === undefined || rawPayload === '' || rawPayload.length === 0) {
-      this.logger.warn('[KINGUIN_WEBHOOK] ❌ Invalid webhook payload');
+      this.logger.warn('[KINGUIN_WEBHOOK] ❌ Invalid webhook payload (rawBody missing/empty)');
+      this.logger.debug(`   rawBody value: ${String(rawPayload)}`);
+      this.logger.debug(`   req.body: ${JSON.stringify(req.body)}`);
       throw new UnauthorizedException('Invalid webhook payload');
     }
 
-    // 3. Verify HMAC signature
+    this.logger.debug(`[KINGUIN_WEBHOOK] DEBUG: rawPayload=${rawPayload.substring(0, 80)}..., sig=${signature.substring(0, 32)}...`);
+
+    // 3. Verify HMAC signature using raw payload (matches what Kinguin signed)
     const isValid = this.kinguinService.validateWebhook(rawPayload, signature);
 
     if (!isValid) {
@@ -101,27 +122,61 @@ export class KinguinController {
       throw new UnauthorizedException('Invalid webhook signature');
     }
 
-    // 4. Extract reservation ID from payload
-    const reservationId = payload['reservationId'];
-
-    if (reservationId === undefined || typeof reservationId !== 'string' || reservationId.length === 0) {
+    // 4. Extract reservation ID from validated DTO
+    const reservationId = payload.reservationId;
+    if (reservationId === undefined || reservationId === '') {
       this.logger.warn('[KINGUIN_WEBHOOK] ❌ Missing reservationId in payload');
       throw new UnauthorizedException('Missing reservationId in webhook payload');
     }
 
-    // 5. Log webhook receipt
-    const status = payload['status'];
-    const key = payload['key'];
+    // 5. Extract fields
+    const status = payload.status ?? '';
+    const hasKey = typeof payload.key === 'string' && payload.key.length > 0;
 
-    this.logger.log(`[KINGUIN_WEBHOOK] ✅ Webhook received: reservationId=${reservationId}, status=${String(status)}, hasKey=${typeof key === 'string' && key.length > 0}`);
+    this.logger.log(
+      `[KINGUIN_WEBHOOK] ✅ Webhook received: reservationId=${reservationId}, status=${status}, hasKey=${hasKey}`,
+    );
 
-    // 6. TODO: Process webhook in background job
-    // - Store delivery status in database
-    // - If status=ready and key exists, trigger fulfillment
-    // - If status=failed, mark order as failed
-    // - Implement idempotency via webhook_logs table
+    // 6. Idempotency: skip if we already logged this reservation webhook
+    const existing = await this.webhookLogsRepo.findOne({
+      where: { externalId: reservationId, webhookType: 'kinguin_webhook' },
+    });
+    if (existing !== null) {
+      this.logger.debug(
+        `[KINGUIN_WEBHOOK] Duplicate webhook ignored for reservationId=${reservationId}`,
+      );
+      return { ok: true };
+    }
 
-    // 7. Always return 200 OK (prevents Kinguin from retrying)
+    // 7. Log webhook for admin visibility
+    const log = new WebhookLog();
+    log.externalId = reservationId;
+    log.webhookType = 'kinguin_webhook';
+    log.payload = payload as unknown as Record<string, unknown>;
+    log.signature = signature;
+    log.signatureValid = true;
+    log.processed = false;
+    log.paymentStatus = status;
+    await this.webhookLogsRepo.save(log);
+
+    // 8. Find order by reservation ID to get orderId for job processing
+    const order = await this.ordersService.findByReservation(reservationId);
+    if (order === null) {
+      this.logger.warn(
+        `[KINGUIN_WEBHOOK] ❌ Order not found for reservationId=${reservationId}`,
+      );
+      // Log the error but still return 200 OK (Kinguin should not retry)
+      throw new NotFoundException(`Order not found for reservation ${reservationId}`);
+    }
+
+    // 9. Enqueue fulfillment webhook job for processor routing (now with orderId)
+    await this.fulfillmentQueue.add(
+      'kinguin.webhook',
+      { orderId: order.id, reservationId, status },
+      { jobId: `kinguin-webhook-${reservationId}-${Date.now()}`, removeOnComplete: true },
+    );
+
+    // 10. Always return 200 OK (prevents Kinguin from retrying)
     return { ok: true };
   }
 

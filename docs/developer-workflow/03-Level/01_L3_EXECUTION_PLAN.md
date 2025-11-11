@@ -1,6 +1,6 @@
 # 🚀 Level 3 Execution Plan — From Stub to Real Kinguin Fulfillment
 
-**Status:** 📋 Ready to Implement  
+**Status:** ✅ Implemented  
 **Date:** November 10, 2025  
 **Duration (Est.):** 6-8 hours  
 **Complexity:** High (async coordination, webhooks, storage)
@@ -223,7 +223,9 @@ cancel    → reservation cancelled
 **Implementation Notes:**
 - Bearer token auth (sandbox uses mock token for testing)
 - All methods include error handling and logging
-- Webhook verification via `X-Auth-Token` header
+- Webhook verification via HMAC-SHA512 using the raw JSON payload and `KINGUIN_WEBHOOK_SECRET`.
+  - Header: `X-KINGUIN-SIGNATURE`
+  - Compare with a timing-safe check
 - Always return 200 OK (idempotency enforcement)
 
 ---
@@ -246,10 +248,10 @@ startReservation(orderId: string)
   ├─ Save reservationId
   └─ Call kinguin.give() (optimistic)
 
-// Complete delivery (called on webhook "delivered")
+// Complete delivery (called when webhook indicates ready/delivered)
 finalizeDelivery(reservationId: string)
   ├─ Fetch order by reservation
-  ├─ Call kinguin.getDelivered()
+  ├─ Poll Kinguin order status
   ├─ Save keys to R2 (→ storageRef)
   ├─ Create Key records
   ├─ Mark order fulfilled
@@ -291,6 +293,8 @@ fulfill(orderId, signedUrl)                   // mark completed
 - `reserve` → startReservation
 - `kinguin.webhook` → handle webhook events based on eventType
 
+Note: Default flow still supports a direct `fulfillOrder` job for MVP/testing.
+
 ---
 
 ### Phase 5: Payment Integration
@@ -306,11 +310,7 @@ In `handleIpn()` method, after `orders.markPaid(orderId)`:
 ```typescript
 // Inject fulfillmentQueue in constructor
 if (payload.payment_status === 'finished') {
-  await this.fulfillmentQueue.add(
-    'reserve',
-    { orderId: payment.orderId },
-    { attempts: 5, backoff: { type: 'exponential', delay: 1000 } }
-  );
+  await this.fulfillmentQueue.add('reserve', { orderId: payment.orderId });
   this.logger.log(`[Payment] Fulfillment enqueued for order ${payment.orderId}`);
 }
 ```
@@ -332,6 +332,9 @@ async saveKeysJson(orderId: string, codes: string[]): Promise<string>
 async getSignedUrl(storageRef: string, expiresIn: number): Promise<string>
   // Return: Full HTTPS signed URL with expiry
 ```
+
+Implementation detail: current storage layout uses `orders/{orderId}/key.json` and signed URLs
+are generated via the R2 client helper with explicit expiry seconds.
 
 ---
 
@@ -379,8 +382,8 @@ POST /admin/webhook-logs/{id}/replay
 **Verification Checklist:**
 
 ```
-✓ X-Auth-Token verification in KinguinController
-✓ WebhookLog unique constraint on (externalId, eventType)
+✓ HMAC-SHA512 verification via X-KINGUIN-SIGNATURE in KinguinController
+✓ WebhookLog uniqueness/idempotency by (externalId, webhookType, processed)
 ✓ Raw body captured before JSON parsing
 ✓ No secrets in frontend bundle
 ✓ Secrets stored in .env only
@@ -565,7 +568,7 @@ npm run quality:full
 npm --workspace apps/api run typeorm migration:generate -n add-keys-reservation
 
 # 4. Progress through phases sequentially
-# 5. Run quality checks after each phase
+# 5. Run quality checks after each phase (target)
 npm run quality:full
 
 # 6. Document as you go
@@ -579,3 +582,14 @@ npm run quality:full
 **Skillset Required:** TypeScript, NestJS, BullMQ, Webhooks, Database migrations
 
 **Let's build Level 3! 🎯**
+
+---
+
+## 🔎 Current Implementation Notes
+
+- Fulfillment now uses a reservation-first flow:
+  - Payment finished → enqueue `reserve` job → `startReservation()` persists `kinguinReservationId`.
+  - Kinguin webhook enqueues `kinguin.webhook` job; on `ready/delivered`, `finalizeDelivery()` uploads encrypted keys to R2, creates `Key` records, updates items with signed URLs, and sends email.
+- Admin API endpoints exist for reservations and webhook logs; webhook logs are stored on receipt with idempotency guard.
+- Storage helpers implemented: `saveKeysJson()` and `getSignedUrl()`.
+- Global queue defaults set to attempts=5, exponential backoff (1s), removeOnComplete=true.

@@ -1,8 +1,13 @@
 import { Module } from '@nestjs/common';
 import { HttpModule } from '@nestjs/axios';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { BullModule } from '@nestjs/bullmq';
+import { QUEUE_NAMES } from '../../jobs/queues';
+import { WebhookLog } from '../../database/entities/webhook-log.entity';
 import { KinguinService } from './kinguin.service';
 import { KinguinController } from './kinguin.controller';
 import { KinguinClient } from '../fulfillment/kinguin.client';
+import { OrdersModule } from '../orders/orders.module';
 
 /**
  * Kinguin Module
@@ -32,7 +37,12 @@ import { KinguinClient } from '../fulfillment/kinguin.client';
  * @see https://docs.kinguin.net/api/v1 - Kinguin API Documentation
  */
 @Module({
-  imports: [HttpModule],
+  imports: [
+    HttpModule,
+    OrdersModule,
+    TypeOrmModule.forFeature([WebhookLog]),
+    BullModule.registerQueue({ name: QUEUE_NAMES.FULFILLMENT }),
+  ],
   providers: [
     {
       provide: KinguinClient,

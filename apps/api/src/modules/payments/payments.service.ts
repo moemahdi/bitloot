@@ -152,7 +152,7 @@ export class PaymentsService {
           const quantity = Array.isArray(orderDto.items) ? orderDto.items.length : 1;
 
           const job = await this.fulfillmentQueue.add(
-            'fulfillOrder',
+            'reserve',
             {
               orderId,
               paymentId: payment?.id ?? 'unknown',
@@ -161,14 +161,14 @@ export class PaymentsService {
               quantity,
             },
             {
-              jobId: `fulfill-${orderId}`,
+              jobId: `reserve-${orderId}`,
               removeOnComplete: true,
               removeOnFail: false, // Keep failed jobs for debugging
             },
           );
 
           this.logger.log(
-            `[Phase 4] Fulfillment job queued: order ${orderId}, job ID ${job?.id ?? 'unknown'}, email ${orderDto.email}, items ${quantity}`,
+            `[Phase 4] Reservation job queued: order ${orderId}, job ID ${job?.id ?? 'unknown'}, email ${orderDto.email}, items ${quantity}`,
           );
         } catch (error) {
           this.logger.error(
