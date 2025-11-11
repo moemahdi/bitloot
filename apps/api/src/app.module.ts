@@ -15,9 +15,13 @@ import { StorageService } from './modules/storage/storage.service';
 import { EmailsService } from './modules/emails/emails.service';
 import { NowPaymentsClient } from './modules/payments/nowpayments.client';
 import { WebhooksModule } from './modules/webhooks/webhooks.module';
+import { AdminModule } from './modules/admin/admin.module';
 import { BullQueues, PaymentsQueue, FulfillmentQueue } from './jobs/queues';
 import { PaymentProcessorService } from './jobs/payment-processor.service';
-import { FulfillmentProcessorService } from './jobs/fulfillment-processor.service';
+import { FulfillmentProcessor } from './jobs/fulfillment.processor';
+import { FulfillmentModule } from './modules/fulfillment/fulfillment.module';
+import { WebSocketModule } from './modules/fulfillment/websocket.module';
+import { KinguinModule } from './modules/kinguin/kinguin.module';
 
 @Module({
   imports: [
@@ -45,6 +49,12 @@ import { FulfillmentProcessorService } from './jobs/fulfillment-processor.servic
     FulfillmentQueue,
     // Feature modules
     WebhooksModule,
+    AdminModule,
+    // Fulfillment & WebSocket modules (providers for services/gateway)
+    FulfillmentModule,
+    WebSocketModule,
+    // Kinguin integration module (controller + services + queue)
+    KinguinModule,
   ],
   controllers: [HealthController, OrdersController, PaymentsController],
   providers: [
@@ -64,7 +74,7 @@ import { FulfillmentProcessorService } from './jobs/fulfillment-processor.servic
     EmailsService,
     // BullMQ Processors (must be registered as providers to be instantiated)
     PaymentProcessorService,
-    FulfillmentProcessorService,
+    FulfillmentProcessor,
   ],
 })
 export class AppModule {}

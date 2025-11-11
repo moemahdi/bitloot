@@ -4,7 +4,7 @@
 
 Designed for speed, transparency, and automation, BitLoot connects directly to the **Kinguin Sales Manager API (v1)** for product catalog synchronization and fulfillment, while using **NOWPayments** for secure, on-chain crypto transactions. Orders are delivered instantly upon blockchain confirmation — no waiting, no intermediaries.
 
----
+***
 
 ### 🚀 **Core Value Proposition**
 
@@ -21,13 +21,11 @@ Designed for speed, transparency, and automation, BitLoot connects directly to t
 ### 🧩 **Platform Features**
 
 #### 🛍️ Storefront
-
-- Fast-loading **Next.js PWA** with product grid, Quick View modals, search, sorting, and filters.
-- Real-time product sync from Kinguin’s catalog (games, software, subscriptions).
-- “Recently Viewed,” global reviews, and integrated FAQs.
+- Fast-loading **Next.js 16 PWA** with product grid, Quick View modals, search, sorting, and filters.
+- Real-time product sync from Kinguin's catalog (games, software, subscriptions).
+- "Recently Viewed," global reviews, and integrated FAQs.
 
 #### 💸 Checkout Flow
-
 - Guest checkout with **email-only** entry (no forced signup).
 - Crypto payments via **NOWPayments API**.
 - Live status updates — `waiting → confirming → finished`.
@@ -35,54 +33,47 @@ Designed for speed, transparency, and automation, BitLoot connects directly to t
 - Warnings for **underpayment** and **wrong asset** detection.
 
 #### 🔑 Key Delivery
-
 - Keys encrypted and stored on **Cloudflare R2**, accessible only through time-limited signed URLs.
 - No plaintext keys in emails or logs.
 - View/download available in user dashboard.
 
 #### 👤 User Accounts
-
 - OTP-based **email verification (6-digit code)** and password setup.
 - Dashboard for viewing past orders, revealing keys, managing credentials, and preferences.
 
 #### 🛠️ Admin Dashboard
-
 - Manage products (Kinguin sync + custom BitLoot listings).
 - View and moderate users, reviews, and FAQs.
 - Monitor orders, webhooks, payment logs, and fulfillment.
 - Real-time metrics: balance, time-to-key, error logs, and geolocation insights.
 
 #### 📬 Email System (Resend)
-
 - Order Created / Completed notifications.
 - OTP and password reset flows.
 - Optional marketing campaigns.
 
----
+***
 
 ### ⚙️ **Technology Stack**
 
 | Layer                  | Technology                                          | Purpose                                     |
 | ---------------------- | --------------------------------------------------- | ------------------------------------------- |
 | **Frontend (PWA)**     | Next.js 16 + React 19                               | SEO-optimized progressive web app           |
-| **UI / UX**            | Tailwind CSS + Radix UI + shadcn/ui + Framer Motion | Responsive and animated design              |
+| **UI / UX**            | Tailwind CSS v4 + Radix UI + shadcn/ui + Framer Motion | Responsive and animated design              |
 | **State Management**   | TanStack Query + Zustand                            | Async + session state                       |
 | **Forms & Validation** | React Hook Form + Zod                               | Secure checkout and auth forms              |
 | **Backend**            | NestJS (TypeScript, modular architecture)           | API, integrations, and webhooks             |
 | **Database**           | PostgreSQL + TypeORM                                | Persistent storage for users, orders, keys  |
 | **Cache & Queues**     | Redis + BullMQ                                      | Webhook retries, payment jobs, sync queues  |
 | **Payments**           | NOWPayments API                                     | 300+ crypto assets, IPN status updates      |
-| **Fulfillment**        | Kinguin API                                         | Offer sync, stock reservation, key delivery |
+| **Fulfillment**        | Kinguin Sales Manager API (v1)                      | Offer sync, stock reservation, key delivery |
 | **Storage**            | Cloudflare R2                                       | Encrypted storage for digital assets        |
 | **Emails**             | Resend                                              | Authentication and transactional messages   |
 | **Deployment**         | Docker + Nginx + GitHub Actions                     | Scalable CI/CD                              |
 | **Monitoring**         | Grafana + Prometheus + Sentry                       | Uptime, logs, errors                        |
-| **Security**           | Cloudflare WAF + CAPTCHA + HMAC                     | Bot prevention and signature validation     |
+| **Security**           | Cloudflare WAF + CAPTCHA + HMAC + Throttling        | Bot prevention, signature validation, and abuse protection |
 
-Captcha + Throttling
-Extra abuse protection
-
----
+***
 
 ### 🔗 **Key Integrations**
 
@@ -93,7 +84,7 @@ Extra abuse protection
 | **Cloudflare R2**                  | Secure Storage             | Encrypts and delivers license keys with expiring signed URLs.                    |
 | **Resend API**                     | Emails                     | Transactional messages for orders, OTP, and marketing.                           |
 
----
+***
 
 ### 🔄 **End-to-End Flow**
 
@@ -104,7 +95,6 @@ Extra abuse protection
 5. On `finished` event:
    - **Kinguin webhook** fulfills the key → BitLoot encrypts it in R2.
    - **Custom product** fulfilled internally.
-
 6. **Emails** (Order Created → Order Completed) are sent automatically.
 7. **User receives instant delivery link** and can later re-download from dashboard.
 
@@ -119,12 +109,12 @@ Extra abuse protection
 - **Customer Retention (Repeat Buyers)**
 - **Webhook/IPN Success Ratio**
 
----
+***
 
 ### 🧱 **Architecture Overview**
 
 ```
-Frontend (Next.js PWA)
+Frontend (Next.js 16 PWA)
    ↓
 NestJS API Gateway
    ↓
@@ -139,13 +129,13 @@ NestJS API Gateway
 Admin Panel & Analytics
 ```
 
----
+***
 
 ### 🧾 **Compliance & Security**
 
 - HMAC verification for IPN and webhooks (NOWPayments + Kinguin).
 - 2FA-secured merchant operations.
-- HTTPS + Cloudflare WAF.
+- HTTPS + Cloudflare WAF + CAPTCHA + Throttling.
 - Data encryption for all stored keys and sensitive user info.
 - Daily database and R2 backups.
 
@@ -162,7 +152,7 @@ Admin Panel & Analytics
 - Full email flow integration (Resend)
 - Logging and monitoring suite
 
----
+***
 
 ### 🌍 **Target Users**
 
@@ -177,5 +167,4 @@ Admin Panel & Analytics
 
 ### ✅ **Summary**
 
-BitLoot is the **next-generation crypto e-commerce platform** for instant, automated digital product delivery.
-By combining **NOWPayments** (for trustless crypto payments) with **Kinguin’s API** (for verified inventory and fulfillment), BitLoot delivers a **self-custodial, borderless buying experience** — blending Web3 simplicity with modern digital commerce.
+BitLoot is the **next-generation crypto e-commerce platform** for instant, automated digital product delivery. By combining **NOWPayments** (for trustless crypto payments) with **Kinguin's Sales Manager API (v1)** (for verified inventory and fulfillment), BitLoot delivers a **self-custodial, borderless buying experience** — blending Web3 simplicity with modern digital commerce.

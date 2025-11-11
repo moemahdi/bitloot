@@ -8,6 +8,7 @@ import {
 } from 'typeorm';
 import { OrderItem } from './order-item.entity';
 import { Payment } from '../payments/payment.entity';
+import { Key } from './key.entity';
 
 /**
  * OrderStatus — Comprehensive order lifecycle states
@@ -58,11 +59,29 @@ export class Order {
   @Column({ type: 'numeric', precision: 20, scale: 8, default: 0 })
   total!: string; // store as string to avoid FP issues
 
+  /**
+   * Kinguin reservation ID for tracking fulfillment status
+   * Populated when fulfillment job is created (payment confirmed)
+   * Used to link order to Kinguin's internal reservation system
+   * Nullable until fulfillment begins
+   */
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  kinguinReservationId?: string;
+
   @OneToMany(() => OrderItem, (i) => i.order, { cascade: true })
   items!: OrderItem[];
 
   @OneToMany(() => Payment, (p) => p.order, { lazy: true })
   payments!: Payment[];
+
+  /**
+   * Keys delivered to customer for this order
+   * Populated during fulfillment (after Kinguin provides keys)
+   * Each order item can have multiple keys (bundle purchases)
+   * Cascade delete ensures keys are removed if order is deleted
+   */
+  @OneToMany(() => Key, (k) => k.orderItem, { lazy: true })
+  keys!: Key[];
 
   @CreateDateColumn() createdAt!: Date;
   @UpdateDateColumn() updatedAt!: Date;

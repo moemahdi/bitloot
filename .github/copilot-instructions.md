@@ -1,1405 +1,355 @@
-# 🎯 BitLoot AI Agent Instructions
+# BitLoot Project — Complete Unified Engineering Instructions for AI Agent
 
-## 🚀 Short Brief Instructions for AI Agents
+## Main Takeaway
 
-> Follow these core rules to ensure consistency, security, and production-quality updates across BitLoot’s PWA + NestJS platform.
+BitLoot is a crypto-only e-commerce platform specializing in instant delivery of digital goods (game/software keys, subscriptions). It features a robust PWA frontend (Next.js/React) and secure NestJS backend, integrating NOWPayments for crypto, Kinguin API for catalog/fulfillment, Resend for emails, and Cloudflare R2 for encrypted key storage. Strict security, workflow, type-safety, and operational best practices are enforced throughout.
 
----
+***
 
-## 📊 BitLoot Project Stats (Verified)
+## Project Overview
 
-- **Core Value:** Crypto-only e-commerce for instant delivery of game/software keys & subscriptions (Kinguin + custom listings)
-- **Frontend:** Next.js **16** (App Router), React **19**, Tailwind + Radix UI + shadcn/ui + Framer Motion; TanStack Query + Zustand; PWA-first
-- **Backend:** NestJS (modular), PostgreSQL + TypeORM, Redis + BullMQ jobs, Webhooks/IPN; Docker + Nginx + GitHub Actions CI/CD
-- **Payments:** **NOWPayments** (300+ assets) with IPN → `waiting → confirming → finished`
-- **Fulfillment:** **Kinguin Sales Manager API (v1)** for catalog sync + delivery via webhook; custom BitLoot products too
-- **Delivery:** Keys encrypted in **Cloudflare R2**, served via signed URLs (no plaintext in emails/logs)
-- **Auth & Emails:** OTP (6-digit) + password setup; transactional + marketing via **Resend**
+**Core Value:**  
+Crypto-only digital goods marketplace delivering instant keys from Kinguin and custom listings.  
+**Architecture:**  
+- **Frontend:** Next.js 16, React 19, Tailwind, Radix UI, shadcn/ui, TanStack Query, Zustand, PWA-first.
+- **Backend:** NestJS (modular), PostgreSQL + TypeORM, Redis + BullMQ, Docker, Nginx, CI/CD via GitHub Actions.
+- **Payments:** NOWPayments (crypto, 300+ assets) with IPN webhooks, strict underpayment policy.
+- **Fulfillment:** Kinguin API for product sync and order fulfillment via secure server-side integration.
+- **Delivery:** Keys are encrypted and stored in Cloudflare R2, delivered only through short-lived signed URLs.
+- **Auth & Emails:** OTP-first (6-digit), password setup, transactional/marketing emails via Resend, with templates and idempotency.
+- **Testing:** Unit, integration, and end-to-end tests for all critical flows (webhook, payment, key reveal) using vitest.
 
----
+***
 
-## 📚 Documentation Files Reference
+## Documentation Reference & Implementation
 
-**Before implementing any feature or answering questions, the AI agent should:**
+**Start Here:**
+- **[PRD.md](../docs/PRD.md)** — BitLoot's Product Requirements Document. Defines goals, features, user flows, acceptance criteria, and technical requirements. Reference for all product scope questions.
+- **[project-description.md](../docs/project-description.md)** — High-level project overview, core value proposition, feature breakdown, tech stack, end-to-end flow, and target users. Read first for context.
 
-- Review relevant documentation for context and details
-- Check **Developer Workflow documentation** (Level 0 is COMPLETE ✅)
+**Project Structure & Architecture:**
+- **[Project-Architecture.md](Project-Architecture.md)** — Complete monorepo folder and file structure with detailed purpose descriptions for every module, entity, controller, service, migration, and configuration file. Essential reference when navigating the codebase or understanding where to add new features.
 
-All documentation is located in root level (Level 0 Developer Workflow) and `docs/` directory:
+**Code Standards & Implementation** _(🔴 AI MUST LOAD & FOLLOW ALWAYS when generating code)_
 
-- **`../docs/PRD.md`** — Product Requirements Document (feature specs, user flows)
-- **`../docs/project-description.md`** — High-level project overview & architecture
-- **[design-system.md](../docs//design-system.md)** — ✅ Shadcn/UI setup (46 components), Tailwind v4 config, Vercel theme (OKLch), dark mode
-- **`../docs/sdk.md`** — SDK design, structure, and generation workflow
-- **`../docs/nowpayments-API-documentation.md`** — NOWPayments integration guide & IPN specs
-- **`../docs/kinguin-API-documentation.md`** — Kinguin Sales Manager API (v1) full reference
-- **`../docs/kinguin-API-documentation-summary.md`** — Kinguin API quick reference
-- **`../docs/kinguin-technical-documentation.md`** — Kinguin technical details & webhook handling
-- **`../docs/resend-API-documentation.md`** — Resend email service API & templates
-- **`../docs/tawk-integration.md`** — Tawk live chat / support widget integration
-- **`../docs/developer-roadmap/`** — Staged development plan:
-  - **`../docs/developer-roadmap/Overview.md`** — Roadmap overview & sequencing
-  - **`../docs/developer-roadmap/00-Level.md`** — Project setup & infrastructure
-  - **`../docs/developer-roadmap/01-Level.md`** — Auth system (OTP, JWT, password)
-  - **`../docs/developer-roadmap/02-Level.md`** — Product catalog & search
-  - **`../docs/developer-roadmap/03-Level.md`** — Orders & cart management
-  - **`../docs/developer-roadmap/04-Level.md`** — Payments integration (NOWPayments)
-  - **`../docs/developer-roadmap/05-Level.md`** — Fulfillment (Kinguin API & delivery)
-  - **`../docs/developer-roadmap/06-Level.md`** — Admin dashboard & reporting
-  - **`../docs/developer-roadmap/07-Level.md`** — Advanced features (reviews, wishlists)
-  - **`../docs/developer-roadmap/08-Level.md`** — Optimization & scaling
+_⚠️ MANDATORY: These docs establish BitLoot's authoritative engineering standards. AI agents MUST reference these in EVERY chat where code is being generated. No exceptions._
+- **[BitLoot-Code-Standards.md](./BitLoot-Code-Standards.md)** — Complete authoritative code standards covering TypeScript strict mode, ESLint runtime-safety rules, backend patterns (entities, DTOs, services, controllers, webhooks), frontend patterns (SDK clients, forms, hooks), security standards, database rules, and async queue patterns. Use as the source of truth for all implementation decisions.
+- **[BitLoot-Checklists-Patterns.md](./BitLoot-Checklists-Patterns.md)** — Practical implementation checklists and 10 copy-paste code templates: Entity Checklist, DTO Checklist, Service Checklist, Controller Checklist, Webhook Checklist, Frontend Query Checklist, Frontend Form Checklist, HMAC Verification Checklist, OTP Pattern, Queue Processor Pattern. Reference these templates as starting points for every new feature.
 
----
+**Frontend Development & Design:**
+- **[design-system.md](../docs/design-system.md)** — Complete Shadcn/UI setup with 46 components, Tailwind v4 configuration, Vercel OKLch theme, dark mode, and styling guidelines. Use for all UI/UX development and component usage.
 
-## ✅ Level 0 — Developer Workflow (COMPLETED)
+**Backend & SDK Development:**
+- **[sdk.md](../docs/sdk.md)** — SDK design rationale, structure, and integration guide. Covers why SDK-first is essential for security and how to use typed clients instead of direct third-party API calls.
 
-**Status:** ✅ **COMPLETE** — All 10 bootstrap tasks executed successfully  
-**Completion Date:** November 8, 2025  
-**Verification:** All smoke tests passing, SDK generation working, Java 21 configured
 
-The following Level 0 documentation exists at the **root level** of the repository:
+## Development Workflow — Vertical Slices & Level-Based Architecture
 
-### Level 0 Bootstrap Documentation
+BitLoot follows a **vertical slices** development approach, structured in **progressive levels**. Each level builds upon the previous one, with every feature spanning the full stack (frontend → backend → database → security) within that level's scope. This ensures continuous delivery of working features while maintaining clean architecture and high quality standards.
 
-SEE DOCS AT: docs\developer-workflow\00-Level
+### Development Methodology
 
-### What Was Built in Level 0 (10/10 Tasks ✅)
+**Vertical Slices:** Each feature is implemented completely (UI, API, database, security, tests) rather than layer-by-layer.
 
-✅ **Monorepo Structure** — `apps/api`, `apps/web`, `packages/sdk` workspaces  
-✅ **Strict TypeScript + ESLint** — No `any`, runtime-safe rules enforced  
-✅ **Docker Infrastructure** — Postgres 16 + Redis 7 (docker-compose.yml, both healthy)  
-✅ **NestJS API** — Bootstrap with Swagger docs at `/api/docs`, health check, validation  
-✅ **Next.js PWA** — App Router, React 19, dark theme, manifest, PWA-ready  
-✅ **SDK Generator** — OpenAPI to TypeScript-Fetch client framework (working)  
-✅ **GitHub Actions CI/CD** — Lint, type-check, test, build pipeline  
-✅ **Configuration Files** — tsconfig.base.json, .eslintrc.cjs, .prettierrc, .env setup  
-✅ **SDK Generation** — Generates TypeScript clients from OpenAPI spec (`npm run sdk:gen`)  
-✅ **Java 21 Configuration** — Installed at `C:\Program Files\Java\jdk-21`, in system PATH
+**Progressive Levels:** Development is organized into sequential levels where:
+- Level 0: **Bootstrap & Infrastructure** — Project setup, tooling, CI/CD, Docker, databases.
+- Level 1: **Walking Skeleton** — Minimal end-to-end flow (order → payment → fulfillment).
+- Level 2: **Real Payments & Fulfillment** — NOWPayments integration, Kinguin API, webhooks, encryption.
+- Level 3: **Advanced Fulfillment & Scaling** — WebSocket real-time updates, admin dashboards, monitoring.
+- Level 4+: **Optimization, Features, Analytics** — Performance tuning, advanced features, reporting.
 
-### Getting Started After Level 0
+**Key Principle:** Each level depends on the previous level. No level starts until the prior level is completed, tested (100%), and fully documented.
 
-1. `npm install` — Install all dependencies
-2. `docker compose up -d` — Start Postgres + Redis
-3. `npm run dev:all` — Start API + Web servers (both running smoothly)
-4. `npm run sdk:gen` — Generate SDK from OpenAPI spec (works directly, no PATH override needed)
-5. Follow **LEVEL_0_VERIFICATION.md** for validation
+### Complete Development Workflow Documentation
 
-### Infrastructure Status
+BitLoot maintains comprehensive documentation for every development phase and level. All workflow docs are organized in `docs/developer-workflow/`:
 
-| Component       | Status | Details                                      |
-| --------------- | ------ | -------------------------------------------- |
-| Docker Postgres | ✅     | Postgres 16, healthy, port 5432              |
-| Docker Redis    | ✅     | Redis 7, healthy, port 6379                  |
-| NestJS API      | ✅     | Running on port 4000, Swagger at `/api/docs` |
-| Next.js Web     | ✅     | Running on port 3000, PWA manifest ready     |
-| SDK Generator   | ✅     | OpenAPI endpoint: `/api/docs-json`           |
-| Java 21         | ✅     | `C:\Program Files\Java\jdk-21`, in PATH      |
-| Quality Checks  | ✅     | All passing (type-check, lint, test, build)  |
+#### Level 0 — Bootstrap & Infrastructure ✅ **COMPLETE**
 
----
+- **LEVEL_0_COMPLETE.md: See `docs/LEVEL_0_COMPLETE.md`** — Infrastructure setup, Docker, TypeScript, ESLint configuration.
+- **BOOTSTRAP_COMPLETE.md: See `docs/BOOTSTRAP_COMPLETE.md`** — Complete bootstrap verification and setup confirmation.
+- **LEVEL_0_VERIFICATION.md: See `docs/LEVEL_0_VERIFICATION.md`)** — Verification checklist for successful bootstrap.
+- **FINAL_STATUS.md: See `docs/FINAL_STATUS.md`** — Final status and readiness for Level 1.
+- **QUICK_REFERENCE.md: See `docs/QUICK_REFERENCE.md`** — Quick commands and setup reference.
 
-## ✅ Level 1 — Walking Skeleton (COMPLETED)
+#### Level 1 — Walking Skeleton (End-to-End MVP) ✅ **COMPLETE**
 
-**Status:** ✅ **COMPLETE & PRODUCTION-READY** — Full end-to-end checkout flow working  
-**Completion Date:** November 8, 2025  
-**Phases Completed:** Phase 1 (Backend) ✅ | Phase 2 (Frontend) ✅ | Phase 3 (SDK) ✅
+- **LEVEL_1_COMPLETE.md: See `docs/LEVEL_1_COMPLETE.md`** — Full walking skeleton implementation with 3 pages and checkout flow.
+- **LEVEL_1_FINAL_STATUS.md: See `docs/LEVEL_1_FINAL_STATUS.md`** — Final status, metrics, and quality validation.
+- **LEVEL_1_VERIFICATION.md: See `docs/LEVEL_1_VERIFICATION.md`** — E2E verification checklist for walking skeleton.
+- **SUMMARY.md: See `docs/SUMMARY.md`** — Summary of completed features and next steps.
+- **QUICK_REFERENCE.md: See `docs/QUICK_REFERENCE.md`** — Quick reference for Level 1 commands and flows.
 
-### Level 1 Documentation
+#### Level 2 — Real Payments & Fulfillment ✅ **COMPLETE** (56/56 Tasks)
 
-SEE DOCS AT: docs\developer-workflow\01-Level
+Complete integration of NOWPayments crypto payments, webhook security, async job processing, and admin dashboards. Organized into 5 phases:
 
-### What Was Built in Level 1 (Complete ✅)
+**Phase 1 — Database Foundation:**
+- **01_LEVEL_2_PHASE1_PROGRESS.md: See `docs/LEVEL_2_PHASE1_PROGRESS.md`** — Phase 1 progress and planning.
+- **02_LEVEL_2_PHASE1_COMPLETE.md: See `docs/LEVEL_2_PHASE1_COMPLETE.md`** — Payment and webhook log entities, migrations, indexes.
+- **03_LEVEL_2_PHASE1_SUMMARY.md: See `docs/LEVEL_2_PHASE1_SUMMARY.md`** — Phase 1 completion summary (7/7 tasks).
 
-✅ **Backend (NestJS)** — 4 modules (orders, payments, storage, emails), 8 DTOs, 5 API endpoints  
-✅ **Frontend (Next.js)** — 3 pages (product, payment, success), checkout form, TanStack Query integration  
-✅ **Database (PostgreSQL)** — orders & order_items tables with migrations executed  
-✅ **SDK (TypeScript-Fetch)** — Generated from OpenAPI, 3 API clients, all models exported  
-✅ **E2E Flow** — Complete checkout cycle: email → fake payment → order fulfilled → signed URL → reveal key  
-✅ **Code Quality** — Type-check ✅, ESLint ✅, Format ✅, Build ✅
+**Phase 2 — Payment Integration:**
+- **01_LEVEL_2_PHASE2_PROGRESS.md: See `docs/LEVEL_2_PHASE2_PROGRESS.md`** — Payment service and HMAC verification implementation.
+- **02_LEVEL_2_PHASE2_FINAL.md: See `docs/LEVEL_2_PHASE2_FINAL.md`** — Final Phase 2 status with 39/39 tests passing, IPN handler, webhooks.
 
-### Infrastructure Status (Level 1)
+**Phase 3 — Webhook Security:**
+- **01_LEVEL_2_PHASE3_PLAN.md: See `docs/LEVEL_2_PHASE3_PLAN.md`** — Webhook security architecture and planning.
+- **02_LEVEL_2_PHASE3_ARCHITECTURE.md: See `docs/LEVEL_2_PHASE3_ARCHITECTURE.md`** — HMAC verification, idempotency, state machine design.
+- **03_LEVEL_2_PHASE3_IMPLEMENTATION_CHECKLIST.md: See `docs/LEVEL_2_PHASE3_IMPLEMENTATION_CHECKLIST.md`** — 8 webhook security implementation tasks.
+- **04_LEVEL_2_PHASE3_QUICK_START.md: See `docs/LEVEL_2_PHASE3_QUICK_START.md`** — Quick start for webhook setup.
+- **05_LEVEL_2_PHASE3_KICKOFF_SUMMARY.md: See `docs/LEVEL_2_PHASE3_KICKOFF_SUMMARY.md`** — Phase 3 kickoff overview.
+- **06_LEVEL_2_PHASE3_PROGRESS_1.md: See `docs/LEVEL_2_PHASE3_PROGRESS_1.md`** — Initial implementation progress.
+- **07_LEVEL_2_PHASE3_PROGRESS_2.md: See `docs/LEVEL_2_PHASE3_PROGRESS_2.md`** — Final implementation progress.
+- **08_LEVEL_2_PHASE3_COMPLETE.md: See `docs/LEVEL_2_PHASE3_COMPLETE.md`** — Phase 3 completion (8/8 tasks, HMAC verified, idempotency enforced).
+- **09_LEVEL_2_PHASE3_CODE_REVIEW.md: See `docs/LEVEL_2_PHASE3_CODE_REVIEW.md`** — Comprehensive security code review and sign-off.
 
-| Component      | Status | Details                                       |
-| -------------- | ------ | --------------------------------------------- |
-| NestJS API     | ✅     | Running on port 4000, all 5 endpoints working |
-| Next.js Web    | ✅     | Running on port 3000, all 3 pages rendering   |
-| PostgreSQL     | ✅     | Healthy, orders & order_items tables created  |
-| Redis          | ✅     | Healthy, ready for BullMQ (Level 3)           |
-| SDK Generation | ✅     | Generated from `/api/docs-json`               |
-| Migrations     | ✅     | InitOrders migration executed                 |
-| Quality Checks | ✅     | Type-check, lint, format, build all passing   |
+**Phase 4 — Async Processing with BullMQ:**
+- **01_L2_PHASE_4_TEST_COMPLETION.md: See `docs/LEVEL_2_PHASE_4_TEST_COMPLETION.md`** — Test suite execution and validation.
+- **02_L2_PHASE_4_TASK_8_ASYNC_ENDPOINTS.md: See `docs/LEVEL_2_PHASE_4_TASK_8_ASYNC_ENDPOINTS.md`** — Async payment endpoints implementation.
+- **03_L2_PHASE_4_TASK_9_FRONTEND_POLLING.md: See `docs/LEVEL_2_PHASE_4_TASK_9_FRONTEND_POLLING.md`** — Frontend job status polling UI.
+- **04_L2_PHASE_4_TASK_10_QUALITY_GATES.md: See `docs/LEVEL_2_PHASE_4_TASK_10_QUALITY_GATES.md`** — All 5 quality gates verification (Type, Lint, Format, Test, Build).
+- **05_L2_PHASE4_COMPLETE.md: See `docs/LEVEL_2_PHASE4_COMPLETE.md`** — Phase 4 completion with BullMQ queue setup.
 
-## ✅ Level 2 — Real Payments & Fulfillment (COMPLETE) 🎉
+**Phase 5 — E2E Testing & Admin Dashboards:**
+- **01_L2_PHASE5_START.md: See `docs/LEVEL_2_PHASE5_START.md`** — Phase 5 kickoff for E2E testing and admin features.
+- **02_L2_PHASE5_TASK2_COMPLETE.md: See `docs/LEVEL_2_PHASE5_TASK2_COMPLETE.md`** — Admin payment dashboard implementation.
+- **03_L2_PHASE5_TASK3_COMPLETE.md: See `docs/LEVEL_2_PHASE5_TASK3_COMPLETE.md`** — Webhook log viewer implementation.
+- **04_L2_PHASE5_PROGRESS.md: See `docs/LEVEL_2_PHASE5_PROGRESS.md`** — Mid-phase progress checkpoint.
+- **04_L2_PHASE5_TASK4_COMPLETE.md: See `docs/LEVEL_2_PHASE5_TASK4_COMPLETE.md`** — Reports page implementation.
+- **05_L2_PHASE5_TASK5_COMPLETE.md: See `docs/LEVEL_2_PHASE5_TASK5_COMPLETE.md`** — Ngrok tunneling setup for local webhook testing.
+- **06_L2_PHASE5_TASK6_COMPLETE.md: See `docs/LEVEL_2_PHASE5_TASK6_COMPLETE.md`** — E2E IPN simulation and testing.
+- **07_L2_PHASE5_TASK7_NGROK_SETUP_COMPLETE.md: See `docs/LEVEL_2_PHASE5_TASK7_NGROK_SETUP_COMPLETE.md`** — Ngrok production integration.
+- **08_L2_PHASE5_TASK8_E2E_TESTING_GUIDE.md: See `docs/LEVEL_2_PHASE5_TASK8_E2E_TESTING_GUIDE.md`** — Complete E2E testing guide with curl commands.
+- **09_L2_PHASE5_OTHER_TASKS_COMPLETE.md: See `docs/LEVEL_2_PHASE5_OTHER_TASKS_COMPLETE.md`** — Frontend and miscellaneous tasks finalized.
+- **10_L2_PHASE5_PHASE5_COMPLETE.md: See `docs/LEVEL_2_PHASE5_PHASE5_COMPLETE.md`** — Phase 5 final completion (25/25 tasks).
 
-**Status:** ✅ **100% COMPLETE & PRODUCTION-READY** — All 56 tasks across 5 phases executed  
-**Completion Date:** November 10, 2025  
-**Quality Score:** 5/5 Gates Passing ✅ | Tests: 198/198 ✅ | TypeScript Errors: 0 ✅ | ESLint Errors: 0 ✅  
-**Overall Progress:** 56/56 Tasks Complete (100%) ✅
+**Level 2 Executive Summary:**
+- **[LEVEL_2_FINAL_COMPLETION_STATUS.md](../docs/developer-workflow/02-Level/LEVEL_2_FINAL_COMPLETION_STATUS.md)** — Executive summary: 56/56 tasks complete, 5/5 quality gates passing, 198/198 tests passing, production-ready.
 
-#### Phase Documentation (Complete ✅)
+#### Level 3 — Kinguin Integration & Real Fulfillment ✅ **COMPLETE** (21 Core Tasks)
 
-| Phase                               | Documentation                                                                                                               | Status                                              | Details                                          |
-| ----------------------------------- | --------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------- | ------------------------------------------------ |
-| **[01_LEVEL_2_PHASE1_PROGRESS.md]** | ✅ Complete                                                                                                                 | Database foundation — Entities, migrations, indexes |
-|                                     | **[02_LEVEL_2_PHASE1_COMPLETE.md](../docs/developer-workflow/02-Level/PHASE1/02_LEVEL_2_PHASE1_COMPLETE.md)**               | ✅ Complete                                         | Orders, order_items, payment entities created    |
-|                                     | **[03_LEVEL_2_PHASE1_SUMMARY.md]**                                                                                          | ✅ Complete                                         | 7/7 tasks, all migrations executed               |
-| **Phase 2**                         | **[01_LEVEL_2_PHASE2_PROGRESS.md]**                                                                                         | ✅ Complete                                         | Payment module integration (13 tasks)            |
-|                                     | **[02_LEVEL_2_PHASE2_FINAL.md](../docs/developer-workflow/02-Level/PHASE2/02_LEVEL_2_PHASE2_FINAL.md)**                     | ✅ Complete                                         | NOWPayments API integration, 39/39 tests passing |
-| **Phase 3**                         | **[01_LEVEL_2_PHASE3_PLAN.md]**                                                                                             | ✅ Complete                                         | Webhook security architecture & design           |
-|                                     | **[02_LEVEL_2_PHASE3_ARCHITECTURE.md](../docs/developer-workflow/02-Level/PHASE3/02_LEVEL_2_PHASE3_ARCHITECTURE.md)**       | ✅ Complete                                         | HMAC-SHA512, idempotency patterns                |
-|                                     | \*\*[03_LEVEL_2_PHASE3_IMPLEMENTATION_CHECKLIST.md]                                                                         | ✅ Complete                                         | 8 webhook security tasks detailed                |
-|                                     | **[04_LEVEL_2_PHASE3_QUICK_START.md]**                                                                                      | ✅ Complete                                         | Quick reference for webhook setup                |
-|                                     | **[05_LEVEL_2_PHASE3_KICKOFF_SUMMARY.md]**                                                                                  | ✅ Complete                                         | Phase 3 kickoff overview                         |
-|                                     | **[06_LEVEL_2_PHASE3_PROGRESS_1.md]**                                                                                       | ✅ Complete                                         | Initial implementation progress                  |
-|                                     | **[07_LEVEL_2_PHASE3_PROGRESS_2.md]**                                                                                       | ✅ Complete                                         | Final implementation progress                    |
-|                                     | **[08_LEVEL_2_PHASE3_COMPLETE.md](../docs/developer-workflow/02-Level/PHASE3/08_LEVEL_2_PHASE3_COMPLETE.md)**               | ✅ Complete                                         | Phase 3 completion summary                       |
-|                                     | **[09_LEVEL_2_PHASE3_CODE_REVIEW.md](../docs/developer-workflow/02-Level/PHASE3/09_LEVEL_2_PHASE3_CODE_REVIEW.md)**         | ✅ Complete                                         | Code review findings & sign-off                  |
-| **Phase 4**                         | **[01_L2_PHASE_4_TEST_COMPLETION.md]**                                                                                      | ✅ Complete                                         | Test suite execution (39 tests Phase 2)          |
-|                                     | **[02_L2_PHASE_4_TASK_8_ASYNC_ENDPOINTS.md]**                                                                               | ✅ Complete                                         | Async payment endpoints implementation           |
-|                                     | **[03_L2_PHASE_4_TASK_9_FRONTEND_POLLING.md]**                                                                              | ✅ Complete                                         | Frontend real-time status polling                |
-|                                     | **[04_L2_PHASE_4_TASK_10_QUALITY_GATES.md]**                                                                                | ✅ Complete                                         | Quality gates (lint, type-check, test, build)    |
-|                                     | **[05_L2_PHASE4_COMPLETE.md](../docs/developer-workflow/02-Level/PHASE4/05_L2_PHASE4_COMPLETE.md)**                         | ✅ Complete                                         | Phase 4 completion summary                       |
-| **Phase 5**                         | **[01_L2_PHASE5_START.md]**                                                                                                 | ✅ Complete                                         | E2E testing & QA plan kickoff                    |
-|                                     | **[02_L2_PHASE5_TASK2_COMPLETE.md]**                                                                                        | ✅ Complete                                         | Admin payment dashboard completed                |
-|                                     | **[03_L2_PHASE5_TASK3_COMPLETE.md]**                                                                                        | ✅ Complete                                         | Webhook log viewer completed                     |
-|                                     | **[04_L2_PHASE5_PROGRESS.md]**                                                                                              | ✅ Complete                                         | Mid-phase progress checkpoint                    |
-|                                     | **[04_L2_PHASE5_TASK4_COMPLETE.md]**                                                                                        | ✅ Complete                                         | Reports page completed                           |
-|                                     | **[05_L2_PHASE5_TASK5_COMPLETE.md]**                                                                                        | ✅ Complete                                         | Ngrok tunneling setup completed                  |
-|                                     | **[06_L2_PHASE5_TASK6_COMPLETE.md]**                                                                                        | ✅ Complete                                         | E2E IPN simulation completed                     |
-|                                     | **[07_L2_PHASE5_TASK7_NGROK_SETUP_COMPLETE.md]**                                                                            | ✅ Complete                                         | Ngrok production integration tested              |
-|                                     | **[08_L2_PHASE5_TASK8_E2E_TESTING_GUIDE.md]**                                                                               | ✅ Complete                                         | Complete E2E testing guide & checklist           |
-|                                     | **[09_L2_PHASE5_OTHER_TASKS_COMPLETE.md](../docs/developer-workflow/02-Level/PHASE5/09_L2_PHASE5_OTHER_TASKS_COMPLETE.md)** | ✅ Complete                                         | Frontend & misc tasks finalized                  |
-|                                     | **[10_L2_PHASE5_PHASE5_COMPLETE.md](../docs/developer-workflow/02-Level/PHASE5/10_L2_PHASE5_PHASE5_COMPLETE.md)**           | ✅ Complete                                         | Phase 5 final completion summary                 |
+Advanced fulfillment with Kinguin API, encrypted key storage, WebSocket real-time updates, and admin features. Includes 13 comprehensive documentation files:
 
-#### Master Completion Status
+- **01_L3_EXECUTION_PLAN.md: See `docs/LEVEL_3_EXECUTION_PLAN.md`** — 44-task implementation roadmap with dependency graph.
+- **02_L3_PHASE1_DATABASE_FOUNDATION_COMPLETE.md: See `docs/LEVEL_3_PHASE1_DATABASE_FOUNDATION_COMPLETE.md`** — Database schema for Kinguin integration.
+- **03_L3_PHASE2_KINGUIN_INTEGRATION_COMPLETE.md: See `docs/LEVEL_3_PHASE2_KINGUIN_INTEGRATION_COMPLETE.md`** — Kinguin API client and integration.
+- **04_L3_PHASE3_FULFILLMENT_COMPLETE.md: See `docs/LEVEL_3_PHASE3_FULFILLMENT_COMPLETE.md`** — Fulfillment orchestration and key delivery.
+- **05_L3_PHASE4_FULFILLMENT_PROCESSOR_FIXED.md: See `docs/LEVEL_3_PHASE4_FULFILLMENT_PROCESSOR_FIXED.md`** — BullMQ processor fixes and optimization.
+- **06_L3_JWT_AUTHENTICATION.md: See `docs/LEVEL_3_JWT_AUTHENTICATION.md`** — JWT authentication layer implementation.
+- **07_L3_WEBSOCKET_IMPLEMENTATION_GUIDE.md: See `docs/LEVEL_3_WEBSOCKET_IMPLEMENTATION_GUIDE.md`** — Real-time WebSocket updates (90% load reduction vs polling).
+- **08_L3_PHASE7-ADMIN-API-CHANGES.md: See `docs/LEVEL_3_PHASE7-ADMIN-API-CHANGES.md`** — Admin API updates and integration fixes.
+- **08_L3_REMAINING_PHASES_PLAN.md: See `docs/LEVEL_3_REMAINING_PHASES_PLAN.md`** — Technical roadmap for Phases 4-13 (1,233 lines of specifications).
+- **09_L3_E2E_SUCCESS_TESTING.md: See `docs/LEVEL_3_E2E_SUCCESS_TESTING.md`** — E2E testing guide and verification.
+- **[LEVEL_3_COMPREHENSIVE_FINAL_REPORT.md](../docs/developer-workflow/03-Level/LEVEL_3_COMPREHENSIVE_FINAL_REPORT.md)** — Complete Level 3 summary with 209+ tests passing, 0 errors.
 
-- **[LEVEL_2_FINAL_COMPLETION_STATUS.md](../docs//developer-workflow//02-Level/LEVEL_2_FINAL_COMPLETION_STATUS.md)** | ✅ — Executive summary (56/56 tasks, all success criteria met)
+### Workflow Characteristics
 
-### Level 2 Achievement Overview
+**Each Level Includes:**
+- ✅ Complete vertical implementation (UI, API, database, security)
+- ✅ Full test coverage (unit, integration, E2E)
+- ✅ 5/5 quality gates passing (type-check, lint, format, test, build)
+- ✅ Comprehensive documentation for every phase
+- ✅ Zero errors or warnings
+- ✅ Production-ready code
 
-| **TOTAL** | **56/56** | **✅ 100%** | **PRODUCTION-READY** |
+**Progressive Dependencies:**
+- Level 1 depends on Level 0 ✅
+- Level 2 depends on Level 0 + Level 1 ✅
+- Level 3 depends on Level 0 + Level 1 + Level 2 ✅
 
-### Level 2 Quality Metrics
+**Total Documentation:**
+- 40+ comprehensive workflow documents
+- 7,500+ lines of technical specifications
+- Multiple phases per level with detailed progress tracking
+- Executive summaries for quick reference
 
-```
-✅ CODE QUALITY
-   - TypeScript Errors: 0
-   - ESLint Errors: 0
-   - Type-Check Pass: ✅
-   - Build Status: SUCCESS
+### Quality & Verification
 
-✅ TEST COVERAGE
-   - Total Tests: 198/198 passing
-   - Phase 2 Tests: 39/39 ✅
-   - HMAC Tests: 24/24 ✅
-   - Integration Tests: 159+ ✅
-   - Test Execution Time: ~10s
+Every level includes:
+- **Completion Checklists**: Verify all tasks done
+- **Quality Gates**: Type-check, lint, format, test, build (all must pass)
+- **E2E Testing**: Full workflow validation
+- **Executive Summaries**: Quick overview of achievements
+- **Roadmaps**: Clear path to next level
 
-✅ SECURITY
-   - HMAC-SHA512: ✅ Implemented
-   - Timing-Safe Compare: ✅ Enabled
-   - Idempotency Keys: ✅ Enforced
-   - API Key Protection: ✅ Server-side only
+This vertical slices + progressive levels approach ensures BitLoot is continuously deployable, maintainable, and secure at every stage of development.
 
-✅ PERFORMANCE
-   - Type Check: 3.08s
-   - Lint Check: 2.14s
-   - Test Suite: 10.29s
-   - Build All: ~57s
-   - Total Quality Gate: 73.12s
-```
+***
 
-### Level 2 Success Criteria (10/10 Met) ✅
+***
 
-| #   | Criterion                               | Status | Evidence                                |
-| --- | --------------------------------------- | ------ | --------------------------------------- |
-| 1   | Real crypto payments via NOWPayments    | ✅     | Payment creation tested, API integrated |
-| 2   | HMAC verification validates IPNs        | ✅     | Signature verification (24 tests)       |
-| 3   | Webhook idempotency prevents duplicates | ✅     | UNIQUE constraints + WebhookLog         |
-| 4   | Underpayments marked non-refundable     | ✅     | Order status 'underpaid' (terminal)     |
-| 5   | Frontend redirects to NOWPayments       | ✅     | Checkout form → payment.invoiceUrl      |
-| 6   | Order status transitions correctly      | ✅     | State machine: created → paid/failed    |
-| 7   | Admin dashboard shows all data          | ✅     | Payments, webhooks pages                |
-| 8   | All tests pass (198/198)                | ✅     | Zero failures, full coverage            |
-| 9   | Type/lint/build all pass                | ✅     | 5/5 quality gates passing               |
-| 10  | SDK regenerated & working               | ✅     | OpenAPI clients generated ✅            |
+## Completed Levels (0-3)
 
-### Level 2 Key Deliverables
+✅ **Level 0 — Workshop Setup:** Monorepo, Docker infrastructure, strict TypeScript + ESLint, CI/CD pipeline  
+✅ **Level 1 — Walking Skeleton:** MVP with fake payments, fake fulfillment, R2 signed links, Resend emails  
+✅ **Level 2 — Real Payments:** NOWPayments sandbox integration, HMAC webhook verification, idempotency, state machine, async BullMQ jobs  
+✅ **Level 3 — Real Fulfillment:** Kinguin API integration, order reservation/delivery, AES-256-GCM encryption, WebSocket real-time updates, admin dashboards  
 
-**Backend Services:**
+_All Level 0-3 documentation available in `docs/developer-workflow/0-3-Levels/`_
 
-- ✅ **Payments Module** — create(), handleIpn(), getJobStatus() | NOWPayments integration
-- ✅ **Webhooks Module** — ipn-handler.service.ts | HMAC-SHA512 verification
-- ✅ **Orders Module** — Extended for payment states | Full state machine
-- ✅ **Admin Module** — Guard-protected endpoints | Pagination, filtering
-- ✅ **BullMQ Queues** — PaymentsQueue, fulfillment async jobs | Retry strategies
+***
 
-**Frontend Pages:**
+## Upcoming Levels (4-8) — Short Overview
 
-- ✅ `/product/[id]` — Product page + checkout form
-- ✅ `/pay/[orderId]` — Payment confirmation + status polling
-- ✅ `/orders/[id]/success` — Success page with metrics
-- ✅ `/admin/payments` — Payment dashboard (20+ fields)
-- ✅ `/admin/webhooks` — Webhook log viewer with filtering
+**Level 4 — Security & Observability** _(In Progress/Roadmap)_  
+- OTP login (6-digit, Redis TTL, rate limits)  
+- WAF + CAPTCHA for abuse prevention  
+- Structured logging and alerting infrastructure  
+- Sentry/DataDog integration for error tracking  
+- See: `docs/developer-roadmap/04-Level.md`
 
-**Database:**
+**Level 5 — Admin & Ops UI + Monitoring** _(Planned)_  
+- RBAC (user/admin roles) with JWT guards  
+- Core admin tables: Orders, Payments, Webhooks, Reservations (filters, pagination ≤100)  
+- BullMQ queue dashboard, balance monitoring, config flags  
+- Prometheus metrics exposure, queue/webhook health  
+- Database backups (nightly `pg_dump` to R2), restore runbooks  
+- CSV/JSON exports and audit logs  
+- See: `docs/developer-roadmap/05-Level.md`
 
-- ✅ **4 Migrations executed** — Orders, items, payments, status enum
-- ✅ **Composite Indexes** — (userId, createdAt), (status, createdAt), (externalId, type)
-- ✅ **Entities defined** — Order, OrderItem, Payment, PaymentEvent, WebhookLog
+**Level 6 — Products & Catalog Management** _(Planned)_  
+- Database schema: products, offers, categories, media, pricing rules  
+- Kinguin catalog sync (BullMQ job, idempotent upserts)  
+- Dynamic pricing layer (margin %, floor/cap, override rules)  
+- Postgres `tsvector` search + Redis caching for hot lists  
+- Public API: paginated list/detail with filters  
+- Admin UI: product editor, pricing rules, manual sync, bulk publish/unpublish  
+- See: `docs/developer-roadmap/06-Level.md`
 
----
+**Level 7 — Marketing & Emails** _(Planned)_  
+- Resend campaign infrastructure (scheduled, segmented, measurable)  
+- Referral codes (per-user, attribution tracking, anti-abuse)  
+- Promo codes (fixed/% discounts, validity, stacking rules, usage caps)  
+- Email events, subscriber management, one-click unsubscribe  
+- Admin campaign composer, audience builder, schedule/send  
+- Link tracking redirector (`/m/c/:messageId/:slug`), unsubscribe flow  
+- See: `docs/developer-roadmap/07-Level.md`
 
-## 🥇 1) Golden Rules (Non-Negotiable)
+**Level 8 — Analytics & AI (Diagnostic + Predictive Dashboards)** _(Planned)_  
+- Append-only `analytics_events` + rollup tables (daily_kpis, product_kpis, cohorts, funnels, rfm_scores)  
+- ETL jobs (hourly/daily materializations, idempotent upserts)  
+- Diagnostic dashboards: Revenue, AOV, conversion, retention, cohort analysis, top products, underpayment rate  
+- Predictive: 7-day revenue/order forecast (moving averages baseline), anomaly detection, churn/propensity scoring  
+- Recharts-based admin UI, JSON APIs, CSV exports  
+- Privacy-first (no PII, hashed keys if needed)  
+- See: `docs/developer-roadmap/08-Level.md`
 
-- **SDK-first:** Frontend talks **only** to BitLoot’s own SDK (typed client over NestJS). **Never** call NOWPayments/Kinguin/Resend directly from the browser
-- **No Secrets in Frontend:** Payment, webhook, email, and catalog secrets live server-side only (NestJS). Frontend uses your SDK clients
-- **Type Safety Everywhere:** No `any`, no `@ts-ignore`. Types flow backend → OpenAPI → SDK → PWA.
-- **Security by Default:** JWT/refresh, guards, **ownership** checks, **HMAC verification** for IPN/Webhooks, CAPTCHA + WAF where applicable
-- **Mandatory Pagination:** All list endpoints paginate; `limit ≤ 100`.
-- **Idempotency & Queues:** IPN/webhook handlers and email sends must be idempotent and queued (BullMQ) to avoid duplicates/retries storms
-- **No Raw Keys in Email:** Keys delivered via short-lived R2 signed links only
-- **Underpayment Policy:** Underpayment = failed, **non-refundable** — reflect across UI copy, order state, and email templates
-  Always use context7 when I need code generation, setup or configuration steps, or
-  library/API documentation. This means you should automatically use the Context7 MCP
-  tools to resolve library id and get library docs without me having to explicitly ask.
+_Full roadmap rationale, dependencies, and task-by-task breakdowns available in `docs/developer-roadmap/` directory_
 
----
+***
 
-## 🔧 2) Project Rules & Anti-Patterns
+
+**Third-Party Integration API Docs** _(Reference only when working on that specific integration)_
+
+_⚠️ AI Agent Note: Do NOT load these integration docs in every chat unless the current task explicitly involves that API integration._
+- **nowpayments-API-documentaion.md: See `docs/nowpayments-API-documentaion.md`** — Crypto payment gateway API for creating payments, handling IPN callbacks, and processing transactions. Load only when working on payment flows.
+- **kinguin-API-documentation-summary.md: See `docs/kinguin-API-documentation-summary.md`** — Kinguin Sales Manager API quick reference for product sync, stock models, and order fulfillment. Load only when working on fulfillment.
+- **kinguin-API-documentation.md: See `docs/kinguin-API-documentation.md`** — Full Kinguin API documentation with fee structure and features. Load only when needed for Kinguin integration.
+- **kinguin-technical-documentation.md: See `docs/kinguin-technical-documentation.md`** — OpenAPI spec and technical details for Kinguin endpoints. Load only when implementing Kinguin API calls.
+- **resend-API-documentaion.md: See `docs/resend-API-documentaion.md`** — Email service API for OTP, password reset, transactional, and promotional emails. Load only when working on email features.
+- **tawk-integration.md: See `docs/tawk-integration.md`** — Live chat widget setup and configuration for customer support. Load only when working on chat features.
+
+
+***
+
+## Golden Rules (Non-Negotiable)
+
+1. **SDK-first:** Only BitLoot’s generated SDK client talks to the backend; never invoke 3rd-party APIs (NOWPayments, Kinguin, Resend) from frontend.
+2. **Security by Design:** JWT with refresh, ownership checks, HMAC verification (webhooks/IPN), strict rate limits for OTP, keys only via signed R2 URL (never plaintext in frontend or emails).
+3. **No Secrets in Frontend:** API keys/passwords/crypto secrets live only on backend.
+4. **Idempotent & Queued:** All fulfillment, email, IPN/webhook work via BullMQ jobs, dedupe, retries, dead-letter queue.
+5. **Pagination & Indexes:** All list endpoints must paginate (`limit ≤ 100`), composite indexes for hot queries.
+6. **Zero `any` or `@ts-ignore`:** Strict TypeScript and ESLint rules enforce type- and runtime-safety everywhere.
+
+***
+
+## Engineering Standards
 
 ### Backend (NestJS)
-
-- Use **class-based DTOs** + `class-validator` + Swagger decorators on **every** route for OpenAPI/SDK generation.
-- Enforce **ownership** (`userId` scopes) in the service layer for reads/writes.
-- **Transactions** for multi-entity ops (e.g., order + order_items + payment events).
-- **HMAC verification** for NOWPayments IPN + Kinguin webhooks. Reject if invalid or replayed; log to `webhook_logs`. Keep handlers idempotent
-- Queue heavy/side-effect work (email, R2 uploads) in BullMQ; retries/backoff; dead-letter queues
-- **Indexes** for hot paths: `(userId, createdAt)`, `(status, createdAt)`, `(productId, createdAt)`.
+- **DTOs:** Class-based, validated, and fully documented for OpenAPI/SDK generation.
+- **Services:** Multi-entity operations require transactions. IPN/webhook/services are idempotent and ownership-aware.
+- **Webhooks:** Validate raw payload HMAC (timing-safe), deny replays, log via `webhook_logs`, always idempotent.
+- **Database:** TypeORM migrations, soft deletes as needed, `decimal(20, 8)` types for money, indexed queries on common fields.
 
 ### Frontend (Next.js PWA)
-
-- Keep `app/` thin; all logic in `src/features/*`. Use TanStack Query + **BitLoot SDK** only (no raw fetch/axios/SWR).
-- Forms: **React Hook Form + Zod** for all flows (checkout, OTP, reset, profile).
-- Always wire **loading/error/empty** states; ensure a11y (labels/focus/keyboard).
-- **Never** render raw secrets or keys; delivery flows always navigate to signed URLs only
+- **App Structure:** Thin routes in `app/`, logic/features in `features/*`. All API/data flows through SDK (no raw fetch).
+- **Forms:** React Hook Form + Zod, always handle loading/error/empty states, ensure accessibility.
+- **Data:** TanStack Query, state management via Zustand, optimistic updates and cache settings per context.
+- **Key Delivery:** Always via signed Cloudflare R2 URL; never store/retrieve plaintext keys in browser or emails.
 
 ### SDK (BitLoot)
-
-- Generate from NestJS OpenAPI; one client per domain (auth, orders, payments, products, users, r2). Regenerate after API changes
-- Central mutator handles JWT, refresh, and unified errors.
-
-### Database
-
-- TypeORM migrations only; **no** auto-sync in prod.
-- Money/amounts use `decimal(20, 8)`. Composite indexes on common filters.
-- Soft-delete where sensible (e.g., reviews).
+- **Generation:** API regenerated from OpenAPI on every change, strictly typed, domain clients, unified error handling.
+- **Frontend Use:** SDK handles JWT, refresh tokens, and all data contracts. No direct third-party API calls.
 
 ### Emails (Resend)
+- Transactional emails (OTP, password reset, order updates) use template variables—never send keys directly.
+- Idempotency keys used on every transactional send to prevent duplication on retries.
+- Rate-limit OTP; store OTP in Redis with TTL; never log sensitive codes.
 
-- OTP + password reset + order created/completed + welcome + (optional) marketing via segments/broadcasts.
-- OTP: 6-digit, Redis TTL (e.g., 5–10 min), rate-limited requests/attempts; never log full code; template variables only
-- Use **Idempotency-Key** headers to avoid duplicate transactional emails on retries
+***
 
----
+## Security & Verification
 
-## 🧱 3) Core Domains & Modules (MVP)
+- HMAC signature verification for all webhooks/IPN.
+- JWT + role checks + ownership in service layer.
+- No plaintext keys or secrets exposed anywhere.
+- Underpayment = failed/non-refundable—reflected across UI and email flows.
+- Restrictive CORS, WAF and CAPTCHA on bot-prone endpoints.
+- Signed key delivery URLs expire fast (≤ 15 min), track audit logs upon reveal.
 
-**Backend modules (suggested):** `auth`, `users`, `products` (Kinguin + custom), `orders`, `payments` (NOWPayments), `fulfillment` (Kinguin webhooks), `emails` (Resend), `storage` (R2), `reviews`, `admin`, `webhooks`, `logs` — aligned to PRD flows (guest checkout, OTP auth, IPN, delivery)
+***
 
-**Frontend features:** `home`, `catalog`, `product`, `checkout`, `auth` (login/signup/otp/reset), `account`, `admin`, `reviews`, `faq`, `support` — including **Quick View modal**, product page checkout (email → crypto → status → reveal link)
+## Workflow & Quality
 
----
+- **Bootstrap, Skeleton, Payments, Fulfillment:** Each phase completed, tested (100% passing), and fully documented.
+- **CI/CD Gates:** Format, lint (no warnings/errors), type-check, unit & integration tests, full build, SDK regeneration.
+- **Performance:** Indexed DB queries, minimal selects, caching for read-mostly endpoints, virtualized long lists, background queue for slow tasks.
+- **Testing:** Unit, integration, end-to-end (NestJS Supertest); all critical flows (webhook, payment, key reveal) are covered.
+- **Troubleshooting:** SDK regeneration on API changes, deduplication of emails, immediate reaction to payment/status/key delivery errors.
 
-## 🛡️ 4) Runtime-Safety ESLint (Top Rules)
+## Implementation Patterns
 
-**Async Safety**
+### Backend Example (Order Creation)
+- Use transactions, creation via DTO, offload heavy async to BullMQ.
+- Mark paid state idempotently with NOWPayments payment ID.
+- Validate ownership and responses via DTO classes.
 
-- `@typescript-eslint/no-floating-promises` (error)
-- `@typescript-eslint/no-misused-promises` (error)
-- `@typescript-eslint/await-thenable` (error)
+### Frontend Example (Order/Checkout)
+- Use SDK query/mutation hooks via TanStack Query.
+- Form validation with RHF + Zod, state panels for payment/fulfillment status.
+- “Reveal” step always opens signed R2 URL for JSON key file.
 
-**Type Safety**
+### Security Example (Webhook Verification)
+- Read raw body for signature.
+- HMAC verification (timing-safe).
+- Dedupe using webhook logs.
+- Enqueue side-effect jobs, fast response to webhook sender.
 
-- `@typescript-eslint/no-explicit-any` (error)
-- `@typescript-eslint/no-unsafe-*` family (error)
-- `@typescript-eslint/consistent-type-imports` (error)
+***
 
-**Null/Boolean Safety**
-
-- `@typescript-eslint/prefer-nullish-coalescing` (error)
-- `@typescript-eslint/prefer-optional-chain` (error)
-- `@typescript-eslint/strict-boolean-expressions` (warn|error)
-
-**Restricted Patterns**
-
-- `no-restricted-syntax` for:
-  - ❌ `Math.random()` for IDs → use `crypto.randomUUID()`
-  - ❌ `parseInt(str)` without radix → `parseInt(str, 10)`
-  - ❌ `fetch()`/`.json()` without `try/catch`
-
-**React Safety**
-
-- `react-hooks/rules-of-hooks` (error)
-- `react-hooks/exhaustive-deps` (warn)
-
-**Debug**
-
-- `no-console` (warn; allow `warn`/`error`)
-- `no-debugger` (error), `no-alert` (error)
-
-✅ These map directly to BitLoot’s risk profile: **unhandled-async**, **unsafe-access**, **premature-state**, **missing-props** (same categories you used).
-
----
-
-## 📋 5) ESLint Quick Patterns
-
-**Safe Access**
-
-```ts
-// ✅
-const email = user?.email ?? 'guest@bitloot.com';
-const items = Array.isArray(order?.items) ? order.items : [];
-
-// ❌
-const email = user.email || 'guest@bitloot.com';
-```
-
-**Async Safety**
-
-```ts
-// ✅
-try {
-  const res = await sdk.payments.createPayment(payload);
-  const json = res; // already parsed if SDK
-} catch (e) {
-  console.error('Payment create failed', e);
-}
-
-// ❌
-const res = await fetch(url);
-const data = await res.json();
-```
-
-**IDs & Parsing**
-
-```ts
-// ✅
-const id = crypto.randomUUID();
-const n = parseInt('42', 10);
-
-// ❌
-const id = Math.random().toString();
-const n = parseInt('42');
-```
-
----
-
-## ⚙️ 6) Daily Workflow
+## Command Cheat Sheet
 
 ```bash
-npm run dev:all           # PWA + API (both running)
-npm run sdk:gen           # Regenerate SDK after ANY API change (works directly with Java 21)
-npm run quality:full      # Run ALL quality checks (type-check, lint, format, test, build)
+npm run dev:all           # Start both PWA + API
+npm run sdk:gen           # Regenerate SDK after API updates
+npm run quality:full      # Format, lint, type-check, test, build (all must pass!)
 ```
 
-Quality loop: `format` → `lint:fix` → `type-check` → `test` → `build`
+***
 
-**Individual checks (if needed):**
+## BitLoot-Specific Best Practices
 
-```bash
-npm run type-check        # TypeScript strict mode validation
-npm run lint              # ESLint runtime-safety rules
-npm run format            # Prettier formatting check
-npm run test              # Unit & integration tests
-npm run build             # Build all workspaces
-```
+- Never send/display keys except via signed links with fast expiry.
+- Only use SDK—no direct third-party calls or raw secret handling in frontend.
+- Webhooks and IPN must always be verified, idempotent, logged, and retried if necessary.
 
-**Why SDK-first here:** The SDK formalizes all BitLoot operations and keeps 3rd-party details server-side only
+***
 
----
+***
 
-## ✅ 7) Pull Request Gates (Must Pass)
+## AI Agent Guidance
 
-- Zero `any` / zero TS errors / zero lint errors.
-- **Guards + ownership** on protected routes.
-- DTO validation + **complete Swagger** decorators (so SDK responses aren’t `void`).
-- Pagination + strategic DB indexes.
-- SDK regenerated if API changed (clients/types updated)
-- Tests updated; UI includes loading/error/empty states.
-- No secrets/keys in frontend; delivery via signed URLs only
-- IPN/Webhooks: **HMAC verified**, idempotent, logged. Underpayment path respected
+Always use this document's context, follow all security and architectural rules, consult referenced documentation for specifics, and structure responses per template, citing direct commands/code patterns when useful for implementation. Never violate non-negotiable rules, prioritize security, type safety, SDK-first design, and robust queue/idempotency for side effects. 
 
----
-
-## ⚡ 8) Performance Checklist
-
-- Composite indexes on hot paths (orders by `status/createdAt`, user orders by `userId/createdAt`).
-- Select minimal columns; prefer query builders for complex filters.
-- Cache read-mostly endpoints (short TTL) where safe; invalidate on writes.
-- TanStack Query: `staleTime 30s` for live checkout/payment status; 5–10m for profile/static pages.
-- Virtualize long lists; dynamic import heavy components.
-- Queue slow side-effects (emails, R2 ops) with retries/backoff.
-
----
-
-## 🔐 9) Security Checklist
-
-- **HMAC** verify NOWPayments IPN + Kinguin webhooks; reject replays; idempotent updates to `orders`/`payment_events`
-- **JWT + refresh**, role checks, and **ownership** in services.
-- **OTP** via Redis (TTL), request/verify rate-limits, mask logs, 6-digit crypto-random codes; password reset links via Resend templates
-- **No plaintext keys** in emails or logs; signed URL delivery from R2 only
-- Restrict CORS origins & headers; WAF + CAPTCHA for bots (Cloudflare)
-
----
-
-## 🔄 10) Verification Commands
-
-### Development
-
-```bash
-# Full env (web+api)
-npm run dev:all
-
-# API only
-npm run dev:api
-
-# Web only
-npm run dev:web
-
-# SDK (after ANY API change)
-npm run sdk:dev
-```
-
-### Quality Check Suite (Unified)
-
-```bash
-# Run ALL quality checks with beautiful output
-npm run quality
-
-# Run ALL checks and continue on failure
-npm run quality all --continue
-
-# Individual checks
-npm run quality:type-check     # Type checking only
-npm run quality:lint           # Linting only
-npm run quality:format         # Format verification only
-npm run quality:test           # Testing only
-npm run quality:build          # Build only
-
-# Full check (all tasks, continues on failure)
-npm run quality:full
-```
-
-### Traditional Commands
-
-```bash
-# Type & lint
-npm run type-check && npm run lint --max-warnings 0
-
-# Auto-fix issues
-npm run lint:fix && npm run format:fix
-
-# Tests
-npm run test
-
-# Build
-npm run build
-```
-
----
-
-## 🧯 11) Quick Troubleshooting
-
-| Problem                        | Solution                                                  |
-| ------------------------------ | --------------------------------------------------------- |
-| Types broken after API change  | `npm run sdk:dev` → `npm run type-check`                  |
-| Duplicate transactional emails | Use Resend `Idempotency-Key`; dedupe in queue handler     |
-| Payment/IPN mismatch           | Verify HMAC; ensure idempotency keying on `np_payment_id` |
-| Keys appearing in logs         | Remove; store only R2 refs; deliver via signed URL        |
-| OTP spam or brute force        | Redis counters; throttle requests & attempts; short TTLs  |
-
----
-
-## 🤖 12) SDK — The Contract
-
-**Frontend → BitLoot SDK → NestJS → (NOWPayments/Kinguin/Resend)**
-
-- **Never** call 3rd-party APIs from the browser; secrets live server-side.
-- Generate SDK from OpenAPI; one client per module; shared mutator for auth/errors
-
-**Example structure & usage:** see `orders`, `payments`, `products`, `auth`, `user`, `r2` clients in your SDK plan
-
----
-
-## 🧪 OTP/Email Patterns (BitLoot-specific)
-
-- **OTP create:** crypto-random 6 digits; Redis `otp:verify:<email>` with 5–10m TTL; rate-limit sends; send via **Resend template** (variables only)
-- **OTP verify:** compare from Redis; on success, delete key; lockout after N failed attempts; proceed to **set password** flow
-- **Password reset:** token or HMAC link via Resend template; short expiry; single-use; generic responses to avoid email enumeration
-- **Transactional emails:** Order Created (pending), Order Completed (delivery via link), Welcome; use templates + optional idempotency headers
-
----
-
-## 🧭 Response Template for AI Agent (Use This)
-
-```
-# Task: <Title>
-
-## Analysis
-- Current state:
-- Requirements:
-- Impact:
-
-## Plan
-1) …
-2) …
-3) …
-
-## Technical Approach
-- Backend:
-- Frontend:
-- SDK:
-- Data/Indexes:
-- Security/HMAC:
-
-## Implementation
-<Code / diffs with safe patterns>
-
-## Verification
-- [ ] Type-check
-- [ ] Lint
-- [ ] Tests
-- [ ] SDK regenerated
-- [ ] Manual Steps
-
-## Commands
-<exact commands to run>
-```
-
----
-
-## 📝 BitLoot-Specific Gotchas (Never Miss)
-
-- **Underpayments are final**: reflect clearly in product page checkout UI + emails; ensure status path shows “failed/non-refundable” when underpaid
-- **No plaintext keys** anywhere; **only** signed URLs from R2; expire links fast; log `viewed_at` on reveal
-- **SDK or bust**: Frontend calls **only** BitLoot SDK (your API), never 3rd-party SDKs (secrets!)
-- **Webhooks/IPN** must be: verified, idempotent, logged, and resilient with retries/backoff
-
-# 🧭 BitLoot – Complete Engineering Instructions (Backend + Frontend + SDK)
-
-## What BitLoot is (context in one breath)
-
-Crypto-only e-commerce for instant delivery of digital goods (game/software keys, subs). Users pay in crypto (NOWPayments), orders are fulfilled from Kinguin (plus your custom products), keys are stored in Cloudflare R2 and delivered via **short-lived signed URLs** (never plaintext in email). OTP-first auth + Resend for transactional mail. PWA frontend, NestJS backend, TypeORM + PostgreSQL, Redis + BullMQ, strict ESLint runtime-safety.
-
----
-
-## 0) Golden Rules (non-negotiable)
-
-1. **SDK-first**: Frontend calls your **BitLoot SDK** only (typed client generated from OpenAPI). Never call NOWPayments/Kinguin/Resend from the browser.
-2. **Security by design**: JWT+refresh, role guards, **ownership checks in services**, **HMAC verification** for IPN/webhooks, strict rate limits for OTP.
-3. **No secrets in frontend**. No plaintext keys anywhere. Delivery is **only** through short-lived signed R2 links.
-4. **Idempotency & queues**: All webhook/IPN/email/fulfillment side effects go through BullMQ with dedupe, retry, and dead-letter queues.
-5. **Pagination everywhere** (`limit ≤ 100`). **Indexes** on hot paths.
-6. **Zero `any`** & **zero `@ts-ignore`**. Strict TS and ESLint runtime-safety rules enforced.
-
----
-
-## 1) Monorepo Layout (authoritative)
-
-```
-bitloot/
-├─ apps/
-│  ├─ api/                     # NestJS backend (port 3001)
-│  │  └─ src/
-│  │     ├─ modules/
-│  │     │  ├─ auth/           # login, OTP, password reset, tokens
-│  │     │  ├─ users/
-│  │     │  ├─ products/       # Kinguin sync + custom listings
-│  │     │  ├─ orders/         # orders & order items
-│  │     │  ├─ payments/       # NOWPayments integration (create/IPN)
-│  │     │  ├─ fulfillment/    # Kinguin order fulfill + webhooks
-│  │     │  ├─ storage/        # R2 signed URLs + key vault service
-│  │     │  ├─ emails/         # Resend transactional emails
-│  │     │  ├─ webhooks/       # shared webhook utils/logs
-│  │     │  ├─ admin/          # admin APIs (catalog, price rules)
-│  │     │  └─ logs/           # event/process/webhook logs
-│  │     ├─ common/            # guards, interceptors, filters, dto base
-│  │     ├─ database/          # entities, migrations, orm config
-│  │     ├─ jobs/              # BullMQ processors (email, fulfillment…)
-│  │     ├─ config/            # env schemas, config factories
-│  │     └─ main.ts
-│  └─ web/                     # Next.js PWA (port 3000)
-│     └─ src/
-│        ├─ app/               # thin routes only
-│        └─ features/          # real logic here
-├─ packages/
-│  ├─ sdk/                     # generated TS SDK (OpenAPI -> Orval/etc.)
-```
-
----
-
-## 2) Backend – How to Write **Entities**, **DTOs**, **Services**, **Controllers**
-
-### 2.1 Entities (TypeORM)
-
-- Use `uuid` PK.
-- Monetary values: `decimal(20, 8)`.
-- Soft deletes where relevant.
-- Composite indexes for hot filters.
-
-```ts
-// apps/api/src/database/entities/order.entity.ts
-import {
-  Entity,
-  PrimaryGeneratedColumn,
-  Column,
-  Index,
-  CreateDateColumn,
-  UpdateDateColumn,
-  DeleteDateColumn,
-  OneToMany,
-  ManyToOne,
-  JoinColumn,
-} from 'typeorm';
-import { User } from './user.entity';
-import { OrderItem } from './order-item.entity';
-
-@Entity('orders')
-@Index(['userId', 'createdAt'])
-@Index(['status', 'createdAt'])
-export class Order {
-  @PrimaryGeneratedColumn('uuid')
-  id!: string;
-
-  @Column()
-  @Index()
-  userId!: string;
-
-  @ManyToOne(() => User, (u) => u.orders, { onDelete: 'CASCADE' })
-  @JoinColumn({ name: 'userId' })
-  user!: User;
-
-  @Column({
-    type: 'enum',
-    enum: ['pending', 'confirming', 'paid', 'underpaid', 'failed', 'cancelled', 'fulfilled'],
-    default: 'pending',
-  })
-  status!: 'pending' | 'confirming' | 'paid' | 'underpaid' | 'failed' | 'cancelled' | 'fulfilled';
-
-  @Column('decimal', { precision: 20, scale: 8 })
-  totalCrypto!: string; // string for precise decimals (serialize as string)
-
-  @Column({ nullable: true })
-  npPaymentId?: string; // NOWPayments id, used for idempotency
-
-  @CreateDateColumn() createdAt!: Date;
-  @UpdateDateColumn() updatedAt!: Date;
-  @DeleteDateColumn() deletedAt?: Date;
-
-  @OneToMany(() => OrderItem, (i) => i.order, { cascade: true })
-  items!: OrderItem[];
-}
-```
-
-### 2.2 DTOs & Swagger (class-based, never interfaces)
-
-- Use `class-validator` & `class-transformer`.
-- Every controller route has `@ApiResponse({ type })` or `@ApiResponse({ type: [T] })`.
-- Include pagination DTOs.
-
-```ts
-// apps/api/src/common/dto/pagination.dto.ts
-import { ApiProperty } from '@nestjs/swagger';
-import { Type } from 'class-transformer';
-import { IsInt, Min, Max } from 'class-validator';
-
-export class PaginationDto {
-  @ApiProperty({ default: 1, minimum: 1 })
-  @Type(() => Number)
-  @IsInt()
-  @Min(1)
-  page = 1;
-
-  @ApiProperty({ default: 20, minimum: 1, maximum: 100 })
-  @Type(() => Number)
-  @IsInt()
-  @Min(1)
-  @Max(100)
-  limit = 20;
-}
-
-export class PaginatedResponse<T> {
-  @ApiProperty({ isArray: true }) data!: T[];
-  @ApiProperty() total!: number;
-  @ApiProperty() page!: number;
-  @ApiProperty() limit!: number;
-  @ApiProperty() totalPages!: number;
-  @ApiProperty() hasNextPage!: boolean;
-}
-```
-
-```ts
-// apps/api/src/modules/orders/dto/create-order.dto.ts
-import { ApiProperty } from '@nestjs/swagger';
-import { IsEmail, IsUUID, IsArray, IsInt, Min, IsString } from 'class-validator';
-import { Type } from 'class-transformer';
-
-export class CreateOrderItemDto {
-  @ApiProperty() @IsUUID() productId!: string;
-  @ApiProperty() @Type(() => Number) @IsInt() @Min(1) quantity!: number;
-}
-
-export class CreateOrderDto {
-  @ApiProperty() @IsEmail() email!: string;
-  @ApiProperty({ type: [CreateOrderItemDto] }) @IsArray() items!: CreateOrderItemDto[];
-  @ApiProperty({ description: 'User id if logged in; null for guest', required: false })
-  @IsUUID()
-  userId?: string | null;
-}
-
-export class OrderItemResponseDto {
-  @ApiProperty() id!: string;
-  @ApiProperty() productId!: string;
-  @ApiProperty() quantity!: number;
-}
-
-export class OrderResponseDto {
-  @ApiProperty() id!: string;
-  @ApiProperty() status!: string;
-  @ApiProperty() totalCrypto!: string;
-  @ApiProperty({ type: [OrderItemResponseDto] }) items!: OrderItemResponseDto[];
-  @ApiProperty() createdAt!: Date;
-}
-```
-
-### 2.3 Service Pattern (ownership + transactions + idempotency)
-
-- **Ownership**: Every user-scoped read/write validates `userId` in the _service layer_.
-- **Transactions** for multi-entity updates (order + items + payment event).
-- **Idempotency**: for IPN/webhooks, upsert by external id and ignore repeats.
-- **Queues**: heavy work → BullMQ.
-
-```ts
-// apps/api/src/modules/orders/orders.service.ts
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
-import { DataSource, Repository } from 'typeorm';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Order } from '../../database/entities/order.entity';
-import { CreateOrderDto } from './dto/create-order.dto';
-import { Queue } from 'bullmq';
-import { InjectQueue } from '@nestjs/bullmq';
-
-@Injectable()
-export class OrdersService {
-  constructor(
-    private readonly dataSource: DataSource,
-    @InjectRepository(Order) private readonly orderRepo: Repository<Order>,
-    @InjectQueue('fulfillment') private readonly fulfillmentQ: Queue,
-  ) {}
-
-  async findUserOrderOrThrow(orderId: string, userId: string) {
-    const order = await this.orderRepo.findOne({
-      where: { id: orderId, userId },
-      relations: ['items'],
-    });
-    if (!order) throw new NotFoundException('Order not found');
-    return order;
-    // Ownership enforced here.
-  }
-
-  async create(dto: CreateOrderDto): Promise<Order> {
-    return this.dataSource.transaction(async (manager) => {
-      // Compute totals, validate stock/prices, etc.
-      const order = manager.create(Order, {
-        userId: dto.userId ?? undefined,
-        status: 'pending',
-        totalCrypto: '0.00000000', // compute later when payment created
-        items: dto.items.map((i) => manager.create('OrderItem' as any, i)),
-      });
-      const saved = await manager.save(order);
-
-      // Enqueue payment creation (NOWPayments) as a background job
-      await this.fulfillmentQ.add(
-        'createPayment',
-        { orderId: saved.id },
-        { removeOnComplete: true },
-      );
-
-      return saved;
-    });
-  }
-
-  async markPaidIdempotent(npPaymentId: string, orderId: string) {
-    // Idempotent: if already processed with same npPaymentId, ignore.
-    const updated = await this.orderRepo
-      .createQueryBuilder()
-      .update(Order)
-      .set({ status: 'paid', npPaymentId })
-      .where('id = :orderId AND (npPaymentId IS NULL OR npPaymentId = :npPaymentId)', {
-        orderId,
-        npPaymentId,
-      })
-      .returning('*')
-      .execute();
-
-    return updated.raw[0] ?? null;
-  }
-
-  async setStatus(orderId: string, status: Order['status']) {
-    await this.orderRepo.update({ id: orderId }, { status });
-  }
-}
-```
-
-### 2.4 Controller Pattern (guards + swagger + errors)
-
-- Always use guards for protected routes.
-- Every route is documented (summary + responses).
-- Validate inputs with DTOs (no inline validation).
-
-```ts
-// apps/api/src/modules/orders/orders.controller.ts
-import { Controller, Get, Post, Param, Body, UseGuards, Request } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { JwtAuthGuard } from '../../common/guards/jwt.guard';
-import { OrdersService } from './orders.service';
-import { CreateOrderDto, OrderResponseDto } from './dto/create-order.dto';
-
-@ApiTags('Orders')
-@Controller('orders')
-export class OrdersController {
-  constructor(private readonly orders: OrdersService) {}
-
-  @Post()
-  @ApiOperation({ summary: 'Create order (guest or user)' })
-  @ApiResponse({ status: 201, type: OrderResponseDto })
-  async create(@Body() dto: CreateOrderDto): Promise<OrderResponseDto> {
-    const order = await this.orders.create(dto);
-    return {
-      id: order.id,
-      status: order.status,
-      totalCrypto: order.totalCrypto,
-      items: order.items.map((i) => ({ id: i.id, productId: i.productId, quantity: i.quantity })),
-      createdAt: order.createdAt,
-    };
-  }
-
-  @Get(':id')
-  @UseGuards(JwtAuthGuard)
-  @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: 'Get order (requires ownership)' })
-  @ApiResponse({ status: 200, type: OrderResponseDto })
-  async getOne(@Param('id') id: string, @Request() req: any): Promise<OrderResponseDto> {
-    const o = await this.orders.findUserOrderOrThrow(id, req.user.id);
-    return {
-      id: o.id,
-      status: o.status,
-      totalCrypto: o.totalCrypto,
-      items: o.items.map((i) => ({ id: i.id, productId: i.productId, quantity: i.quantity })),
-      createdAt: o.createdAt,
-    };
-  }
-}
-```
-
----
-
-## 3) Integrations
-
-### 3.1 NOWPayments (Payments Module)
-
-**Flow**
-
-1. Client hits `POST /payments` via SDK → Service calls NOWPayments **server-side** to create payment, stores `npPaymentId`, returns pay URL & amounts to frontend.
-2. NOWPayments sends **IPN** (webhook) on status changes: `waiting → confirming → finished` (also possible `failed`/`underpaid`).
-3. Your IPN controller verifies HMAC & idempotency, updates order status via `OrdersService`.
-4. If `finished` (paid), enqueue fulfillment job (Kinguin / custom delivery). If `underpaid` → mark `underpaid (non-refundable)`.
-
-**Verification helper**
-
-```ts
-// apps/api/src/modules/payments/np-signature.util.ts
-import * as crypto from 'crypto';
-
-export function verifyNpHmac(rawBody: string, signature: string, secret: string): boolean {
-  const hmac = crypto.createHmac('sha512', secret).update(rawBody).digest('hex');
-  return crypto.timingSafeEqual(Buffer.from(hmac), Buffer.from(signature || '', 'hex'));
-}
-```
-
-**Controller**
-
-```ts
-// apps/api/src/modules/payments/payments.controller.ts
-import { Controller, Post, Headers, Req, Res, HttpCode } from '@nestjs/common';
-import { ApiTags } from '@nestjs/swagger';
-import { PaymentsService } from './payments.service';
-import { verifyNpHmac } from './np-signature.util';
-
-@ApiTags('Payments')
-@Controller('payments')
-export class PaymentsController {
-  constructor(private readonly svc: PaymentsService) {}
-
-  @Post('ipn')
-  @HttpCode(200)
-  async ipn(@Headers('x-nowpayments-signature') sig: string, @Req() req: any, @Res() res: any) {
-    const raw = req.rawBody?.toString?.() ?? JSON.stringify(req.body);
-    const ok = verifyNpHmac(raw, sig, process.env.NOWPAYMENTS_IPN_SECRET!);
-    if (!ok) return res.status(401).send('Invalid signature');
-
-    // Idempotent: dedupe by npPaymentId or invoice id
-    await this.svc.handleIpn(req.body);
-    return res.send('OK');
-  }
-}
-```
-
-**Service (idempotent state machine)**
-
-```ts
-// apps/api/src/modules/payments/payments.service.ts
-import { Injectable } from '@nestjs/common';
-import { OrdersService } from '../orders/orders.service';
-import { InjectQueue } from '@nestjs/bullmq';
-import { Queue } from 'bullmq';
-
-@Injectable()
-export class PaymentsService {
-  constructor(
-    private readonly orders: OrdersService,
-    @InjectQueue('fulfillment') private readonly fulfillmentQ: Queue,
-  ) {}
-
-  async handleIpn(payload: any) {
-    const { payment_id: npPaymentId, payment_status, order_id } = payload;
-    // order_id should map to our orderId; if not, map via stored reference
-
-    if (payment_status === 'waiting' || payment_status === 'confirming') {
-      await this.orders.setStatus(order_id, 'confirming');
-    }
-
-    if (payment_status === 'finished') {
-      const updated = await this.orders.markPaidIdempotent(npPaymentId, order_id);
-      if (updated) {
-        await this.fulfillmentQ.add(
-          'fulfillOrder',
-          { orderId: order_id },
-          { removeOnComplete: true },
-        );
-      }
-    }
-
-    if (payment_status === 'failed') {
-      await this.orders.setStatus(order_id, 'failed');
-    }
-
-    if (payment_status === 'partially_paid' || payment_status === 'underpaid') {
-      await this.orders.setStatus(order_id, 'underpaid'); // non-refundable
-    }
-  }
-}
-```
-
-### 3.2 Kinguin (Products & Fulfillment)
-
-**Catalog sync**
-
-- Nightly/periodic job pulls products (price, stock, title, region), normalizes & stores in `products`.
-- Respect categories/filters; maintain `externalId` for Kinguin product.
-
-**Place order & delivery**
-
-- After `paid`, create Kinguin order (server-side) and poll/webhook for keys; when keys arrive, **encrypt and store** in R2; mark order `fulfilled`; send email with **link**, not key text.
-
-**Fulfillment queue processor**
-
-```ts
-// apps/api/src/jobs/fulfillment.processor.ts
-import { Processor, WorkerHost } from '@nestjs/bullmq';
-import { OrdersService } from '../modules/orders/orders.service';
-import { StorageService } from '../modules/storage/storage.service';
-import { EmailsService } from '../modules/emails/emails.service';
-import { KinguinService } from '../modules/fulfillment/kinguin.service';
-
-@Processor('fulfillment')
-export class FulfillmentProcessor extends WorkerHost {
-  constructor(
-    private readonly kinguin: KinguinService,
-    private readonly storage: StorageService,
-    private readonly emails: EmailsService,
-    private readonly orders: OrdersService,
-  ) {
-    super();
-  }
-
-  async process(job: any) {
-    const { orderId } = job.data;
-    // 1) Call Kinguin to place/confirm order & retrieve keys
-    const keys = await this.kinguin.fulfill(orderId); // array of strings
-
-    // 2) Store keys securely in R2 (encrypted or private bucket)
-    const url = await this.storage.saveAndGetSignedUrl({ orderId, keys });
-
-    // 3) Mark fulfilled
-    await this.orders.setStatus(orderId, 'fulfilled');
-
-    // 4) Notify customer (Resend) with link (no plaintext keys)
-    await this.emails.sendOrderDelivered({ orderId, link: url });
-  }
-}
-```
-
-### 3.3 Cloudflare R2 (Storage)
-
-- Store raw keys in a **private** bucket, optionally client-side encrypted first.
-- Deliver through **signed URL** with short expiry (e.g., 10–30 minutes).
-- Log `deliveries` to track first-open.
-
-```ts
-// apps/api/src/modules/storage/storage.service.ts
-import { Injectable } from '@nestjs/common';
-import { S3Client, PutObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
-import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
-
-@Injectable()
-export class StorageService {
-  private s3 = new S3Client({
-    region: 'auto',
-    endpoint: process.env.R2_ENDPOINT!,
-    credentials: { accessKeyId: process.env.R2_KEY!, secretAccessKey: process.env.R2_SECRET! },
-  });
-
-  async saveAndGetSignedUrl(input: { orderId: string; keys: string[] }) {
-    const objectKey = `orders/${input.orderId}/keys.json`;
-    await this.s3.send(
-      new PutObjectCommand({
-        Bucket: process.env.R2_BUCKET!,
-        Key: objectKey,
-        Body: JSON.stringify({ keys: input.keys }),
-        ContentType: 'application/json',
-      }),
-    );
-    const url = await getSignedUrl(
-      this.s3,
-      new GetObjectCommand({
-        Bucket: process.env.R2_BUCKET!,
-        Key: objectKey,
-        ResponseContentDisposition: 'attachment; filename="bitloot-keys.json"',
-      }),
-      { expiresIn: 60 * 15 },
-    ); // 15 min
-    return url;
-  }
-}
-```
-
-### 3.4 Resend (Emails)
-
-- OTP, password reset, order created, order fulfilled.
-- Use **Idempotency-Key** to prevent dupes on retry.
-- Templates: pass only variables; never embed keys.
-
-```ts
-// apps/api/src/modules/emails/emails.service.ts
-import { Injectable } from '@nestjs/common';
-import { Resend } from 'resend';
-
-@Injectable()
-export class EmailsService {
-  private resend = new Resend(process.env.RESEND_API_KEY!);
-
-  async sendOrderDelivered({ orderId, link }: { orderId: string; link: string }) {
-    await this.resend.emails.send({
-      from: 'BitLoot <orders@bitloot.io>',
-      to: [], // customer email looked up by order
-      subject: 'Your BitLoot order is ready',
-      headers: { 'Idempotency-Key': `order-delivered-${orderId}` },
-      react: OrderDeliveredTemplate({ orderId, link }), // or html/text
-    });
-  }
-}
-```
-
----
-
-## 4) Webhooks & IPN – **Universal Rules**
-
-1. **Read raw body** (configure Nest to keep rawBody) for signature validation.
-2. **Verify HMAC** with timing-safe compare; if invalid → `401`.
-3. **Idempotent**: dedupe on external id (payment id / webhook id). One-row table `webhook_logs` with unique index on external id.
-4. **Queue** heavy work; return 200 quickly after persistence.
-5. **Observability**: log status transitions and handler results.
-
-```ts
-// apps/api/src/modules/webhooks/webhooks.module.ts
-// Provide a WebhookLogsService with upsert(externalId, type, payloadHash)
-```
-
----
-
-## 5) Auth + OTP
-
-- OTP: crypto-random 6 digits, store in Redis with TTL (e.g., 5–10 min), rate-limit requests & attempts per email/IP.
-- On verify: delete key, proceed to set password.
-- Password reset: short-lived token, single-use; anonymous responses to avoid enumeration.
-- JWT: access (short), refresh (long); rotation with blacklist or versioning.
-
-```ts
-// apps/api/src/modules/auth/otp.service.ts
-import { Injectable } from '@nestjs/common';
-import { randomInt } from 'node:crypto';
-import { Redis } from 'ioredis';
-
-@Injectable()
-export class OtpService {
-  constructor(private readonly redis: Redis) {}
-
-  async issue(email: string) {
-    const code = randomInt(0, 999999).toString().padStart(6, '0');
-    const key = `otp:${email}`;
-    await this.redis.set(key, code, 'EX', 5 * 60); // 5 min TTL
-    return code;
-  }
-
-  async verify(email: string, code: string) {
-    const key = `otp:${email}`;
-    const stored = await this.redis.get(key);
-    if (!stored || stored !== code) return false;
-    await this.redis.del(key);
-    return true;
-  }
-}
-```
-
----
-
-## 6) Queues (BullMQ)
-
-- Queues: `fulfillment`, `email`, `catalog-sync`, `payment-maintenance`.
-- Each job: **retry strategy** (exponential), `removeOnComplete: true`, `removeOnFail: N`.
-- Use concurrency carefully; consider rate limits at Kinguin/NOWPayments/resend.
-
-```ts
-// apps/api/src/jobs/queues.ts
-import { BullModule } from '@nestjs/bullmq';
-
-export const BullQueues = BullModule.forRoot({
-  connection: { url: process.env.REDIS_URL! },
-});
-
-export const FulfillmentQueue = BullModule.registerQueue({ name: 'fulfillment' });
-```
-
----
-
-## 7) SDK Generation (OpenAPI → Typed Clients)
-
-- Controllers **must** use `@ApiTags`, `@ApiOperation`, `@ApiResponse({ type })` for every route. DTOs are **classes** (no interfaces).
-- Script: `npm run sdk:dev` does: pull OpenAPI (`/docs-json`) → generate clients & models → build package.
-- Frontend imports clients & models from `@bitloot/sdk`.
-
-```bash
-# typical flow
-npm run dev:api   # ensure swagger is up
-npm run sdk:dev   # pull spec + generate + build
-```
-
----
-
-## 8) Frontend (Next.js PWA)
-
-### Structure
-
-```
-src/
-├─ app/                       # thin routes
-│  ├─ (public)/product/[id]/page.tsx
-│  └─ (auth)/login/page.tsx
-└─ features/
-   ├─ catalog/
-   ├─ product/
-   ├─ checkout/
-   ├─ auth/
-   ├─ account/
-   ├─ admin/
-   └─ components/ (ONLY design-system based)
-```
-
-### Data fetching pattern (TanStack Query + SDK)
-
-```ts
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { ordersControllerCreate, ordersControllerGet } from '@bitloot/sdk/clients/orders';
-
-export function useOrder(orderId?: string) {
-  return useQuery({
-    queryKey: ['order', orderId],
-    queryFn: () => ordersControllerGet({ id: orderId! }),
-    enabled: Boolean(orderId),
-    staleTime: 30_000,
-  });
-}
-
-export function useCreateOrder() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: ordersControllerCreate,
-    onSuccess: (order) => {
-      qc.invalidateQueries({ queryKey: ['order', order.id] });
-    },
-  });
-}
-```
-
-### Checkout flow (UI contract)
-
-1. Product/Quick-View → “Checkout”
-2. Enter email (OTP if guest), accept policy
-3. Create order → receive payment instructions (asset/amount/address/url)
-4. Show **real-time status** panel (waiting → confirming → paid/underpaid/failed)
-5. When `fulfilled`, show “Reveal” → open **signed URL** (download keys.json)
-
-### Forms
-
-- React Hook Form + Zod in all forms (OTP, password set/reset, profile, checkout).
-- Always handle **loading/error/empty** states and use accessible labels.
-
-### Guards
-
-- AuthGuard for protected pages; handle refresh transparently (SDK mutator).
-- Avoid storing secrets; only store JWTs and safe user info.
-
----
-
-## 9) Testing
-
-- **Unit (Jest)**: services & utils (HMAC verify, idempotency upserts).
-- **E2E (Nest testing / supertest)**: IPN/webhook routes, order → payment → fulfillment.
-- **Component tests**: checkout states (waiting/confirming/paid/underpaid).
-
-Key tests:
-
-- Webhook HMAC invalid → 401
-- Replayed IPN → no duplicate side effects
-- Underpaid → UI shows non-refundable & order marked `underpaid`
-- R2 link expires and never reveals plaintext in logs
-
----
-
-## 10) CI/CD & PR Gates
-
-**CI pipeline**
-
-- `npm run format:check`
-- `npm run lint --max-warnings 0`
-- `npm run type-check`
-- `npm run test`
-- `npm run build`
-
-**PR must pass**
-
-- No `any` / no TS or ESLint errors
-- Controllers fully documented (no `void` SDK types)
-- Ownership checks in services
-- Pagination & indexes verified
-- SDK regenerated if API changed
-- No secrets/keys in frontend or logs
-- Webhooks/IPN idempotent & verified
-
----
-
-## 11) Runtime-Safety ESLint (flat configs)
-
-Apply strict rules (both web & api) to ensure:
-
-- **unhandled-async**: no floating promises; only await real promises.
-- **unsafe-access / unsafe-call**: no `any`; use optional chaining and nullish coalescing.
-- **premature-state**: React hooks rules.
-- **restricted**: no `Math.random()` for ids; `parseInt` must have radix; no raw `fetch().json()` without try/catch.
-
-(If you want, I can paste ready-to-use `eslint.config.mjs` for `api` and `web` exactly aligned to these policies.)
-
----
-
-## 12) Command Cheat Sheet
-
-```bash
-# Run everything
-npm run dev:all
-
-# Backend only / Frontend only
-npm run dev:api
-npm run dev:web
-
-# SDK regeneration (after ANY API change)
-npm run sdk:dev
-
-# Quality loop
-npm run format && npm run lint:fix && npm run type-check && npm run test && npm run build
-
-# DB
-npm run db:migrate
-npm run db:seed
-```
-
----
-
-## 13) Copy-Paste Patterns (The “How” Summary)
-
-### A) New Controller Checklist
-
-1. `@ApiTags` + `@ApiOperation` per route
-2. `@ApiResponse({ type })` on every route (no voids)
-3. Guards for protected routes + `@ApiBearerAuth('JWT-auth')`
-4. Accept only DTOs (no inline validation)
-5. Return response DTOs (mapped from entities)
-
-### B) New Service Checklist
-
-1. All user-scoped reads/writes **validate ownership**
-2. Multi-entity ops are **transactional**
-3. Expose **idempotent** methods for webhooks/IPN
-4. Push heavy side effects to **queue**
-5. Add **indexes** for new filters/sorts
-
-### C) New Webhook/IPN
-
-1. Capture **raw body**
-2. Verify **HMAC** (timing-safe)
-3. **Upsert** webhook log by external id (unique index)
-4. Perform state mutation → **enqueue** background work
-5. Return 200 quickly
-
-### D) Delivery Flow
-
-1. Receive keys → store in **R2** (private), optionally encrypt
-2. Generate **short-lived signed URL** (15 min)
-3. Email **link only** via Resend (idempotency header)
-4. Audit log (who/when revealed)
-
-### E) Frontend Feature
-
-1. Route in `app/` is thin, actual component in `features/xxx`
-2. Use SDK client in TanStack Query
-3. Forms = RHF + Zod
-4. Loading/error/empty states
-5. No secrets, no third-party direct calls
-
----
-
-## 14) Example End-to-End: **Create order → Pay → Fulfill**
-
-**Backend**
-
-- `POST /orders` → validate DTO → `OrdersService.create()` (tx) → queue `createPayment`.
-- Job `createPayment`: call NOWPayments, store `npPaymentId`, update order totals & return payment URL to frontend via the standard response next call.
-- IPN `POST /payments/ipn`: verify HMAC → `PaymentsService.handleIpn()` → if `finished`, call `orders.markPaidIdempotent()` and queue `fulfillOrder`.
-- Job `fulfillOrder`: Kinguin API → fetch keys → `StorageService.saveAndGetSignedUrl()` → mark `fulfilled` → `EmailsService.sendOrderDelivered()`.
-
-**Frontend**
-
-- `useCreateOrder` mutation → show payment instructions.
-- Status panel polls `GET /orders/:id` (or use websocket if available) → transitions waiting/confirming/paid.
-- On fulfilled → show “Reveal” → open **signed URL** (download JSON of keys).
+This unified, updated summary ensures context-rich, production-grade, and safe engineering answers for any BitLoot-related development task or question.

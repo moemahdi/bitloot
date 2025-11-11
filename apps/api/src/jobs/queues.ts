@@ -28,14 +28,12 @@ export const QUEUE_NAMES = {
  * Applied to every job enqueued
  */
 const DEFAULT_JOB_OPTIONS = {
-  attempts: 3,
+  attempts: 5,
   backoff: {
     type: 'exponential',
-    delay: 2000, // 2s initial delay
+    delay: 1000, // 1s initial delay per plan
   },
-  removeOnComplete: {
-    age: 86400, // Keep completed jobs for 24 hours for audit
-  },
+  removeOnComplete: true,
   removeOnFail: false, // Keep failed jobs for debugging (they move to DLQ)
 };
 

@@ -1,0 +1,34 @@
+import { Module } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { Order } from './order.entity';
+import { OrderItem } from './order-item.entity';
+import { Key } from './key.entity';
+import { OrdersService } from './orders.service';
+import { OrdersController } from './orders.controller';
+
+/**
+ * Orders Module
+ *
+ * Provides order management services and API endpoints for:
+ * - Creating orders
+ * - Retrieving order details
+ * - Managing order items
+ * - Linking orders to reservations
+ *
+ * @example
+ * // In app.module.ts:
+ * @Module({
+ *   imports: [OrdersModule, ...]
+ * })
+ * export class AppModule {}
+ *
+ * // In another service:
+ * constructor(private readonly orders: OrdersService) {}
+ */
+@Module({
+  imports: [TypeOrmModule.forFeature([Order, OrderItem, Key])],
+  providers: [OrdersService],
+  controllers: [OrdersController],
+  exports: [OrdersService],
+})
+export class OrdersModule {}

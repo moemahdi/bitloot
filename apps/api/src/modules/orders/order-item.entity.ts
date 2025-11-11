@@ -3,10 +3,12 @@ import {
   CreateDateColumn,
   Entity,
   ManyToOne,
+  OneToMany,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
 import { Order } from './order.entity';
+import { Key } from './key.entity';
 
 @Entity('order_items')
 export class OrderItem {
@@ -21,6 +23,14 @@ export class OrderItem {
 
   @Column({ type: 'text', nullable: true })
   signedUrl!: string | null;
+
+  /**
+   * Keys delivered for this specific order item
+   * Each item can have multiple keys (e.g., license key + activation code)
+   * Cascade delete ensures keys are removed if item is deleted
+   */
+  @OneToMany(() => Key, (k) => k.orderItem, { cascade: true })
+  keys!: Key[];
 
   @CreateDateColumn() createdAt!: Date;
   @UpdateDateColumn() updatedAt!: Date;

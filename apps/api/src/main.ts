@@ -1,6 +1,6 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe, Logger } from '@nestjs/common';
-import { urlencoded, type Request, type Response, type NextFunction } from 'express';
+import { json, urlencoded, type Request, type Response, type NextFunction } from 'express';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
 import { AppModule } from './app.module';
@@ -15,6 +15,8 @@ async function bootstrap(): Promise<void> {
   });
 
   // Standard JSON and URL-encoded parsing
+  // IMPORTANT: Must happen BEFORE the rawBody middleware so req.body is populated
+  app.use(json());
   app.use(urlencoded({ extended: true }));
 
   // Custom middleware to capture raw body AFTER json parsing for webhook verification
