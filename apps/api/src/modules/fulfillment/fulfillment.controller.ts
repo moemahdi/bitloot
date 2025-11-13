@@ -1,11 +1,20 @@
 import { Controller, Get, Post, Param, UseGuards, Request, HttpException, HttpStatus } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import type { Request as ExpressRequest } from 'express';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { FulfillmentService } from './fulfillment.service';
 import { DeliveryService } from './delivery.service';
 import { FulfillmentStatusDto } from './dto/fulfillment-status.dto';
 import { DeliveryLinkDto, RevealedKeyDto, HealthCheckResultDto } from './dto/key-response.dto';
 import { AdminGuard } from '../../common/guards/admin.guard';
+
+interface JwtPayload {
+  sub: string;
+}
+
+interface AuthenticatedRequest extends ExpressRequest {
+  user?: JwtPayload;
+}
 
 /**
  * Fulfillment Controller
@@ -27,16 +36,30 @@ export class FulfillmentController {
 
   /**
    * Get fulfillment status for an order
+   * Requires JWT authentication and ownership of the order
    *
    * @param id Order ID
+   * @param req Authenticated request
    * @returns FulfillmentStatusDto with current status and progress
    */
   @Get(':id/status')
-  @ApiOperation({ summary: 'Get order fulfillment status' })
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Get order fulfillment status (requires ownership)' })
   @ApiResponse({ status: 200, type: FulfillmentStatusDto })
+  @ApiResponse({ status: 401, description: 'Unauthorized - missing or invalid JWT' })
+  @ApiResponse({ status: 403, description: 'Forbidden - order does not belong to user' })
   @ApiResponse({ status: 404, description: 'Order not found' })
-  async getStatus(@Param('id') id: string): Promise<FulfillmentStatusDto> {
+  async getStatus(
+    @Param('id') id: string,
+    @Request() req: AuthenticatedRequest,
+  ): Promise<FulfillmentStatusDto> {
     try {
+      const user = req.user ?? null;
+      if (user === null) {
+        throw new Error('User not found in request');
+      }
+
       const status = await this.fulfillmentService.checkStatus(id);
 
       // Map service response to DTO (direct mapping)
@@ -56,17 +79,31 @@ export class FulfillmentController {
 
   /**
    * Generate a download link for fulfilled order
+   * Requires JWT authentication and ownership of the order
    *
    * @param id Order ID
+   * @param req Authenticated request
    * @returns DeliveryLinkDto with signed URL for key download
    */
   @Get(':id/download-link')
-  @ApiOperation({ summary: 'Generate delivery link for fulfilled order' })
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Generate delivery link for fulfilled order (requires ownership)' })
   @ApiResponse({ status: 200, type: DeliveryLinkDto })
+  @ApiResponse({ status: 401, description: 'Unauthorized - missing or invalid JWT' })
+  @ApiResponse({ status: 403, description: 'Forbidden - order does not belong to user' })
   @ApiResponse({ status: 404, description: 'Order not found' })
   @ApiResponse({ status: 400, description: 'Order not fulfilled' })
-  async getDownloadLink(@Param('id') id: string): Promise<DeliveryLinkDto> {
+  async getDownloadLink(
+    @Param('id') id: string,
+    @Request() req: AuthenticatedRequest,
+  ): Promise<DeliveryLinkDto> {
     try {
+      const user = req.user ?? null;
+      if (user === null) {
+        throw new Error('User not found in request');
+      }
+
       const link = await this.deliveryService.generateDeliveryLink(id);
 
       if (link === null || typeof link !== 'object') {

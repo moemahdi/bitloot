@@ -1,16 +1,17 @@
 import { Controller, Get, Post, Param, Query, UseGuards, HttpCode, HttpStatus } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags, ApiQuery } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { AdminGuard } from '../../common/guards/admin.guard';
 import { AdminService } from './admin.service';
 
 /**
  * Admin endpoints for monitoring payments, reservations, and webhooks.
  * All endpoints require JWT authentication and admin role.
- * Protected by @UseGuards(JwtAuthGuard)
+ * Protected by @UseGuards(JwtAuthGuard, AdminGuard)
  */
 @ApiTags('Admin')
 @ApiBearerAuth('JWT-auth')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, AdminGuard)
 @Controller('admin')
 export class AdminController {
   constructor(private readonly admin: AdminService) {}

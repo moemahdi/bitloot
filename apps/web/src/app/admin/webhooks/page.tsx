@@ -3,6 +3,13 @@
 import React, { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
+import { AdminApi, Configuration } from '@bitloot/sdk';
+
+// Initialize SDK admin client
+const apiConfig = new Configuration({
+  basePath: process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000',
+});
+const adminApi = new AdminApi(apiConfig);
 
 // Type definitions
 interface WebhookLog {
@@ -72,38 +79,22 @@ export default function AdminWebhooksPage(): React.ReactElement {
       externalIdFilter,
     ],
     queryFn: async (): Promise<WebhooksListResponse> => {
-      const token = localStorage.getItem('jwt_token');
-      const params = new URLSearchParams({
-        page: String(page),
-        limit: String(LIMIT),
+      const response = await adminApi.adminControllerGetWebhookLogs({
+        limit: LIMIT,
+        offset: (page - 1) * LIMIT,
+        webhookType: webhookTypeFilter !== '' ? webhookTypeFilter : undefined,
+        paymentStatus: paymentStatusFilter !== '' ? paymentStatusFilter : undefined,
       });
 
-      if (webhookTypeFilter !== '') {
-        params.append('webhookType', webhookTypeFilter);
-      }
-      if (processedFilter !== '') {
-        params.append('processed', processedFilter);
-      }
-      if (paymentStatusFilter !== '') {
-        params.append('paymentStatus', paymentStatusFilter);
-      }
-      if (externalIdFilter !== '') {
-        params.append('externalId', externalIdFilter);
-      }
-
-      const response = await fetch(`http://localhost:4000/webhooks/admin/list?${params}`, {
-        headers: {
-          Authorization: `Bearer ${token ?? ''}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to fetch webhooks: ${response.statusText}`);
-      }
-
-      const data = (await response.json()) as WebhooksListResponse;
-      return data;
+      // Map API response to our interface
+      return {
+        data: (response.data as unknown as WebhookLog[]) ?? [],
+        total: response.total ?? 0,
+        page,
+        limit: LIMIT,
+        totalPages: Math.ceil((response.total ?? 0) / LIMIT),
+        hasNextPage: page < Math.ceil((response.total ?? 0) / LIMIT),
+      };
     },
     staleTime: 30_000,
     enabled: isAuthorized,

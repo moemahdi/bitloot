@@ -3,21 +3,14 @@
 import React, { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
+import { AdminApi, Configuration } from "@bitloot/sdk";
 
-interface ReservationItem {
-  id: string;
-  email: string;
-  status: string;
-  kinguinReservationId?: string;
-  createdAt: string;
-}
+// Initialize SDK client with base URL
+const adminApiConfig = new Configuration({
+  basePath: process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000',
+});
 
-interface ReservationsResponse {
-  data: ReservationItem[];
-  total: number;
-  limit: number;
-  offset: number;
-}
+const adminApi = new AdminApi(adminApiConfig);
 
 const LIMIT = 20;
 
@@ -40,33 +33,22 @@ export default function AdminReservationsPage(): React.ReactElement {
     }
   }, [router]);
 
-  const { data, isLoading, error, refetch } = useQuery<ReservationsResponse>({
+  const { data, isLoading, error, refetch } = useQuery({
     queryKey: [
       "admin-reservations",
       offset,
       reservationFilter,
       statusFilter,
     ],
-    queryFn: async (): Promise<ReservationsResponse> => {
-      const token = localStorage.getItem("jwt_token");
-      const params = new URLSearchParams({
-        limit: String(LIMIT),
-        offset: String(offset),
+    queryFn: async () => {
+      // Use SDK AdminApi to fetch reservations
+      const response = await adminApi.adminControllerGetReservations({
+        limit: LIMIT,
+        offset,
+        kinguinReservationId: reservationFilter !== "" ? reservationFilter : undefined,
+        status: statusFilter !== "" ? statusFilter : undefined,
       });
-
-      if (reservationFilter !== "") params.append("kinguinReservationId", reservationFilter);
-      if (statusFilter !== "") params.append("status", statusFilter);
-
-      const res = await fetch(`http://localhost:4000/admin/reservations?${params}`, {
-        headers: {
-          Authorization: `Bearer ${token ?? ""}`,
-          "Content-Type": "application/json",
-        },
-      });
-      if (!res.ok) {
-        throw new Error(`Failed to fetch reservations: ${res.statusText}`);
-      }
-      return (await res.json()) as ReservationsResponse;
+      return response;
     },
     enabled: isAuthorized,
     staleTime: 30_000,
@@ -144,7 +126,9 @@ export default function AdminReservationsPage(): React.ReactElement {
                     {item.kinguinReservationId ?? "—"}
                   </td>
                   <td className="px-3 py-2">
-                    {new Date(item.createdAt).toLocaleString()}
+                    {item.createdAt !== undefined && item.createdAt !== null 
+                      ? new Date(item.createdAt).toLocaleString()
+                      : '—'}
                   </td>
                 </tr>
               ))}

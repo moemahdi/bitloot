@@ -147,6 +147,52 @@ This document describes the current BitLoot monorepo structure, with a concise 1
 #### API: Emails
 - **apps/api/src/modules/emails/emails.service.ts** — Email notifications abstraction (mocked now; integrates with Resend in production) for sending order-ready links.
 
+#### API: Level 4 — Authentication (OTP + JWT + Users)
+- **apps/api/src/modules/auth/otp.service.ts** — 6-digit OTP generation, Redis storage with 5-minute TTL, rate limiting (3 requests/15m for issue, 5 attempts/60s for verify), and email delivery coordination.
+- **apps/api/src/modules/auth/auth.service.ts** — JWT token generation and validation (accessToken 15m, refreshToken 7d), token refresh logic, and session management.
+- **apps/api/src/modules/auth/auth.controller.ts** — Four endpoints: POST /auth/request-otp (send code), POST /auth/verify-otp (validate code + create user), POST /auth/refresh (refresh tokens), POST /auth/logout (invalidate session).
+- **apps/api/src/modules/auth/guards/refresh-token.guard.ts** — Specialized guard for refresh token endpoints; validates token type is 'refresh' (7d expiry).
+
+#### API: Level 4 — User Management & Database
+- **apps/api/src/database/migrations/1731337200000-CreateUsers.ts** — PostgreSQL migration creating users table (8 columns: id, email, passwordHash, emailConfirmed, role, createdAt, updatedAt, deletedAt) with 3 optimized indexes and soft-delete support.
+- **apps/api/src/database/entities/user.entity.ts** — TypeORM User entity with all 8 columns, soft-delete via @DeleteDateColumn, and role-based access control (user/admin roles).
+- **apps/api/src/modules/users/user.service.ts** — User lifecycle service: create user with bcryptjs hashing (10-round salt), find by email, update password, confirm email, and auto-create on first OTP verification.
+- **apps/api/src/modules/users/users.controller.ts** — User endpoints: GET /users/me (current user profile), PATCH /users/me/password (change password), GET /users/me/orders (order history with pagination), all requiring JwtAuthGuard.
+- **apps/api/src/modules/users/dto/user.dto.ts** — Eight DTOs for user operations: CreateUserDto, UpdateUserDto, UserResponseDto, ChangePasswordDto, with class-validator decorators and Swagger @ApiProperty annotations.
+- **apps/api/src/modules/users/users.module.ts** — Module setup with TypeORM entity registration, DI configuration, and exports for Users service and controller.
+
+#### API: Level 4 — Authorization & Security Guards
+- **apps/api/src/modules/auth/auth.module.ts** — Authentication module registering OTP service, User service, Auth service, JWT strategy, and all guards for dependency injection.
+
+#### API: Level 4 — Observability & Metrics
+- **apps/api/src/modules/metrics/metrics.service.ts** — Central Prometheus metrics service (137 lines) collecting 6 custom counters: otp_issued_total, otp_verified_total, email_send_success_total, email_send_failed_total, invalid_hmac_count, duplicate_webhook_count, underpaid_orders_total, plus 13+ Node.js default metrics (CPU, memory, heap, uptime, event loop, GC).
+- **apps/api/src/modules/metrics/metrics.controller.ts** — Endpoint GET /metrics (AdminGuard protected, JWT required) returning Prometheus text exposition format (multiline) with all metrics for scraping by Prometheus server.
+- **apps/api/src/modules/emails/email-unsubscribe.service.ts** — RFC 8058 compliant email unsubscribe handler (170 lines) with HMAC-SHA256 token generation/verification, timing-safe comparison, idempotent unsubscribe/resubscribe, and suppression list management.
+- **apps/api/src/modules/emails/email-unsubscribe.controller.ts** — Public endpoint POST /emails/unsubscribe (no auth required) for handling email list unsubscription requests with always-200 response (prevents email enumeration).
+
+#### API: Level 4 — Metric Integrations (Modified Files)
+- **apps/api/src/modules/auth/otp.service.ts** — Integrated: incrementMetric('otp_issued_total'), incrementMetric('otp_verified_total') on issue/verify operations.
+- **apps/api/src/modules/emails/emails.service.ts** — Integrated: incrementEmailSendSuccess/Failed(), recordEmailLatency() on send operations.
+- **apps/api/src/modules/payments/payments.service.ts** — Integrated: updateUnderpaidOrdersGauge() on IPN handling.
+- **apps/api/src/modules/webhooks/ipn-handler.service.ts** — Integrated: incrementInvalidHmac(), incrementDuplicateWebhook() on webhook validation.
+
+### Frontend: Level 4 — SDK-First Migration & CAPTCHA
+- **apps/web/src/hooks/useAuth.ts** — Migrated: 2 fetch calls → authClient SDK methods; handles token refresh with type-safe SDK integration.
+- **apps/web/src/features/auth/OTPLogin.tsx** — Migrated: 2 fetch calls → authClient.requestOtp(), authClient.verifyOtp(); 6-digit input UI with client-side validation.
+- **apps/web/src/features/checkout/CheckoutForm.tsx** — Migrated: 1 fetch call → SDK; added Cloudflare Turnstile CAPTCHA with siteKey validation, error handling, and token capture.
+- **apps/web/src/app/pay/[orderId]/page.tsx** — Migrated: Configuration basePath from env var instead of hardcoded URL; ensures environment-aware API communication.
+- **apps/web/src/app/admin/reservations/page.tsx** — Migrated: 1 fetch call → AdminApi SDK client with auto-generated types; paginated reservation list with filtering.
+- **apps/web/src/app/admin/webhooks/page.tsx** — Migrated: 1 fetch call → AdminApi SDK client; webhook history display with replay capability.
+- **apps/web/src/app/admin/payments/page.tsx** — Migrated: 1 fetch call → AdminApi SDK client; payment dashboard with status, filtering, and pagination.
+- **apps/web/src/utils/checkout-error-handler.ts** — New utility (145 lines) providing CheckoutError interface and extractCheckoutError() helper mapping HTTP status codes and network errors to user-friendly messages with isRetryable flag.
+
+### Infrastructure: Level 4 — Observability Stack
+- **docker-compose.prometheus.yml** — Docker Compose stack for Prometheus (port 9090) and Grafana (port 3001) with persistent volumes, health checks, and environment configuration for metrics collection and visualization.
+- **prometheus.yml** — Prometheus configuration (45+ lines): 15-second scrape interval, target http://host.docker.internal:4000/metrics, Bearer token authentication, and BitLoot job labels.
+- **grafana-provisioning/datasources/prometheus.yml** — Grafana datasource definition pointing to Prometheus on port 9090 with read-only access and UID for dashboard linking.
+- **grafana-provisioning/dashboards/bitloot-observability.json** — Grafana dashboard (200+ lines) with 4 visualization panels: OTP Activity (stat), Payment Processing (time series), Email Delivery (gauge + bars), Webhook Security (bar chart).
+- **.env.example** — Updated with 17 Level 4 configuration variables: PROMETHEUS_ENABLED, STRUCTURED_LOGGING_ENABLED, OTP_RATE_LIMIT_ATTEMPTS, EMAIL_UNSUBSCRIBE_URL_BASE, EMAIL_PRIORITY_TRANSACTIONAL, WEBHOOK_HMAC_VERIFICATION_ENABLED, and environment-specific settings.
+
 ## Shared Packages
 - **packages/** — Cross-application packages.
   - **sdk/** — TypeScript fetch SDK generated from API OpenAPI.

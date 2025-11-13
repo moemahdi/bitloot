@@ -12,6 +12,7 @@
     "composite": true,
     "baseUrl": ".",
     "paths": {
+      "@bitloot/sdk": ["packages/sdk/src/index.ts"],
       "@bitloot/sdk/*": ["packages/sdk/src/*"]
     }
   }

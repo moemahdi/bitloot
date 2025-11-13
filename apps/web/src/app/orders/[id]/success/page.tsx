@@ -3,8 +3,23 @@
 import { useQuery } from '@tanstack/react-query';
 import { useParams } from 'next/navigation';
 import { useState } from 'react';
+import { AlertCircle, Download, Copy, XCircle } from 'lucide-react';
 import { OrdersApi, Configuration } from '@bitloot/sdk';
 import type { OrderResponseDto } from '@bitloot/sdk';
+import {
+  Alert,
+  AlertTitle,
+  AlertDescription,
+} from '@/design-system/primitives/alert';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/design-system/primitives/card';
+import { Button } from '@/design-system/primitives/button';
+import { Skeleton } from '@/design-system/primitives/skeleton';
 
 // Initialize SDK client
 const apiConfig = new Configuration({
@@ -42,7 +57,16 @@ export default function OrderSuccessPage(): React.ReactElement {
     return (
       <main className="min-h-screen bg-gray-50 px-4 py-8 dark:bg-gray-900">
         <div className="mx-auto max-w-md">
-          <p className="text-center text-gray-600 dark:text-gray-400">Loading...</p>
+          <Card>
+            <CardHeader>
+              <CardTitle>Loading Order</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-3/4" />
+              <Skeleton className="h-10 w-full" />
+            </CardContent>
+          </Card>
         </div>
       </main>
     );
@@ -52,11 +76,11 @@ export default function OrderSuccessPage(): React.ReactElement {
     return (
       <main className="min-h-screen bg-gray-50 px-4 py-8 dark:bg-gray-900">
         <div className="mx-auto max-w-md">
-          <div className="rounded bg-red-50 p-4 dark:bg-red-900">
-            <p className="text-sm text-red-800 dark:text-red-200">
-              Failed to load order. Please refresh the page.
-            </p>
-          </div>
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Error Loading Order</AlertTitle>
+            <AlertDescription>Failed to load order details. Please refresh the page.</AlertDescription>
+          </Alert>
         </div>
       </main>
     );
@@ -66,74 +90,125 @@ export default function OrderSuccessPage(): React.ReactElement {
 
   return (
     <main className="min-h-screen bg-gray-50 px-4 py-8 dark:bg-gray-900">
-      <div className="mx-auto max-w-md">
-        <div className="space-y-6 rounded-lg border border-gray-300 bg-white p-6 dark:border-gray-600 dark:bg-gray-800">
-          <div>
-            <h1 className="text-3xl font-bold">Payment Successful! 🎉</h1>
-            <p className="mt-2 text-gray-600 dark:text-gray-400">
-              Thank you for your purchase. Your download link is ready.
-            </p>
-          </div>
+      <div className="mx-auto max-w-2xl space-y-6">
+        {/* Success Header Card */}
+        <Card>
+          <CardHeader className="text-center">
+            <CardTitle className="text-3xl">🎉 Payment Successful!</CardTitle>
+            <CardDescription>Thank you for your purchase. Your download link is ready.</CardDescription>
+          </CardHeader>
+        </Card>
 
-          <div className="space-y-3 rounded bg-green-50 p-4 dark:bg-green-900">
-            <p className="text-sm text-green-800 dark:text-green-200">
-              <strong>Order ID:</strong> {orderId.substring(0, 8)}...
-            </p>
-            <p className="text-sm text-green-800 dark:text-green-200">
-              <strong>Email:</strong> {orderData.email}
-            </p>
-            <p className="text-sm text-green-800 dark:text-green-200">
-              <strong>Status:</strong> {orderData.status.toUpperCase()}
-            </p>
-          </div>
+        {/* Underpayment Alert */}
+        {orderData.status === 'underpaid' && (
+          <Alert variant="destructive">
+            <XCircle className="h-4 w-4" />
+            <AlertTitle>Payment Underpaid (Non-Refundable)</AlertTitle>
+            <AlertDescription className="mt-2 space-y-2">
+              <p>
+                The amount you sent was less than required. Cryptocurrency payments are irreversible
+                and cannot be refunded.
+              </p>
+              <Button variant="outline" size="sm" asChild>
+                <a href="/support">Contact Support</a>
+              </Button>
+            </AlertDescription>
+          </Alert>
+        )}
 
-          {signedUrl !== null ? (
-            <div className="space-y-4">
-              <div className="rounded bg-blue-50 p-4 dark:bg-blue-900">
-                <p className="text-sm text-blue-800 dark:text-blue-200">
-                  ✓ Your link will expire in 15 minutes. Use it immediately.
-                </p>
-              </div>
-              {!revealed ? (
-                <button
-                  onClick={() => setRevealed(true)}
-                  className="w-full rounded bg-black px-4 py-3 font-semibold text-white transition hover:bg-gray-800 dark:bg-white dark:text-black dark:hover:bg-gray-200"
+        {/* Order Details Card */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Order Details</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="space-y-1">
+              <p className="text-sm font-medium text-gray-500">Order ID</p>
+              <div className="flex items-center justify-between">
+                <p className="font-mono text-sm font-semibold">{orderId.substring(0, 12)}...</p>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => navigator.clipboard.writeText(orderId)}
+                  className="h-6 w-6 p-0"
                 >
+                  <Copy className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+            <div className="space-y-1">
+              <p className="text-sm font-medium text-gray-500">Email</p>
+              <p className="text-sm">{orderData.email}</p>
+            </div>
+            <div className="space-y-1">
+              <p className="text-sm font-medium text-gray-500">Status</p>
+              <p className="text-sm font-semibold">{orderData.status.toUpperCase()}</p>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Download Section */}
+        {signedUrl !== null ? (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Download Your Key</CardTitle>
+              <CardDescription>⏱️ Link expires in 15 minutes. Use immediately.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {!revealed ? (
+                <Button onClick={() => setRevealed(true)} size="lg" className="w-full">
                   Reveal Download Link
-                </button>
+                </Button>
               ) : (
-                <div className="space-y-2">
-                  <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">
-                    Download Link:
-                  </p>
-                  <a
-                    href={signedUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="block w-full rounded bg-green-600 px-4 py-3 text-center font-semibold text-white transition hover:bg-green-700"
+                <div className="space-y-3">
+                  <Button
+                    asChild
+                    size="lg"
+                    className="w-full"
+                    variant="default"
                   >
-                    Download Your Key
-                  </a>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
-                    Opens in a new tab. Keep this link private!
-                  </p>
+                    <a href={signedUrl} target="_blank" rel="noopener noreferrer">
+                      <Download className="mr-2 h-4 w-4" />
+                      Download Your Key
+                    </a>
+                  </Button>
+                  <Alert>
+                    <AlertCircle className="h-4 w-4" />
+                    <AlertTitle>Keep this link private</AlertTitle>
+                    <AlertDescription>Opens in a new tab. Don&apos;t share with others.</AlertDescription>
+                  </Alert>
                 </div>
               )}
-            </div>
-          ) : null}
+            </CardContent>
+          </Card>
+        ) : null}
 
-          <div className="space-y-2 rounded bg-gray-100 p-4 dark:bg-gray-700">
-            <p className="text-xs font-semibold text-gray-700 dark:text-gray-300">
-              What happens next?
-            </p>
-            <ul className="space-y-1 text-xs text-gray-600 dark:text-gray-400">
-              <li>• Download your key immediately</li>
-              <li>• Link expires in 15 minutes for security</li>
-              <li>• Check your email for a confirmation</li>
-              <li>• You can re-download from your account later</li>
+        {/* Next Steps Info Card */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">What Happens Next?</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ul className="space-y-2">
+              <li className="flex items-start gap-2">
+                <span className="mt-1 inline-block h-2 w-2 rounded-full bg-primary" />
+                <span className="text-sm">Download your key immediately</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="mt-1 inline-block h-2 w-2 rounded-full bg-primary" />
+                <span className="text-sm">Link expires in 15 minutes for security</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="mt-1 inline-block h-2 w-2 rounded-full bg-primary" />
+                <span className="text-sm">Check your email for a confirmation</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="mt-1 inline-block h-2 w-2 rounded-full bg-primary" />
+                <span className="text-sm">You can re-download from your account later</span>
+              </li>
             </ul>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       </div>
     </main>
   );

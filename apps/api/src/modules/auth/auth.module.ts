@@ -1,62 +1,77 @@
 import { Module } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
+import { AuthController } from './auth.controller';
+import { AuthService } from './auth.service';
+import { OtpService } from './otp.service';
+import { UserService } from './user.service';
+import { User } from '../../database/entities/user.entity';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { RefreshTokenGuard } from './guards/refresh-token.guard';
+import { MetricsModule } from '../metrics/metrics.module';
+import { EmailsModule } from '../emails/emails.module';
 
 /**
  * Authentication Module
+ * Phase 2: OTP-based passwordless authentication
  *
- * Provides JWT-based authentication with Passport.js integration.
+ * Features:
+ * - 6-digit OTP email verification
+ * - JWT token generation (15m access, 7d refresh)
+ * - Refresh token rotation
+ * - Rate limiting (3 OTP requests/15min, 5 verifies/60s)
+ * - Automatic user creation on first OTP verification
  *
  * Exports:
- * - JwtAuthGuard: Use @UseGuards(JwtAuthGuard) on routes/gateways
- * - JwtModule: Access jwtService for token generation/verification
- *
- * Configuration:
- * - JWT_SECRET: Environment variable for token signing
- * - Default expiry: 24 hours
- * - Algorithm: HS256 (symmetric)
+ * - AuthService: Token generation and validation
+ * - OtpService: OTP generation and verification
+ * - UserService: User account management
+ * - JwtAuthGuard: Route protection
+ * - RefreshTokenGuard: Refresh token validation
  *
  * Usage:
- * 1. Import AuthModule in your feature module
- * 2. Use @UseGuards(JwtAuthGuard) on protected routes
- * 3. Access user via @Request() req or socket.user (WebSocket)
- *
- * Example:
- * @UseGuards(JwtAuthGuard)
- * @Get('profile')
- * getProfile(@Request() req) {
- *   return req.user; // { id: string, email: string, role: string }
- * }
+ * 1. POST /auth/request-otp → Send OTP to email
+ * 2. POST /auth/verify-otp → Verify code, get JWT tokens
+ * 3. POST /auth/refresh → Get new access token
+ * 4. Use @UseGuards(JwtAuthGuard) to protect routes
  */
 @Module({
   imports: [
-    // Passport infrastructure
+    TypeOrmModule.forFeature([User]),
     PassportModule.register({
       defaultStrategy: 'jwt',
     }),
-
-    // JWT signing and verification
     JwtModule.register({
-      secret: process.env.JWT_SECRET ?? 'your-secret-key',
+      secret: process.env.JWT_SECRET ?? 'dev-secret-key',
       signOptions: {
-        expiresIn: '24h',
+        expiresIn: '15m',
         algorithm: 'HS256',
       },
     }),
+    MetricsModule,
+    EmailsModule,
   ],
 
-  // Providers
+  controllers: [AuthController],
+
   providers: [
-    JwtStrategy, // Passport strategy for JWT validation
-    JwtAuthGuard, // NestJS guard for route protection
+    AuthService,
+    OtpService,
+    UserService,
+    JwtStrategy,
+    JwtAuthGuard,
+    RefreshTokenGuard,
   ],
 
-  // Exports for use in other modules
   exports: [
-    JwtAuthGuard, // Export guard for use in other modules
-    JwtModule, // Export JWT service for token generation
+    AuthService,
+    OtpService,
+    UserService,
+    JwtAuthGuard,
+    RefreshTokenGuard,
+    JwtModule,
   ],
 })
 export class AuthModule {}

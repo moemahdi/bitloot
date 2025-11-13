@@ -3,6 +3,13 @@
 import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
+import { AdminApi, Configuration } from '@bitloot/sdk';
+
+// Initialize SDK admin client
+const apiConfig = new Configuration({
+  basePath: process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000',
+});
+const adminApi = new AdminApi(apiConfig);
 
 interface Payment {
   id: string;
@@ -56,38 +63,24 @@ export default function AdminPaymentsPage(): React.ReactElement | null {
   } = useQuery<PaymentsListResponse>({
     queryKey: ['admin-payments', page, statusFilter, providerFilter, orderIdFilter],
     queryFn: async (): Promise<PaymentsListResponse> => {
-      const token = localStorage.getItem('jwt_token');
-      const params = new URLSearchParams({
-        page: String(page),
-        limit: String(LIMIT),
+      const response = await adminApi.adminControllerGetPayments({
+        limit: LIMIT,
+        offset: (page - 1) * LIMIT,
+        status: statusFilter !== '' ? statusFilter : undefined,
+        provider: providerFilter !== '' ? providerFilter : undefined,
       });
 
-      // Add filters only if they have values
-      if (statusFilter !== '') {
-        params.append('status', statusFilter);
-      }
-      if (providerFilter !== '') {
-        params.append('provider', providerFilter);
-      }
-      if (orderIdFilter !== '') {
-        params.append('orderId', orderIdFilter);
-      }
-
-      const response = await fetch(`http://localhost:4000/payments/admin/list?${params}`, {
-        headers: {
-          Authorization: `Bearer ${token ?? ''}`,
-          'Content-Type': 'application/json',
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error(`Failed to fetch payments: ${response.statusText}`);
-      }
-
-      const data = (await response.json()) as PaymentsListResponse;
-      return data;
+      // Map API response to our interface
+      return {
+        data: (response.data as unknown as Payment[]) ?? [],
+        total: response.total ?? 0,
+        page,
+        limit: LIMIT,
+        totalPages: Math.ceil((response.total ?? 0) / LIMIT),
+        hasNextPage: page < Math.ceil((response.total ?? 0) / LIMIT),
+      };
     },
-    staleTime: 30_000, // 30 seconds
+    staleTime: 30_000,
     enabled: isAuthorized,
   });
 

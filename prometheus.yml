@@ -1,0 +1,16 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    monitor: 'bitloot-monitor'
+
+scrape_configs:
+  - job_name: 'bitloot-api'
+    static_configs:
+      - targets: ['host.docker.internal:4000']
+    metrics_path: '/metrics'
+    scheme: 'http'
+    # Optional: Add bearer token for authentication
+    # Uncomment and set your JWT token below
+    # authorization:
+    #   credentials: 'YOUR_JWT_TOKEN_HERE'

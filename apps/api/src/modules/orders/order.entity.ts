@@ -5,6 +5,7 @@ import {
   OneToMany,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
+  Index,
 } from 'typeorm';
 import { OrderItem } from './order-item.entity';
 import { Payment } from '../payments/payment.entity';
@@ -32,12 +33,22 @@ export type OrderStatus =
   | 'fulfilled'; // Success: Keys delivered, order complete
 
 @Entity('orders')
+@Index(['userId', 'createdAt']) // For user order lookups sorted by date
+@Index(['status', 'createdAt']) // For status filtering
 export class Order {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 
   @Column({ type: 'varchar', length: 320 })
   email!: string;
+
+  /**
+   * User ID - foreign key to User entity
+   * Null for guest checkouts (allowed in Level 4 before auth is mandatory)
+   * Indexed for user order lookups
+   */
+  @Column({ type: 'uuid', nullable: true })
+  userId?: string;
 
   /**
    * Status field — updated via Payment status machine

@@ -18,7 +18,7 @@ Crypto-only digital goods marketplace delivering instant keys from Kinguin and c
 - **Delivery:** Keys are encrypted and stored in Cloudflare R2, delivered only through short-lived signed URLs.
 - **Auth & Emails:** OTP-first (6-digit), password setup, transactional/marketing emails via Resend, with templates and idempotency.
 - **Testing:** Unit, integration, and end-to-end tests for all critical flows (webhook, payment, key reveal) using vitest.
-
+- **sdk-first:** Typed SDK clients for all backend-frontend interactions, no direct API calls from frontend.
 ***
 
 ## Documentation Reference & Implementation
@@ -36,10 +36,12 @@ _⚠️ MANDATORY: These docs establish BitLoot's authoritative engineering stan
 - **[BitLoot-Code-Standards.md](./BitLoot-Code-Standards.md)** — Complete authoritative code standards covering TypeScript strict mode, ESLint runtime-safety rules, backend patterns (entities, DTOs, services, controllers, webhooks), frontend patterns (SDK clients, forms, hooks), security standards, database rules, and async queue patterns. Use as the source of truth for all implementation decisions.
 - **[BitLoot-Checklists-Patterns.md](./BitLoot-Checklists-Patterns.md)** — Practical implementation checklists and 10 copy-paste code templates: Entity Checklist, DTO Checklist, Service Checklist, Controller Checklist, Webhook Checklist, Frontend Query Checklist, Frontend Form Checklist, HMAC Verification Checklist, OTP Pattern, Queue Processor Pattern. Reference these templates as starting points for every new feature.
 
+_⚠️ MANDATORY: Always use design-system when designing or coding UI components or pages._
 **Frontend Development & Design:**
 - **[design-system.md](../docs/design-system.md)** — Complete Shadcn/UI setup with 46 components, Tailwind v4 configuration, Vercel OKLch theme, dark mode, and styling guidelines. Use for all UI/UX development and component usage.
 
-**Backend & SDK Development:**
+_⚠️ MANDATORY: Always use sdk-first for all frontend-backend interactions._
+**Backend & SDK Development:** 
 - **[sdk.md](../docs/sdk.md)** — SDK design rationale, structure, and integration guide. Covers why SDK-first is essential for security and how to use typed clients instead of direct third-party API calls.
 
 
@@ -142,6 +144,58 @@ Advanced fulfillment with Kinguin API, encrypted key storage, WebSocket real-tim
 - **08_L3_REMAINING_PHASES_PLAN.md: See `docs/LEVEL_3_REMAINING_PHASES_PLAN.md`** — Technical roadmap for Phases 4-13 (1,233 lines of specifications).
 - **09_L3_E2E_SUCCESS_TESTING.md: See `docs/LEVEL_3_E2E_SUCCESS_TESTING.md`** — E2E testing guide and verification.
 - **[LEVEL_3_COMPREHENSIVE_FINAL_REPORT.md](../docs/developer-workflow/03-Level/LEVEL_3_COMPREHENSIVE_FINAL_REPORT.md)** — Complete Level 3 summary with 209+ tests passing, 0 errors.
+
+#### Level 4 — Security & Observability ✅ **COMPLETE** (45/45 Tasks)
+
+Complete OTP authentication, user management, JWT security, frontend SDK migration, and comprehensive observability stack. Includes 21 comprehensive documentation files with 5 implementation phases:
+
+**Phase 1 — OTP Authentication (12 Tasks):**
+- **01_LEVEL_4_COMPLETE_ROADMAP.md** — Complete 45-task implementation roadmap with phases and dependencies.
+- **02_LEVEL_4_IMPLEMENTATION_PLAN.md** — Detailed task breakdown and sequencing strategy.
+- **03_LEVEL_4_PHASE1_QUICK_REFERENCE.md** — Quick reference for Phase 1 OTP service implementation.
+- **04_LEVEL_4_PHASE1_VERIFICATION_REPORT.md** — Phase 1 verification checklist and test results.
+- **06_LEVEL_4_PHASE2_OTP_SPECIFICATIONS.md** — Complete OTP service specifications (6-digit, Redis TTL, rate limiting).
+- **07_LEVEL_4_PHASE2_SUMMARY.md** — Phase 1 completion summary (12/12 tasks, 900 lines code, production-ready).
+
+**Phase 2 — User Management & Database (10 Tasks):**
+- **04_LEVEL_4_PHASE2_BACKEND_COMPLETE.md** — User entity, migrations, CRUD service implementation.
+- **05_LEVEL_4_PHASE2_NEXT_STEPS.md** — Phase 2 next steps and integration planning.
+- **08_LEVEL_4_PHASE2_VERIFICATION_REPORT.md** — Phase 2 verification (8 columns, 3 indexes, password hashing with bcryptjs).
+
+**Phase 3 — Security & Authorization (5 Tasks):**
+- **08_PHASE_3_DATABASE_MIGRATION_KICKOFF.md** — Database migration design and user management architecture.
+- **09_PHASE_3_SECURITY_COMPLETE.md** — JWT guards, admin guard, and ownership verification pattern implementation.
+- **10_LEVEL_4_PHASE3_VERIFICATION_REPORT.md** — Phase 3 verification (10/10 tasks, guards verified, code inspection complete).
+
+**Phase 4 — Frontend SDK Migration & CAPTCHA (4 Tasks):**
+- **10_SDK_FIRST_MIGRATION_COMPLETE.md** — SDK-first migration (10/10 fetch calls → SDK clients, 100% SDK compliance).
+- **11_PHASE4_TASK_4_2_3_4_2_4_COMPLETE.md** — Cloudflare Turnstile CAPTCHA integration, error handling, SDK regeneration.
+
+**Phase 5 — Observability & Monitoring (13 Tasks):**
+- **12_LEVEL_4_PHASE5_PROGRESS.md** — Phase 5 progress checkpoint (6 metrics, logging foundation).
+- **12_LEVEL_4_PHASE5_VERIFICATION_REPORT.md** — Phase 5 verification report with metrics stack validation.
+- **13_LEVEL_4__PHASE5_SESSION_SUMMARY.md** — Phase 5 session summary (Prometheus, Grafana, structured logging).
+- **14_LEVEL_4__PHASE5_CURRENT_STATUS.md** — Current implementation status and next tasks.
+- **15_LEVEL_4__PHASE5_COMPLETION_SUMMARY.md** — Phase 5 completion (13/13 tasks, 6 custom metrics, RFC 8058 unsubscribe).
+- **16_LEVEL_4__PHASE5_SECURITY.md** — Security review of metrics and observability implementation.
+- **17_LEVEL_4__PHASE5_EMAIL_DELIVERABILITY.md** — Email unsubscribe handler (RFC 8058 compliant, HMAC token, idempotent).
+- **17_LEVEL_4_VERIFICATION_EMAIL_DELIVERABILITY.md** — Email deliverability verification and testing.
+- **18_LEVEL_4__PHASE5_IMPLEMENTATION.md** — Complete Phase 5 implementation details (Prometheus, Grafana, metrics integration).
+- **19_LEVEL_4_MANUAL_TESTING_GUIDE.md** — Manual testing guide for all Phase 5 features.
+- **20_LEVEL_4_COMPLETE_SETUP_GUIDE.md** — Complete setup guide (10/10 steps, 4/4 gates passing, 209+ tests, production-ready).
+
+**Level 4 Executive Summary:**
+- **[21_LEVEL_4_FINAL_COMPLETE_IMPLEMENTAION.md](../docs/developer-workflow/04-Level/21_LEVEL_4_FINAL_COMPLETE_IMPLEMENTAION.md)** — Executive summary: 45/45 tasks complete, 5/5 quality gates passing, 209+ tests passing, 0 errors, 0 violations, production-ready.
+
+**Level 4 Features Delivered:**
+- ✅ **OTP Authentication:** 6-digit Redis-backed codes, 3/15m and 5/60s rate limiting, 5-minute TTL
+- ✅ **User Management:** PostgreSQL users table (8 columns), bcryptjs hashing (10-round salt), email confirmation, RBAC (user/admin)
+- ✅ **JWT Security:** Access tokens (15m), refresh tokens (7d), guards for routes and WebSockets, ownership verification
+- ✅ **Frontend SDK Migration:** 100% elimination of raw fetch calls (10/10 migrated), Turnstile CAPTCHA integration
+- ✅ **Observability:** Prometheus metrics (6 custom + 13 system), Grafana 4-panel dashboard, structured JSON logging (20+ points)
+- ✅ **Email RFC 8058:** Unsubscribe handler with HMAC-SHA256 tokens, timing-safe comparison, idempotent operations
+- ✅ **Docker Stack:** Prometheus (port 9090), Grafana (port 3001), persistent volumes, health checks
+- ✅ **Quality Score:** 5/5 gates (type-check, lint, format, test, build), 209+/210 tests passing, 0 errors
 
 ### Workflow Characteristics
 
@@ -255,7 +309,56 @@ _⚠️ AI Agent Note: Do NOT load these integration docs in every chat unless t
 
 ## Golden Rules (Non-Negotiable)
 
-1. **SDK-first:** Only BitLoot’s generated SDK client talks to the backend; never invoke 3rd-party APIs (NOWPayments, Kinguin, Resend) from frontend.
+### 🔴 **RULE #1 — SDK-FIRST ARCHITECTURE (ABSOLUTE)**
+
+**Every single frontend API call MUST flow through `@bitloot/sdk`.** This is non-negotiable.
+
+**Prohibited (❌ NEVER DO THIS):**
+```typescript
+// ❌ Direct fetch to backend
+const res = await fetch('http://localhost:4000/api/endpoint');
+
+// ❌ Direct axios calls
+import axios from 'axios';
+const data = await axios.get('/api/data');
+
+// ❌ Hardcoded API URLs
+const url = 'http://localhost:4000/admin/list?page=1';
+
+// ❌ Manual Bearer token construction
+const headers = { Authorization: `Bearer ${token}` };
+```
+
+**Required (✅ ALWAYS DO THIS):**
+```typescript
+// ✅ Use SDK clients
+import { authClient, AdminApi, Configuration } from '@bitloot/sdk';
+
+// ✅ Use Configuration for base URL
+const config = new Configuration({
+  basePath: process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000',
+});
+
+// ✅ Let SDK handle auth headers
+const result = await authClient.refreshToken(token);
+
+// ✅ Use auto-generated API clients
+const adminApi = new AdminApi(config);
+const data = await adminApi.adminControllerGetReservations({ limit: 20 });
+```
+
+**Consequences of Not Following SDK-First:**
+- ❌ Secrets potentially exposed
+- ❌ API changes require frontend updates everywhere
+- ❌ Type safety lost (no auto-generated types)
+- ❌ Manual auth token handling (security risk)
+- ❌ Inconsistent error handling
+- ❌ Hard to test (can't mock easily)
+
+---
+
+### Additional Golden Rules
+
 2. **Security by Design:** JWT with refresh, ownership checks, HMAC verification (webhooks/IPN), strict rate limits for OTP, keys only via signed R2 URL (never plaintext in frontend or emails).
 3. **No Secrets in Frontend:** API keys/passwords/crypto secrets live only on backend.
 4. **Idempotent & Queued:** All fulfillment, email, IPN/webhook work via BullMQ jobs, dedupe, retries, dead-letter queue.

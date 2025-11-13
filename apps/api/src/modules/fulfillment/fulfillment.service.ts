@@ -108,7 +108,14 @@ export class FulfillmentService {
       try {
         const primary = results[0];
         if (primary !== undefined && typeof order.email === 'string' && order.email.length > 0) {
-          await this.emailsService.sendOrderCompleted(order.email, primary.signedUrl);
+          // Use generic product name (full product info will be in Level 6)
+          const productName = 'Your Digital Product';
+          await this.emailsService.sendOrderCompleted(order.email, {
+            orderId: order.id,
+            productName,
+            downloadUrl: primary.signedUrl,
+            expiresIn: '15 minutes',
+          });
           this.logger.debug(`[FULFILLMENT] Order completion email queued for ${order.email}`);
         }
       } catch (e) {
@@ -286,7 +293,12 @@ export class FulfillmentService {
 
     try {
       if (order.email !== undefined && order.email !== '') {
-        await this.emailsService.sendOrderCompleted(order.email, signedUrl);
+        await this.emailsService.sendOrderCompleted(order.email, {
+          orderId: order.id,
+          productName: 'Your Digital Product',
+          downloadUrl: signedUrl,
+          expiresIn: '15 minutes',
+        });
       }
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);

@@ -43,6 +43,8 @@
   "dependencies": {
     "@aws-sdk/client-s3": "^3.927.0",
     "@aws-sdk/s3-request-presigner": "^3.927.0",
-    "@nestjs/platform-socket.io": "^10.4.20"
+    "@nestjs/platform-socket.io": "^10.4.20",
+    "@types/bcryptjs": "^2.4.6",
+    "bcryptjs": "^3.0.3"
   }
 }

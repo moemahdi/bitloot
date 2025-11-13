@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { Order } from './order.entity';
 import { OrderItem } from './order-item.entity';
 import { CreateOrderDto, OrderResponseDto, OrderItemResponseDto } from './dto/create-order.dto';
+import { EmailsService } from '../emails/emails.service';
 
 @Injectable()
 export class OrdersService {
@@ -12,6 +13,7 @@ export class OrdersService {
   constructor(
     @InjectRepository(Order) private readonly ordersRepo: Repository<Order>,
     @InjectRepository(OrderItem) private readonly itemsRepo: Repository<OrderItem>,
+    private readonly emailsService: EmailsService,
   ) {}
 
   async create(dto: CreateOrderDto): Promise<OrderResponseDto> {
@@ -135,9 +137,10 @@ export class OrdersService {
   }
 
   /**
-   * Mark order as underpaid (non-refundable)
+   * Mark order as underpaid (non-refundable) - Level 4
    * Transition: * → underpaid (terminal)
    * Called when NOWPayments reports underpayment
+   * Sends underpaid notice email to customer
    */
   async markUnderpaid(orderId: string): Promise<Order> {
     const order = await this.ordersRepo.findOne({ where: { id: orderId }, relations: ['items'] });
@@ -153,13 +156,31 @@ export class OrdersService {
     this.logger.warn(
       `Order ${orderId} marked as underpaid (NON-REFUNDABLE, insufficient payment received)`,
     );
-    return this.ordersRepo.save(order);
+
+    const savedOrder = await this.ordersRepo.save(order);
+
+    // Level 4: Send underpaid notice email
+    try {
+      await this.emailsService.sendUnderpaidNotice(order.email, {
+        orderId: order.id,
+        amountSent: 'Unknown', // Would be populated from NOWPayments IPN
+        amountRequired: 'Unknown', // Would be populated from order total
+      });
+
+      this.logger.log(`Underpaid notice email sent to ${order.email} for order ${orderId}`);
+    } catch (error) {
+      this.logger.error(`Failed to send underpaid notice email for order ${orderId}:`, error);
+      // Don't fail the order status update - email delivery should be non-critical
+    }
+
+    return savedOrder;
   }
 
   /**
-   * Mark order as failed
+   * Mark order as failed - Level 4
    * Transition: * → failed (terminal)
    * Called when NOWPayments reports payment failure
+   * Sends payment failed notice email to customer
    */
   async markFailed(orderId: string, reason?: string): Promise<Order> {
     const order = await this.ordersRepo.findOne({ where: { id: orderId }, relations: ['items'] });
@@ -171,7 +192,23 @@ export class OrdersService {
 
     order.status = 'failed';
     this.logger.error(`Order ${orderId} marked as failed. Reason: ${reason ?? 'unknown'}`);
-    return this.ordersRepo.save(order);
+
+    const savedOrder = await this.ordersRepo.save(order);
+
+    // Level 4: Send payment failed notice email
+    try {
+      await this.emailsService.sendPaymentFailedNotice(order.email, {
+        orderId: order.id,
+        reason: reason ?? 'Payment processor reported failure',
+      });
+
+      this.logger.log(`Payment failed notice email sent to ${order.email} for order ${orderId}`);
+    } catch (error) {
+      this.logger.error(`Failed to send payment failed notice email for order ${orderId}:`, error);
+      // Don't fail the order status update - email delivery should be non-critical
+    }
+
+    return savedOrder;
   }
 
   /**
@@ -192,6 +229,46 @@ export class OrdersService {
     order.status = 'fulfilled';
     this.logger.log(`Order ${orderId} marked as fulfilled (keys delivered)`);
     return this.ordersRepo.save(order);
+  }
+
+  /**
+   * Find order by ID and verify it belongs to the given user (ownership check)
+   * Used to enforce that users can only access their own orders
+   * Throws NotFoundException if not found or doesn't belong to user
+   */
+  async findUserOrderOrThrow(orderId: string, userId: string): Promise<Order> {
+    const order = await this.ordersRepo.findOne({
+      where: { id: orderId, userId },
+      relations: ['items'],
+    });
+    if (order === null) {
+      this.logger.warn(`Order ${orderId} not found or doesn't belong to user ${userId}`);
+      throw new NotFoundException(`Order not found or access denied`);
+    }
+    return order;
+  }
+
+  /**
+   * Find all orders for a given user with pagination
+   * Used by GET /users/:id/orders endpoint
+   */
+  async findUserOrders(
+    userId: string,
+    page: number = 1,
+    limit: number = 20,
+  ): Promise<{ data: OrderResponseDto[]; total: number }> {
+    const [orders, total] = await this.ordersRepo.findAndCount({
+      where: { userId },
+      relations: ['items'],
+      order: { createdAt: 'DESC' },
+      skip: (page - 1) * limit,
+      take: Math.min(limit, 100), // cap at 100 per page
+    });
+
+    return {
+      data: orders.map((order) => this.mapToResponse(order, order.items)),
+      total,
+    };
   }
 
   /**

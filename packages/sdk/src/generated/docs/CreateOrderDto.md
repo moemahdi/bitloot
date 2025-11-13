@@ -9,6 +9,7 @@ Name | Type
 `email` | string
 `productId` | string
 `note` | string
+`captchaToken` | string
 
 ## Example
 
@@ -20,6 +21,7 @@ const example = {
   "email": user@example.com,
   "productId": demo-product,
   "note": Demo order,
+  "captchaToken": null,
 } satisfies CreateOrderDto
 
 console.log(example)

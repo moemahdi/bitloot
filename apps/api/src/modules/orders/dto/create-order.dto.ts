@@ -16,6 +16,11 @@ export class CreateOrderDto {
   @IsOptional()
   @IsString()
   note?: string;
+
+  @ApiProperty({ required: false, description: 'Cloudflare Turnstile CAPTCHA token for bot protection' })
+  @IsOptional()
+  @IsString()
+  captchaToken?: string;
 }
 
 export class OrderItemResponseDto {

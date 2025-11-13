@@ -5,6 +5,7 @@ import { OrderItem } from './order-item.entity';
 import { Key } from './key.entity';
 import { OrdersService } from './orders.service';
 import { OrdersController } from './orders.controller';
+import { EmailsModule } from '../emails/emails.module';
 
 /**
  * Orders Module
@@ -14,6 +15,7 @@ import { OrdersController } from './orders.controller';
  * - Retrieving order details
  * - Managing order items
  * - Linking orders to reservations
+ * - Email notifications for order status changes (Level 4)
  *
  * @example
  * // In app.module.ts:
@@ -26,7 +28,7 @@ import { OrdersController } from './orders.controller';
  * constructor(private readonly orders: OrdersService) {}
  */
 @Module({
-  imports: [TypeOrmModule.forFeature([Order, OrderItem, Key])],
+  imports: [TypeOrmModule.forFeature([Order, OrderItem, Key]), EmailsModule],
   providers: [OrdersService],
   controllers: [OrdersController],
   exports: [OrdersService],
