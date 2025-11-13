@@ -8,6 +8,7 @@ import { KinguinService } from './kinguin.service';
 import { KinguinController } from './kinguin.controller';
 import { KinguinClient } from '../fulfillment/kinguin.client';
 import { OrdersModule } from '../orders/orders.module';
+import { MetricsModule } from '../metrics/metrics.module';
 
 /**
  * Kinguin Module
@@ -42,6 +43,7 @@ import { OrdersModule } from '../orders/orders.module';
     OrdersModule,
     TypeOrmModule.forFeature([WebhookLog]),
     BullModule.registerQueue({ name: QUEUE_NAMES.FULFILLMENT }),
+    MetricsModule,
   ],
   providers: [
     {

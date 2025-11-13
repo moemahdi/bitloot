@@ -33,6 +33,10 @@ export interface OrdersControllerGetRequest {
     id: string;
 }
 
+export interface OrdersControllerSetReservationRequest {
+    id: string;
+}
+
 /**
  * 
  */
@@ -78,7 +82,7 @@ export class OrdersApi extends runtime.BaseAPI {
     }
 
     /**
-     * Get order by ID
+     * Get order by ID (requires ownership)
      */
     async ordersControllerGetRaw(requestParameters: OrdersControllerGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<OrderResponseDto>> {
         if (requestParameters['id'] == null) {
@@ -92,6 +96,14 @@ export class OrdersApi extends runtime.BaseAPI {
 
         const headerParameters: runtime.HTTPHeaders = {};
 
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("JWT-auth", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
 
         let urlPath = `/orders/{id}`;
         urlPath = urlPath.replace(`{${"id"}}`, encodeURIComponent(String(requestParameters['id'])));
@@ -107,10 +119,47 @@ export class OrdersApi extends runtime.BaseAPI {
     }
 
     /**
-     * Get order by ID
+     * Get order by ID (requires ownership)
      */
     async ordersControllerGet(requestParameters: OrdersControllerGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<OrderResponseDto> {
         const response = await this.ordersControllerGetRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Set Kinguin reservation ID (test/internal use)
+     */
+    async ordersControllerSetReservationRaw(requestParameters: OrdersControllerSetReservationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<OrderResponseDto>> {
+        if (requestParameters['id'] == null) {
+            throw new runtime.RequiredError(
+                'id',
+                'Required parameter "id" was null or undefined when calling ordersControllerSetReservation().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/orders/{id}/reservation`;
+        urlPath = urlPath.replace(`{${"id"}}`, encodeURIComponent(String(requestParameters['id'])));
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'PATCH',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => OrderResponseDtoFromJSON(jsonValue));
+    }
+
+    /**
+     * Set Kinguin reservation ID (test/internal use)
+     */
+    async ordersControllerSetReservation(requestParameters: OrdersControllerSetReservationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<OrderResponseDto> {
+        const response = await this.ordersControllerSetReservationRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

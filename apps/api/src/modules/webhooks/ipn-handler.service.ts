@@ -9,6 +9,7 @@ import {
 } from './dto/nowpayments-ipn.dto';
 import { WebhookLog } from '../../database/entities/webhook-log.entity';
 import { Order } from '../orders/order.entity';
+import { MetricsService } from '../metrics/metrics.service';
 
 /**
  * IPN Handler Service
@@ -36,7 +37,46 @@ export class IpnHandlerService {
     private readonly webhookLogRepo: Repository<WebhookLog>,
     @InjectRepository(Order)
     private readonly orderRepo: Repository<Order>,
+    private readonly metrics: MetricsService,
   ) {}
+
+  /**
+   * Structured logging helper for JSON formatting
+   * Emits logs in consistent format with timestamp, level, service, operation, status, and context
+   *
+   * @param level 'info' | 'warn' | 'error'
+   * @param operation Operation identifier (e.g., 'handleIpn:start', 'verify:invalid_sig')
+   * @param status Outcome status ('success', 'failed', 'duplicate', etc.)
+   * @param context Additional fields for debugging (orderId, paymentId, error, etc.)
+   *
+   * @example
+   * this.logStructured('info', 'handleIpn:start', 'received', { paymentId: 'pay-123', status: 'waiting' });
+   * // Output: {"timestamp":"2025-11-11T...","level":"info","service":"IpnHandlerService","operation":"handleIpn:start","status":"received","context":{"paymentId":"pay-123",...}}
+   */
+  private logStructured(
+    level: 'info' | 'warn' | 'error',
+    operation: string,
+    status: string,
+    context: Record<string, unknown>,
+  ): void {
+    const structuredLog = {
+      timestamp: new Date().toISOString(),
+      level,
+      service: 'IpnHandlerService',
+      operation,
+      status,
+      context,
+    };
+    const logMessage = JSON.stringify(structuredLog);
+
+    if (level === 'error') {
+      this.logger.error(logMessage);
+    } else if (level === 'warn') {
+      this.logger.warn(logMessage);
+    } else {
+      this.logger.log(logMessage);
+    }
+  }
 
   /**
    * Main IPN handler entry point
@@ -59,6 +99,15 @@ export class IpnHandlerService {
     payload: NowpaymentsIpnRequestDto,
     signature: string,
   ): Promise<NowpaymentsIpnResponseDto> {
+    const paymentId = payload.payment_id;
+
+    // LOG START
+    this.logStructured('info', 'handleIpn:start', 'received', {
+      paymentId,
+      status: payload.payment_status,
+      orderId: payload.order_id,
+    });
+
     // 1. Create webhook log entry (for recovery/audit)
     const webhookLog = await this.logWebhookReceived(payload, signature);
 
@@ -66,6 +115,12 @@ export class IpnHandlerService {
       // 2. Verify signature (timing-safe HMAC comparison)
       const isValidSignature = this.verifySignature(JSON.stringify(payload), signature);
       if (!isValidSignature) {
+        // LOG INVALID SIGNATURE
+        this.logStructured('warn', 'handleIpn:verify_failed', 'invalid_signature', {
+          paymentId,
+          webhookId: webhookLog.id,
+        });
+
         this.logger.warn(`[IPN] Invalid signature for payment ${payload.payment_id}`);
         const updated = this.webhookLogRepo.merge(webhookLog, {
           signatureValid: false,
@@ -81,9 +136,25 @@ export class IpnHandlerService {
         };
       }
 
+      // LOG SIGNATURE VERIFIED
+      this.logStructured('info', 'handleIpn:signature_verified', 'valid', {
+        paymentId,
+        webhookId: webhookLog.id,
+      });
+
       // 3. Check idempotency (already processed?)
       const existing = await this.checkIdempotency(payload.payment_id);
       if (existing?.processed === true) {
+        // Track duplicate webhook metric
+        this.metrics.incrementDuplicateWebhook('nowpayments', 'ipn');
+        
+        // LOG DUPLICATE DETECTION
+        this.logStructured('info', 'handleIpn:duplicate_detected', 'already_processed', {
+          paymentId,
+          previousWebhookId: existing.id,
+          webhookId: webhookLog.id,
+        });
+
         this.logger.debug(
           `[IPN] Duplicate webhook for payment ${payload.payment_id} (already processed)`,
         );
@@ -95,7 +166,18 @@ export class IpnHandlerService {
         };
       }
 
+      // LOG IDEMPOTENCY CHECK PASSED
+      this.logStructured('info', 'handleIpn:idempotency_check', 'new_webhook', {
+        paymentId,
+        webhookId: webhookLog.id,
+      });
+
       // 4. Process payment status
+      this.logStructured('info', 'handleIpn:processing_status', 'in_progress', {
+        paymentId,
+        paymentStatus: payload.payment_status,
+      });
+
       const result = await this.processPaymentStatus(payload);
 
       // 5. Update webhook log with result
@@ -113,6 +195,15 @@ export class IpnHandlerService {
         `[IPN] Webhook processed: payment=${payload.payment_id}, status=${payload.payment_status}`,
       );
 
+      // LOG COMPLETION
+      this.logStructured('info', 'handleIpn:complete', 'success', {
+        paymentId,
+        orderId: result.orderId,
+        status: payload.payment_status,
+        webhookId: webhookLog.id,
+        processed: result.success,
+      });
+
       return {
         ok: true,
         message: 'Webhook processed',
@@ -121,6 +212,15 @@ export class IpnHandlerService {
       };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorType = error instanceof Error ? error.constructor.name : 'UnknownError';
+
+      // LOG ERROR
+      this.logStructured('error', 'handleIpn:error', 'failed', {
+        paymentId,
+        error: errorMessage,
+        errorType,
+        webhookId: webhookLog.id,
+      });
 
       this.logger.error(
         `[IPN] Error processing webhook for payment ${payload.payment_id}: ${errorMessage}`,
@@ -136,6 +236,12 @@ export class IpnHandlerService {
         await this.webhookLogRepo.save(errorLog);
       } catch (saveError) {
         const saveErrorMsg = saveError instanceof Error ? saveError.message : 'Unknown error';
+        this.logStructured('error', 'handleIpn:error_saving_log', 'critical', {
+          paymentId,
+          originalError: errorMessage,
+          saveError: saveErrorMsg,
+        });
+
         this.logger.error(`[IPN] Failed to save webhook log: ${saveErrorMsg}`);
       }
 
@@ -168,6 +274,7 @@ export class IpnHandlerService {
     const secret = process.env.NOWPAYMENTS_IPN_SECRET;
     if (secret === undefined || secret === '') {
       this.logger.error('[IPN] NOWPAYMENTS_IPN_SECRET not configured');
+      this.metrics.incrementInvalidHmac('nowpayments');
       return false;
     }
 
@@ -176,11 +283,19 @@ export class IpnHandlerService {
       const hmac = crypto.createHmac('sha512', secret).update(payload).digest('hex');
 
       // Timing-safe comparison (prevents timing attacks)
-      return crypto.timingSafeEqual(Buffer.from(hmac), Buffer.from(signature));
+      const isValid = crypto.timingSafeEqual(Buffer.from(hmac), Buffer.from(signature));
+      
+      if (!isValid) {
+        this.logger.warn('[IPN] Invalid HMAC signature received');
+        this.metrics.incrementInvalidHmac('nowpayments');
+      }
+      
+      return isValid;
     } catch (error) {
       // timingSafeEqual throws if buffers have different lengths
       const errorMsg = error instanceof Error ? error.message : String(error);
       this.logger.warn(`[IPN] Signature verification failed: ${errorMsg}`);
+      this.metrics.incrementInvalidHmac('nowpayments');
       return false;
     }
   }

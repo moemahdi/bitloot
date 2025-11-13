@@ -11,6 +11,7 @@ import { KinguinService } from './kinguin.service';
 import { OrdersService } from '../orders/orders.service';
 import { OrderStatusResponse } from '../fulfillment/kinguin.client';
 import { WebhookPayloadDto } from './dto/webhook.dto';
+import { MetricsService } from '../metrics/metrics.service';
 
 /**
  * Kinguin Controller
@@ -46,7 +47,42 @@ export class KinguinController {
     private readonly ordersService: OrdersService,
     @InjectQueue(QUEUE_NAMES.FULFILLMENT) private readonly fulfillmentQueue: Queue,
     @InjectRepository(WebhookLog) private readonly webhookLogsRepo: Repository<WebhookLog>,
+    private readonly metrics: MetricsService,
   ) {}
+
+  /**
+   * Structured logging helper for JSON formatting
+   * Emits logs in consistent format with timestamp, level, service, operation, status, and context
+   *
+   * @param level 'info' | 'warn' | 'error'
+   * @param operation Operation identifier (e.g., 'handleWebhook:start', 'verify:invalid_sig')
+   * @param status Outcome status ('success', 'failed', 'duplicate', etc.)
+   * @param context Additional fields for debugging (reservationId, orderId, error, etc.)
+   */
+  private logStructured(
+    level: 'info' | 'warn' | 'error',
+    operation: string,
+    status: string,
+    context: Record<string, unknown>,
+  ): void {
+    const structuredLog = {
+      timestamp: new Date().toISOString(),
+      level,
+      service: 'KinguinController',
+      operation,
+      status,
+      context,
+    };
+    const logMessage = JSON.stringify(structuredLog);
+
+    if (level === 'error') {
+      this.logger.error(logMessage);
+    } else if (level === 'warn') {
+      this.logger.warn(logMessage);
+    } else {
+      this.logger.log(logMessage);
+    }
+  }
 
   /**
    * Webhook endpoint - Receive order delivery notifications from Kinguin
@@ -95,8 +131,20 @@ export class KinguinController {
     @Headers('x-kinguin-signature') signature: string | undefined,
     @Req() req: Request,
   ): Promise<{ ok: boolean }> {
+    // LOG START
+    this.logStructured('info', 'handleWebhook:start', 'received', {
+      reservationId: payload.reservationId,
+      status: payload.status,
+      hasKey: typeof payload.key === 'string' && payload.key.length > 0,
+    });
+
     // 1. Validate signature header exists
     if (signature === undefined || typeof signature !== 'string' || signature.length === 0) {
+      // LOG MISSING SIGNATURE
+      this.logStructured('warn', 'handleWebhook:missing_header', 'no_signature', {
+        reservationId: payload.reservationId,
+      });
+
       this.logger.warn('[KINGUIN_WEBHOOK] ❌ Missing X-KINGUIN-SIGNATURE header');
       throw new UnauthorizedException('Missing X-KINGUIN-SIGNATURE header');
     }
@@ -106,6 +154,11 @@ export class KinguinController {
     const rawPayload = (req as unknown as Record<string, unknown>).rawBody as string | undefined;
 
     if (rawPayload === undefined || rawPayload === '' || rawPayload.length === 0) {
+      // LOG INVALID PAYLOAD
+      this.logStructured('warn', 'handleWebhook:invalid_body', 'missing_raw_body', {
+        reservationId: payload.reservationId,
+      });
+
       this.logger.warn('[KINGUIN_WEBHOOK] ❌ Invalid webhook payload (rawBody missing/empty)');
       this.logger.debug(`   rawBody value: ${String(rawPayload)}`);
       this.logger.debug(`   req.body: ${JSON.stringify(req.body)}`);
@@ -118,13 +171,28 @@ export class KinguinController {
     const isValid = this.kinguinService.validateWebhook(rawPayload, signature);
 
     if (!isValid) {
+      // LOG INVALID SIGNATURE
+      this.logStructured('warn', 'handleWebhook:verify_failed', 'invalid_signature', {
+        reservationId: payload.reservationId,
+      });
+
       this.logger.warn('[KINGUIN_WEBHOOK] ❌ Invalid HMAC signature');
       throw new UnauthorizedException('Invalid webhook signature');
     }
 
+    // LOG SIGNATURE VERIFIED
+    this.logStructured('info', 'handleWebhook:signature_verified', 'valid', {
+      reservationId: payload.reservationId,
+    });
+
     // 4. Extract reservation ID from validated DTO
     const reservationId = payload.reservationId;
     if (reservationId === undefined || reservationId === '') {
+      // LOG MISSING RESERVATION ID
+      this.logStructured('warn', 'handleWebhook:missing_reservation', 'invalid_payload', {
+        status: payload.status,
+      });
+
       this.logger.warn('[KINGUIN_WEBHOOK] ❌ Missing reservationId in payload');
       throw new UnauthorizedException('Missing reservationId in webhook payload');
     }
@@ -142,11 +210,24 @@ export class KinguinController {
       where: { externalId: reservationId, webhookType: 'kinguin_webhook' },
     });
     if (existing !== null) {
+      // LOG DUPLICATE DETECTION
+      this.logStructured('info', 'handleWebhook:duplicate_detected', 'already_processed', {
+        reservationId,
+        previousWebhookId: existing.id,
+      });
+
       this.logger.debug(
         `[KINGUIN_WEBHOOK] Duplicate webhook ignored for reservationId=${reservationId}`,
       );
       return { ok: true };
     }
+
+    // LOG IDEMPOTENCY CHECK PASSED
+    this.logStructured('info', 'handleWebhook:idempotency_check', 'new_webhook', {
+      reservationId,
+      status,
+      hasKey,
+    });
 
     // 7. Log webhook for admin visibility
     const log = new WebhookLog();
@@ -162,6 +243,11 @@ export class KinguinController {
     // 8. Find order by reservation ID to get orderId for job processing
     const order = await this.ordersService.findByReservation(reservationId);
     if (order === null) {
+      // LOG ORDER NOT FOUND
+      this.logStructured('warn', 'handleWebhook:order_not_found', 'lookup_failed', {
+        reservationId,
+      });
+
       this.logger.warn(
         `[KINGUIN_WEBHOOK] ❌ Order not found for reservationId=${reservationId}`,
       );
@@ -169,12 +255,26 @@ export class KinguinController {
       throw new NotFoundException(`Order not found for reservation ${reservationId}`);
     }
 
+    // LOG JOB ENQUEUEING
+    this.logStructured('info', 'handleWebhook:enqueuing_job', 'in_progress', {
+      reservationId,
+      orderId: order.id,
+      status,
+    });
+
     // 9. Enqueue fulfillment webhook job for processor routing (now with orderId)
     await this.fulfillmentQueue.add(
       'kinguin.webhook',
       { orderId: order.id, reservationId, status },
       { jobId: `kinguin-webhook-${reservationId}-${Date.now()}`, removeOnComplete: true },
     );
+
+    // LOG COMPLETION
+    this.logStructured('info', 'handleWebhook:complete', 'success', {
+      reservationId,
+      orderId: order.id,
+      status,
+    });
 
     // 10. Always return 200 OK (prevents Kinguin from retrying)
     return { ok: true };

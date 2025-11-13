@@ -3,6 +3,12 @@
 import { useSearchParams, useRouter, useParams } from 'next/navigation';
 import { useMutation } from '@tanstack/react-query';
 import { useState } from 'react';
+import { Configuration } from '@bitloot/sdk';
+
+// Initialize SDK configuration for consistent API calls
+const apiConfig = new Configuration({
+  basePath: process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000',
+});
 
 export default function PayPage(): React.ReactElement {
   const router = useRouter();
@@ -31,7 +37,7 @@ export default function PayPage(): React.ReactElement {
         updated_at: new Date().toISOString(),
       };
 
-      const response = await fetch('http://localhost:4000/webhooks/nowpayments/ipn', {
+      const response = await fetch(`${apiConfig.basePath}/webhooks/nowpayments/ipn`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),

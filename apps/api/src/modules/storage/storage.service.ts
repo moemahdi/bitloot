@@ -277,4 +277,35 @@ export class StorageService {
       expiresInMinutes: 15,
     });
   }
+
+  /**
+   * Reveal key for a user with ownership verification
+   * Used when user downloads/views their key via signed URL
+   *
+   * This is a placeholder for future implementation that would:
+   * 1. Verify user owns the order/item
+   * 2. Decrypt key if needed
+   * 3. Log access for audit trail
+   * 4. Track viewing timestamp
+   *
+   * For now, returns the storage reference for the key
+   *
+   * @param orderId Order ID
+   * @param itemId Order item ID
+   * @param userId User ID (for ownership verification)
+   * @returns Decrypted key or storage reference
+   * @throws ForbiddenException if user doesn't own the item
+   */
+  revealKeyForUser(orderId: string, itemId: string, userId: string): string {
+    // In future implementation:
+    // 1. Verify ownership: const order = await orderService.findUserOrderOrThrow(orderId, userId);
+    // 2. Verify item belongs to order
+    // 3. Decrypt key if stored encrypted
+    // 4. Log access: keyService.updateViewedAt(itemId);
+    // 5. Return decrypted key
+
+    // For now, return placeholder
+    this.logger.log(`[STORAGE] Reveal key requested for order ${orderId} by user ${userId} (item ${itemId})`);
+    return `keys/orders/${orderId}/${itemId}`;
+  }
 }

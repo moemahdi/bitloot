@@ -13,7 +13,8 @@ import { MockKinguinClient } from './kinguin.mock';
 import { R2StorageClient } from '../storage/r2.client';
 import { MockR2StorageClient } from '../storage/r2-storage.mock';
 import { DeliveryService } from './delivery.service';
-import { EmailsService } from '../emails/emails.service';
+import { EmailsModule } from '../emails/emails.module';
+import { MetricsModule } from '../metrics/metrics.module';
 import { OrdersService } from '../orders/orders.service';
 
 /**
@@ -49,6 +50,12 @@ import { OrdersService } from '../orders/orders.service';
 
     // HTTP client for external APIs
     HttpModule,
+
+    // Emails module (provides EmailsService)
+    EmailsModule,
+
+    // Metrics module (provides MetricsService for EmailsService)
+    MetricsModule,
   ],
   providers: [
     // Kinguin API client (factory pattern for environment config)
@@ -104,10 +111,9 @@ import { OrdersService } from '../orders/orders.service';
     FulfillmentService,
     // Orders service used for setting reservationId without duplicating logic
     OrdersService,
-    // Delivery + Email services used by fulfillment
+    // Delivery service used by fulfillment
     DeliveryService,
-    EmailsService,
   ],
-  exports: [FulfillmentService, KinguinClient, R2StorageClient, OrdersService, DeliveryService, EmailsService],
+  exports: [FulfillmentService, KinguinClient, R2StorageClient, OrdersService, DeliveryService],
 })
 export class FulfillmentModule {}

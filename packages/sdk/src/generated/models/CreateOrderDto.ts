@@ -37,6 +37,12 @@ export interface CreateOrderDto {
      * @memberof CreateOrderDto
      */
     note?: string;
+    /**
+     * Cloudflare Turnstile CAPTCHA token for bot protection
+     * @type {string}
+     * @memberof CreateOrderDto
+     */
+    captchaToken?: string;
 }
 
 /**
@@ -61,6 +67,7 @@ export function CreateOrderDtoFromJSONTyped(json: any, ignoreDiscriminator: bool
         'email': json['email'],
         'productId': json['productId'],
         'note': json['note'] == null ? undefined : json['note'],
+        'captchaToken': json['captchaToken'] == null ? undefined : json['captchaToken'],
     };
 }
 
@@ -78,6 +85,7 @@ export function CreateOrderDtoToJSONTyped(value?: CreateOrderDto | null, ignoreD
         'email': value['email'],
         'productId': value['productId'],
         'note': value['note'],
+        'captchaToken': value['captchaToken'],
     };
 }
 

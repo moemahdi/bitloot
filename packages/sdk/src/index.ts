@@ -11,5 +11,9 @@
 // Export all generated clients and models
 export * from './generated';
 
+// Export custom clients (not auto-generated)
+export { authClient, AuthClient } from './auth-client';
+export type { RequestOtpResponse, VerifyOtpResponse, RefreshTokenResponse, LogoutResponse } from './auth-client';
+
 export const VERSION = '0.0.1';
 export const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';

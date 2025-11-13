@@ -15,6 +15,7 @@ import { Payment } from './payment.entity';
 import { WebhookLog } from '../../database/entities/webhook-log.entity';
 import { OrdersService } from '../orders/orders.service';
 import { QUEUE_NAMES } from '../../jobs/queues';
+import { MetricsService } from '../metrics/metrics.service';
 
 /**
  * PaymentsService handles payment lifecycle:
@@ -31,8 +32,42 @@ export class PaymentsService {
     @InjectRepository(Payment) private readonly paymentsRepo: Repository<Payment>,
     @InjectRepository(WebhookLog) private readonly webhookLogsRepo: Repository<WebhookLog>,
     private readonly ordersService: OrdersService,
+    private readonly metricsService: MetricsService,
     @InjectQueue(QUEUE_NAMES.FULFILLMENT) private readonly fulfillmentQueue: Queue,
   ) {}
+
+  /**
+  /**
+   * Log structured JSON event for observability
+   * @param level Log level (info, warn, error)
+   * @param operation Operation name
+   * @param status Status (success, failure, partial)
+   * @param context Additional context data
+   */
+  private logStructured(
+    level: 'info' | 'warn' | 'error',
+    operation: string,
+    status: string,
+    context: Record<string, unknown>,
+  ): void {
+    const structuredLog = {
+      timestamp: new Date().toISOString(),
+      level,
+      service: 'PaymentsService',
+      operation,
+      status,
+      context,
+    };
+
+    const logMessage = JSON.stringify(structuredLog);
+    if (level === 'error') {
+      this.logger.error(logMessage);
+    } else if (level === 'warn') {
+      this.logger.warn(logMessage);
+    } else {
+      this.logger.log(logMessage);
+    }
+  }
 
   /**
    * Create a payment invoice with NOWPayments
@@ -105,6 +140,14 @@ export class PaymentsService {
     const { orderId, externalId, status } = dto;
     this.logger.log(`IPN received: order ${orderId}, status ${status}, np_id ${externalId}`);
 
+    // Structured log: Incoming webhook
+    this.logStructured('info', 'handleIpn:start', 'received', {
+      orderId,
+      paymentId: externalId,
+      status,
+      timestamp: new Date().toISOString(),
+    });
+
     try {
       // Idempotency check: if webhook already logged with same external id, return success
       const existingLog = await this.webhookLogsRepo.findOne({
@@ -112,6 +155,11 @@ export class PaymentsService {
       });
       if (existingLog !== null) {
         this.logger.debug(`IPN already processed (idempotent): ${externalId}`);
+        this.logStructured('info', 'handleIpn:idempotency', 'duplicate', {
+          orderId,
+          paymentId: externalId,
+          reason: 'webhook_already_processed',
+        });
         return { ok: true }; // Idempotent: already handled
       }
 
@@ -138,11 +186,29 @@ export class PaymentsService {
       // Process status transitions on Order
       if (status === 'waiting') {
         await this.ordersService.markWaiting(orderId);
+        this.logStructured('info', 'handleIpn:status_transition', 'waiting', {
+          orderId,
+          paymentId: externalId,
+          previousStatus: payment?.status,
+          newStatus: status,
+        });
       } else if (status === 'confirming') {
         await this.ordersService.markConfirming(orderId);
+        this.logStructured('info', 'handleIpn:status_transition', 'confirming', {
+          orderId,
+          paymentId: externalId,
+          previousStatus: payment?.status,
+          newStatus: status,
+        });
       } else if (status === 'finished') {
         // Payment confirmed: enqueue fulfillment job
         await this.ordersService.markPaid(orderId);
+        this.logStructured('info', 'handleIpn:status_transition', 'payment_confirmed', {
+          orderId,
+          paymentId: externalId,
+          previousStatus: payment?.status,
+          newStatus: status,
+        });
 
         // Queue fulfillment job (Phase 4: BullMQ async processing)
         try {
@@ -167,10 +233,26 @@ export class PaymentsService {
             },
           );
 
+          this.logStructured('info', 'handleIpn:job_enqueued', 'fulfillment_job_created', {
+            orderId,
+            paymentId: externalId,
+            jobId: job?.id ?? 'unknown',
+            kinguinOfferId: firstItem?.productId ?? 'demo-product',
+            quantity,
+            email: orderDto.email,
+          });
+
           this.logger.log(
             `[Phase 4] Reservation job queued: order ${orderId}, job ID ${job?.id ?? 'unknown'}, email ${orderDto.email}, items ${quantity}`,
           );
         } catch (error) {
+          this.logStructured('error', 'handleIpn:job_queueing_failed', 'fulfillment_job_failed', {
+            orderId,
+            paymentId: externalId,
+            error: error instanceof Error ? error.message : String(error),
+            errorType: error?.constructor?.name,
+          });
+
           this.logger.error(
             `[Phase 4] Failed to queue fulfillment job for order ${orderId}:`,
             error instanceof Error ? error.message : String(error),
@@ -181,10 +263,28 @@ export class PaymentsService {
         }
       } else if (status === 'underpaid') {
         await this.ordersService.markUnderpaid(orderId);
+        this.metricsService.incrementUnderpaidOrders('btc'); // TODO: track actual asset
+        this.logStructured('warn', 'handleIpn:underpaid_order', 'payment_insufficient', {
+          orderId,
+          paymentId: externalId,
+          priceAmount: payment?.priceAmount,
+          payAmount: payment?.payAmount,
+          currency: payment?.payCurrency,
+        });
       } else if (status === 'failed') {
         await this.ordersService.markFailed(orderId, 'NOWPayments reported failure');
+        this.logStructured('warn', 'handleIpn:payment_failed', 'payment_rejected', {
+          orderId,
+          paymentId: externalId,
+          reason: 'nowpayments_failure',
+        });
       } else if (status !== undefined) {
         this.logger.warn(`Unknown payment status: ${status}`);
+        this.logStructured('warn', 'handleIpn:unknown_status', 'unknown_status', {
+          orderId,
+          paymentId: externalId,
+          status,
+        });
       }
 
       // Log webhook to prevent duplicates
@@ -195,6 +295,13 @@ export class PaymentsService {
       webhookLog.signatureValid = true;
       webhookLog.processed = true;
       await this.webhookLogsRepo.save(webhookLog);
+
+      this.logStructured('info', 'handleIpn:complete', 'success', {
+        orderId,
+        paymentId: externalId,
+        status,
+        processingTimeMs: Date.now(),
+      });
 
       this.logger.log(`IPN processed successfully: order ${orderId} → status ${status}`);
       return { ok: true };
@@ -208,6 +315,15 @@ export class PaymentsService {
       webhookLog.processed = false;
       webhookLog.error = error instanceof Error ? error.message : 'unknown error';
       await this.webhookLogsRepo.save(webhookLog);
+
+      this.logStructured('error', 'handleIpn:failed', 'processing_error', {
+        orderId,
+        paymentId: externalId,
+        status,
+        error: error instanceof Error ? error.message : String(error),
+        errorType: error?.constructor?.name,
+        stack: error instanceof Error ? error.stack?.split('\n').slice(0, 3) : undefined,
+      });
 
       this.logger.error(`IPN processing failed: order ${orderId}`, error);
       throw new BadRequestException(
