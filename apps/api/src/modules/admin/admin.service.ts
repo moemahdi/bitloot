@@ -27,6 +27,60 @@ export class AdminService {
   ) {}
 
   /**
+   * Get paginated list of orders with filtering
+   *
+   * @param options Pagination and filter options
+   * @returns Paginated orders
+   */
+  async getOrders(options: {
+    limit?: number;
+    offset?: number;
+    email?: string;
+    status?: string;
+  }): Promise<{
+    data: Array<{
+      id: string;
+      email: string;
+      status: string;
+      total: string;
+      createdAt: Date;
+    }>;
+    total: number;
+    limit: number;
+    offset: number;
+  }> {
+    const limit = Math.min(options.limit ?? 50, 100);
+    const offset = options.offset ?? 0;
+
+    const query = this.ordersRepo.createQueryBuilder('o');
+
+    if (typeof options.email === 'string' && options.email.length > 0) {
+      query.andWhere('o.email ILIKE :email', { email: `%${options.email}%` });
+    }
+
+    if (typeof options.status === 'string' && options.status.length > 0) {
+      query.andWhere('o.status = :status', { status: options.status });
+    }
+
+    query.orderBy('o.createdAt', 'DESC').skip(offset).take(limit);
+
+    const [data, total] = await query.getManyAndCount();
+
+    return {
+      data: data.map((o) => ({
+        id: o.id,
+        email: o.email,
+        status: o.status,
+        total: o.total,
+        createdAt: o.createdAt,
+      })),
+      total,
+      limit,
+      offset,
+    };
+  }
+
+  /**
    * Get paginated list of payments with filtering
    *
    * @param options Pagination and filter options

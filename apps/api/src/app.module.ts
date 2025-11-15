@@ -24,6 +24,7 @@ import { KinguinModule } from './modules/kinguin/kinguin.module';
 import { UsersModule } from './modules/users/users.module';
 import { MetricsModule } from './modules/metrics/metrics.module';
 import { EmailsModule } from './modules/emails/emails.module';
+import { AuditModule } from './modules/audit/audit.module';
 
 @Module({
   imports: [
@@ -65,6 +66,8 @@ import { EmailsModule } from './modules/emails/emails.module';
     MetricsModule,
     // Emails module (Resend integration, retry, suppression list, bounces)
     EmailsModule,
+    // Audit logging module (admin actions & exports)
+    AuditModule,
   ],
   controllers: [HealthController, OrdersController],
   providers: [

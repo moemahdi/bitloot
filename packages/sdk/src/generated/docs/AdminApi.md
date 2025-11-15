@@ -5,6 +5,7 @@ All URIs are relative to *http://localhost*
 | Method | HTTP request | Description |
 |------------- | ------------- | -------------|
 | [**adminControllerGetKeyAuditTrail**](AdminApi.md#admincontrollergetkeyaudittrail) | **GET** /admin/key-audit/{orderId} | Get key access audit trail |
+| [**adminControllerGetOrders**](AdminApi.md#admincontrollergetorders) | **GET** /admin/orders | Get paginated list of orders |
 | [**adminControllerGetPayments**](AdminApi.md#admincontrollergetpayments) | **GET** /admin/payments | Get paginated list of payments |
 | [**adminControllerGetReservations**](AdminApi.md#admincontrollergetreservations) | **GET** /admin/reservations | Get paginated list of Kinguin reservations |
 | [**adminControllerGetWebhookLog**](AdminApi.md#admincontrollergetwebhooklog) | **GET** /admin/webhook-logs/{id} | Get webhook log details |
@@ -81,6 +82,86 @@ example().catch(console.error);
 |-------------|-------------|------------------|
 | **200** | Key access audit trail |  -  |
 | **404** | Order not found or has no keys |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## adminControllerGetOrders
+
+> AdminControllerGetOrders200Response adminControllerGetOrders(limit, offset, email, status)
+
+Get paginated list of orders
+
+Returns all orders with payment and fulfillment status
+
+### Example
+
+```ts
+import {
+  Configuration,
+  AdminApi,
+} from '';
+import type { AdminControllerGetOrdersRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const config = new Configuration({ 
+    // Configure HTTP bearer authorization: JWT-auth
+    accessToken: "YOUR BEARER TOKEN",
+  });
+  const api = new AdminApi(config);
+
+  const body = {
+    // number (optional)
+    limit: 50,
+    // number (optional)
+    offset: 0,
+    // string (optional)
+    email: user@example.com,
+    // string (optional)
+    status: fulfilled,
+  } satisfies AdminControllerGetOrdersRequest;
+
+  try {
+    const data = await api.adminControllerGetOrders(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **limit** | `number` |  | [Optional] [Defaults to `undefined`] |
+| **offset** | `number` |  | [Optional] [Defaults to `undefined`] |
+| **email** | `string` |  | [Optional] [Defaults to `undefined`] |
+| **status** | `string` |  | [Optional] [Defaults to `undefined`] |
+
+### Return type
+
+[**AdminControllerGetOrders200Response**](AdminControllerGetOrders200Response.md)
+
+### Authorization
+
+[JWT-auth](../README.md#JWT-auth)
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Paginated orders list |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 

@@ -3,6 +3,13 @@ import { Table, TableIndex } from 'typeorm';
 
 export class CreateUsers1735000000000 implements MigrationInterface {
   public async up(queryRunner: QueryRunner): Promise<void> {
+    // Check if users table already exists (skip if it does)
+    const usersTableExists = await queryRunner.hasTable('users');
+    if (usersTableExists) {
+      console.log('Users table already exists, skipping creation');
+      return;
+    }
+
     // Create users table
     await queryRunner.createTable(
       new Table({

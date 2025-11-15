@@ -43,6 +43,10 @@ export interface IpnHandlerControllerHandleNowpaymentsIpnRequest {
     nowpaymentsIpnRequestDto: NowpaymentsIpnRequestDto;
 }
 
+export interface ResendBounceControllerHandleBounceRequest {
+    body: object;
+}
+
 /**
  * 
  */
@@ -214,6 +218,46 @@ export class WebhooksApi extends runtime.BaseAPI {
     async ipnHandlerControllerHandleNowpaymentsIpn(requestParameters: IpnHandlerControllerHandleNowpaymentsIpnRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<NowpaymentsIpnResponseDto> {
         const response = await this.ipnHandlerControllerHandleNowpaymentsIpnRaw(requestParameters, initOverrides);
         return await response.value();
+    }
+
+    /**
+     * Webhook endpoint for Resend bounce/complaint events. Updates suppression list.
+     * Receive email bounce events from Resend
+     */
+    async resendBounceControllerHandleBounceRaw(requestParameters: ResendBounceControllerHandleBounceRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<void>> {
+        if (requestParameters['body'] == null) {
+            throw new runtime.RequiredError(
+                'body',
+                'Required parameter "body" was null or undefined when calling resendBounceControllerHandleBounce().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+
+        let urlPath = `/webhooks/resend/bounce`;
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+            body: requestParameters['body'] as any,
+        }, initOverrides);
+
+        return new runtime.VoidApiResponse(response);
+    }
+
+    /**
+     * Webhook endpoint for Resend bounce/complaint events. Updates suppression list.
+     * Receive email bounce events from Resend
+     */
+    async resendBounceControllerHandleBounce(requestParameters: ResendBounceControllerHandleBounceRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<void> {
+        await this.resendBounceControllerHandleBounceRaw(requestParameters, initOverrides);
     }
 
 }

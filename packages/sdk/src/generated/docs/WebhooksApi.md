@@ -6,6 +6,7 @@ All URIs are relative to *http://localhost*
 |------------- | ------------- | -------------|
 | [**ipnHandlerControllerAdminListWebhooks**](WebhooksApi.md#ipnhandlercontrolleradminlistwebhooks) | **GET** /webhooks/admin/list | [ADMIN] List all webhook logs with pagination |
 | [**ipnHandlerControllerHandleNowpaymentsIpn**](WebhooksApi.md#ipnhandlercontrollerhandlenowpaymentsipn) | **POST** /webhooks/nowpayments/ipn | NOWPayments IPN Webhook Handler |
+| [**resendBounceControllerHandleBounce**](WebhooksApi.md#resendbouncecontrollerhandlebounce) | **POST** /webhooks/resend/bounce | Receive email bounce events from Resend |
 
 
 
@@ -166,6 +167,73 @@ No authorization required
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
 | **200** | Webhook received and processed (or queued for processing). Always 200 OK regardless of outcome. |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## resendBounceControllerHandleBounce
+
+> resendBounceControllerHandleBounce(body)
+
+Receive email bounce events from Resend
+
+Webhook endpoint for Resend bounce/complaint events. Updates suppression list.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  WebhooksApi,
+} from '';
+import type { ResendBounceControllerHandleBounceRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new WebhooksApi();
+
+  const body = {
+    // object | Resend webhook event payload
+    body: Object,
+  } satisfies ResendBounceControllerHandleBounceRequest;
+
+  try {
+    const data = await api.resendBounceControllerHandleBounce(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **body** | `object` | Resend webhook event payload | |
+
+### Return type
+
+`void` (Empty response body)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: `application/json`
+- **Accept**: Not defined
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Bounce event processed |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 

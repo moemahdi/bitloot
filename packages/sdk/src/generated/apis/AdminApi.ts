@@ -16,6 +16,7 @@
 import * as runtime from '../runtime';
 import type {
   AdminControllerGetKeyAuditTrail200ResponseInner,
+  AdminControllerGetOrders200Response,
   AdminControllerGetPayments200Response,
   AdminControllerGetReservations200Response,
   AdminControllerGetWebhookLog200Response,
@@ -24,6 +25,8 @@ import type {
 import {
     AdminControllerGetKeyAuditTrail200ResponseInnerFromJSON,
     AdminControllerGetKeyAuditTrail200ResponseInnerToJSON,
+    AdminControllerGetOrders200ResponseFromJSON,
+    AdminControllerGetOrders200ResponseToJSON,
     AdminControllerGetPayments200ResponseFromJSON,
     AdminControllerGetPayments200ResponseToJSON,
     AdminControllerGetReservations200ResponseFromJSON,
@@ -36,6 +39,13 @@ import {
 
 export interface AdminControllerGetKeyAuditTrailRequest {
     orderId: string;
+}
+
+export interface AdminControllerGetOrdersRequest {
+    limit?: number;
+    offset?: number;
+    email?: string;
+    status?: string;
 }
 
 export interface AdminControllerGetPaymentsRequest {
@@ -116,6 +126,61 @@ export class AdminApi extends runtime.BaseAPI {
      */
     async adminControllerGetKeyAuditTrail(requestParameters: AdminControllerGetKeyAuditTrailRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<AdminControllerGetKeyAuditTrail200ResponseInner>> {
         const response = await this.adminControllerGetKeyAuditTrailRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Returns all orders with payment and fulfillment status
+     * Get paginated list of orders
+     */
+    async adminControllerGetOrdersRaw(requestParameters: AdminControllerGetOrdersRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<AdminControllerGetOrders200Response>> {
+        const queryParameters: any = {};
+
+        if (requestParameters['limit'] != null) {
+            queryParameters['limit'] = requestParameters['limit'];
+        }
+
+        if (requestParameters['offset'] != null) {
+            queryParameters['offset'] = requestParameters['offset'];
+        }
+
+        if (requestParameters['email'] != null) {
+            queryParameters['email'] = requestParameters['email'];
+        }
+
+        if (requestParameters['status'] != null) {
+            queryParameters['status'] = requestParameters['status'];
+        }
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("JWT-auth", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/admin/orders`;
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => AdminControllerGetOrders200ResponseFromJSON(jsonValue));
+    }
+
+    /**
+     * Returns all orders with payment and fulfillment status
+     * Get paginated list of orders
+     */
+    async adminControllerGetOrders(requestParameters: AdminControllerGetOrdersRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<AdminControllerGetOrders200Response> {
+        const response = await this.adminControllerGetOrdersRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

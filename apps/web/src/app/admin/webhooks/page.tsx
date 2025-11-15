@@ -4,6 +4,9 @@ import React, { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { AdminApi, Configuration } from '@bitloot/sdk';
+import { convertToCSV, downloadCSV } from '@/utils/csv-export';
+import { useAutoRefresh } from '@/hooks/useAutoRefresh';
+import { Download, RefreshCw } from 'lucide-react';
 
 // Initialize SDK admin client
 const apiConfig = new Configuration({
@@ -47,6 +50,7 @@ export default function AdminWebhooksPage(): React.ReactElement {
 
   // State
   const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(LIMIT);
   const [webhookTypeFilter, setWebhookTypeFilter] = useState('');
   const [processedFilter, setProcessedFilter] = useState('');
   const [paymentStatusFilter, setPaymentStatusFilter] = useState('');
@@ -64,15 +68,11 @@ export default function AdminWebhooksPage(): React.ReactElement {
   }, [router]);
 
   // Fetch webhooks
-  const {
-    data: webhooksList,
-    isLoading,
-    error,
-    refetch,
-  } = useQuery<WebhooksListResponse>({
+  const query = useQuery<WebhooksListResponse>({
     queryKey: [
       'admin-webhooks',
       page,
+      limit,
       webhookTypeFilter,
       processedFilter,
       paymentStatusFilter,
@@ -80,8 +80,8 @@ export default function AdminWebhooksPage(): React.ReactElement {
     ],
     queryFn: async (): Promise<WebhooksListResponse> => {
       const response = await adminApi.adminControllerGetWebhookLogs({
-        limit: LIMIT,
-        offset: (page - 1) * LIMIT,
+        limit,
+        offset: (page - 1) * limit,
         webhookType: webhookTypeFilter !== '' ? webhookTypeFilter : undefined,
         paymentStatus: paymentStatusFilter !== '' ? paymentStatusFilter : undefined,
       });
@@ -91,14 +91,20 @@ export default function AdminWebhooksPage(): React.ReactElement {
         data: (response.data as unknown as WebhookLog[]) ?? [],
         total: response.total ?? 0,
         page,
-        limit: LIMIT,
-        totalPages: Math.ceil((response.total ?? 0) / LIMIT),
-        hasNextPage: page < Math.ceil((response.total ?? 0) / LIMIT),
+        limit,
+        totalPages: Math.ceil((response.total ?? 0) / limit),
+        hasNextPage: page < Math.ceil((response.total ?? 0) / limit),
       };
     },
     staleTime: 30_000,
     enabled: isAuthorized,
   });
+
+  const { data: webhooksList, isLoading, error, refetch } = query;
+
+  // Auto-refresh hook
+  const { isAutoRefreshEnabled, setIsAutoRefreshEnabled, handleRefresh, lastRefreshTime } =
+    useAutoRefresh(query, { enableAutoRefresh: false, refetchInterval: 30_000 });
 
   // Filter handlers
   const handleWebhookTypeFilterChange = (e: React.ChangeEvent<HTMLSelectElement>): void => {
@@ -123,6 +129,37 @@ export default function AdminWebhooksPage(): React.ReactElement {
 
   const applyFilters = (): void => {
     void refetch();
+  };
+
+  // Export to CSV
+  const handleExportCSV = (): void => {
+    const webhooks = webhooksList?.data ?? [];
+    if (webhooks.length === 0) return;
+
+    const csvData = webhooks.map((webhook) => ({
+      ID: webhook.id,
+      'External ID': webhook.externalId,
+      Type: webhook.webhookType,
+      'Payment Status': webhook.paymentStatus ?? 'N/A',
+      Processed: webhook.processed ? 'Yes' : 'No',
+      'Signature Valid': webhook.signatureValid ? 'Yes' : 'No',
+      'Order ID': webhook.orderId ?? 'N/A',
+      'Created At': formatDate(webhook.createdAt),
+    }));
+
+    const csv = convertToCSV(csvData, [
+      'ID',
+      'External ID',
+      'Type',
+      'Payment Status',
+      'Processed',
+      'Signature Valid',
+      'Order ID',
+      'Created At',
+    ]);
+
+    const filename = `webhooks-${new Date().toISOString().split('T')[0]}.csv`;
+    downloadCSV(csv, filename);
   };
 
   // Utility functions
@@ -175,11 +212,61 @@ export default function AdminWebhooksPage(): React.ReactElement {
 
         {/* Filters */}
         <div className="bg-white rounded-lg shadow p-6 mb-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Filters</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-gray-900">Filters</h2>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => void handleRefresh()}
+                disabled={isLoading}
+                className="flex items-center gap-2 px-3 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+                title="Manually refresh data"
+              >
+                <RefreshCw size={16} className={isLoading ? 'animate-spin' : ''} />
+                Refresh
+              </button>
+              <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={isAutoRefreshEnabled}
+                  onChange={(e) => setIsAutoRefreshEnabled(e.target.checked)}
+                  className="w-4 h-4 rounded"
+                />
+                Auto-refresh (30s)
+              </label>
+              {lastRefreshTime !== null && (
+                <span className="text-xs text-gray-500">
+                  Last refresh: {lastRefreshTime.toLocaleTimeString()}
+                </span>
+              )}
+            </div>
+          </div>
+          
+          {/* First Row: Limit, Webhook Type, Processed, Payment Status */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Webhook Type</label>
+              <label htmlFor="limit-selector" className="block text-sm font-medium text-gray-700 mb-2">Items Per Page</label>
               <select
+                id="limit-selector"
+                aria-label="Select number of items per page"
+                value={limit.toString()}
+                onChange={(e): void => {
+                  setLimit(parseInt(e.target.value, 10));
+                  setPage(1);
+                }}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="10">10 items</option>
+                <option value="25">25 items</option>
+                <option value="50">50 items</option>
+                <option value="100">100 items</option>
+              </select>
+            </div>
+
+            <div>
+              <label htmlFor="webhook-type-filter" className="block text-sm font-medium text-gray-700 mb-2">Webhook Type</label>
+              <select
+                id="webhook-type-filter"
+                aria-label="Filter webhooks by type"
                 value={webhookTypeFilter}
                 onChange={handleWebhookTypeFilterChange}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
@@ -191,8 +278,10 @@ export default function AdminWebhooksPage(): React.ReactElement {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Processed</label>
+              <label htmlFor="processed-filter" className="block text-sm font-medium text-gray-700 mb-2">Processed</label>
               <select
+                id="processed-filter"
+                aria-label="Filter webhooks by processed status"
                 value={processedFilter}
                 onChange={handleProcessedFilterChange}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
@@ -204,8 +293,10 @@ export default function AdminWebhooksPage(): React.ReactElement {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Payment Status</label>
+              <label htmlFor="payment-status-filter" className="block text-sm font-medium text-gray-700 mb-2">Payment Status</label>
               <select
+                id="payment-status-filter"
+                aria-label="Filter webhooks by payment status"
                 value={paymentStatusFilter}
                 onChange={handlePaymentStatusFilterChange}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
@@ -218,10 +309,14 @@ export default function AdminWebhooksPage(): React.ReactElement {
                 <option value="underpaid">Underpaid</option>
               </select>
             </div>
+          </div>
 
+          {/* Second Row: External ID, Action Buttons */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">External ID</label>
+              <label htmlFor="external-id-filter" className="block text-sm font-medium text-gray-700 mb-2">External ID</label>
               <input
+                id="external-id-filter"
                 type="text"
                 value={externalIdFilter}
                 onChange={handleExternalIdFilterChange}
@@ -230,12 +325,20 @@ export default function AdminWebhooksPage(): React.ReactElement {
               />
             </div>
 
-            <div className="flex items-end">
+            <div className="flex items-end gap-2">
               <button
                 onClick={applyFilters}
-                className="w-full bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"
               >
                 Apply Filters
+              </button>
+              <button
+                onClick={handleExportCSV}
+                disabled={isLoading || (webhooksList?.data?.length ?? 0) === 0}
+                className="flex-1 bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                <Download size={18} />
+                Export CSV
               </button>
             </div>
           </div>

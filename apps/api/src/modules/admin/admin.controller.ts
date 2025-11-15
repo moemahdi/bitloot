@@ -17,6 +17,58 @@ export class AdminController {
   constructor(private readonly admin: AdminService) {}
 
   /**
+   * Get paginated list of orders
+   * Filters by email and status
+   */
+  @Get('orders')
+  @ApiOperation({
+    summary: 'Get paginated list of orders',
+    description: 'Returns all orders with payment and fulfillment status',
+  })
+  @ApiQuery({ name: 'limit', type: Number, required: false, example: 50 })
+  @ApiQuery({ name: 'offset', type: Number, required: false, example: 0 })
+  @ApiQuery({ name: 'email', type: String, required: false, example: 'user@example.com' })
+  @ApiQuery({ name: 'status', type: String, required: false, example: 'fulfilled' })
+  @ApiResponse({
+    status: 200,
+    description: 'Paginated orders list',
+    schema: {
+      type: 'object',
+      properties: {
+        data: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              id: { type: 'string' },
+              email: { type: 'string' },
+              status: { type: 'string' },
+              total: { type: 'string' },
+              createdAt: { type: 'string', format: 'date-time' },
+            },
+          },
+        },
+        total: { type: 'number' },
+        limit: { type: 'number' },
+        offset: { type: 'number' },
+      },
+    },
+  })
+  async getOrders(
+    @Query('limit') limit?: string,
+    @Query('offset') offset?: string,
+    @Query('email') email?: string,
+    @Query('status') status?: string,
+  ): Promise<{ data: Array<{ id: string; email: string; status: string; total: string; createdAt: Date }>; total: number; limit: number; offset: number }> {
+    return this.admin.getOrders({
+      limit: parseInt(limit ?? '50', 10),
+      offset: parseInt(offset ?? '0', 10),
+      email,
+      status,
+    });
+  }
+
+  /**
    * Get paginated list of payments
    * Filters by provider (nowpayments, stripe, etc.) and status
    */

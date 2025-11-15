@@ -16,23 +16,43 @@
 import * as runtime from '../runtime';
 import type {
   AuthResponseDto,
+  ForgotPasswordDto,
+  ForgotPasswordResponseDto,
   OtpResponseDto,
   RequestOtpDto,
+  ResetPasswordDto,
+  ResetPasswordResponseDto,
   VerifyOtpDto,
 } from '../models/index';
 import {
     AuthResponseDtoFromJSON,
     AuthResponseDtoToJSON,
+    ForgotPasswordDtoFromJSON,
+    ForgotPasswordDtoToJSON,
+    ForgotPasswordResponseDtoFromJSON,
+    ForgotPasswordResponseDtoToJSON,
     OtpResponseDtoFromJSON,
     OtpResponseDtoToJSON,
     RequestOtpDtoFromJSON,
     RequestOtpDtoToJSON,
+    ResetPasswordDtoFromJSON,
+    ResetPasswordDtoToJSON,
+    ResetPasswordResponseDtoFromJSON,
+    ResetPasswordResponseDtoToJSON,
     VerifyOtpDtoFromJSON,
     VerifyOtpDtoToJSON,
 } from '../models/index';
 
+export interface AuthControllerForgotPasswordRequest {
+    forgotPasswordDto: ForgotPasswordDto;
+}
+
 export interface AuthControllerRequestOtpRequest {
     requestOtpDto: RequestOtpDto;
+}
+
+export interface AuthControllerResetPasswordRequest {
+    resetPasswordDto: ResetPasswordDto;
 }
 
 export interface AuthControllerVerifyOtpRequest {
@@ -43,6 +63,78 @@ export interface AuthControllerVerifyOtpRequest {
  * 
  */
 export class AuthenticationApi extends runtime.BaseAPI {
+
+    /**
+     * Request password reset email
+     */
+    async authControllerForgotPasswordRaw(requestParameters: AuthControllerForgotPasswordRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<ForgotPasswordResponseDto>> {
+        if (requestParameters['forgotPasswordDto'] == null) {
+            throw new runtime.RequiredError(
+                'forgotPasswordDto',
+                'Required parameter "forgotPasswordDto" was null or undefined when calling authControllerForgotPassword().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+
+        let urlPath = `/auth/forgot-password`;
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+            body: ForgotPasswordDtoToJSON(requestParameters['forgotPasswordDto']),
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => ForgotPasswordResponseDtoFromJSON(jsonValue));
+    }
+
+    /**
+     * Request password reset email
+     */
+    async authControllerForgotPassword(requestParameters: AuthControllerForgotPasswordRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ForgotPasswordResponseDto> {
+        const response = await this.authControllerForgotPasswordRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * [TEST ONLY] Get OTP for testing
+     */
+    async authControllerGetOtpForTestingRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<any>> {
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/auth/test/get-otp`;
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        if (this.isJsonMime(response.headers.get('content-type'))) {
+            return new runtime.JSONApiResponse<any>(response);
+        } else {
+            return new runtime.TextApiResponse(response) as any;
+        }
+    }
+
+    /**
+     * [TEST ONLY] Get OTP for testing
+     */
+    async authControllerGetOtpForTesting(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<any> {
+        const response = await this.authControllerGetOtpForTestingRaw(initOverrides);
+        return await response.value();
+    }
 
     /**
      * Logout user
@@ -137,6 +229,45 @@ export class AuthenticationApi extends runtime.BaseAPI {
      */
     async authControllerRequestOtp(requestParameters: AuthControllerRequestOtpRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<OtpResponseDto> {
         const response = await this.authControllerRequestOtpRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Reset password with token
+     */
+    async authControllerResetPasswordRaw(requestParameters: AuthControllerResetPasswordRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<ResetPasswordResponseDto>> {
+        if (requestParameters['resetPasswordDto'] == null) {
+            throw new runtime.RequiredError(
+                'resetPasswordDto',
+                'Required parameter "resetPasswordDto" was null or undefined when calling authControllerResetPassword().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+
+        let urlPath = `/auth/reset-password`;
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+            body: ResetPasswordDtoToJSON(requestParameters['resetPasswordDto']),
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => ResetPasswordResponseDtoFromJSON(jsonValue));
+    }
+
+    /**
+     * Reset password with token
+     */
+    async authControllerResetPassword(requestParameters: AuthControllerResetPasswordRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ResetPasswordResponseDto> {
+        const response = await this.authControllerResetPasswordRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { AdminApi, Configuration } from '@bitloot/sdk';
+import { convertToCSV, downloadCSV } from '@/utils/csv-export';
+import { Download } from 'lucide-react';
 
 // Initialize SDK admin client
 const apiConfig = new Configuration({
@@ -39,6 +41,7 @@ const LIMIT = 20;
 export default function AdminPaymentsPage(): React.ReactElement | null {
   const router = useRouter();
   const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(LIMIT);
   const [statusFilter, setStatusFilter] = useState('');
   const [providerFilter, setProviderFilter] = useState('');
   const [orderIdFilter, setOrderIdFilter] = useState('');
@@ -55,17 +58,12 @@ export default function AdminPaymentsPage(): React.ReactElement | null {
   }, [router]);
 
   // Fetch payments list
-  const {
-    data: paymentsList,
-    isLoading,
-    error,
-    refetch,
-  } = useQuery<PaymentsListResponse>({
-    queryKey: ['admin-payments', page, statusFilter, providerFilter, orderIdFilter],
+  const query = useQuery<PaymentsListResponse>({
+    queryKey: ['admin-payments', page, limit, statusFilter, providerFilter, orderIdFilter],
     queryFn: async (): Promise<PaymentsListResponse> => {
       const response = await adminApi.adminControllerGetPayments({
-        limit: LIMIT,
-        offset: (page - 1) * LIMIT,
+        limit,
+        offset: (page - 1) * limit,
         status: statusFilter !== '' ? statusFilter : undefined,
         provider: providerFilter !== '' ? providerFilter : undefined,
       });
@@ -75,14 +73,16 @@ export default function AdminPaymentsPage(): React.ReactElement | null {
         data: (response.data as unknown as Payment[]) ?? [],
         total: response.total ?? 0,
         page,
-        limit: LIMIT,
-        totalPages: Math.ceil((response.total ?? 0) / LIMIT),
-        hasNextPage: page < Math.ceil((response.total ?? 0) / LIMIT),
+        limit,
+        totalPages: Math.ceil((response.total ?? 0) / limit),
+        hasNextPage: page < Math.ceil((response.total ?? 0) / limit),
       };
     },
     staleTime: 30_000,
     enabled: isAuthorized,
   });
+
+  const { data: paymentsList, isLoading, error, refetch } = query;
 
   // Handle filter changes
   const handleStatusFilterChange = (e: React.ChangeEvent<HTMLSelectElement>): void => {
@@ -103,6 +103,37 @@ export default function AdminPaymentsPage(): React.ReactElement | null {
   // Apply filters
   const applyFilters = (): void => {
     void refetch();
+  };
+
+  // Export to CSV
+  const handleExportCSV = (): void => {
+    const payments = paymentsList?.data ?? [];
+    if (payments.length === 0) return;
+
+    const csvData = payments.map((payment) => ({
+      ID: payment.id,
+      'Order ID': payment.orderId,
+      'External ID': payment.externalId,
+      Status: payment.status,
+      Provider: payment.provider,
+      'Amount (Crypto)': `${payment.priceAmount} ${payment.priceCurrency}`,
+      'Amount (Paid)': `${payment.payAmount} ${payment.payCurrency}`,
+      'Created At': formatDate(payment.createdAt),
+    }));
+
+    const csv = convertToCSV(csvData, [
+      'ID',
+      'Order ID',
+      'External ID',
+      'Status',
+      'Provider',
+      'Amount (Crypto)',
+      'Amount (Paid)',
+      'Created At',
+    ]);
+
+    const filename = `payments-${new Date().toISOString().split('T')[0]}.csv`;
+    downloadCSV(csv, filename);
   };
 
   // Format date
@@ -151,11 +182,34 @@ export default function AdminPaymentsPage(): React.ReactElement | null {
         <div className="bg-white rounded-lg shadow p-6 mb-6">
           <h2 className="text-lg font-semibold mb-4">Filters</h2>
 
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          {/* First Row: Limit and Status/Provider/Order */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
+            {/* Limit Selector */}
+            <div>
+              <label htmlFor="limit-selector" className="block text-sm font-medium text-gray-700 mb-2">Items Per Page</label>
+              <select
+                id="limit-selector"
+                aria-label="Select number of items per page"
+                value={limit.toString()}
+                onChange={(e) => {
+                  setLimit(parseInt(e.target.value, 10));
+                  setPage(1);
+                }}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="10">10 items</option>
+                <option value="25">25 items</option>
+                <option value="50">50 items</option>
+                <option value="100">100 items</option>
+              </select>
+            </div>
+
             {/* Status Filter */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
+              <label htmlFor="status-filter" className="block text-sm font-medium text-gray-700 mb-2">Status</label>
               <select
+                id="status-filter"
+                aria-label="Filter payments by status"
                 value={statusFilter}
                 onChange={handleStatusFilterChange}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
@@ -171,8 +225,10 @@ export default function AdminPaymentsPage(): React.ReactElement | null {
 
             {/* Provider Filter */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Provider</label>
+              <label htmlFor="provider-filter" className="block text-sm font-medium text-gray-700 mb-2">Provider</label>
               <select
+                id="provider-filter"
+                aria-label="Filter payments by provider"
                 value={providerFilter}
                 onChange={handleProviderFilterChange}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
@@ -182,6 +238,8 @@ export default function AdminPaymentsPage(): React.ReactElement | null {
               </select>
             </div>
 
+          {/* Second Row: Order ID and Action Buttons */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Order ID Filter */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">Order ID</label>
@@ -194,13 +252,21 @@ export default function AdminPaymentsPage(): React.ReactElement | null {
               />
             </div>
 
-            {/* Apply Button */}
-            <div className="flex items-end">
+            {/* Action Buttons */}
+            <div className="flex items-end gap-2">
               <button
                 onClick={applyFilters}
-                className="w-full bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"
+                className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"
               >
                 Apply Filters
+              </button>
+              <button
+                onClick={handleExportCSV}
+                disabled={isLoading || (paymentsList?.data?.length ?? 0) === 0}
+                className="flex-1 bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                <Download size={18} />
+                Export CSV
               </button>
             </div>
           </div>
@@ -326,6 +392,7 @@ export default function AdminPaymentsPage(): React.ReactElement | null {
           </>
         )}
       </div>
+    </div>
     </div>
   );
 }

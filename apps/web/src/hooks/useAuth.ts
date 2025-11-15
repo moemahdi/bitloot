@@ -6,6 +6,7 @@ export interface User {
   id: string;
   email: string;
   emailConfirmed: boolean;
+  role?: 'user' | 'admin';
   createdAt: string;
 }
 
