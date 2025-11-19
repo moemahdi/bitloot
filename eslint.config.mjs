@@ -30,6 +30,13 @@ export default [
       'scripts/**', // Don't lint utility scripts
       'apps/web/src/design-system/primitives/**', // shadcn/ui components are from external library
       'apps/web/src/design-system/styles/**', // Generated theme styles
+      '**/__tests__/**', // Exclude test files from linting
+      '**/*.spec.ts', // Exclude spec files from linting
+      '**/*.test.ts', // Exclude test files from linting
+      'test/**', // Exclude test directory from linting
+      '**/vitest-global-setup.ts', // Exclude vitest setup from linting
+      '**/test-setup.ts', // Exclude test setup from linting
+      '**/vitest.config.ts', // Exclude vitest config from linting
     ],
   },
 

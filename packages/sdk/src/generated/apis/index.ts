@@ -1,8 +1,14 @@
 /* tslint:disable */
 /* eslint-disable */
 export * from './AdminApi';
+export * from './AdminCatalogPricingApi';
+export * from './AdminCatalogProductsApi';
+export * from './AdminCatalogRepricingApi';
+export * from './AdminCatalogSyncApi';
 export * from './AdminOperationsApi';
+export * from './AuditLogsApi';
 export * from './AuthenticationApi';
+export * from './CatalogApi';
 export * from './EmailsApi';
 export * from './HealthApi';
 export * from './KinguinApi';

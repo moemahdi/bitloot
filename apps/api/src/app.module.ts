@@ -17,6 +17,7 @@ import { AdminModule } from './modules/admin/admin.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { PaymentsModule } from './modules/payments/payments.module';
 import { BullQueues, FulfillmentQueue } from './jobs/queues';
+import { PaymentProcessorService } from './jobs/payment-processor.service';
 import { FulfillmentProcessor } from './jobs/fulfillment.processor';
 import { FulfillmentModule } from './modules/fulfillment/fulfillment.module';
 import { WebSocketModule } from './modules/fulfillment/websocket.module';
@@ -25,6 +26,8 @@ import { UsersModule } from './modules/users/users.module';
 import { MetricsModule } from './modules/metrics/metrics.module';
 import { EmailsModule } from './modules/emails/emails.module';
 import { AuditModule } from './modules/audit/audit.module';
+import { CatalogModule } from './modules/catalog/catalog.module';
+import { CatalogProcessor } from './jobs/catalog.processor';
 
 @Module({
   imports: [
@@ -68,6 +71,8 @@ import { AuditModule } from './modules/audit/audit.module';
     EmailsModule,
     // Audit logging module (admin actions & exports)
     AuditModule,
+    // Catalog management module (products, pricing rules, Kinguin sync)
+    CatalogModule,
   ],
   controllers: [HealthController, OrdersController],
   providers: [
@@ -75,7 +80,9 @@ import { AuditModule } from './modules/audit/audit.module';
     OrdersService,
     StorageService,
     // BullMQ Processors (must be registered as providers to be instantiated)
+    PaymentProcessorService,
     FulfillmentProcessor,
+    CatalogProcessor,
   ],
 })
 export class AppModule {}
