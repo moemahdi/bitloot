@@ -15,6 +15,9 @@ import {
   Flag,
   FileText,
   Menu,
+  Settings,
+  RefreshCw,
+  Layers,
 } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/design-system/primitives/button';
@@ -31,6 +34,12 @@ const navItems: NavItem[] = [
   { label: 'Payments', href: '/admin/payments', icon: <CreditCard className="w-5 h-5" /> },
   { label: 'Webhooks', href: '/admin/webhooks', icon: <Webhook className="w-5 h-5" /> },
   { label: 'Reservations', href: '/admin/reservations', icon: <Package className="w-5 h-5" /> },
+  
+  // Catalog Management Section
+  { label: 'Catalog Rules', href: '/admin/catalog/rules', icon: <Settings className="w-5 h-5" /> },
+  { label: 'Catalog Sync', href: '/admin/catalog/sync', icon: <RefreshCw className="w-5 h-5" /> },
+  { label: 'Products', href: '/admin/catalog/products', icon: <Layers className="w-5 h-5" /> },
+  
   { label: 'Queues', href: '/admin/queues', icon: <Zap className="w-5 h-5" /> },
   { label: 'Balances', href: '/admin/balances', icon: <DollarSign className="w-5 h-5" /> },
   { label: 'Flags', href: '/admin/flags', icon: <Flag className="w-5 h-5" /> },

@@ -1,4 +1,4 @@
-# Task: Level 8 — Analytics & AI (diagnostic + predictive dashboards)
+# Task: Level 8 — Analytics (diagnostic + predictive dashboards)
 
 ## Analysis
 

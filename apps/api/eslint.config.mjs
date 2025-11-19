@@ -21,6 +21,13 @@ export default tseslint.config(
       '.eslintcache',
       '**/*.min.js',
       'migrations/**', // TypeORM migrations often have non-standard patterns
+      '**/__tests__/**', // Exclude test files from linting
+      '**/*.spec.ts', // Exclude spec files from linting
+      '**/*.test.ts', // Exclude test files from linting
+      'test/**', // Exclude test directory from linting
+      '**/vitest-global-setup.ts', // Exclude vitest setup from linting
+      '**/test-setup.ts', // Exclude test setup from linting
+      '**/vitest.config.ts', // Exclude vitest config from linting
     ],
   },
 

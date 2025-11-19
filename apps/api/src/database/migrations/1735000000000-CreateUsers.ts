@@ -6,7 +6,7 @@ export class CreateUsers1735000000000 implements MigrationInterface {
     // Check if users table already exists (skip if it does)
     const usersTableExists = await queryRunner.hasTable('users');
     if (usersTableExists) {
-      console.log('Users table already exists, skipping creation');
+      console.info('Users table already exists, skipping creation');
       return;
     }
 
