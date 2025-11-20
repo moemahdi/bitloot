@@ -94,6 +94,7 @@ export class VerifyOtpResponseDto {
       id: 'uuid-string',
       email: 'user@example.com',
       emailConfirmed: true,
+      role: 'user',
       createdAt: '2025-11-11T10:00:00Z',
     },
   })
@@ -101,6 +102,7 @@ export class VerifyOtpResponseDto {
     id: string;
     email: string;
     emailConfirmed: boolean;
+    role: 'user' | 'admin';
     createdAt: Date;
   };
 }

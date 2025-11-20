@@ -10,6 +10,15 @@ Name | Type
 `externalId` | string
 `webhookType` | string
 `paymentStatus` | string
+`payload` | object
+`processed` | boolean
+`signature` | string
+`signatureValid` | boolean
+`orderId` | string
+`paymentId` | string
+`result` | string
+`sourceIp` | string
+`attemptCount` | number
 `error` | string
 `createdAt` | Date
 
@@ -24,6 +33,15 @@ const example = {
   "externalId": null,
   "webhookType": null,
   "paymentStatus": null,
+  "payload": null,
+  "processed": null,
+  "signature": null,
+  "signatureValid": null,
+  "orderId": null,
+  "paymentId": null,
+  "result": null,
+  "sourceIp": null,
+  "attemptCount": null,
   "error": null,
   "createdAt": null,
 } satisfies AdminControllerGetWebhookLogs200ResponseDataInner

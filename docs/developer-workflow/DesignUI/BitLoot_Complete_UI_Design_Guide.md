@@ -1,9 +1,10 @@
 # 🎨 BitLoot UI/UX Design Guide — Storefront, Dashboard & Pages
 
-**Status:** 🚀 Production-Ready Design System  
-**Created:** November 19, 2025  
-**Based On:** Levels 0-6 Complete Implementation  
-**Scope:** Complete frontend architecture with beautiful design + full functionality
+**Status:** 🚧 In Progress (Implementation Started)
+**Created:** November 19, 2025
+**Based On:** Levels 0-6 Complete Implementation
+**Scope:** Complete frontend architecture with beautiful design + full functionality.
+**Current Implementation:** `apps/web/src/app`
 
 ---
 
@@ -14,8 +15,8 @@
 3. [User Dashboard](#user-dashboard)
 4. [Product Page](#product-page)
 5. [Checkout Flow](#checkout-flow)
-6. [Authentication Pages](#authentication-pages)
-7. [Admin Dashboard](#admin-dashboard)
+6. [Authentication Pages](#authentication-pages) (`apps/web/src/app/auth/login/page.tsx`)
+7. [Admin Dashboard](#admin-dashboard) (`apps/web/src/app/admin/page.tsx`)
 8. [Integration Architecture](#integration-architecture)
 9. [Technical Implementation](#technical-implementation)
 10. [Deployment Checklist](#deployment-checklist)
@@ -170,6 +171,7 @@ Alert/Toast
 ---
 
 ## Storefront Homepage
+**Implementation:** `apps/web/src/app/page.tsx`
 
 ### Layout Structure
 
@@ -356,6 +358,7 @@ Desktop (> 1024px):
 ---
 
 ## User Dashboard
+**Implementation:** `apps/web/src/app/profile/page.tsx`
 
 ### Layout Structure
 
@@ -578,6 +581,7 @@ Styling:
 ---
 
 ## Product Page
+**Implementation:** `apps/web/src/app/product/page.tsx`
 
 ### Layout
 
@@ -765,6 +769,7 @@ Write Review (if purchased):
 ---
 
 ## Checkout Flow
+**Implementation:** `apps/web/src/app/pay/page.tsx`
 
 ### Step 1: Cart Review
 

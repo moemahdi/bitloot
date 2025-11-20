@@ -2,6 +2,7 @@ import { Controller, Get, Param, Query } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags, ApiQuery } from '@nestjs/swagger';
 import { CatalogService } from './catalog.service';
 import { Product } from './entities/product.entity';
+import { ProductResponseDto, ProductListResponseDto } from './dto/product.dto';
 
 @ApiTags('Catalog')
 @Controller('catalog')
@@ -17,7 +18,7 @@ export class CatalogController {
   @ApiQuery({ name: 'sort', required: false, enum: ['newest', 'price_asc', 'price_desc', 'rating'] })
   @ApiQuery({ name: 'limit', required: false, type: 'number', description: 'Items per page (≤ 100)' })
   @ApiQuery({ name: 'offset', required: false, type: 'number', description: 'Pagination offset' })
-  @ApiResponse({ status: 200, type: Object, description: 'Paginated product list' })
+  @ApiResponse({ status: 200, type: ProductListResponseDto, description: 'Paginated product list' })
   async listProducts(
     @Query('q') q?: string,
     @Query('platform') platform?: string,
@@ -40,7 +41,7 @@ export class CatalogController {
 
   @Get('products/:slug')
   @ApiOperation({ summary: 'Get single product by slug' })
-  @ApiResponse({ status: 200, type: Product })
+  @ApiResponse({ status: 200, type: ProductResponseDto, description: 'Product details' })
   @ApiResponse({ status: 404, description: 'Product not found' })
   async getProduct(@Param('slug') slug: string): Promise<Product | null> {
     return this.catalogService.getProductBySlug(slug);

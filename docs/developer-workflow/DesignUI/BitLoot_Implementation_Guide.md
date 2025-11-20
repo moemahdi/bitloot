@@ -1,9 +1,9 @@
 # 🔌 BitLoot Frontend Implementation Guide — Complete Wiring & Integration
 
-**Status:** 🚀 Ready for Development  
-**Created:** November 19, 2025  
-**Target:** Production Launch  
-**Scope:** Complete SDK integration, API wiring, and component implementation
+**Status:** 🚧 In Progress
+**Created:** November 19, 2025
+**Target:** Production Launch
+**Scope:** Frontend implementation in progress. Structure established, core pages created.
 
 ---
 
@@ -38,7 +38,7 @@ cp .env.example .env.local
 npm run sdk:gen
 
 # Start development
-npm run dev:all
+npm run dev
 
 # Open browser
 http://localhost:3000
@@ -69,198 +69,71 @@ npm run sdk:gen
 
 ## Project Structure
 
+The project follows a Next.js App Router structure within a monorepo.
+
 ```
 apps/web/
-├─ app/
-│  ├─ (auth)/
-│  │  ├─ layout.tsx                    # Auth layout (no header/footer)
-│  │  ├─ page.tsx                      # Redirect to login
-│  │  ├─ login/
-│  │  │  └─ page.tsx                  # OTP login
-│  │  └─ verify-otp/
-│  │     └─ page.tsx                  # OTP verification
-│  │
-│  ├─ (store)/
-│  │  ├─ layout.tsx                   # Store layout (header/footer)
-│  │  ├─ page.tsx                     # Homepage
-│  │  ├─ catalog/
-│  │  │  └─ page.tsx                 # Product listing
-│  │  ├─ product/
-│  │  │  └─ [id]/page.tsx            # Product detail
-│  │  ├─ cart/
-│  │  │  └─ page.tsx                 # Shopping cart
-│  │  └─ checkout/
-│  │     └─ page.tsx                 # Checkout flow
-│  │
-│  ├─ (dashboard)/
-│  │  ├─ layout.tsx                   # Dashboard layout (sidebar)
-│  │  ├─ page.tsx                     # Dashboard home
-│  │  ├─ orders/
-│  │  │  ├─ page.tsx                 # My orders list
-│  │  │  └─ [id]/page.tsx            # Order detail
-│  │  ├─ keys/
-│  │  │  └─ page.tsx                 # Digital keys
-│  │  ├─ account/
-│  │  │  └─ page.tsx                 # Account settings
-│  │  └─ security/
-│  │     └─ page.tsx                 # Security settings
-│  │
-│  ├─ (admin)/                        # Admin only pages
-│  │  ├─ layout.tsx
-│  │  ├─ page.tsx
-│  │  ├─ orders/page.tsx
-│  │  ├─ payments/page.tsx
-│  │  ├─ webhooks/page.tsx
-│  │  ├─ products/page.tsx
-│  │  ├─ flags/page.tsx
-│  │  └─ settings/page.tsx
-│  │
-│  ├─ layout.tsx                      # Root layout
-│  ├─ globals.css                     # Global styles
-│  └─ favicon.ico
-│
 ├─ src/
-│  ├─ components/
-│  │  ├─ ui/
-│  │  │  ├─ Button.tsx               # Button component
-│  │  │  ├─ Input.tsx                # Input component
-│  │  │  ├─ Card.tsx                 # Card component
-│  │  │  ├─ Modal.tsx                # Modal component
-│  │  │  ├─ Table.tsx                # Table component
-│  │  │  ├─ Badge.tsx                # Badge component
-│  │  │  ├─ Loading.tsx              # Loading spinner
-│  │  │  ├─ ErrorBoundary.tsx        # Error boundary
-│  │  │  ├─ Toast.tsx                # Toast notifications
-│  │  │  └─ index.ts                 # Re-exports
+│  ├─ app/                            # App Router Pages
+│  │  ├─ admin/                       # Admin Dashboard
+│  │  │  ├─ audit/
+│  │  │  ├─ balances/
+│  │  │  ├─ catalog/
+│  │  │  ├─ flags/
+│  │  │  ├─ orders/
+│  │  │  ├─ payments/
+│  │  │  ├─ queues/
+│  │  │  ├─ reservations/
+│  │  │  ├─ webhooks/
+│  │  │  ├─ layout.tsx
+│  │  │  └─ page.tsx
 │  │  │
-│  │  ├─ layout/
-│  │  │  ├─ Header.tsx               # Navigation header
-│  │  │  ├─ Footer.tsx               # Footer
-│  │  │  ├─ Sidebar.tsx              # Dashboard sidebar
-│  │  │  ├─ Navigation.tsx           # Main nav component
-│  │  │  └─ index.ts                 # Re-exports
+│  │  ├─ auth/                        # Authentication
+│  │  │  └─ login/
+│  │  │     └─ page.tsx
 │  │  │
-│  │  └─ common/
-│  │     ├─ ProtectedRoute.tsx       # Auth guard wrapper
-│  │     ├─ AdminRoute.tsx           # Admin guard wrapper
-│  │     ├─ Breadcrumb.tsx           # Breadcrumb nav
-│  │     └─ index.ts                 # Re-exports
+│  │  ├─ orders/                      # User Orders
+│  │  │  └─ page.tsx
+│  │  │
+│  │  ├─ pay/                         # Payment Flow
+│  │  │  └─ page.tsx
+│  │  │
+│  │  ├─ product/                     # Product Catalog
+│  │  │  └─ page.tsx
+│  │  │
+│  │  ├─ profile/                     # User Profile/Dashboard
+│  │  │  └─ page.tsx
+│  │  │
+│  │  ├─ layout.tsx                   # Root Layout
+│  │  └─ page.tsx                     # Homepage
 │  │
-│  ├─ features/
+│  ├─ components/                     # Shared Components
+│  ├─ design-system/                  # Design System Tokens & Components
+│  │  ├─ hooks/
+│  │  ├─ primitives/
+│  │  ├─ styles/
+│  │  └─ utils/
+│  │
+│  ├─ features/                       # Feature-based Modules
+│  │  ├─ account/
+│  │  ├─ admin/
 │  │  ├─ auth/
-│  │  │  ├─ components/
-│  │  │  │  ├─ LoginForm.tsx
-│  │  │  │  ├─ OTPVerificationForm.tsx
-│  │  │  │  └─ LogoutButton.tsx
-│  │  │  ├─ hooks/
-│  │  │  │  ├─ useAuth.ts            # Auth context hook
-│  │  │  │  ├─ useLogin.ts           # Login logic
-│  │  │  │  ├─ useVerifyOTP.ts       # OTP verification
-│  │  │  │  └─ useRequireAuth.ts     # Protected route guard
-│  │  │  ├─ context/
-│  │  │  │  └─ AuthContext.tsx       # React Context
-│  │  │  ├─ types/
-│  │  │  │  └─ index.ts              # Auth types
-│  │  │  └─ index.ts                 # Re-exports
-│  │  │
-│  │  ├─ store/
-│  │  │  ├─ components/
-│  │  │  │  ├─ ProductGrid.tsx       # Product listing
-│  │  │  │  ├─ ProductCard.tsx       # Single product card
-│  │  │  │  ├─ FilterSidebar.tsx     # Product filters
-│  │  │  │  └─ SearchBar.tsx         # Search component
-│  │  │  ├─ hooks/
-│  │  │  │  ├─ useProducts.ts        # Fetch products
-│  │  │  │  ├─ useProduct.ts         # Fetch single product
-│  │  │  │  ├─ useSearch.ts          # Search products
-│  │  │  │  └─ useFilters.ts         # Filter state
-│  │  │  ├─ types/
-│  │  │  │  └─ index.ts
-│  │  │  └─ index.ts
-│  │  │
+│  │  │  └─ OTPLogin.tsx
+│  │  ├─ catalog/
 │  │  ├─ checkout/
-│  │  │  ├─ components/
-│  │  │  │  ├─ CheckoutForm.tsx      # Checkout form
-│  │  │  │  ├─ PaymentMethod.tsx     # Payment selection
-│  │  │  │  ├─ OrderReview.tsx       # Order summary
-│  │  │  │  └─ PaymentConfirm.tsx    # Payment confirmation
-│  │  │  ├─ hooks/
-│  │  │  │  ├─ useCheckout.ts        # Checkout logic
-│  │  │  │  ├─ useCart.ts            # Cart state
-│  │  │  │  └─ useCreateOrder.ts     # Create order
-│  │  │  ├─ types/
-│  │  │  │  └─ index.ts
-│  │  │  └─ index.ts
-│  │  │
-│  │  ├─ dashboard/
-│  │  │  ├─ components/
-│  │  │  │  ├─ OrdersList.tsx
-│  │  │  │  ├─ KeysList.tsx
-│  │  │  │  ├─ Stats.tsx
-│  │  │  │  └─ WelcomeBanner.tsx
-│  │  │  ├─ hooks/
-│  │  │  │  ├─ useOrders.ts
-│  │  │  │  ├─ useOrder.ts
-│  │  │  │  └─ useProfile.ts
-│  │  │  ├─ types/
-│  │  │  │  └─ index.ts
-│  │  │  └─ index.ts
-│  │  │
-│  │  └─ admin/
-│  │     ├─ components/
-│  │     │  ├─ AdminTable.tsx
-│  │     │  ├─ FilterBar.tsx
-│  │     │  └─ DetailModal.tsx
-│  │     ├─ hooks/
-│  │     │  ├─ useAdminOrders.ts
-│  │     │  ├─ useAdminPayments.ts
-│  │     │  └─ useAdminWebhooks.ts
-│  │     ├─ types/
-│  │     │  └─ index.ts
-│  │     └─ index.ts
+│  │  └─ product/
 │  │
-│  ├─ lib/
-│  │  ├─ sdk.ts                      # SDK client instance
-│  │  ├─ api.ts                      # API helpers
-│  │  ├─ hooks.ts                    # Common hooks
-│  │  ├─ utils.ts                    # Utilities
-│  │  └─ validators.ts               # Zod schemas
-│  │
-│  ├─ hooks/
-│  │  ├─ useQuery.ts                 # TanStack Query wrapper
-│  │  ├─ useMutation.ts              # Mutation wrapper
-│  │  ├─ useToast.ts                 # Toast hook
-│  │  ├─ useModal.ts                 # Modal hook
-│  │  └─ useLocalStorage.ts          # Local storage hook
-│  │
-│  ├─ types/
-│  │  ├─ index.ts                    # Type exports
-│  │  ├─ auth.ts                     # Auth types
-│  │  ├─ products.ts                 # Product types
-│  │  ├─ orders.ts                   # Order types
-│  │  └─ api.ts                      # API types
-│  │
-│  ├─ context/
-│  │  ├─ AuthContext.tsx             # Auth provider
-│  │  ├─ ToastContext.tsx            # Toast provider
-│  │  └─ QueryProvider.tsx           # React Query provider
-│  │
-│  └─ config/
-│     ├─ env.ts                      # Environment config
-│     ├─ routes.ts                   # Route constants
-│     └─ constants.ts                # App constants
+│  ├─ hooks/                          # Global Hooks
+│  ├─ lib/                            # Libraries & SDK Setup
+│  │  └─ providers.tsx
+│  ├─ utils/                          # Utility Functions
+│  └─ proxy.ts                        # API Proxy Configuration
 │
-├─ public/
-│  ├─ images/
-│  ├─ icons/
-│  └─ manifest.json                  # PWA manifest
-│
-├─ .env.example                      # Environment template
-├─ .env.local                        # Local env (ignored)
-├─ package.json
-├─ tsconfig.json
-├─ next.config.mjs
-└─ README.md
+├─ public/                            # Static Assets
+├─ .env.local                         # Environment Variables
+├─ next.config.mjs                    # Next.js Config
+├─ package.json                       # Dependencies
+└─ tsconfig.json                      # TypeScript Config
 ```
 
 ---

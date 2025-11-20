@@ -1,17 +1,23 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Turnstile } from '@marsidev/react-turnstile';
 import type { TurnstileInstance } from '@marsidev/react-turnstile';
 import { authClient } from '@bitloot/sdk';
-import { InputOTP } from '@/design-system/primitives/input-otp';
+import {
+  InputOTP,
+  InputOTPGroup,
+  InputOTPSlot,
+  InputOTPSeparator,
+} from '@/design-system/primitives/input-otp';
 import { Button } from '@/design-system/primitives/button';
 import { Input } from '@/design-system/primitives/input';
 import { Card, CardHeader, CardContent } from '@/design-system/primitives/card';
 import { Alert, AlertDescription } from '@/design-system/primitives/alert';
+import { useAuth } from '@/hooks/useAuth';
 
 // Schema for email step
 const emailSchema = z.object({
@@ -32,6 +38,7 @@ type OTPForm = z.infer<typeof otpSchema>;
  * Step 2: Enter 6-digit code → Verify OTP → Get JWT tokens
  */
 export function OTPLogin(): React.ReactElement {
+  const { login } = useAuth();
   const [step, setStep] = useState<'email' | 'otp'>('email');
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
@@ -64,7 +71,6 @@ export function OTPLogin(): React.ReactElement {
       }
 
       // Use SDK auth client to request OTP with CAPTCHA token
-      // The SDK will pass the captchaToken to the backend
       const result = await authClient.requestOtp(data.email, _captchaToken ?? undefined);
 
       if (!result.success) {
@@ -92,7 +98,6 @@ export function OTPLogin(): React.ReactElement {
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unknown error';
       setError(message);
-      // Reset CAPTCHA on error
       _setCaptchaToken(null);
     } finally {
       setLoading(false);
@@ -119,19 +124,23 @@ export function OTPLogin(): React.ReactElement {
         throw new Error('No refresh token received');
       }
 
-      // Store tokens in localStorage
-      // (Backend should set httpOnly cookies in production)
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('accessToken', result.accessToken);
-        localStorage.setItem('refreshToken', result.refreshToken);
-
-        if (result.user !== null && result.user !== undefined) {
-          localStorage.setItem('user', JSON.stringify(result.user));
-        }
-
-        // Redirect to dashboard
-        window.location.href = '/dashboard';
+      if (result.user === null || result.user === undefined) {
+        throw new Error('No user data received');
       }
+
+      // Map SDK user to useAuth User interface
+      const user = {
+        id: result.user.id,
+        email: result.user.email,
+        emailConfirmed: result.user.emailVerified,
+        createdAt: new Date().toISOString(), // Fallback if missing
+        role: (result.user.role === 'admin' ? 'admin' : 'user'), // Use actual role from backend, fallback to 'user'
+      };
+
+      // Use useAuth hook to login (sets cookies and state)
+      login(result.accessToken, result.refreshToken, user);
+
+      // Redirect is handled by the page component or useAuth state change
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unknown error';
       setError(message);
@@ -151,7 +160,7 @@ export function OTPLogin(): React.ReactElement {
       <Card className="w-full">
         <CardHeader>
           <h1 className="text-2xl font-bold">Sign In</h1>
-          <p className="text-sm text-gray-600 dark:text-gray-400">
+          <p className="text-sm text-muted-foreground">
             Enter your email to receive a verification code
           </p>
         </CardHeader>
@@ -172,7 +181,7 @@ export function OTPLogin(): React.ReactElement {
               />
               {emailForm.formState.errors.email !== null &&
                 emailForm.formState.errors.email !== undefined && (
-                  <span className="text-sm text-red-500">
+                  <span className="text-sm text-destructive">
                     {emailForm.formState.errors.email.message}
                   </span>
                 )}
@@ -215,40 +224,48 @@ export function OTPLogin(): React.ReactElement {
     <Card className="w-full">
       <CardHeader>
         <h1 className="text-2xl font-bold">Enter Verification Code</h1>
-        <p className="text-sm text-gray-600 dark:text-gray-400">
+        <p className="text-sm text-muted-foreground">
           We sent a 6-digit code to <span className="font-medium">{email}</span>
         </p>
         {countdown > 0 && (
-          <p className="text-xs text-gray-500 dark:text-gray-400">
+          <p className="text-xs text-muted-foreground">
             Code expires in: <span className="font-mono">{formatCountdown(countdown)}</span>
           </p>
         )}
       </CardHeader>
       <CardContent>
         <form onSubmit={otpForm.handleSubmit(onOTPSubmit)} className="space-y-4">
-          <div className="space-y-2">
-            <label htmlFor="code" className="text-sm font-medium">
+          <div className="space-y-2 flex flex-col items-center">
+            <label htmlFor="code" className="text-sm font-medium self-start">
               Verification Code
             </label>
-            <div
-              id="code"
-              aria-label="6-digit OTP code"
-              aria-invalid={Boolean(otpForm.formState.errors.code)}
-            >
-              <InputOTP maxLength={6} placeholder="000000" disabled={loading}>
-                <input
-                  {...otpForm.register('code')}
-                  type="text"
-                  inputMode="numeric"
+            <Controller
+              control={otpForm.control}
+              name="code"
+              render={({ field }) => (
+                <InputOTP
                   maxLength={6}
-                  placeholder="000000"
+                  value={field.value}
+                  onChange={field.onChange}
                   disabled={loading}
-                />
-              </InputOTP>
-            </div>
+                >
+                  <InputOTPGroup>
+                    <InputOTPSlot index={0} />
+                    <InputOTPSlot index={1} />
+                    <InputOTPSlot index={2} />
+                  </InputOTPGroup>
+                  <InputOTPSeparator />
+                  <InputOTPGroup>
+                    <InputOTPSlot index={3} />
+                    <InputOTPSlot index={4} />
+                    <InputOTPSlot index={5} />
+                  </InputOTPGroup>
+                </InputOTP>
+              )}
+            />
             {otpForm.formState.errors.code !== null &&
               otpForm.formState.errors.code !== undefined && (
-                <span className="text-sm text-red-500">
+                <span className="text-sm text-destructive">
                   {otpForm.formState.errors.code.message}
                 </span>
               )}

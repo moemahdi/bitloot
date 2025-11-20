@@ -1,4 +1,12 @@
-import { useEffect, useState, useCallback, useRef } from 'react';
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  useCallback,
+  useRef,
+  type ReactNode,
+} from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { authClient } from '@bitloot/sdk';
 
@@ -24,11 +32,9 @@ interface AuthContextType extends AuthState {
   refreshAccessToken: () => Promise<void>;
 }
 
-/**
- * useAuth Hook: Manages JWT-based authentication state
- * Handles token refresh, persistence, and user context
- */
-export function useAuth(): AuthContextType {
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+export function AuthProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AuthState>({
     user: null,
     accessToken: null,
@@ -68,28 +74,31 @@ export function useAuth(): AuthContextType {
   }, []);
 
   // Decode JWT payload
-  const decodeJWT = useCallback((token: string): { exp?: number; [key: string]: unknown } | null => {
-    try {
-      const parts = token.split('.');
-      if (parts.length !== 3) return null;
+  const decodeJWT = useCallback(
+    (token: string): { exp?: number;[key: string]: unknown } | null => {
+      try {
+        const parts = token.split('.');
+        if (parts.length !== 3) return null;
 
-      const base64Url = parts[1];
-      if (base64Url === undefined) return null;
+        const base64Url = parts[1];
+        if (base64Url === undefined) return null;
 
-      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
 
-      const jsonPayload = decodeURIComponent(
-        atob(base64)
-          .split('')
-          .map((c) => `%${c.charCodeAt(0).toString(16).padStart(2, '0')}`)
-          .join(''),
-      );
+        const jsonPayload = decodeURIComponent(
+          atob(base64)
+            .split('')
+            .map((c) => `%${c.charCodeAt(0).toString(16).padStart(2, '0')}`)
+            .join('')
+        );
 
-      return JSON.parse(jsonPayload) as { exp?: number; [key: string]: unknown };
-    } catch {
-      return null;
-    }
-  }, []);
+        return JSON.parse(jsonPayload) as { exp?: number;[key: string]: unknown };
+      } catch {
+        return null;
+      }
+    },
+    []
+  );
 
   // Define logout early so it can be used in effects
   const logout = useCallback((): void => {
@@ -121,35 +130,42 @@ export function useAuth(): AuthContextType {
     const refreshToken = getCookie('refreshToken');
 
     if (accessToken !== null && refreshToken !== null) {
-      try {
-        const payload = decodeJWT(accessToken);
+      // Optimistically set user from local storage to avoid flash
+      const userStr = localStorage.getItem('user');
+      const localUser = userStr !== null ? (JSON.parse(userStr) as User) : null;
 
-        if (payload !== null && typeof payload === 'object' && 'sub' in payload) {
-          // Try to get user from localStorage (set during login)
-          const userStr = localStorage.getItem('user');
-          const user = userStr !== null ? (JSON.parse(userStr) as User) : null;
-
-          if (user !== null) {
-            setState({
-              user,
-              accessToken,
-              refreshToken,
-              isLoading: false,
-              isAuthenticated: true,
-            });
-          } else {
-            setState((prev) => ({ ...prev, isLoading: false }));
-          }
-        } else {
-          setState((prev) => ({ ...prev, isLoading: false }));
-        }
-      } catch {
-        setState((prev) => ({ ...prev, isLoading: false }));
+      if (localUser !== null) {
+        setState({
+          user: localUser,
+          accessToken,
+          refreshToken,
+          isLoading: false, // Set loading false initially to show UI
+          isAuthenticated: true,
+        });
       }
+
+      // Verify token and get fresh user data from backend
+      void (async () => {
+        try {
+          const payload = decodeJWT(accessToken);
+
+          if (payload !== null && typeof payload === 'object' && 'sub' in payload) {
+            // If we didn't have local user, set it now (though we likely did)
+            if (localUser === null) {
+              setState((prev) => ({ ...prev, isLoading: false }));
+            }
+          } else {
+            // Invalid token structure
+            logout();
+          }
+        } catch {
+          logout();
+        }
+      })();
     } else {
       setState((prev) => ({ ...prev, isLoading: false }));
     }
-  }, [getCookie, decodeJWT]);
+  }, [getCookie, decodeJWT, logout]);
 
   // Auto-refresh token before expiry
   useEffect(() => {
@@ -204,7 +220,14 @@ export function useAuth(): AuthContextType {
         clearTimeout(refreshTimeoutRef.current);
       }
     };
-  }, [state.refreshToken, state.accessToken, state.isAuthenticated, decodeJWT, setCookie, logout]);
+  }, [
+    state.refreshToken,
+    state.accessToken,
+    state.isAuthenticated,
+    decodeJWT,
+    setCookie,
+    logout,
+  ]);
 
   const login = useCallback(
     (accessToken: string, refreshToken: string, user: User): void => {
@@ -225,7 +248,7 @@ export function useAuth(): AuthContextType {
 
       void queryClient.invalidateQueries();
     },
-    [setCookie, queryClient],
+    [setCookie, queryClient]
   );
 
   const refreshAccessToken = useCallback(async (): Promise<void> => {
@@ -252,10 +275,17 @@ export function useAuth(): AuthContextType {
     }
   }, [state.refreshToken, setCookie, logout]);
 
-  return {
-    ...state,
-    login,
-    logout,
-    refreshAccessToken,
-  };
+  return (
+    <AuthContext.Provider value={{ ...state, login, logout, refreshAccessToken }}>
+      {children}
+    </AuthContext.Provider>
+  );
+}
+
+export function useAuth(): AuthContextType {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
 }

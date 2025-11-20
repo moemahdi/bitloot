@@ -117,6 +117,7 @@ export class AuthResponseDto {
     id: string;
     email: string;
     emailConfirmed: boolean;
+    role: 'user' | 'admin';
     createdAt: Date;
   };
 }

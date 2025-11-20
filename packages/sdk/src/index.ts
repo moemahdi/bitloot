@@ -15,5 +15,7 @@ export * from './generated';
 export { authClient, AuthClient } from './auth-client';
 export type { RequestOtpResponse, VerifyOtpResponse, RefreshTokenResponse, LogoutResponse } from './auth-client';
 
+export { catalogClient, type CatalogClient } from './catalog-client';
+
 export const VERSION = '0.0.1';
 export const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';

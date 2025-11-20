@@ -11,7 +11,7 @@ All URIs are relative to *http://localhost*
 
 ## catalogControllerGetProduct
 
-> object catalogControllerGetProduct(slug)
+> ProductResponseDto catalogControllerGetProduct(slug)
 
 Get single product by slug
 
@@ -54,7 +54,7 @@ example().catch(console.error);
 
 ### Return type
 
-**object**
+[**ProductResponseDto**](ProductResponseDto.md)
 
 ### Authorization
 
@@ -69,7 +69,7 @@ No authorization required
 ### HTTP response details
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
-| **200** |  |  -  |
+| **200** | Product details |  -  |
 | **404** | Product not found |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
@@ -77,7 +77,7 @@ No authorization required
 
 ## catalogControllerListProducts
 
-> object catalogControllerListProducts(q, platform, region, category, sort, limit, offset)
+> ProductListResponseDto catalogControllerListProducts(q, platform, region, category, sort, limit, offset)
 
 List products with filtering and pagination
 
@@ -138,7 +138,7 @@ example().catch(console.error);
 
 ### Return type
 
-**object**
+[**ProductListResponseDto**](ProductListResponseDto.md)
 
 ### Authorization
 

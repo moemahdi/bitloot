@@ -53,6 +53,7 @@ export class AdminProductsController {
       externalId: product.externalId ?? undefined,
       slug: product.slug,
       title: product.title,
+      name: product.title,
       subtitle: product.subtitle ?? undefined,
       description: product.description ?? undefined,
       platform: product.platform ?? undefined,
@@ -62,6 +63,10 @@ export class AdminProductsController {
       category: product.category ?? undefined,
       costMinor: product.costMinor,
       priceMinor: product.priceMinor,
+      price: {
+        amount: (product.priceMinor / 100).toFixed(2),
+        currency: product.currency,
+      },
       currency: product.currency,
       isPublished: product.isPublished,
       isCustom: product.isCustom,

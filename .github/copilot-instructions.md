@@ -24,8 +24,8 @@ Crypto-only digital goods marketplace delivering instant keys from Kinguin and c
 ## Documentation Reference & Implementation
 
 **Start Here:**
-- **[PRD.md](../docs/PRD.md)** — BitLoot's Product Requirements Document. Defines goals, features, user flows, acceptance criteria, and technical requirements. Reference for all product scope questions.
-- **[project-description.md](../docs/project-description.md)** — High-level project overview, core value proposition, feature breakdown, tech stack, end-to-end flow, and target users. Read first for context.
+- **[PRD.md](/docs/PRD.md)** — BitLoot's Product Requirements Document. Defines goals, features, user flows, acceptance criteria, and technical requirements. Reference for all product scope questions.
+- **[project-description.md](/docs/project-description.md)** — High-level project overview, core value proposition, feature breakdown, tech stack, end-to-end flow, and target users. Read first for context.
 
 **Project Structure & Architecture:**
 - **[Project-Architecture.md](Project-Architecture.md)** — Complete monorepo folder and file structure with detailed purpose descriptions for every module, entity, controller, service, migration, and configuration file. Essential reference when navigating the codebase or understanding where to add new features.
@@ -127,7 +127,7 @@ Complete integration of NOWPayments crypto payments, webhook security, async job
 - **10_L2_PHASE5_PHASE5_COMPLETE.md: See `docs/LEVEL_2_PHASE5_PHASE5_COMPLETE.md`** — Phase 5 final completion (25/25 tasks).
 
 **Level 2 Executive Summary:**
-- **[LEVEL_2_FINAL_COMPLETION_STATUS.md](../docs/developer-workflow/02-Level/LEVEL_2_FINAL_COMPLETION_STATUS.md)** — Executive summary: 56/56 tasks complete, 5/5 quality gates passing, 198/198 tests passing, production-ready.
+- **[LEVEL_2_FINAL_COMPLETION_STATUS.md](./docs/developer-workflow/02-Level/LEVEL_2_FINAL_COMPLETION_STATUS.md)** — Executive summary: 56/56 tasks complete, 5/5 quality gates passing, 198/198 tests passing, production-ready.
 
 #### Level 3 — Kinguin Integration & Real Fulfillment ✅ **COMPLETE** (21 Core Tasks)
 
@@ -143,7 +143,7 @@ Advanced fulfillment with Kinguin API, encrypted key storage, WebSocket real-tim
 - **08_L3_PHASE7-ADMIN-API-CHANGES.md: See `docs/LEVEL_3_PHASE7-ADMIN-API-CHANGES.md`** — Admin API updates and integration fixes.
 - **08_L3_REMAINING_PHASES_PLAN.md: See `docs/LEVEL_3_REMAINING_PHASES_PLAN.md`** — Technical roadmap for Phases 4-13 (1,233 lines of specifications).
 - **09_L3_E2E_SUCCESS_TESTING.md: See `docs/LEVEL_3_E2E_SUCCESS_TESTING.md`** — E2E testing guide and verification.
-- **[LEVEL_3_COMPREHENSIVE_FINAL_REPORT.md](../docs/developer-workflow/03-Level/LEVEL_3_COMPREHENSIVE_FINAL_REPORT.md)** — Complete Level 3 summary with 209+ tests passing, 0 errors.
+- **[LEVEL_3_COMPREHENSIVE_FINAL_REPORT.md](./docs/developer-workflow/03-Level/LEVEL_3_COMPREHENSIVE_FINAL_REPORT.md)** — Complete Level 3 summary with 209+ tests passing, 0 errors.
 
 #### Level 4 — Security & Observability ✅ **COMPLETE** (45/45 Tasks)
 

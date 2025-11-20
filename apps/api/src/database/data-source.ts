@@ -8,6 +8,7 @@ import { Payment } from '../modules/payments/payment.entity';
 import { WebhookLog } from './entities/webhook-log.entity';
 import { User } from './entities/user.entity';
 import { AuditLog } from './entities/audit-log.entity';
+import { EmailBounce } from './entities/email-bounce.entity';
 import { InitOrders1710000000000 } from './migrations/1710000000000-InitOrders';
 import { AddKeysReservation1720000000000 } from './migrations/1720000000000-add-keys-reservation';
 import { CreatePayments1730000000001 } from './migrations/1730000000001-CreatePayments';
@@ -15,13 +16,14 @@ import { CreateWebhookLogs1730000000002 } from './migrations/1730000000002-Creat
 import { UpdateOrdersStatusEnum1730000000003 } from './migrations/1730000000003-UpdateOrdersStatusEnum';
 import { CreateUsers1735000000000 } from './migrations/1735000000000-CreateUsers';
 import { CreateAuditLogs1731700000000 } from './migrations/1731700000000-CreateAuditLogs';
+import { CreateEmailBounces1735604400000 } from './migrations/1735604400000-CreateEmailBounces';
 
 dotenv.config({ path: path.resolve(__dirname, '../../../.env') });
 
 export default new DataSource({
   type: 'postgres',
   url: process.env.DATABASE_URL,
-  entities: [Order, OrderItem, Key, Payment, WebhookLog, User, AuditLog],
+  entities: [Order, OrderItem, Key, Payment, WebhookLog, User, AuditLog, EmailBounce],
   migrations: [
     InitOrders1710000000000,
     AddKeysReservation1720000000000,
@@ -30,6 +32,7 @@ export default new DataSource({
     UpdateOrdersStatusEnum1730000000003,
     CreateUsers1735000000000,
     CreateAuditLogs1731700000000,
+    CreateEmailBounces1735604400000,
   ],
   logging: true,
   synchronize: false,

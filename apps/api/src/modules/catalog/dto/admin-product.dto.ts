@@ -160,6 +160,14 @@ export class PublishProductDto {
   isPublished!: boolean;
 }
 
+export class ProductPriceDto {
+  @ApiProperty()
+  amount!: string;
+
+  @ApiProperty()
+  currency!: string;
+}
+
 export class AdminProductResponseDto {
   @ApiProperty()
   id!: string;
@@ -172,6 +180,9 @@ export class AdminProductResponseDto {
 
   @ApiProperty()
   title!: string;
+
+  @ApiProperty()
+  name!: string;
 
   @ApiProperty({ required: false })
   subtitle?: string;
@@ -199,6 +210,9 @@ export class AdminProductResponseDto {
 
   @ApiProperty()
   priceMinor!: number;
+
+  @ApiProperty({ type: ProductPriceDto })
+  price!: ProductPriceDto;
 
   @ApiProperty()
   currency!: string;

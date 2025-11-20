@@ -20,7 +20,7 @@ export class OrdersService {
     const order = this.ordersRepo.create({
       email: dto.email,
       status: 'created',
-      total: '1.00', // for level 1, hardcode a price
+      totalCrypto: '1.00', // for level 1, hardcode a price
     });
     const savedOrder = await this.ordersRepo.save(order);
 
@@ -294,7 +294,7 @@ export class OrdersService {
       id: order.id,
       email: order.email,
       status: order.status,
-      total: order.total,
+      total: order.totalCrypto,
       items: items.map(
         (item): OrderItemResponseDto => ({
           id: item.id,

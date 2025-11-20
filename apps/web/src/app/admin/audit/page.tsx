@@ -22,28 +22,20 @@ import {
   SelectValue,
 } from '@/design-system/primitives/select';
 import { Download, RefreshCw, FileJson } from 'lucide-react';
+import type { PaginatedAuditLogsDto } from '@bitloot/sdk';
+import { AuditLogsApi, Configuration } from '@bitloot/sdk';
 
-interface AuditLog {
-  id: string;
-  adminUserId: string;
-  admin?: {
-    id: string;
-    email: string;
-  };
-  action: string;
-  target: string;
-  payload?: Record<string, unknown>;
-  details?: string;
-  createdAt: string;
-}
+const apiConfig = new Configuration({
+  basePath: process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000',
+  accessToken: (): string => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('accessToken') ?? '';
+    }
+    return '';
+  },
+});
 
-interface PaginatedAuditLogs {
-  data: AuditLog[];
-  total: number;
-  limit: number;
-  offset: number;
-  pages: number;
-}
+const auditLogsApi = new AuditLogsApi(apiConfig);
 
 const actionColors: Record<string, string> = {
   CREATE: 'bg-green-100 text-green-800',
@@ -62,40 +54,28 @@ export default function AdminAuditPage(): React.ReactElement {
 
   const limit = 50;
 
-  const { data, isLoading, error, refetch } = useQuery({
+  const { data, isLoading, error, refetch } = useQuery<PaginatedAuditLogsDto>({
     queryKey: ['audit-logs', page, actionFilter, targetFilter, daysFilter],
     queryFn: async () => {
-      const params = new URLSearchParams({
-        limit: String(limit),
-        offset: String(page * limit),
-        ...(actionFilter.length > 0 && { action: actionFilter }),
-        ...(targetFilter.length > 0 && { target: targetFilter }),
-        ...(daysFilter.length > 0 && { days: daysFilter }),
+      return await auditLogsApi.auditLogControllerQuery({
+        limit,
+        offset: page * limit,
+        action: actionFilter.length > 0 ? actionFilter : undefined,
+        target: targetFilter.length > 0 ? targetFilter : undefined,
+        // Calculate fromDate based on daysFilter if needed, or pass days if API supports it.
+        // The SDK shows fromDate/toDate.
+        fromDate: new Date(Date.now() - parseInt(daysFilter, 10) * 24 * 60 * 60 * 1000).toISOString(),
       });
-
-      const response = await fetch(`/api/admin/audit-logs?${params}`, {
-        headers: { 'Content-Type': 'application/json' },
-      });
-
-      if (!response.ok) throw new Error('Failed to fetch audit logs');
-      return (await response.json()) as PaginatedAuditLogs;
     },
     staleTime: 30_000,
   });
 
   const exportMutation = useMutation({
     mutationFn: async () => {
-      const params = new URLSearchParams({
+      const responseData = await auditLogsApi.auditLogControllerExport({
         fromDate: new Date(Date.now() - parseInt(daysFilter, 10) * 24 * 60 * 60 * 1000).toISOString(),
         toDate: new Date().toISOString(),
       });
-
-      const response = await fetch(`/api/admin/audit-logs/export?${params}`, {
-        headers: { 'Content-Type': 'application/json' },
-      });
-
-      if (!response.ok) throw new Error('Failed to export audit logs');
-      const responseData = await response.json() as AuditLog[];
 
       // Download JSON file
       const blob = new Blob([JSON.stringify(responseData, null, 2)], { type: 'application/json' });
@@ -200,11 +180,6 @@ export default function AdminAuditPage(): React.ReactElement {
               ))}
             </div>
           ) : data != null && data.data.length > 0 ? (
-            <div className="p-8 text-center">
-              <FileJson className="w-12 h-12 text-gray-400 mx-auto mb-2" />
-              <p className="text-gray-600">No audit logs found</p>
-            </div>
-          ) : (
             <div className="space-y-4">
               <div className="border rounded-lg overflow-hidden">
                 <Table>
@@ -221,7 +196,7 @@ export default function AdminAuditPage(): React.ReactElement {
                     {(data?.data ?? []).map((log) => (
                       <TableRow key={log.id}>
                         <TableCell className="text-sm">
-                          {log.admin?.email ?? 'Unknown'}
+                          {typeof log.admin === 'object' && log.admin && 'email' in log.admin ? (log.admin as any).email : 'Unknown'}
                         </TableCell>
                         <TableCell>
                           <Badge className={actionColors[log.action] ?? 'bg-gray-100 text-gray-800'}>
@@ -273,6 +248,11 @@ export default function AdminAuditPage(): React.ReactElement {
                   {data?.total} entries
                 </p>
               </div>
+            </div>
+          ) : (
+            <div className="p-8 text-center">
+              <FileJson className="w-12 h-12 text-gray-400 mx-auto mb-2" />
+              <p className="text-gray-600">No audit logs found</p>
             </div>
           )}
         </CardContent>

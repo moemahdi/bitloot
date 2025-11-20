@@ -54,6 +54,8 @@ export * from './PaginatedAuditLogsDto';
 export * from './PaymentResponseDto';
 export * from './PaymentsControllerAdminListPayments200Response';
 export * from './PaymentsControllerAdminListPayments200ResponseDataInner';
+export * from './ProductListResponseDto';
+export * from './ProductResponseDto';
 export * from './RequestOtpDto';
 export * from './ResetPasswordDto';
 export * from './ResetPasswordResponseDto';

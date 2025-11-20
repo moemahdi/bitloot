@@ -24,6 +24,14 @@ export class CreateAuditLogDto {
   details?: string;
 }
 
+export class AuditAdminDto {
+  @ApiProperty()
+  id!: string;
+
+  @ApiProperty()
+  email!: string;
+}
+
 export class AuditLogResponseDto {
   @ApiProperty()
   id!: string;
@@ -31,11 +39,8 @@ export class AuditLogResponseDto {
   @ApiProperty()
   adminUserId!: string;
 
-  @ApiProperty({ required: false })
-  admin?: {
-    id: string;
-    email: string;
-  };
+  @ApiProperty({ required: false, type: AuditAdminDto })
+  admin?: AuditAdminDto;
 
   @ApiProperty()
   action!: string;

@@ -13,11 +13,26 @@ import { Button } from '@/design-system/primitives/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/design-system/primitives/card';
 import { Input } from '@/design-system/primitives/input';
 import { Label } from '@/design-system/primitives/label';
+import { RadioGroup, RadioGroupItem } from '@/design-system/primitives/radio-group';
 import { extractCheckoutError } from '@/utils/checkout-error-handler';
+import { useForm, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { PaymentMethodForm, type PaymentMethodFormData } from './PaymentMethodForm';
+
+// Define Zod schema for validation
+const checkoutSchema = z.object({
+  email: z.string().min(1, 'Email is required').email('Invalid email address'),
+  payCurrency: z.enum(['btc', 'eth', 'usdttrc20', 'ltc'], {
+    required_error: 'Please select a cryptocurrency',
+  }),
+});
+
+type CheckoutFormData = z.infer<typeof checkoutSchema>;
 
 // Initialize SDK clients with base URL
 const apiConfig = new Configuration({
-  basePath: 'http://localhost:4000',
+  basePath: process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000',
 });
 
 const ordersClient = new OrdersApi(apiConfig);
@@ -36,8 +51,24 @@ export default function CheckoutForm(): React.ReactElement {
   const router = useRouter();
   const params = useParams();
   const productId = String(params.id ?? 'demo-product');
-  const [email, setEmail] = useState('');
-  const [emailError, setEmailError] = useState('');
+  
+  // State for wizard steps
+  const [step, setStep] = useState<'email' | 'payment'>('email');
+  const [order, setOrder] = useState<OrderResponseDto | null>(null);
+
+  // React Hook Form setup
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm<CheckoutFormData>({
+    resolver: zodResolver(checkoutSchema),
+    defaultValues: {
+      email: '',
+      payCurrency: 'usdttrc20',
+    },
+  });
+
   const [_captchaToken, _setCaptchaToken] = useState<string | null>(null);
   const turnstileRef = useRef<TurnstileInstance | undefined>(undefined);
 
@@ -57,18 +88,18 @@ export default function CheckoutForm(): React.ReactElement {
     },
   });
 
-  // Create payment mutation using SDK
+  // Mutation to create payment
   const createPaymentMutation = useMutation({
-    mutationFn: async (orderId: string): Promise<PaymentResponseDto> => {
-      const payment = await paymentsClient.paymentsControllerCreate({
+    mutationFn: async ({ order, data }: { order: OrderResponseDto; data: PaymentMethodFormData }) => {
+      return paymentsClient.paymentsControllerCreate({
         createPaymentDto: {
-          orderId,
-          email: email.length > 0 ? email : 'guest@bitloot.com',
-          priceAmount: '1.00',
+          orderId: order.id,
+          priceAmount: '100', // Hardcoded for demo
           priceCurrency: 'usd',
+          payCurrency: data.payCurrency,
+          email: order.email, // Use email from order
         },
       });
-      return payment;
     },
   });
 
@@ -125,33 +156,27 @@ export default function CheckoutForm(): React.ReactElement {
     };
   }, [jobId, jobStatus, router]);
 
-  const validateEmail = (value: string): boolean => {
-    if (value.length === 0) {
-      setEmailError('Email is required');
-      return false;
-    }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
-      setEmailError('Invalid email address');
-      return false;
-    }
-    return true;
-  };
-
-  const handleSubmitForm = async (event: React.FormEvent<HTMLFormElement>): Promise<void> => {
-    event.preventDefault();
-
-    if (!validateEmail(email)) return;
-
+  const onEmailSubmit = async (data: CheckoutFormData): Promise<void> => {
     try {
       // Step 1: Create order
-      const order = await createOrderMutation.mutateAsync(email);
+      const createdOrder = await createOrderMutation.mutateAsync(data.email);
+      setOrder(createdOrder);
+      setStep('payment');
+    } catch (error) {
+      const checkoutError = extractCheckoutError(error);
+      console.error('Order creation failed:', checkoutError.message);
+      setJobError(checkoutError.message);
+    }
+  };
 
+  const onPaymentSubmit = async (data: PaymentMethodFormData): Promise<void> => {
+    if (order === null) return;
+
+    try {
       // Step 2: Create payment
-      const payment = await createPaymentMutation.mutateAsync(order.id);
+      const payment = await createPaymentMutation.mutateAsync({ order, data });
 
       // Step 3: Start job polling (fulfillment job queued after payment confirmed)
-      // For now, create a jobId based on order ID
-      // In production, this would come from the payment response
       const generatedJobId = `fulfill-${order.id}`;
       setJobId(generatedJobId);
       setJobStatus('pending');
@@ -164,130 +189,136 @@ export default function CheckoutForm(): React.ReactElement {
       }
     } catch (error) {
       const checkoutError = extractCheckoutError(error);
-      console.error('Checkout failed:', checkoutError.message);
+      console.error('Payment creation failed:', checkoutError.message);
       setJobError(checkoutError.message);
     }
   };
 
-  const isLoading = createOrderMutation.isPending || createPaymentMutation.isPending;
+  const isLoading = createOrderMutation.isPending || createPaymentMutation.isPending || isSubmitting;
   const isPolling = jobId !== null && jobId.length > 0;
 
   return (
     <Card className="w-full">
       <CardHeader>
         <CardTitle>Quick Checkout</CardTitle>
-        <CardDescription>Enter your email and proceed to payment</CardDescription>
+        <CardDescription>
+          {step === 'email' ? 'Enter your email to start' : 'Select payment method'}
+        </CardDescription>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmitForm} className="space-y-6">
-          {/* Job Status Polling Display */}
-          {isPolling && (
-            <Alert>
-              <Loader2 className="h-4 w-4 animate-spin" />
-              <AlertTitle>Processing Payment</AlertTitle>
-              <AlertDescription>
-                <div className="mt-2 space-y-2">
-                  <p className="text-sm">
-                    Status: <span className="font-semibold">{jobStatus}</span>
-                    {jobStatus === 'processing' && ` (${jobProgress}%)`}
-                  </p>
-                  {jobProgress > 0 && jobStatus === 'processing' && (
-                    <div className="h-1 w-full overflow-hidden rounded bg-gray-200 dark:bg-gray-700">
-                      <div
-                        className="h-full bg-blue-600 transition-all duration-300"
-                        style={{ width: `${jobProgress}%` }}
-                      />
-                    </div>
-                  )}
-                  {jobError !== null && jobError.length > 0 && (
-                    <p className="text-xs text-red-600 dark:text-red-400">{jobError}</p>
-                  )}
-                </div>
-              </AlertDescription>
-            </Alert>
-          )}
-
-          {/* Email Input */}
-          <div className="space-y-2">
-            <Label htmlFor="email">Email Address</Label>
-            <Input
-              type="email"
-              id="email"
-              placeholder="your@email.com"
-              disabled={isLoading || isPolling}
-              value={email}
-              onChange={(e) => {
-                setEmail(e.target.value);
-                if (emailError.length > 0) setEmailError('');
-              }}
-            />
-            {emailError.length > 0 && (
-              <p className="text-sm text-destructive">{emailError}</p>
-            )}
-          </div>
-
-          {/* CAPTCHA Widget */}
-          {process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY !== undefined &&
-            process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY.length > 0 && (
-              <div className="flex justify-center">
-                <Turnstile
-                  ref={turnstileRef}
-                  siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
-                  onSuccess={(token) => {
-                    _setCaptchaToken(token);
-                  }}
-                  onError={() => {
-                    _setCaptchaToken(null);
-                    setJobError('CAPTCHA verification failed. Please try again.');
-                  }}
-                  onExpire={() => {
-                    _setCaptchaToken(null);
-                  }}
-                />
+        {/* Job Status Polling Display */}
+        {isPolling && (
+          <Alert className="mb-6">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            <AlertTitle>Processing Payment</AlertTitle>
+            <AlertDescription>
+              <div className="mt-2 space-y-2">
+                <p className="text-sm">
+                  Status: <span className="font-semibold">{jobStatus}</span>
+                  {jobStatus === 'processing' && ` (${jobProgress}%)`}
+                </p>
+                {jobProgress > 0 && jobStatus === 'processing' && (
+                  <div className="h-1 w-full overflow-hidden rounded bg-gray-200 dark:bg-gray-700">
+                    <div
+                      className="h-full bg-blue-600 transition-all duration-300"
+                      style={{ width: `${jobProgress}%` }}
+                    />
+                  </div>
+                )}
+                {jobError !== null && jobError.length > 0 && (
+                  <p className="text-xs text-red-600 dark:text-red-400">{jobError}</p>
+                )}
               </div>
-            )}
-
-          {/* Underpayment Warning Alert */}
-          <Alert variant="destructive">
-            <AlertCircle className="h-4 w-4" />
-            <AlertTitle>⚠️ Important: Underpayments are Non-Refundable</AlertTitle>
-            <AlertDescription className="mt-2 space-y-2">
-              <p>
-                Cryptocurrency payments are irreversible. If you send less than the exact amount required,
-                your payment will be marked as failed and the crypto cannot be refunded.
-              </p>
-              <p className="font-semibold">
-                Amount Required: <span className="font-mono">1.00 USD (or equivalent BTC)</span>
-              </p>
             </AlertDescription>
           </Alert>
+        )}
 
-          {/* Submit Button */}
-          <Button
-            type="submit"
-            disabled={isLoading || isPolling}
-            className="w-full"
-          >
-            {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {isLoading ? 'Processing...' : isPolling ? 'Redirecting...' : 'Proceed to Payment'}
-          </Button>
+        {step === 'email' ? (
+          <form onSubmit={handleSubmit(onEmailSubmit)} className="space-y-6">
+            {/* Email Input */}
+            <div className="space-y-2">
+              <Label htmlFor="email">Email Address</Label>
+              <Input
+                type="email"
+                id="email"
+                placeholder="your@email.com"
+                disabled={isLoading || isPolling}
+                {...register('email')}
+              />
+              {errors.email !== undefined && (
+                <p className="text-sm text-destructive">{errors.email.message}</p>
+              )}
+            </div>
 
-          {/* Error Messages */}
-          {createOrderMutation.isError && (
-            <Alert variant="destructive">
-              <AlertCircle className="h-4 w-4" />
-              <AlertTitle>Error</AlertTitle>
-              <AlertDescription>Failed to create order. Please try again.</AlertDescription>
-            </Alert>
-          )}
-          {createPaymentMutation.isError && (
-            <Alert variant="destructive">
-              <AlertCircle className="h-4 w-4" />
-              <AlertTitle>Error</AlertTitle>
-              <AlertDescription>Failed to create payment. Please try again.</AlertDescription>
-            </Alert>
-          )}
-        </form>
+            {/* CAPTCHA Widget */}
+            {process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY !== undefined &&
+              process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY.length > 0 && (
+                <div className="flex justify-center">
+                  <Turnstile
+                    ref={turnstileRef}
+                    siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
+                    onSuccess={(token) => {
+                      _setCaptchaToken(token);
+                    }}
+                    onError={() => {
+                      _setCaptchaToken(null);
+                      setJobError('CAPTCHA verification failed. Please try again.');
+                    }}
+                    onExpire={() => {
+                      _setCaptchaToken(null);
+                    }}
+                  />
+                </div>
+              )}
+
+            {/* Submit Button */}
+            <Button
+              type="submit"
+              disabled={isLoading || isPolling}
+              className="w-full"
+            >
+              {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              {isLoading ? 'Processing...' : 'Continue'}
+            </Button>
+          </form>
+        ) : (
+          <div className="space-y-6">
+            <div className="rounded-md bg-muted p-4">
+              <p className="text-sm font-medium">Order for: {order?.email}</p>
+              <p className="text-xs text-muted-foreground">Order ID: {order?.id}</p>
+            </div>
+            
+            <PaymentMethodForm 
+              onSubmit={onPaymentSubmit} 
+              isLoading={isLoading || isPolling} 
+            />
+            
+            <Button 
+              variant="ghost" 
+              onClick={() => setStep('email')}
+              disabled={isLoading || isPolling}
+              className="w-full"
+            >
+              Back to Email
+            </Button>
+          </div>
+        )}
+
+        {/* Error Messages */}
+        {createOrderMutation.isError && (
+          <Alert variant="destructive" className="mt-4">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Error</AlertTitle>
+            <AlertDescription>Failed to create order. Please try again.</AlertDescription>
+          </Alert>
+        )}
+        {createPaymentMutation.isError && (
+          <Alert variant="destructive" className="mt-4">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Error</AlertTitle>
+            <AlertDescription>Failed to create payment. Please try again.</AlertDescription>
+          </Alert>
+        )}
       </CardContent>
     </Card>
   );

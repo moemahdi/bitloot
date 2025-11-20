@@ -85,6 +85,8 @@ docs/PaymentResponseDto.md
 docs/PaymentsApi.md
 docs/PaymentsControllerAdminListPayments200Response.md
 docs/PaymentsControllerAdminListPayments200ResponseDataInner.md
+docs/ProductListResponseDto.md
+docs/ProductResponseDto.md
 docs/RequestOtpDto.md
 docs/ResetPasswordDto.md
 docs/ResetPasswordResponseDto.md
@@ -153,6 +155,8 @@ models/PaginatedAuditLogsDto.ts
 models/PaymentResponseDto.ts
 models/PaymentsControllerAdminListPayments200Response.ts
 models/PaymentsControllerAdminListPayments200ResponseDataInner.ts
+models/ProductListResponseDto.ts
+models/ProductResponseDto.ts
 models/RequestOtpDto.ts
 models/ResetPasswordDto.ts
 models/ResetPasswordResponseDto.ts

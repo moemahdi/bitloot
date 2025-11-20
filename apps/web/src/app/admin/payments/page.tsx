@@ -1,398 +1,283 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { useRouter } from 'next/navigation';
-import { AdminApi, Configuration } from '@bitloot/sdk';
-import { convertToCSV, downloadCSV } from '@/utils/csv-export';
-import { Download } from 'lucide-react';
+import { Configuration, AdminApi } from '@bitloot/sdk';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/design-system/primitives/card';
+import { Button } from '@/design-system/primitives/button';
+import { Badge } from '@/design-system/primitives/badge';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/design-system/primitives/table';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/design-system/primitives/select';
+import { Loader2, ChevronLeft, ChevronRight, RefreshCw, ExternalLink, Download } from 'lucide-react';
+import Link from 'next/link';
+import { useAdminGuard } from '@/features/admin/hooks/useAdminGuard';
 
-// Initialize SDK admin client
+// Initialize SDK configuration
 const apiConfig = new Configuration({
   basePath: process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000',
-});
-const adminApi = new AdminApi(apiConfig);
-
-interface Payment {
-  id: string;
-  orderId: string;
-  externalId: string;
-  status: string;
-  provider: string;
-  priceAmount: number;
-  priceCurrency: string;
-  payAmount: number;
-  payCurrency: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-interface PaymentsListResponse {
-  data: Payment[];
-  total: number;
-  page: number;
-  limit: number;
-  totalPages: number;
-  hasNextPage: boolean;
-}
-
-const LIMIT = 20;
-
-export default function AdminPaymentsPage(): React.ReactElement | null {
-  const router = useRouter();
-  const [page, setPage] = useState(1);
-  const [limit, setLimit] = useState(LIMIT);
-  const [statusFilter, setStatusFilter] = useState('');
-  const [providerFilter, setProviderFilter] = useState('');
-  const [orderIdFilter, setOrderIdFilter] = useState('');
-  const [isAuthorized, setIsAuthorized] = useState(false);
-
-  // Redirect to login if no token
-  useEffect(() => {
-    const token = localStorage.getItem('jwt_token');
-    if (token === null || token === '') {
-      void router.push('/login');
-    } else {
-      setIsAuthorized(true);
+  accessToken: () => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('accessToken') || '';
     }
-  }, [router]);
+    return '';
+  },
+});
 
-  // Fetch payments list
-  const query = useQuery<PaymentsListResponse>({
-    queryKey: ['admin-payments', page, limit, statusFilter, providerFilter, orderIdFilter],
-    queryFn: async (): Promise<PaymentsListResponse> => {
-      const response = await adminApi.adminControllerGetPayments({
+const adminClient = new AdminApi(apiConfig);
+
+export default function AdminPaymentsPage() {
+  const { isLoading: isGuardLoading, isAdmin } = useAdminGuard();
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [providerFilter, setProviderFilter] = useState('all');
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
+
+  const { data: paymentsResponse, isLoading, refetch } = useQuery({
+    queryKey: ['admin-payments', page, limit, statusFilter, providerFilter],
+    queryFn: async () => {
+      return await adminClient.adminControllerGetPayments({
         limit,
         offset: (page - 1) * limit,
-        status: statusFilter !== '' ? statusFilter : undefined,
-        provider: providerFilter !== '' ? providerFilter : undefined,
+        status: statusFilter !== 'all' ? statusFilter : undefined,
+        provider: providerFilter !== 'all' ? providerFilter : undefined,
       });
-
-      // Map API response to our interface
-      return {
-        data: (response.data as unknown as Payment[]) ?? [],
-        total: response.total ?? 0,
-        page,
-        limit,
-        totalPages: Math.ceil((response.total ?? 0) / limit),
-        hasNextPage: page < Math.ceil((response.total ?? 0) / limit),
-      };
     },
-    staleTime: 30_000,
-    enabled: isAuthorized,
+    enabled: isAdmin,
   });
 
-  const { data: paymentsList, isLoading, error, refetch } = query;
+  const payments = paymentsResponse?.data || [];
+  const totalItems = paymentsResponse?.total || 0;
+  const totalPages = Math.ceil(totalItems / limit);
 
-  // Handle filter changes
-  const handleStatusFilterChange = (e: React.ChangeEvent<HTMLSelectElement>): void => {
-    setStatusFilter(e.target.value);
-    setPage(1);
-  };
+  const exportToCSV = () => {
+    if (!payments.length) return;
 
-  const handleProviderFilterChange = (e: React.ChangeEvent<HTMLSelectElement>): void => {
-    setProviderFilter(e.target.value);
-    setPage(1);
-  };
-
-  const handleOrderIdFilterChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
-    setOrderIdFilter(e.target.value);
-    setPage(1);
-  };
-
-  // Apply filters
-  const applyFilters = (): void => {
-    void refetch();
-  };
-
-  // Export to CSV
-  const handleExportCSV = (): void => {
-    const payments = paymentsList?.data ?? [];
-    if (payments.length === 0) return;
-
-    const csvData = payments.map((payment) => ({
-      ID: payment.id,
-      'Order ID': payment.orderId,
-      'External ID': payment.externalId,
-      Status: payment.status,
-      Provider: payment.provider,
-      'Amount (Crypto)': `${payment.priceAmount} ${payment.priceCurrency}`,
-      'Amount (Paid)': `${payment.payAmount} ${payment.payCurrency}`,
-      'Created At': formatDate(payment.createdAt),
-    }));
-
-    const csv = convertToCSV(csvData, [
-      'ID',
-      'Order ID',
-      'External ID',
-      'Status',
-      'Provider',
-      'Amount (Crypto)',
-      'Amount (Paid)',
-      'Created At',
+    const headers = ['Payment ID', 'External ID', 'Amount', 'Currency', 'Status', 'Provider', 'Date'];
+    const rows = payments.map(payment => [
+      payment.id ?? '',
+      payment.externalId ?? '',
+      payment.priceAmount ?? '0',
+      payment.priceCurrency ?? '',
+      payment.status ?? '',
+      payment.provider ?? '',
+      payment.createdAt ? new Date(payment.createdAt).toISOString() : new Date().toISOString()
     ]);
 
-    const filename = `payments-${new Date().toISOString().split('T')[0]}.csv`;
-    downloadCSV(csv, filename);
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.join(','))
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `payments-${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
   };
 
-  // Format date
-  const formatDate = (dateString: string): string => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  };
+  if (isGuardLoading) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
 
-  // Get status badge color
-  const getStatusColor = (status: string): string => {
-    switch (status) {
-      case 'finished':
-        return 'bg-green-100 text-green-800';
-      case 'confirming':
-        return 'bg-blue-100 text-blue-800';
-      case 'waiting':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'failed':
-        return 'bg-red-100 text-red-800';
-      case 'underpaid':
-        return 'bg-orange-100 text-orange-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  };
-
-  if (!isAuthorized) {
-    return null; // Prevent rendering until redirect
+  if (!isAdmin) {
+    return null;
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-8">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">[ADMIN] Payments Dashboard</h1>
-          <p className="text-gray-600">Monitor all payments and payment statuses</p>
+    <div className="container mx-auto py-8 space-y-8">
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div>
+          <h1 className="text-3xl font-bold">Payments Management</h1>
+          <p className="text-muted-foreground">Monitor and manage crypto payments.</p>
         </div>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => refetch()}>
+            <RefreshCw className="mr-2 h-4 w-4" />
+            Refresh
+          </Button>
+          <Button variant="secondary" onClick={exportToCSV} disabled={payments.length === 0}>
+            <Download className="mr-2 h-4 w-4" />
+            Export CSV
+          </Button>
+        </div>
+      </div>
 
-        {/* Filters */}
-        <div className="bg-white rounded-lg shadow p-6 mb-6">
-          <h2 className="text-lg font-semibold mb-4">Filters</h2>
-
-          {/* First Row: Limit and Status/Provider/Order */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
-            {/* Limit Selector */}
+      <Card>
+        <CardHeader>
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div>
-              <label htmlFor="limit-selector" className="block text-sm font-medium text-gray-700 mb-2">Items Per Page</label>
-              <select
-                id="limit-selector"
-                aria-label="Select number of items per page"
-                value={limit.toString()}
-                onChange={(e) => {
-                  setLimit(parseInt(e.target.value, 10));
+              <CardTitle>Payments</CardTitle>
+              <CardDescription>Total payments: {totalItems}</CardDescription>
+            </div>
+            <div className="flex flex-col gap-2 md:flex-row md:items-center">
+              <Select
+                value={statusFilter}
+                onValueChange={(value) => {
+                  setStatusFilter(value);
                   setPage(1);
                 }}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
               >
-                <option value="10">10 items</option>
-                <option value="25">25 items</option>
-                <option value="50">50 items</option>
-                <option value="100">100 items</option>
-              </select>
-            </div>
-
-            {/* Status Filter */}
-            <div>
-              <label htmlFor="status-filter" className="block text-sm font-medium text-gray-700 mb-2">Status</label>
-              <select
-                id="status-filter"
-                aria-label="Filter payments by status"
-                value={statusFilter}
-                onChange={handleStatusFilterChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-              >
-                <option value="">All Statuses</option>
-                <option value="finished">Finished</option>
-                <option value="confirming">Confirming</option>
-                <option value="waiting">Waiting</option>
-                <option value="failed">Failed</option>
-                <option value="underpaid">Underpaid</option>
-              </select>
-            </div>
-
-            {/* Provider Filter */}
-            <div>
-              <label htmlFor="provider-filter" className="block text-sm font-medium text-gray-700 mb-2">Provider</label>
-              <select
-                id="provider-filter"
-                aria-label="Filter payments by provider"
+                <SelectTrigger className="w-full md:w-[150px]">
+                  <SelectValue placeholder="Filter by Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Statuses</SelectItem>
+                  <SelectItem value="finished">Finished</SelectItem>
+                  <SelectItem value="waiting">Waiting</SelectItem>
+                  <SelectItem value="failed">Failed</SelectItem>
+                  <SelectItem value="expired">Expired</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select
                 value={providerFilter}
-                onChange={handleProviderFilterChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                onValueChange={(value) => {
+                  setProviderFilter(value);
+                  setPage(1);
+                }}
               >
-                <option value="">All Providers</option>
-                <option value="nowpayments">NOWPayments</option>
-              </select>
-            </div>
-
-          {/* Second Row: Order ID and Action Buttons */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Order ID Filter */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Order ID</label>
-              <input
-                type="text"
-                value={orderIdFilter}
-                onChange={handleOrderIdFilterChange}
-                placeholder="Enter order ID"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-              />
-            </div>
-
-            {/* Action Buttons */}
-            <div className="flex items-end gap-2">
-              <button
-                onClick={applyFilters}
-                className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"
+                <SelectTrigger className="w-full md:w-[150px]">
+                  <SelectValue placeholder="Filter by Provider" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Providers</SelectItem>
+                  <SelectItem value="nowpayments">NOWPayments</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select
+                value={limit.toString()}
+                onValueChange={(value) => {
+                  setLimit(Number(value));
+                  setPage(1);
+                }}
               >
-                Apply Filters
-              </button>
-              <button
-                onClick={handleExportCSV}
-                disabled={isLoading || (paymentsList?.data?.length ?? 0) === 0}
-                className="flex-1 bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-              >
-                <Download size={18} />
-                Export CSV
-              </button>
+                <SelectTrigger className="w-[100px]">
+                  <SelectValue placeholder="Limit" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="10">10 / page</SelectItem>
+                  <SelectItem value="25">25 / page</SelectItem>
+                  <SelectItem value="50">50 / page</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
-        </div>
-
-        {/* Loading State */}
-        {isLoading && (
-          <div className="bg-white rounded-lg shadow p-8 text-center">
-            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-            <p className="mt-4 text-gray-600">Loading payments...</p>
-          </div>
-        )}
-
-        {/* Error State */}
-        {error !== null && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
-            <p className="text-red-800">
-              <strong>Error:</strong>{' '}
-              {error instanceof Error ? error.message : 'Failed to fetch payments'}
-            </p>
-          </div>
-        )}
-
-        {/* Data Table */}
-        {paymentsList !== null && paymentsList !== undefined && !isLoading && (
-          <>
-            {paymentsList.data.length === 0 ? (
-              <div className="bg-white rounded-lg shadow p-8 text-center">
-                <p className="text-gray-600">No payments found</p>
-              </div>
-            ) : (
-              <>
-                {/* Table Summary */}
-                <div className="mb-4 text-sm text-gray-600">
-                  Showing {(page - 1) * LIMIT + 1} to {Math.min(page * LIMIT, paymentsList.total)}{' '}
-                  of {paymentsList.total} payments
-                </div>
-
-                {/* Table */}
-                <div className="bg-white rounded-lg shadow overflow-hidden">
-                  <table className="w-full">
-                    <thead className="bg-gray-50 border-b border-gray-200">
-                      <tr>
-                        <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase">
-                          Payment ID
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase">
-                          Order
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase">
-                          Status
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase">
-                          Amount
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase">
-                          Provider
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase">
-                          Created
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-200">
-                      {paymentsList.data.map((payment) => (
-                        <tr
-                          key={payment.id}
-                          className="hover:bg-gray-50 transition-colors cursor-pointer"
-                          onClick={() => {
-                            // Future: Navigate to payment detail page
-                          }}
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <div className="flex h-40 items-center justify-center">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            </div>
+          ) : payments.length === 0 ? (
+            <div className="flex h-60 flex-col items-center justify-center text-muted-foreground">
+              <p className="text-lg font-medium">No payments found</p>
+            </div>
+          ) : (
+            <>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Payment ID</TableHead>
+                    <TableHead>Order ID</TableHead>
+                    <TableHead>Amount</TableHead>
+                    <TableHead>Currency</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Provider</TableHead>
+                    <TableHead className="text-right">Date</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {payments.map((payment) => (
+                    <TableRow key={payment.id}>
+                      <TableCell className="font-mono text-xs">{(payment.id ?? '').slice(0, 8)}...</TableCell>
+                      <TableCell className="font-mono text-xs">
+                        {payment.externalId ? (
+                          <span>{(payment.externalId ?? '').slice(0, 8)}...</span>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
+                      <TableCell>{payment.priceAmount ?? '0'}</TableCell>
+                      <TableCell>{(payment.priceCurrency ?? '').toUpperCase()}</TableCell>
+                      <TableCell>
+                        <Badge
+                          variant={
+                            payment.status === 'finished'
+                              ? 'default'
+                              : payment.status === 'waiting'
+                                ? 'secondary'
+                                : 'destructive'
+                          }
+                          className={
+                            payment.status === 'finished'
+                              ? 'bg-green-500 hover:bg-green-600'
+                              : payment.status === 'waiting'
+                                ? 'bg-yellow-500 hover:bg-yellow-600 text-white'
+                                : ''
+                          }
                         >
-                          <td className="px-6 py-4 text-sm text-gray-900 font-mono">
-                            {payment.externalId.substring(0, 8)}...
-                          </td>
-                          <td className="px-6 py-4 text-sm text-gray-600 font-mono">
-                            {payment.orderId.substring(0, 8)}...
-                          </td>
-                          <td className="px-6 py-4 text-sm">
-                            <span
-                              className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(payment.status)}`}
-                            >
-                              {payment.status}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 text-sm text-gray-900">
-                            {payment.priceAmount.toFixed(8)} {payment.priceCurrency}
-                          </td>
-                          <td className="px-6 py-4 text-sm text-gray-600">{payment.provider}</td>
-                          <td className="px-6 py-4 text-sm text-gray-600">
-                            {formatDate(payment.createdAt)}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                          {payment.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="capitalize">{payment.provider}</TableCell>
+                      <TableCell className="text-right text-muted-foreground">
+                        {new Date(payment.createdAt ?? new Date()).toLocaleDateString()}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
 
-                {/* Pagination */}
-                <div className="mt-6 flex items-center justify-between">
-                  <div className="text-sm text-gray-600">
-                    Page {paymentsList.page} of {paymentsList.totalPages}
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <div className="flex items-center justify-end space-x-2 py-4">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                    disabled={page === 1}
+                  >
+                    <ChevronLeft className="h-4 w-4" />
+                    Previous
+                  </Button>
+                  <div className="text-sm font-medium">
+                    Page {page} of {totalPages}
                   </div>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => setPage(Math.max(1, page - 1))}
-                      disabled={page === 1}
-                      className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      Previous
-                    </button>
-                    <button
-                      onClick={() => setPage(page + 1)}
-                      disabled={!paymentsList.hasNextPage}
-                      className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      Next
-                    </button>
-                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={page === totalPages}
+                  >
+                    Next
+                    <ChevronRight className="h-4 w-4" />
+                  </Button>
                 </div>
-              </>
-            )}
-          </>
-        )}
-      </div>
-    </div>
+              )}
+            </>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

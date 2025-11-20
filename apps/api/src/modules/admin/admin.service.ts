@@ -44,6 +44,11 @@ export class AdminService {
       status: string;
       total: string;
       createdAt: Date;
+      payment?: {
+        id: string;
+        provider: string;
+        status: string;
+      };
     }>;
     total: number;
     limit: number;
@@ -52,28 +57,46 @@ export class AdminService {
     const limit = Math.min(options.limit ?? 50, 100);
     const offset = options.offset ?? 0;
 
-    const query = this.ordersRepo.createQueryBuilder('o');
+    const qb = this.ordersRepo
+      .createQueryBuilder('o')
+      .leftJoinAndSelect('o.user', 'u')
+      .leftJoinAndSelect('o.payments', 'p')
+      .orderBy('o.createdAt', 'DESC')
+      .skip(offset)
+      .take(limit);
 
-    if (typeof options.email === 'string' && options.email.length > 0) {
-      query.andWhere('o.email ILIKE :email', { email: `%${options.email}%` });
+    if (options.email != null && options.email !== '') {
+      qb.andWhere('u.email ILIKE :email', { email: `%${options.email}%` });
     }
 
-    if (typeof options.status === 'string' && options.status.length > 0) {
-      query.andWhere('o.status = :status', { status: options.status });
+    if (options.status != null) {
+      qb.andWhere('o.status = :status', { status: options.status });
     }
 
-    query.orderBy('o.createdAt', 'DESC').skip(offset).take(limit);
-
-    const [data, total] = await query.getManyAndCount();
+    const [orders, total] = await qb.getManyAndCount();
 
     return {
-      data: data.map((o) => ({
-        id: o.id,
-        email: o.email,
-        status: o.status,
-        total: o.total,
-        createdAt: o.createdAt,
-      })),
+      data: orders.map((o) => {
+        // Get latest payment if any
+        const latestPayment = o.payments?.sort(
+          (a, b) => b.createdAt.getTime() - a.createdAt.getTime(),
+        )[0];
+
+        return {
+          id: o.id,
+          email: o.user?.email ?? 'Guest',
+          status: o.status,
+          total: o.totalCrypto,
+          createdAt: o.createdAt,
+          payment: latestPayment
+            ? {
+                id: latestPayment.id,
+                provider: latestPayment.provider,
+                status: latestPayment.status,
+              }
+            : undefined,
+        };
+      }),
       total,
       limit,
       offset,
