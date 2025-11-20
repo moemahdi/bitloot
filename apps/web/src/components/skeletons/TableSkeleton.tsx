@@ -13,7 +13,7 @@ interface TableSkeletonProps {
   rows?: number;
 }
 
-export function TableSkeleton({ columns = 5, rows = 10 }: TableSkeletonProps) {
+export function TableSkeleton({ columns = 5, rows = 10 }: TableSkeletonProps): React.ReactElement {
   return (
     <div className="rounded-md border">
       <Table>

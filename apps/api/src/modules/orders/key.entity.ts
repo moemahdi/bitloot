@@ -52,6 +52,13 @@ export class Key {
   storageRef?: string;
 
   /**
+   * Encryption key (AES-256) used to encrypt the content in R2
+   * Stored securely (ideally encrypted itself, but for MVP plaintext in DB is accepted per plan)
+   */
+  @Column('text', { nullable: true })
+  encryptionKey?: string;
+
+  /**
    * Timestamp when customer revealed/viewed the key
    * Used for audit trail and access tracking
    * null = key not yet viewed

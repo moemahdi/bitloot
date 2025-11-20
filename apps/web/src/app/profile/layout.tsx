@@ -7,7 +7,7 @@ export default function ProfileLayout({
     children,
 }: {
     children: React.ReactNode;
-}) {
+}): React.ReactElement {
     return (
         <ProtectedRoute>
             <div className="flex min-h-screen">

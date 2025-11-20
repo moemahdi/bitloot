@@ -17,7 +17,7 @@ import { Button } from '@/design-system/primitives/button';
 import { Input } from '@/design-system/primitives/input';
 import { Card, CardHeader, CardContent } from '@/design-system/primitives/card';
 import { Alert, AlertDescription } from '@/design-system/primitives/alert';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth, type User } from '@/hooks/useAuth';
 
 // Schema for email step
 const emailSchema = z.object({
@@ -129,7 +129,7 @@ export function OTPLogin(): React.ReactElement {
       }
 
       // Map SDK user to useAuth User interface
-      const user = {
+      const user: User = {
         id: result.user.id,
         email: result.user.email,
         emailConfirmed: result.user.emailVerified,

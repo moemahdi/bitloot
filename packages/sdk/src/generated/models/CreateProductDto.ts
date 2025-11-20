@@ -68,17 +68,17 @@ export interface CreateProductDto {
      */
     category?: string;
     /**
-     * Wholesale price in minor units (cents)
+     * Wholesale cost (decimal string)
      * @type {string}
      * @memberof CreateProductDto
      */
-    costMinor: string;
+    cost: string;
     /**
-     * Retail price in minor units (cents)
+     * Retail price (decimal string)
      * @type {string}
      * @memberof CreateProductDto
      */
-    priceMinor: string;
+    price: string;
     /**
      * Currency code (USD, EUR, GBP)
      * @type {string}
@@ -98,8 +98,8 @@ export interface CreateProductDto {
  */
 export function instanceOfCreateProductDto(value: object): value is CreateProductDto {
     if (!('title' in value) || value['title'] === undefined) return false;
-    if (!('costMinor' in value) || value['costMinor'] === undefined) return false;
-    if (!('priceMinor' in value) || value['priceMinor'] === undefined) return false;
+    if (!('cost' in value) || value['cost'] === undefined) return false;
+    if (!('price' in value) || value['price'] === undefined) return false;
     if (!('currency' in value) || value['currency'] === undefined) return false;
     if (!('isPublished' in value) || value['isPublished'] === undefined) return false;
     return true;
@@ -123,8 +123,8 @@ export function CreateProductDtoFromJSONTyped(json: any, ignoreDiscriminator: bo
         'drm': json['drm'] == null ? undefined : json['drm'],
         'ageRating': json['ageRating'] == null ? undefined : json['ageRating'],
         'category': json['category'] == null ? undefined : json['category'],
-        'costMinor': json['costMinor'],
-        'priceMinor': json['priceMinor'],
+        'cost': json['cost'],
+        'price': json['price'],
         'currency': json['currency'],
         'isPublished': json['isPublished'],
     };
@@ -149,8 +149,8 @@ export function CreateProductDtoToJSONTyped(value?: CreateProductDto | null, ign
         'drm': value['drm'],
         'ageRating': value['ageRating'],
         'category': value['category'],
-        'costMinor': value['costMinor'],
-        'priceMinor': value['priceMinor'],
+        'cost': value['cost'],
+        'price': value['price'],
         'currency': value['currency'],
         'isPublished': value['isPublished'],
     };

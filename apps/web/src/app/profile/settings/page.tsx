@@ -3,7 +3,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/design-system/primitives/card';
 import { useAuth } from '@/hooks/useAuth';
 
-export default function SettingsPage() {
+export default function SettingsPage(): React.ReactElement {
     const { user } = useAuth();
 
     return (

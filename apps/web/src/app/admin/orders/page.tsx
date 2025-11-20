@@ -1,8 +1,5 @@
 'use client';
 
-import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { Configuration, AdminApi } from '@bitloot/sdk';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/design-system/primitives/card';
 import { Button } from '@/design-system/primitives/button';
 import { Badge } from '@/design-system/primitives/badge';
@@ -25,6 +22,8 @@ import {
 import { Search, Loader2, ChevronLeft, ChevronRight, Eye, MoreHorizontal, Download, RefreshCw } from 'lucide-react';
 import Link from 'next/link';
 import { useAdminGuard } from '@/features/admin/hooks/useAdminGuard';
+import { useAdminTableState } from '@/features/admin/hooks/useAdminTableState';
+import { useAdminOrders, type Order } from '@/features/admin/hooks/useAdminOrders';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -34,58 +33,48 @@ import {
   DropdownMenuTrigger,
 } from '@/design-system/primitives/dropdown-menu';
 
-// Initialize SDK configuration
-const apiConfig = new Configuration({
-  basePath: process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000',
-  accessToken: () => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('accessToken') || '';
-    }
-    return '';
-  },
-});
-
-const adminClient = new AdminApi(apiConfig);
-
-export default function AdminOrdersPage() {
-  const { isLoading: isGuardLoading, isAdmin } = useAdminGuard();
-  const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
-  const [page, setPage] = useState(1);
-  const [limit, setLimit] = useState(10);
-
-  const { data: ordersResponse, isLoading, refetch } = useQuery({
-    queryKey: ['admin-orders', page, limit, search, statusFilter],
-    queryFn: async () => {
-      return await adminClient.adminControllerGetOrders({
-        limit,
-        offset: (page - 1) * limit,
-        email: search || undefined,
-        status: statusFilter !== 'all' ? statusFilter : undefined,
-      });
+export default function AdminOrdersPage(): React.ReactElement {
+  const { isLoading: guardLoading, isAdmin } = useAdminGuard();
+  
+  const tableState = useAdminTableState({
+    initialFilters: {
+      status: 'all',
+      search: '',
     },
-    enabled: isAdmin,
   });
 
-  const orders = ordersResponse?.data || [];
-  const totalItems = ordersResponse?.total || 0;
-  const totalPages = Math.ceil(totalItems / limit);
+  const {
+    page,
+    limit,
+    filters,
+    setPage,
+    setLimit,
+    handleFilterChange,
+  } = tableState;
 
-  const exportToCSV = () => {
-    if (!orders.length) return;
+  const { 
+    orders, 
+    total: totalItems, 
+    isLoading, 
+    refetch 
+  } = useAdminOrders(tableState);
+  const totalPages = (totalItems > 0 && limit > 0) ? Math.ceil(totalItems / limit) : 0;
+
+  const exportToCSV = (): void => {
+    if ((orders?.length ?? 0) === 0) return;
 
     const headers = ['Order ID', 'Customer', 'Total', 'Status', 'Date'];
-    const rows = orders.map(order => [
-      order.id,
-      order.email,
-      order.total,
-      order.status,
-      new Date(order.createdAt ?? new Date()).toISOString()
+    const rows = (orders ?? []).map((order: Order) => [
+      String(order.id),
+      String(order.email),
+      String(order.total),
+      String(order.status),
+      order.createdAt,
     ]);
 
     const csvContent = [
       headers.join(','),
-      ...rows.map(row => row.join(','))
+      ...rows.map((row: string[]) => row.map((cell: string) => `"${cell.replace(/"/g, '""')}"`).join(',')),
     ].join('\n');
 
     const blob = new Blob([csvContent], { type: 'text/csv' });
@@ -99,7 +88,7 @@ export default function AdminOrdersPage() {
     window.URL.revokeObjectURL(url);
   };
 
-  if (isGuardLoading) {
+  if (guardLoading) {
     return (
       <div className="flex h-screen items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -108,7 +97,7 @@ export default function AdminOrdersPage() {
   }
 
   if (!isAdmin) {
-    return null;
+    return <div />;
   }
 
   return (
@@ -143,19 +132,13 @@ export default function AdminOrdersPage() {
                 <Input
                   placeholder="Search by email..."
                   className="pl-9 w-full md:w-[250px]"
-                  value={search}
-                  onChange={(e) => {
-                    setSearch(e.target.value);
-                    setPage(1);
-                  }}
+                  value={(filters.search as string) ?? ''}
+                  onChange={(e) => handleFilterChange('search', e.target.value)}
                 />
               </div>
               <Select
-                value={statusFilter}
-                onValueChange={(value) => {
-                  setStatusFilter(value);
-                  setPage(1);
-                }}
+                value={(filters.status as string) ?? 'all'}
+                onValueChange={(value) => handleFilterChange('status', value)}
               >
                 <SelectTrigger className="w-full md:w-[150px]">
                   <SelectValue placeholder="Filter by Status" />
@@ -172,10 +155,7 @@ export default function AdminOrdersPage() {
               </Select>
               <Select
                 value={limit.toString()}
-                onValueChange={(value) => {
-                  setLimit(Number(value));
-                  setPage(1);
-                }}
+                onValueChange={(value) => setLimit(Number(value))}
               >
                 <SelectTrigger className="w-[100px]">
                   <SelectValue placeholder="Limit" />
@@ -212,11 +192,11 @@ export default function AdminOrdersPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {orders.map((order) => (
+                  {orders.map((order: Order) => (
                     <TableRow key={order.id}>
-                      <TableCell className="font-mono text-xs">{(order.id ?? '').slice(0, 8)}...</TableCell>
+                      <TableCell className="font-mono text-xs">{order.id.slice(0, 8)}...</TableCell>
                       <TableCell>{order.email}</TableCell>
-                      <TableCell>${parseFloat(order.total ?? '0').toFixed(2)}</TableCell>
+                      <TableCell>${parseFloat(order.total).toFixed(2)}</TableCell>
                       <TableCell>
                         <Badge
                           variant={
@@ -231,7 +211,7 @@ export default function AdminOrdersPage() {
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        {new Date(order.createdAt ?? new Date()).toLocaleDateString()}
+                        {new Date(order.createdAt).toLocaleDateString()}
                       </TableCell>
                       <TableCell className="text-right">
                         <DropdownMenu>
@@ -264,7 +244,7 @@ export default function AdminOrdersPage() {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => setPage((p) => Math.max(1, p - 1))}
+                    onClick={() => setPage(Math.max(1, page - 1))}
                     disabled={page === 1}
                   >
                     <ChevronLeft className="h-4 w-4" />
@@ -276,7 +256,7 @@ export default function AdminOrdersPage() {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                    onClick={() => setPage(Math.min(totalPages, page + 1))}
                     disabled={page === totalPages}
                   >
                     Next

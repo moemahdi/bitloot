@@ -23,9 +23,9 @@ import { useState } from 'react';
 // Initialize SDK configuration
 const apiConfig = new Configuration({
     basePath: process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000',
-    accessToken: () => {
+    accessToken: (): string => {
         if (typeof window !== 'undefined') {
-            return localStorage.getItem('accessToken') || '';
+            return localStorage.getItem('accessToken') ?? '';
         }
         return '';
     },
@@ -33,7 +33,7 @@ const apiConfig = new Configuration({
 
 const ordersClient = new OrdersApi(apiConfig);
 
-export default function OrderDetailPage() {
+export default function OrderDetailPage(): React.ReactElement {
     const params = useParams();
     const orderId = params.id as string;
     const [copiedKey, setCopiedKey] = useState<string | null>(null);
@@ -46,8 +46,8 @@ export default function OrderDetailPage() {
         enabled: Boolean(orderId),
     });
 
-    const copyToClipboard = (text: string) => {
-        navigator.clipboard.writeText(text);
+    const copyToClipboard = (text: string): void => {
+        void navigator.clipboard.writeText(text);
         setCopiedKey(text);
         setTimeout(() => setCopiedKey(null), 2000);
     };
@@ -60,7 +60,7 @@ export default function OrderDetailPage() {
         );
     }
 
-    if (error || !order) {
+    if ((error !== null && error !== undefined) || (order === null || order === undefined)) {
         return (
             <div className="flex h-[50vh] flex-col items-center justify-center gap-4">
                 <h2 className="text-2xl font-bold text-destructive">Error Loading Order</h2>

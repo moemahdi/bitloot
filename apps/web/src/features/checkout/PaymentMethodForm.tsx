@@ -28,9 +28,9 @@ interface PaymentMethodFormProps {
   isLoading?: boolean;
 }
 
-export function PaymentMethodForm({ onSubmit, isLoading = false }: PaymentMethodFormProps) {
+export function PaymentMethodForm({ onSubmit, isLoading = false }: PaymentMethodFormProps): React.ReactElement {
   const {
-    register,
+    register: _register,
     handleSubmit,
     setValue,
     watch,
@@ -51,11 +51,11 @@ export function PaymentMethodForm({ onSubmit, isLoading = false }: PaymentMethod
         <CardDescription>Choose your preferred cryptocurrency</CardDescription>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+        <form onSubmit={handleSubmit((data) => onSubmit(data))} className="space-y-6">
           <RadioGroup
             defaultValue="btc"
             value={selectedCurrency}
-            onValueChange={(value) => setValue('payCurrency', value as any)}
+            onValueChange={(value) => setValue('payCurrency', value as 'btc' | 'eth' | 'usdttrc20' | 'ltc')}
             className="grid grid-cols-1 gap-4 sm:grid-cols-2"
           >
             <div>
@@ -103,7 +103,7 @@ export function PaymentMethodForm({ onSubmit, isLoading = false }: PaymentMethod
             </div>
           </RadioGroup>
 
-          {errors.payCurrency && (
+          {errors.payCurrency != null && (
             <p className="text-sm text-destructive">{errors.payCurrency.message}</p>
           )}
 

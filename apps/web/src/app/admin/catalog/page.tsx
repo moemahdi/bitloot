@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import { Configuration, AdminCatalogProductsApi, AdminCatalogSyncApi, AdminCatalogPricingApi } from '@bitloot/sdk';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/design-system/primitives/tabs';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/design-system/primitives/card';
@@ -23,9 +23,9 @@ import { Alert, AlertDescription, AlertTitle } from '@/design-system/primitives/
 // Initialize SDK configuration
 const apiConfig = new Configuration({
     basePath: process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000',
-    accessToken: () => {
+    accessToken: (): string => {
         if (typeof window !== 'undefined') {
-            return localStorage.getItem('accessToken') || '';
+            return localStorage.getItem('accessToken') ?? '';
         }
         return '';
     },
@@ -35,9 +35,8 @@ const productsApi = new AdminCatalogProductsApi(apiConfig);
 const syncApi = new AdminCatalogSyncApi(apiConfig);
 const pricingApi = new AdminCatalogPricingApi(apiConfig);
 
-export default function AdminCatalogPage() {
-    const { isLoading: isGuardLoading, isAdmin } = useAdminGuard();
-    const queryClient = useQueryClient();
+export default function AdminCatalogPage(): React.ReactElement | null {
+    const { isLoading, isAdmin } = useAdminGuard();
 
     // Products State
     const [productSearch, setProductSearch] = useState('');
@@ -60,7 +59,7 @@ export default function AdminCatalogPage() {
     });
 
     // Pricing Rules Query
-    const { data: pricingRules, isLoading: isRulesLoading, refetch: refetchRules } = useQuery({
+    const { refetch: refetchRules } = useQuery({
         queryKey: ['admin-pricing-rules'],
         queryFn: async () => {
             return await pricingApi.adminPricingControllerListAll({
@@ -86,7 +85,7 @@ export default function AdminCatalogPage() {
         },
     });
 
-    if (isGuardLoading) {
+    if (isLoading) {
         return (
             <div className="flex h-screen items-center justify-center">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -150,20 +149,21 @@ export default function AdminCatalogPage() {
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                        {products?.map((product) => (
-                                            <TableRow key={product.id}>
-                                                <TableCell className="font-medium">{product.title}</TableCell>
-                                                <TableCell>{product.platform}</TableCell>
-                                                <TableCell>{product.region}</TableCell>
-                                                <TableCell>${(product.priceMinor / 100).toFixed(2)}</TableCell>
-                                                <TableCell>
-                                                    <Badge variant={product.isPublished ? 'default' : 'secondary'}>
-                                                        {product.isPublished ? 'Published' : 'Draft'}
-                                                    </Badge>
-                                                </TableCell>
-                                            </TableRow>
-                                        ))}
-                                        {products?.length === 0 && (
+                                        {(products?.length ?? 0) > 0 ? (
+                                            products?.map((product) => (
+                                                <TableRow key={product.id}>
+                                                    <TableCell className="font-medium">{product.title}</TableCell>
+                                                    <TableCell>{product.platform}</TableCell>
+                                                    <TableCell>{product.region}</TableCell>
+                                                    <TableCell>${(product.priceMinor / 100).toFixed(2)}</TableCell>
+                                                    <TableCell>
+                                                        <Badge variant={product.isPublished ? 'default' : 'secondary'}>
+                                                            {product.isPublished ? 'Published' : 'Draft'}
+                                                        </Badge>
+                                                    </TableCell>
+                                                </TableRow>
+                                            ))
+                                        ) : (
                                             <TableRow>
                                                 <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
                                                     No products found
@@ -239,15 +239,9 @@ export default function AdminCatalogPage() {
                             <CardDescription>Manage dynamic pricing rules for products.</CardDescription>
                         </CardHeader>
                         <CardContent>
-                            {isRulesLoading ? (
-                                <div className="flex justify-center p-8">
-                                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                                </div>
-                            ) : (
-                                <div className="text-center py-8 text-muted-foreground">
-                                    Pricing rules table - to be implemented
-                                </div>
-                            )}
+                            <div className="text-center py-8 text-muted-foreground">
+                                Pricing rules table - to be implemented
+                            </div>
                         </CardContent>
                     </Card>
                 </TabsContent>

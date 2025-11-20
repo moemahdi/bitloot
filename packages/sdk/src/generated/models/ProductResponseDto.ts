@@ -80,11 +80,11 @@ export interface ProductResponseDto {
      */
     category?: string;
     /**
-     * Price in minor units (cents)
-     * @type {number}
+     * Price in crypto (decimal string)
+     * @type {string}
      * @memberof ProductResponseDto
      */
-    priceMinor: number;
+    price: string;
     /**
      * Currency code
      * @type {string}
@@ -124,7 +124,7 @@ export function instanceOfProductResponseDto(value: object): value is ProductRes
     if (!('id' in value) || value['id'] === undefined) return false;
     if (!('slug' in value) || value['slug'] === undefined) return false;
     if (!('title' in value) || value['title'] === undefined) return false;
-    if (!('priceMinor' in value) || value['priceMinor'] === undefined) return false;
+    if (!('price' in value) || value['price'] === undefined) return false;
     if (!('currency' in value) || value['currency'] === undefined) return false;
     if (!('isPublished' in value) || value['isPublished'] === undefined) return false;
     if (!('createdAt' in value) || value['createdAt'] === undefined) return false;
@@ -152,7 +152,7 @@ export function ProductResponseDtoFromJSONTyped(json: any, ignoreDiscriminator: 
         'drm': json['drm'] == null ? undefined : json['drm'],
         'ageRating': json['ageRating'] == null ? undefined : json['ageRating'],
         'category': json['category'] == null ? undefined : json['category'],
-        'priceMinor': json['priceMinor'],
+        'price': json['price'],
         'currency': json['currency'],
         'isPublished': json['isPublished'],
         'imageUrl': json['imageUrl'] == null ? undefined : json['imageUrl'],
@@ -182,7 +182,7 @@ export function ProductResponseDtoToJSONTyped(value?: ProductResponseDto | null,
         'drm': value['drm'],
         'ageRating': value['ageRating'],
         'category': value['category'],
-        'priceMinor': value['priceMinor'],
+        'price': value['price'],
         'currency': value['currency'],
         'isPublished': value['isPublished'],
         'imageUrl': value['imageUrl'],

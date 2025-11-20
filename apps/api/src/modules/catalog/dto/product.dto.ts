@@ -73,11 +73,10 @@ export class ProductResponseDto {
   category?: string;
 
   @ApiProperty({
-    description: 'Price in minor units (cents)',
-    example: 5999,
-    minimum: 0,
+    description: 'Price in crypto (decimal string)',
+    example: '59.99000000',
   })
-  priceMinor!: number;
+  price!: string;
 
   @ApiProperty({
     description: 'Currency code',

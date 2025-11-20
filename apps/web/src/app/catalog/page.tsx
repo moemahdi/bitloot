@@ -12,7 +12,7 @@ import { Sheet, SheetContent, SheetTrigger } from '@/design-system/primitives/sh
 import { Filter, Loader2 } from 'lucide-react';
 import type { Product } from '@/features/catalog/components/ProductCard';
 
-function CatalogContent() {
+function CatalogContent(): React.ReactElement {
     const searchParams = useSearchParams();
 
     // Extract query params
@@ -107,7 +107,7 @@ function CatalogContent() {
     );
 }
 
-export default function CatalogPage() {
+export default function CatalogPage(): React.ReactElement {
     return (
         <Suspense fallback={<div className="flex h-64 items-center justify-center"><Loader2 className="animate-spin" /></div>}>
             <CatalogContent />

@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { Facebook, Twitter, Instagram, Github } from 'lucide-react';
 
-export function Footer() {
+export function Footer(): React.ReactElement {
     return (
         <footer className="w-full border-t bg-background py-12 md:py-16 lg:py-20">
             <div className="container mx-auto px-4 md:px-6">
@@ -17,16 +17,16 @@ export function Footer() {
                             The premier crypto-only marketplace for digital goods. Instant delivery, secure transactions, and anonymous purchasing.
                         </p>
                         <div className="flex gap-4">
-                            <Link href="#" className="text-muted-foreground hover:text-primary">
+                            <Link href="#" className="text-muted-foreground hover:text-primary" aria-label="Twitter">
                                 <Twitter className="h-5 w-5" />
                             </Link>
-                            <Link href="#" className="text-muted-foreground hover:text-primary">
+                            <Link href="#" className="text-muted-foreground hover:text-primary" aria-label="Facebook">
                                 <Facebook className="h-5 w-5" />
                             </Link>
-                            <Link href="#" className="text-muted-foreground hover:text-primary">
+                            <Link href="#" className="text-muted-foreground hover:text-primary" aria-label="Instagram">
                                 <Instagram className="h-5 w-5" />
                             </Link>
-                            <Link href="#" className="text-muted-foreground hover:text-primary">
+                            <Link href="#" className="text-muted-foreground hover:text-primary" aria-label="GitHub">
                                 <Github className="h-5 w-5" />
                             </Link>
                         </div>

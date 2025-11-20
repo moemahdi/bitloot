@@ -33,16 +33,16 @@ export const catalogClient = {
         featured?: boolean;
     }): Promise<ProductListResponseDto> {
         // Convert page to offset if provided
-        const offset = params?.page ? (params.page - 1) * (params?.limit || 12) : params?.offset;
+        const offset = params?.page != null ? (params.page - 1) * (params?.limit ?? 12) : (params?.offset ?? 0);
 
         const response = await catalogApiInstance.catalogControllerListProducts({
-            q: params?.q || params?.search,
+            q: params?.q ?? params?.search,
             platform: params?.platform,
             region: params?.region,
             category: params?.category,
             sort: params?.sort,
-            limit: params?.limit || 12,
-            offset,
+            limit: (params?.limit ?? 12),
+            offset: offset,
         });
 
         return response;

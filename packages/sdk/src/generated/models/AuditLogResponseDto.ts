@@ -13,6 +13,14 @@
  */
 
 import { mapValues } from '../runtime';
+import type { AuditAdminDto } from './AuditAdminDto';
+import {
+    AuditAdminDtoFromJSON,
+    AuditAdminDtoFromJSONTyped,
+    AuditAdminDtoToJSON,
+    AuditAdminDtoToJSONTyped,
+} from './AuditAdminDto';
+
 /**
  * 
  * @export
@@ -33,10 +41,10 @@ export interface AuditLogResponseDto {
     adminUserId: string;
     /**
      * 
-     * @type {object}
+     * @type {AuditAdminDto}
      * @memberof AuditLogResponseDto
      */
-    admin?: object;
+    admin?: AuditAdminDto;
     /**
      * 
      * @type {string}
@@ -93,7 +101,7 @@ export function AuditLogResponseDtoFromJSONTyped(json: any, ignoreDiscriminator:
         
         'id': json['id'],
         'adminUserId': json['adminUserId'],
-        'admin': json['admin'] == null ? undefined : json['admin'],
+        'admin': json['admin'] == null ? undefined : AuditAdminDtoFromJSON(json['admin']),
         'action': json['action'],
         'target': json['target'],
         'payload': json['payload'] == null ? undefined : json['payload'],
@@ -115,7 +123,7 @@ export function AuditLogResponseDtoToJSONTyped(value?: AuditLogResponseDto | nul
         
         'id': value['id'],
         'adminUserId': value['adminUserId'],
-        'admin': value['admin'],
+        'admin': AuditAdminDtoToJSON(value['admin']),
         'action': value['action'],
         'target': value['target'],
         'payload': value['payload'],

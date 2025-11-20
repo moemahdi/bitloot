@@ -1,39 +1,88 @@
 'use client';
 
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
 import { useQuery } from '@tanstack/react-query';
-import { catalogClient } from '@bitloot/sdk';
-import type { ProductListResponseDto } from '@bitloot/sdk';
 import { Button } from '@/design-system/primitives/button';
 import { Input } from '@/design-system/primitives/input';
 import { Search, Zap, Shield, Lock, Coins, Loader2 } from 'lucide-react';
-import { ProductGrid } from '@/features/catalog/components/ProductGrid';
 import type { Product } from '@/features/catalog/components/ProductCard';
 
-export default function Home() {
-  // Fetch featured products (first 4 products)
-  const { data, isLoading } = useQuery<ProductListResponseDto>({
+const ProductGrid = dynamic(
+  () => import('@/features/catalog/components/ProductGrid').then((mod) => mod.ProductGrid),
+  {
+    loading: () => (
+      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} className="h-[300px] rounded-xl bg-muted animate-pulse" />
+        ))}
+      </div>
+    ),
+  }
+);
+
+export default function HomePage(): React.ReactElement {
+  // Initialize SDK client config (for future use with real API)
+  // const apiConfig = new Configuration({
+  //   basePath: process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000',
+  // });
+
+  // Fetch featured products - using placeholder data for now
+  // In production, replace with API call once catalog list endpoint is available
+  const { isLoading } = useQuery({
     queryKey: ['featured-products'],
     queryFn: async () => {
-      const result = await catalogClient.findAll({
-        page: 1,
-        limit: 4,
-        featured: true,
-      });
-      return result;
+      // Placeholder: Return mock featured products
+      // TODO: Replace with real API call: const result = await catalogClient.catalogControllerList(...)
+      return Promise.resolve([]);
     },
+    enabled: false, // Disabled for now - using mock data
   });
 
   // Map ProductResponseDto to Product interface expected by ProductCard
-  const featuredProducts: Product[] = (data?.data ?? []).map((dto) => ({
-    id: dto.id,
-    name: dto.title, // Map title to name
-    description: dto.description ?? '',
-    price: dto.priceMinor / 100, // Convert cents to dollars
-    image: dto.imageUrl,
-    platform: dto.platform,
-    discount: 0, // Discount not in public DTO currently
-  }));
+  // Using mock data until API endpoint is available
+  const featuredProducts: Product[] = [
+    {
+      id: '1',
+      name: 'Featured Game 1',
+      description: 'Popular game with instant delivery',
+      price: '19.99',
+      image: '/placeholder-product.jpg',
+      platform: 'Steam',
+      currency: 'USD',
+      discount: 0,
+    },
+    {
+      id: '2',
+      name: 'Featured Game 2',
+      description: 'Bestselling digital product',
+      price: '29.99',
+      image: '/placeholder-product.jpg',
+      platform: 'Epic',
+      currency: 'USD',
+      discount: 0,
+    },
+    {
+      id: '3',
+      name: 'Featured Game 3',
+      description: 'Top rated software',
+      price: '39.99',
+      image: '/placeholder-product.jpg',
+      platform: 'Origin',
+      currency: 'USD',
+      discount: 0,
+    },
+    {
+      id: '4',
+      name: 'Featured Game 4',
+      description: 'Limited time offer',
+      price: '49.99',
+      image: '/placeholder-product.jpg',
+      platform: 'Uplay',
+      currency: 'USD',
+      discount: 15,
+    },
+  ];
 
   return (
     <div className="flex flex-col">

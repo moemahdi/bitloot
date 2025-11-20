@@ -13,7 +13,7 @@ import {
     AccordionTrigger,
 } from '@/design-system/primitives/accordion';
 
-export function CatalogFilters() {
+export function CatalogFilters(): React.ReactElement {
     const router = useRouter();
     const searchParams = useSearchParams();
 
@@ -25,18 +25,18 @@ export function CatalogFilters() {
     useEffect(() => {
         const minPrice = searchParams.get('minPrice');
         const maxPrice = searchParams.get('maxPrice');
-        if (minPrice && maxPrice) {
+        if ((minPrice != null) && (maxPrice != null)) {
             setPriceRange([Number(minPrice), Number(maxPrice)]);
         }
 
-        const categories = searchParams.get('category')?.split(',') || [];
+        const categories = (searchParams.get('category') ?? '').split(',').filter(Boolean);
         setSelectedCategories(categories);
 
-        const platforms = searchParams.get('platform')?.split(',') || [];
+        const platforms = (searchParams.get('platform') ?? '').split(',').filter(Boolean);
         setSelectedPlatforms(platforms);
     }, [searchParams]);
 
-    const updateFilters = () => {
+    const updateFilters = (): void => {
         const params = new URLSearchParams(searchParams.toString());
 
         if (selectedCategories.length > 0) {
@@ -58,7 +58,7 @@ export function CatalogFilters() {
         router.push(`/catalog?${params.toString()}`);
     };
 
-    const toggleCategory = (category: string) => {
+    const toggleCategory = (category: string): void => {
         setSelectedCategories(prev =>
             prev.includes(category)
                 ? prev.filter(c => c !== category)
@@ -66,7 +66,7 @@ export function CatalogFilters() {
         );
     };
 
-    const togglePlatform = (platform: string) => {
+    const togglePlatform = (platform: string): void => {
         setSelectedPlatforms(prev =>
             prev.includes(platform)
                 ? prev.filter(p => p !== platform)

@@ -8,8 +8,8 @@ import { Search, ShoppingCart, User, Menu } from 'lucide-react';
 import { Sheet, SheetContent, SheetTrigger } from '@/design-system/primitives/sheet';
 import { useState } from 'react';
 
-export function Header() {
-    const pathname = usePathname();
+export function Header(): React.ReactElement {
+    const _pathname = usePathname();
     const [isSearchOpen, setIsSearchOpen] = useState(false);
 
     return (
@@ -41,6 +41,7 @@ export function Header() {
                         <Input
                             type="search"
                             placeholder="Search games, software..."
+                            aria-label="Search games and software"
                             className="w-full pl-8 bg-muted/50 focus:bg-background"
                         />
                     </div>
@@ -56,6 +57,7 @@ export function Header() {
                         onClick={() => setIsSearchOpen(!isSearchOpen)}
                     >
                         <Search className="h-5 w-5" />
+                        <span className="sr-only">Search</span>
                     </Button>
 
                     <Link href="/cart">

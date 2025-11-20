@@ -49,7 +49,7 @@ export class FulfillmentService {
     private readonly deliveryService: DeliveryService,
     private readonly emailsService: EmailsService,
     private readonly ordersService: OrdersService,
-  ) {}
+  ) { }
 
   /**
    * Orchestrate complete fulfillment for an order
@@ -155,14 +155,8 @@ export class FulfillmentService {
       const encryptionKey = generateEncryptionKey();
       this.logger.debug(`[FULFILLMENT] Generated encryption key: 32 bytes`);
 
-      // Store encryption key in delivery service vault (MVP in-memory)
-      try {
-        this.deliveryService.storeEncryptionKey(orderId, encryptionKey);
-      } catch (e) {
-        const msg = e instanceof Error ? e.message : String(e);
-        this.logger.error(`[FULFILLMENT] Failed to store encryption key: ${msg}`);
-        throw e;
-      }
+      // Store encryption key in Key entity (DB)
+      // Removed: this.deliveryService.storeEncryptionKey(orderId, encryptionKey);
 
       // Encrypt the key with AES-256-GCM
       const encrypted = encryptKey(plainKey, encryptionKey);
@@ -197,7 +191,11 @@ export class FulfillmentService {
 
       // Create a Key record for audit (storageRef points to R2 object)
       const storageRef = `orders/${orderId}/key.json`;
-      const keyEntity = this.keyRepo.create({ orderItemId: item.id, storageRef });
+      const keyEntity = this.keyRepo.create({
+        orderItemId: item.id,
+        storageRef,
+        encryptionKey: encryptionKey.toString('base64'),
+      });
       await this.keyRepo.save(keyEntity);
 
       this.logger.debug(`[FULFILLMENT] Updated order item ${item.id} with signed URL`);
@@ -268,7 +266,7 @@ export class FulfillmentService {
 
     const plainKey = status.key;
     const encryptionKey = generateEncryptionKey();
-    this.deliveryService.storeEncryptionKey(order.id, encryptionKey);
+    // Removed: this.deliveryService.storeEncryptionKey(order.id, encryptionKey);
 
     const encrypted = encryptKey(plainKey, encryptionKey);
 
@@ -287,7 +285,11 @@ export class FulfillmentService {
     for (const item of order.items) {
       await this.orderItemRepo.update({ id: item.id }, { signedUrl, updatedAt: new Date() });
       const storageRef = `orders/${order.id}/key.json`;
-      const keyEntity = this.keyRepo.create({ orderItemId: item.id, storageRef });
+      const keyEntity = this.keyRepo.create({
+        orderItemId: item.id,
+        storageRef,
+        encryptionKey: encryptionKey.toString('base64'),
+      });
       await this.keyRepo.save(keyEntity);
     }
 
@@ -318,7 +320,8 @@ export class FulfillmentService {
     try {
       this.logger.debug(`[FULFILLMENT] Enqueuing fulfillment for order: ${orderId}`);
 
-      const job = await this.fulfillmentQueue.add('fulfillOrder', { orderId });
+      // Use 'reserve' job to start async Kinguin flow
+      const job = await this.fulfillmentQueue.add('reserve', { orderId });
 
       this.logger.debug(`[FULFILLMENT] Fulfillment enqueued with job ID: ${job.id}`);
 

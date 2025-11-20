@@ -1,7 +1,7 @@
 import { Card, CardContent, CardFooter, CardHeader } from '@/design-system/primitives/card';
 import { Skeleton } from '@/design-system/primitives/skeleton';
 
-export function ProductCardSkeleton() {
+export function ProductCardSkeleton(): React.ReactElement {
   return (
     <Card className="overflow-hidden">
       <CardHeader className="p-0">

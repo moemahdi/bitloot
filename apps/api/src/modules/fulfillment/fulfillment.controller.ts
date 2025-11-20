@@ -4,12 +4,14 @@ import type { Request as ExpressRequest } from 'express';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { FulfillmentService } from './fulfillment.service';
 import { DeliveryService } from './delivery.service';
+import { OrdersService } from '../orders/orders.service';
 import { FulfillmentStatusDto } from './dto/fulfillment-status.dto';
 import { DeliveryLinkDto, RevealedKeyDto, HealthCheckResultDto } from './dto/key-response.dto';
 import { AdminGuard } from '../../common/guards/admin.guard';
 
 interface JwtPayload {
   sub: string;
+  role?: string;
 }
 
 interface AuthenticatedRequest extends ExpressRequest {
@@ -32,7 +34,8 @@ export class FulfillmentController {
   constructor(
     private readonly fulfillmentService: FulfillmentService,
     private readonly deliveryService: DeliveryService,
-  ) {}
+    private readonly ordersService: OrdersService,
+  ) { }
 
   /**
    * Get fulfillment status for an order
@@ -58,6 +61,15 @@ export class FulfillmentController {
       const user = req.user ?? null;
       if (user === null) {
         throw new Error('User not found in request');
+      }
+
+      // Verify ownership
+      const order = await this.ordersService.get(id);
+      if (order === null || order === undefined) {
+        throw new HttpException('Order not found', HttpStatus.NOT_FOUND);
+      }
+      if (order.userId !== user.sub && user.role !== 'admin') {
+        throw new HttpException('Forbidden', HttpStatus.FORBIDDEN);
       }
 
       const status = await this.fulfillmentService.checkStatus(id);
@@ -104,6 +116,15 @@ export class FulfillmentController {
         throw new Error('User not found in request');
       }
 
+      // Verify ownership
+      const order = await this.ordersService.get(id);
+      if (order === null || order === undefined) {
+        throw new HttpException('Order not found', HttpStatus.NOT_FOUND);
+      }
+      if (order.userId !== user.sub && user.role !== 'admin') {
+        throw new HttpException('Forbidden', HttpStatus.FORBIDDEN);
+      }
+
       const link = await this.deliveryService.generateDeliveryLink(id);
 
       if (link === null || typeof link !== 'object') {
@@ -121,6 +142,58 @@ export class FulfillmentController {
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to generate link';
       throw new HttpException(message, HttpStatus.BAD_REQUEST);
+    }
+  }
+
+  /**
+   * Reveal key for authenticated user (owner)
+   */
+  @Post(':id/reveal/:itemId')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Reveal encrypted key (requires ownership)' })
+  @ApiResponse({ status: 200, type: RevealedKeyDto })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden' })
+  @ApiResponse({ status: 404, description: 'Order or item not found' })
+  async revealMyKey(
+    @Param('id') id: string,
+    @Param('itemId') itemId: string,
+    @Request() req: AuthenticatedRequest,
+  ): Promise<RevealedKeyDto> {
+    try {
+      const user = req.user ?? null;
+      if (user === null) {
+        throw new Error('User not found in request');
+      }
+
+      // Verify ownership
+      const order = await this.ordersService.get(id);
+      if (order === null || order === undefined) {
+        throw new HttpException('Order not found', HttpStatus.NOT_FOUND);
+      }
+      if (order.userId !== user.sub && user.role !== 'admin') {
+        throw new HttpException('Forbidden', HttpStatus.FORBIDDEN);
+      }
+
+      const ipAddress = (req.ip ?? '0.0.0.0').toString();
+      const userAgent = req.get('user-agent') ?? 'unknown';
+
+      const revealed = await this.deliveryService.revealKey(id, itemId, { ipAddress, userAgent });
+
+      return {
+        orderId: revealed.orderId,
+        itemId: revealed.itemId,
+        plainKey: revealed.plainKey,
+        revealedAt: revealed.revealedAt,
+        expiresAt: revealed.expiresAt,
+        downloadCount: revealed.downloadCount,
+        accessInfo: revealed.accessInfo,
+      };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to reveal key';
+      const status = message.includes('not found') ? HttpStatus.NOT_FOUND : HttpStatus.BAD_REQUEST;
+      throw new HttpException(message, status);
     }
   }
 

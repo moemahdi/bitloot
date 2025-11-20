@@ -24,7 +24,7 @@ import { Repository } from 'typeorm';
 import { PaymentJobData, JobResult, QUEUE_NAMES } from './queues';
 import { NowPaymentsClient } from '../modules/payments/nowpayments.client';
 import { Payment } from '../modules/payments/payment.entity';
-import { Order } from '../modules/orders/order.entity';
+import { OrdersService } from '../modules/orders/orders.service';
 
 interface PaymentJobResult {
   invoiceId: number;
@@ -65,7 +65,7 @@ export class PaymentProcessorService extends WorkerHost {
   constructor(
     private readonly npClient: NowPaymentsClient,
     @InjectRepository(Payment) private readonly paymentsRepo: Repository<Payment>,
-    @InjectRepository(Order) private readonly ordersRepo: Repository<Order>,
+    private readonly ordersService: OrdersService,
   ) {
     super();
   }
@@ -96,11 +96,9 @@ export class PaymentProcessorService extends WorkerHost {
 
     try {
       // Step 1: Load order and validate it exists
-      const order = await this.ordersRepo.findOne({
-        where: { id: orderId },
-      });
-
-      if (order === null) {
+      try {
+        await this.ordersService.get(orderId);
+      } catch (_error) {
         // Non-retryable error: order doesn't exist
         this.logger.error(`Order ${orderId} not found - non-retryable error`);
         return {

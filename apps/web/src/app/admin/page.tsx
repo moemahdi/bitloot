@@ -1,7 +1,7 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import { Configuration, AdminOperationsApi, OrdersApi } from '@bitloot/sdk';
+import { Configuration, AdminOperationsApi, type AdminOpsControllerGetBalance200Response } from '@bitloot/sdk';
 import { Card, CardContent, CardHeader, CardTitle } from '@/design-system/primitives/card';
 import { Button } from '@/design-system/primitives/button';
 import { Badge } from '@/design-system/primitives/badge';
@@ -13,7 +13,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/design-system/primitives/table';
-import { DollarSign, ShoppingCart, AlertTriangle, Activity, TrendingUp, Users, Package, Loader2 } from 'lucide-react';
+import { DollarSign, ShoppingCart, AlertTriangle, Activity, Users, Package, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip } from 'recharts';
 import { useAdminGuard } from '@/features/admin/hooks/useAdminGuard';
@@ -21,16 +21,16 @@ import { useAdminGuard } from '@/features/admin/hooks/useAdminGuard';
 // Initialize SDK configuration
 const apiConfig = new Configuration({
   basePath: process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000',
-  accessToken: () => {
+  accessToken: (): string => {
     if (typeof window !== 'undefined') {
-      return localStorage.getItem('accessToken') || '';
+      return localStorage.getItem('accessToken') ?? '';
     }
     return '';
   },
 });
 
 const adminOpsClient = new AdminOperationsApi(apiConfig);
-const ordersClient = new OrdersApi(apiConfig);
+
 
 // Mock data for charts
 const revenueData = [
@@ -43,29 +43,17 @@ const revenueData = [
   { name: 'Sun', total: 1800 },
 ];
 
-export default function AdminDashboardPage() {
+export default function AdminDashboardPage(): React.ReactElement | null {
   const { isLoading: isGuardLoading, isAdmin } = useAdminGuard();
 
-  // Fetch System Health
-  const { data: health } = useQuery({
-    queryKey: ['admin-health'],
-    queryFn: async () => {
-      return await adminOpsClient.adminOpsControllerGetSystemHealth();
-    },
-    enabled: isAdmin,
-  });
-
   // Fetch Balance
-  const { data: balance } = useQuery({
+  const { data: balance } = useQuery<AdminOpsControllerGetBalance200Response>({
     queryKey: ['admin-balance'],
     queryFn: async () => {
       return await adminOpsClient.adminOpsControllerGetBalance();
     },
     enabled: isAdmin,
   });
-
-  // Fetch Recent Orders (admin list endpoint not available yet - TODO: implement admin orders list)
-  const recentOrders: any[] = [];
 
   if (isGuardLoading) {
     return (
@@ -102,7 +90,7 @@ export default function AdminDashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              ${(balance as any)?.nowpayments?.balanceUsd ? parseFloat((balance as any).nowpayments.balanceUsd).toFixed(2) : '0.00'}
+              ${balance?.nowpayments?.available !== undefined && balance.nowpayments.available !== null ? parseFloat(balance.nowpayments.available).toFixed(2) : '0.00'}
             </div>
             <p className="text-xs text-muted-foreground">+20.1% from last month</p>
           </CardContent>
@@ -113,9 +101,7 @@ export default function AdminDashboardPage() {
             <ShoppingCart className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              {recentOrders.length ?? 0}
-            </div>
+            <div className="text-2xl font-bold">0</div>
             <p className="text-xs text-muted-foreground">+180 since last hour</p>
           </CardContent>
         </Card>
@@ -244,36 +230,12 @@ export default function AdminDashboardPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {recentOrders.map((order) => (
-                <TableRow key={order.id}>
-                  <TableCell className="font-mono text-xs">{order.id}</TableCell>
-                  <TableCell>{order.email}</TableCell>
-                  <TableCell>${parseFloat(order.totalAmount).toFixed(2)}</TableCell>
-                  <TableCell>
-                    <Badge
-                      variant={
-                        order.status === 'completed'
-                          ? 'default'
-                          : order.status === 'pending'
-                            ? 'secondary'
-                            : 'destructive'
-                      }
-                    >
-                      {order.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-right text-muted-foreground">
-                    {new Date(order.createdAt).toLocaleDateString()}
-                  </TableCell>
-                </TableRow>
-              ))}
-              {recentOrders.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={5} className="text-center h-24 text-muted-foreground">
-                    No orders found.
-                  </TableCell>
-                </TableRow>
-              )}
+              {/* No recent orders available - admin orders endpoint to be implemented */}
+              <TableRow>
+                <TableCell colSpan={5} className="text-center h-24 text-muted-foreground">
+                  No orders found.
+                </TableCell>
+              </TableRow>
             </TableBody>
           </Table>
         </CardContent>

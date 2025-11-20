@@ -9,7 +9,7 @@ import { Card, CardContent } from '@/design-system/primitives/card';
 import { Button } from '@/design-system/primitives/button';
 import { Badge } from '@/design-system/primitives/badge';
 import { Input } from '@/design-system/primitives/input';
-import { Key, Search, Download, Copy, Check, Loader2, Package } from 'lucide-react';
+import { Key, Search, Download, Copy, Check, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 
 // Initialize SDK configuration
@@ -17,7 +17,7 @@ const apiConfig = new Configuration({
     basePath: process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000',
     accessToken: () => {
         if (typeof window !== 'undefined') {
-            return localStorage.getItem('accessToken') || '';
+            return localStorage.getItem('accessToken') ?? '';
         }
         return '';
     },
@@ -25,13 +25,13 @@ const apiConfig = new Configuration({
 
 const usersClient = new UsersApi(apiConfig);
 
-export default function DigitalKeysPage() {
+export default function DigitalKeysPage(): React.ReactElement {
     const { user } = useAuth();
     const [search, setSearch] = useState('');
     const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
     // Fetch user's orders
-    const { data: orders = [], isLoading } = useQuery<OrderResponseDto[]>({
+    const { data: orders = [] } = useQuery<OrderResponseDto[]>({
         queryKey: ['my-orders'],
         queryFn: async () => {
             const response = await usersClient.usersControllerGetOrdersRaw();
@@ -44,29 +44,34 @@ export default function DigitalKeysPage() {
     });
 
     // Extract keys from completed orders
-    const allKeys = orders
-        .filter((order) => order.status === 'fulfilled')
-        .flatMap((order) =>
-            order.items.map((item) => ({
-                ...item,
-                orderId: order.id,
-                purchaseDate: order.createdAt,
-                // Mock key value for now
-                keyValue: 'XXXX-XXXX-XXXX-XXXX',
-            }))
-        );
+    const allKeys =
+        orders !== undefined && orders !== null
+            ? orders
+                  .filter((order) => order.status === 'fulfilled')
+                  .flatMap((order) =>
+                      order.items.map((item) => ({
+                          ...item,
+                          orderId: order.id,
+                          purchaseDate: order.createdAt,
+                          // Mock key value for now
+                          keyValue: 'XXXX-XXXX-XXXX-XXXX',
+                      }))
+                  )
+            : [];
 
     const filteredKeys = allKeys.filter((key) =>
-        (key.productId || '').toLowerCase().includes(search.toLowerCase())
+        key?.productId !== null && key?.productId !== undefined && key.productId !== ''
+            ? key.productId.toLowerCase().includes(search.toLowerCase())
+            : false
     );
 
-    const copyToClipboard = (text: string) => {
-        navigator.clipboard.writeText(text);
+    const copyToClipboard = (text: string): void => {
+        void navigator.clipboard.writeText(text);
         setCopiedKey(text);
         setTimeout(() => setCopiedKey(null), 2000);
     };
 
-    if (!user) {
+    if (user === null || user === undefined) {
         return (
             <div className="flex h-[50vh] items-center justify-center">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -92,15 +97,11 @@ export default function DigitalKeysPage() {
                 </div>
             </div>
 
-            {isLoading ? (
-                <div className="flex h-40 items-center justify-center">
-                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                </div>
-            ) : filteredKeys.length === 0 ? (
+            {filteredKeys?.length === 0 ? (
                 <div className="flex h-60 flex-col items-center justify-center text-muted-foreground rounded-lg border border-dashed">
                     <Key className="mb-4 h-12 w-12 opacity-20" />
                     <p className="text-lg font-medium">No digital keys found</p>
-                    <p className="text-sm mb-4">You haven't purchased any digital products yet.</p>
+                    <p className="text-sm mb-4">You haven&apos;t purchased any digital products yet.</p>
                     <Link href="/catalog">
                         <Button>Browse Store</Button>
                     </Link>
@@ -114,7 +115,7 @@ export default function DigitalKeysPage() {
                                     <div className="rounded-full bg-background p-3 shadow-sm mb-3">
                                         <Key className="h-6 w-6 text-primary" />
                                     </div>
-                                    <h3 className="font-bold line-clamp-2">{key.productId || 'Product Key'}</h3>
+                                    <h3 className="font-bold line-clamp-2">{key?.productId ?? 'Product Key'}</h3>
                                     <p className="text-xs text-muted-foreground mt-1">
                                         {new Date(key.purchaseDate).toLocaleDateString()}
                                     </p>

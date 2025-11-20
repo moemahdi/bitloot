@@ -38,6 +38,12 @@ export interface AdminControllerGetPayments200ResponseDataInner {
      * @type {string}
      * @memberof AdminControllerGetPayments200ResponseDataInner
      */
+    orderId?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof AdminControllerGetPayments200ResponseDataInner
+     */
     externalId?: string;
     /**
      * 
@@ -107,6 +113,7 @@ export function AdminControllerGetPayments200ResponseDataInnerFromJSONTyped(json
     return {
         
         'id': json['id'] == null ? undefined : json['id'],
+        'orderId': json['orderId'] == null ? undefined : json['orderId'],
         'externalId': json['externalId'] == null ? undefined : json['externalId'],
         'status': json['status'] == null ? undefined : json['status'],
         'provider': json['provider'] == null ? undefined : json['provider'],
@@ -131,6 +138,7 @@ export function AdminControllerGetPayments200ResponseDataInnerToJSONTyped(value?
     return {
         
         'id': value['id'],
+        'orderId': value['orderId'],
         'externalId': value['externalId'],
         'status': value['status'],
         'provider': value['provider'],

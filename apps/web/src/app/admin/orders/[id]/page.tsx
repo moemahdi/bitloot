@@ -7,8 +7,7 @@ import { Configuration, OrdersApi, AdminApi } from '@bitloot/sdk';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/design-system/primitives/card';
 import { Badge } from '@/design-system/primitives/badge';
 import { Button } from '@/design-system/primitives/button';
-import { Separator } from '@/design-system/primitives/separator';
-import { Loader2, ArrowLeft, Copy, ExternalLink, ShieldAlert } from 'lucide-react';
+import { Loader2, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import { useAdminGuard } from '@/features/admin/hooks/useAdminGuard';
 import {
@@ -22,9 +21,9 @@ import {
 
 const apiConfig = new Configuration({
     basePath: process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000',
-    accessToken: () => {
+    accessToken: (): string => {
         if (typeof window !== 'undefined') {
-            return localStorage.getItem('accessToken') || '';
+            return localStorage.getItem('accessToken') ?? '';
         }
         return '';
     },
@@ -33,7 +32,7 @@ const apiConfig = new Configuration({
 const ordersApi = new OrdersApi(apiConfig);
 const adminApi = new AdminApi(apiConfig);
 
-export default function AdminOrderDetailPage() {
+export default function AdminOrderDetailPage(): React.ReactElement | null {
     const params = useParams();
     const id = params.id as string;
     const { isLoading: isGuardLoading, isAdmin } = useAdminGuard();
@@ -46,12 +45,12 @@ export default function AdminOrderDetailPage() {
         enabled: isAdmin && Boolean(id),
     });
 
-    const { data: auditTrail, isLoading: isAuditLoading } = useQuery<AdminControllerGetKeyAuditTrail200ResponseInner[]>({
+    const { isLoading: _isAuditLoading } = useQuery<AdminControllerGetKeyAuditTrail200ResponseInner[]>({
         queryKey: ['admin-order-audit', id],
         queryFn: async () => {
             return await adminApi.adminControllerGetKeyAuditTrail({ orderId: id });
         },
-        enabled: isAdmin && Boolean(id),
+        enabled: isAdmin && (id !== null && id !== undefined && id.length > 0),
     });
 
     if (isGuardLoading || isOrderLoading) {
@@ -66,7 +65,7 @@ export default function AdminOrderDetailPage() {
         return null;
     }
 
-    if (!order) {
+    if (order === null || order === undefined) {
         return (
             <div className="container mx-auto py-8">
                 <div className="flex flex-col items-center justify-center space-y-4">
@@ -146,28 +145,33 @@ export default function AdminOrderDetailPage() {
                 </Card>
             </div>
 
-            {/* Items */}
+            {/* Items - Note: OrderItemResponseDto doesn't contain product details like name, quantity, or price */}
             <Card>
                 <CardHeader>
                     <CardTitle>Order Items</CardTitle>
+                    <CardDescription>{order.items.length} item(s) in this order</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <Table>
                         <TableHeader>
                             <TableRow>
-                                <TableHead>Product</TableHead>
-                                <TableHead>Quantity</TableHead>
-                                <TableHead>Price</TableHead>
-                                <TableHead>Total</TableHead>
+                                <TableHead>Item ID</TableHead>
+                                <TableHead>Product ID</TableHead>
+                                <TableHead>Key Status</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {order.items?.map((item: any) => (
+                            {order.items.map((item) => (
                                 <TableRow key={item.id}>
-                                    <TableCell>{item.product?.name || 'Unknown Product'}</TableCell>
-                                    <TableCell>{item.quantity}</TableCell>
-                                    <TableCell>${parseFloat(item.price).toFixed(2)}</TableCell>
-                                    <TableCell>${(parseFloat(item.price) * item.quantity).toFixed(2)}</TableCell>
+                                    <TableCell className="font-mono text-xs">{item.id}</TableCell>
+                                    <TableCell className="font-mono text-xs">{item.productId}</TableCell>
+                                    <TableCell>
+                                        {item.signedUrl !== null && item.signedUrl !== undefined ? (
+                                            <Badge variant="default">Delivered</Badge>
+                                        ) : (
+                                            <Badge variant="secondary">Pending</Badge>
+                                        )}
+                                    </TableCell>
                                 </TableRow>
                             ))}
                         </TableBody>

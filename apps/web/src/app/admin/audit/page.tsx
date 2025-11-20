@@ -196,7 +196,7 @@ export default function AdminAuditPage(): React.ReactElement {
                     {(data?.data ?? []).map((log) => (
                       <TableRow key={log.id}>
                         <TableCell className="text-sm">
-                          {typeof log.admin === 'object' && log.admin && 'email' in log.admin ? (log.admin as any).email : 'Unknown'}
+                          {log.admin !== null && log.admin !== undefined && typeof log.admin === 'object' && 'email' in log.admin ? (log.admin as { email: string }).email : 'Unknown'}
                         </TableCell>
                         <TableCell>
                           <Badge className={actionColors[log.action] ?? 'bg-gray-100 text-gray-800'}>

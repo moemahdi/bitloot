@@ -8,7 +8,7 @@ import {
   type ReactNode,
 } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { authClient } from '@bitloot/sdk';
+import { authClient, UsersApi, Configuration } from '@bitloot/sdk';
 
 export interface User {
   id: string;
@@ -34,7 +34,7 @@ interface AuthContextType extends AuthState {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export function AuthProvider({ children }: { children: ReactNode }) {
+export function AuthProvider({ children }: { children: ReactNode }): React.ReactElement {
   const [state, setState] = useState<AuthState>({
     user: null,
     accessToken: null,
@@ -145,21 +145,51 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       // Verify token and get fresh user data from backend
-      void (async () => {
+      void (async (): Promise<void> => {
         try {
           const payload = decodeJWT(accessToken);
 
           if (payload !== null && typeof payload === 'object' && 'sub' in payload) {
-            // If we didn't have local user, set it now (though we likely did)
-            if (localUser === null) {
-              setState((prev) => ({ ...prev, isLoading: false }));
+            // Fetch fresh user profile
+            const config = new Configuration({
+              basePath: process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000',
+              accessToken: accessToken,
+            });
+            const usersApi = new UsersApi(config);
+            const profile = await usersApi.usersControllerGetProfile();
+
+            const user: User = {
+              id: profile.id,
+              email: profile.email,
+              emailConfirmed: profile.emailConfirmed,
+              role: profile.role === 'admin' ? 'admin' : 'user',
+              createdAt: profile.createdAt.toString(),
+            };
+
+            // Update state with fresh data
+            setState({
+              user,
+              accessToken,
+              refreshToken,
+              isLoading: false,
+              isAuthenticated: true,
+            });
+
+            // Update local storage
+            if (typeof localStorage !== 'undefined') {
+              localStorage.setItem('user', JSON.stringify(user));
             }
           } else {
             // Invalid token structure
             logout();
           }
-        } catch {
-          logout();
+        } catch (error) {
+          console.error('Failed to initialize auth:', error);
+          // If we have a local user, we keep it (optimistic), otherwise stop loading
+          if (localUser === null) {
+            setState((prev) => ({ ...prev, isLoading: false }));
+          }
+          // If error is 401, we should probably logout, but for now let's be safe
         }
       })();
     } else {

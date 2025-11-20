@@ -24,7 +24,7 @@ export class AdminService {
     @InjectRepository(Payment) private readonly paymentsRepo: Repository<Payment>,
     @InjectRepository(WebhookLog) private readonly webhookLogsRepo: Repository<WebhookLog>,
     @InjectRepository(Key) private readonly keysRepo: Repository<Key>,
-  ) {}
+  ) { }
 
   /**
    * Get paginated list of orders with filtering
@@ -88,12 +88,12 @@ export class AdminService {
           status: o.status,
           total: o.totalCrypto,
           createdAt: o.createdAt,
-          payment: latestPayment
+          payment: latestPayment !== undefined && latestPayment !== null
             ? {
-                id: latestPayment.id,
-                provider: latestPayment.provider,
-                status: latestPayment.status,
-              }
+              id: latestPayment.id,
+              provider: latestPayment.provider,
+              status: latestPayment.status,
+            }
             : undefined,
         };
       }),

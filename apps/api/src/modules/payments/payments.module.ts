@@ -3,13 +3,11 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { PaymentsService } from './payments.service';
 import { PaymentsController } from './payments.controller';
 import { Payment } from './payment.entity';
-import { Order } from '../orders/order.entity';
-import { OrderItem } from '../orders/order-item.entity';
 import { WebhookLog } from '../../database/entities/webhook-log.entity';
 import { NowPaymentsClient } from './nowpayments.client';
 import { MetricsModule } from '../metrics/metrics.module';
 import { EmailsModule } from '../emails/emails.module';
-import { OrdersService } from '../orders/orders.service';
+import { OrdersModule } from '../orders/orders.module';
 import { FulfillmentQueue } from '../../jobs/queues';
 import { PaymentProcessorService } from '../../jobs/payment-processor.service';
 
@@ -30,15 +28,15 @@ import { PaymentProcessorService } from '../../jobs/payment-processor.service';
  */
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Payment, Order, OrderItem, WebhookLog]),
+    TypeOrmModule.forFeature([Payment, WebhookLog]),
     FulfillmentQueue,
     MetricsModule,
     EmailsModule,
+    OrdersModule,
   ],
   controllers: [PaymentsController],
   providers: [
     PaymentsService,
-    OrdersService,
     PaymentProcessorService,
     {
       provide: NowPaymentsClient,
@@ -51,4 +49,4 @@ import { PaymentProcessorService } from '../../jobs/payment-processor.service';
   ],
   exports: [PaymentsService, PaymentProcessorService],
 })
-export class PaymentsModule {}
+export class PaymentsModule { }

@@ -40,7 +40,7 @@ const apiConfig = new Configuration({
 
 const usersClient = new UsersApi(apiConfig);
 
-export default function OrdersPage() {
+export default function OrdersPage(): React.ReactElement {
     const { user } = useAuth();
     const [search, setSearch] = useState('');
     const [statusFilter, setStatusFilter] = useState('all');
@@ -73,7 +73,7 @@ export default function OrdersPage() {
         page * itemsPerPage
     );
 
-    if (!user) {
+    if (user === null) {
         return (
             <div className="flex h-[50vh] items-center justify-center">
                 <Loader2 className="h-8 w-8 animate-spin text-primary" />

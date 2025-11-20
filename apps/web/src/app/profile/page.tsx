@@ -43,7 +43,7 @@ const apiConfig = new Configuration({
 
 const usersClient = new UsersApi(apiConfig);
 
-export default function ProfilePage() {
+export default function ProfilePage(): React.ReactElement {
   const { user } = useAuth();
   const [isSubmittingPassword, setIsSubmittingPassword] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');

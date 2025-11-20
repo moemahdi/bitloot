@@ -7,15 +7,14 @@ import { Turnstile } from '@marsidev/react-turnstile';
 import type { TurnstileInstance } from '@marsidev/react-turnstile';
 import { AlertCircle, Loader2 } from 'lucide-react';
 import { OrdersApi, PaymentsApi, Configuration } from '@bitloot/sdk';
-import type { OrderResponseDto, PaymentResponseDto } from '@bitloot/sdk';
+import type { OrderResponseDto } from '@bitloot/sdk';
 import { Alert, AlertTitle, AlertDescription } from '@/design-system/primitives/alert';
 import { Button } from '@/design-system/primitives/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/design-system/primitives/card';
 import { Input } from '@/design-system/primitives/input';
 import { Label } from '@/design-system/primitives/label';
-import { RadioGroup, RadioGroupItem } from '@/design-system/primitives/radio-group';
 import { extractCheckoutError } from '@/utils/checkout-error-handler';
-import { useForm, Controller } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { PaymentMethodForm, type PaymentMethodFormData } from './PaymentMethodForm';
@@ -51,7 +50,7 @@ export default function CheckoutForm(): React.ReactElement {
   const router = useRouter();
   const params = useParams();
   const productId = String(params.id ?? 'demo-product');
-  
+
   // State for wizard steps
   const [step, setStep] = useState<'email' | 'payment'>('email');
   const [order, setOrder] = useState<OrderResponseDto | null>(null);
@@ -94,7 +93,7 @@ export default function CheckoutForm(): React.ReactElement {
       return paymentsClient.paymentsControllerCreate({
         createPaymentDto: {
           orderId: order.id,
-          priceAmount: '100', // Hardcoded for demo
+          priceAmount: order.total, // Use dynamic price from order
           priceCurrency: 'usd',
           payCurrency: data.payCurrency,
           email: order.email, // Use email from order
@@ -287,14 +286,14 @@ export default function CheckoutForm(): React.ReactElement {
               <p className="text-sm font-medium">Order for: {order?.email}</p>
               <p className="text-xs text-muted-foreground">Order ID: {order?.id}</p>
             </div>
-            
-            <PaymentMethodForm 
-              onSubmit={onPaymentSubmit} 
-              isLoading={isLoading || isPolling} 
+
+            <PaymentMethodForm
+              onSubmit={onPaymentSubmit}
+              isLoading={isLoading || isPolling}
             />
-            
-            <Button 
-              variant="ghost" 
+
+            <Button
+              variant="ghost"
               onClick={() => setStep('email')}
               disabled={isLoading || isPolling}
               className="w-full"

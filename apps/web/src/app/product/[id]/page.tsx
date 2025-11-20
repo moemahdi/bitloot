@@ -2,22 +2,29 @@
 
 import { useParams } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
-import { catalogClient } from '@bitloot/sdk';
+import { CatalogApi, Configuration } from '@bitloot/sdk';
 import type { ProductResponseDto } from '@bitloot/sdk';
 import Image from 'next/image';
 import { Button } from '@/design-system/primitives/button';
 import { Badge } from '@/design-system/primitives/badge';
 import { Card, CardContent } from '@/design-system/primitives/card';
-import { Bitcoin, ShoppingCart, ShieldCheck, Zap, Loader2 } from 'lucide-react';
+import { Bitcoin, ShieldCheck, Zap, Loader2 } from 'lucide-react';
 import Link from 'next/link';
+import { AddToCartButton } from '@/features/product/components/AddToCartButton';
 
-export default function ProductPage() {
+export default function ProductPage(): React.ReactElement {
   const params = useParams();
   const id = params.id as string;
 
+  // Initialize SDK client
+  const apiConfig = new Configuration({
+    basePath: process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000',
+  });
+  const catalogClient = new CatalogApi(apiConfig);
+
   const { data: product, isLoading, isError } = useQuery<ProductResponseDto>({
     queryKey: ['product', id],
-    queryFn: () => catalogClient.findOne(id),
+    queryFn: () => catalogClient.catalogControllerGetProduct({ slug: id }),
     enabled: Boolean(id),
   });
 
@@ -29,7 +36,7 @@ export default function ProductPage() {
     );
   }
 
-  if (isError || !product) {
+  if (isError || product === undefined) {
     return (
       <div className="container flex h-[60vh] items-center justify-center py-8">
         <div className="text-center">
@@ -41,7 +48,7 @@ export default function ProductPage() {
   }
 
   // Calculate price in dollars (priceMinor is in cents)
-  const priceInDollars = (product.priceMinor / 100).toFixed(2);
+  const priceInDollars = (product?.priceMinor ?? 0) / 100;
 
   return (
     <div className="container py-8">
@@ -65,28 +72,30 @@ export default function ProductPage() {
               <Badge variant="outline">{product.region ?? 'Global'}</Badge>
               <Badge variant="outline">{product.category ?? 'Category'}</Badge>
             </div>
-            <h1 className="text-4xl font-bold">{product.title}</h1>
-            {product.subtitle && (
+            <h1 className="text-4xl font-bold">{product?.title}</h1>
+            {product?.subtitle !== null && product?.subtitle !== undefined ? (
               <p className="mt-2 text-xl text-muted-foreground">{product.subtitle}</p>
-            )}
+            ) : null}
           </div>
 
           <div className="flex items-end gap-4">
-            <span className="text-4xl font-bold text-primary">${priceInDollars}</span>
-            <span className="text-sm text-muted-foreground">{product.currency}</span>
+            <span className="text-4xl font-bold text-primary">${priceInDollars.toFixed(2)}</span>
+            <span className="text-sm text-muted-foreground">{product?.currency ?? 'USD'}</span>
           </div>
 
           <div className="flex flex-col gap-3">
-            <Link href={`/checkout/${product.id}`} className="w-full">
+                        <Link href={`/checkout/${product.id}`} className="w-full">
               <Button size="lg" className="w-full gap-2 text-lg">
                 <Bitcoin className="h-5 w-5" />
                 Buy Now with Crypto
               </Button>
             </Link>
-            <Button size="lg" variant="outline" className="w-full gap-2">
-              <ShoppingCart className="h-5 w-5" />
-              Add to Cart
-            </Button>
+            <AddToCartButton
+              id={product?.id ?? ''}
+              title={product?.title ?? 'Product'}
+              price={priceInDollars}
+              image={product?.imageUrl}
+            />
           </div>
 
           <Card>
@@ -111,25 +120,25 @@ export default function ProductPage() {
           <div className="prose prose-neutral dark:prose-invert max-w-none">
             <h3 className="text-xl font-semibold">Description</h3>
             <p className="whitespace-pre-line text-muted-foreground">
-              {product.description ?? 'No description available.'}
+              {product?.description ?? 'No description available.'}
             </p>
           </div>
 
-          {product.drm && (
+          {product?.drm !== null && product?.drm !== undefined ? (
             <div className="mt-4">
               <p className="text-sm text-muted-foreground">
                 <span className="font-medium">DRM:</span> {product.drm}
               </p>
             </div>
-          )}
+          ) : null}
 
-          {product.ageRating && (
+          {product?.ageRating !== null && product?.ageRating !== undefined ? (
             <div>
               <p className="text-sm text-muted-foreground">
                 <span className="font-medium">Age Rating:</span> {product.ageRating}
               </p>
             </div>
-          )}
+          ) : null}
         </div>
       </div>
     </div>

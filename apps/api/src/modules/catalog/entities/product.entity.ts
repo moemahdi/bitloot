@@ -11,7 +11,7 @@ import { ProductOffer } from './product-offer.entity';
 import { DynamicPricingRule } from './dynamic-pricing-rule.entity';
 
 @Entity('products')
-@Index(['isPublished', 'priceMinor', 'createdAt'])
+@Index(['isPublished', 'price', 'createdAt'])
 @Index(['platform', 'region', 'isPublished'])
 @Index(['slug'])
 @Index(['category', 'isPublished'])
@@ -55,14 +55,14 @@ export class Product {
   @Column({ type: 'boolean', default: false })
   isPublished!: boolean;
 
-  @Column({ type: 'bigint', default: 0 })
-  costMinor!: number; // in cents/satoshis
+  @Column('decimal', { precision: 20, scale: 8, default: '0.00000000' })
+  cost!: string; // Cost in crypto
 
   @Column({ type: 'char', length: 3, default: 'USD' })
   currency!: string;
 
-  @Column({ type: 'bigint', default: 0 })
-  priceMinor!: number; // retail price in cents
+  @Column('decimal', { precision: 20, scale: 8, default: '0.00000000' })
+  price!: string; // Selling price in crypto
 
   @Column({ type: 'int', default: 0 })
   priceVersion!: number;

@@ -11,6 +11,7 @@ Name | Type
 `status` | string
 `total` | string
 `createdAt` | Date
+`payment` | [AdminControllerGetOrders200ResponseDataInnerPayment](AdminControllerGetOrders200ResponseDataInnerPayment.md)
 
 ## Example
 
@@ -24,6 +25,7 @@ const example = {
   "status": null,
   "total": null,
   "createdAt": null,
+  "payment": null,
 } satisfies AdminControllerGetOrders200ResponseDataInner
 
 console.log(example)

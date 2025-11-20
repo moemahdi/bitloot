@@ -24,6 +24,7 @@ docs/AdminCatalogSyncApi.md
 docs/AdminControllerGetKeyAuditTrail200ResponseInner.md
 docs/AdminControllerGetOrders200Response.md
 docs/AdminControllerGetOrders200ResponseDataInner.md
+docs/AdminControllerGetOrders200ResponseDataInnerPayment.md
 docs/AdminControllerGetPayments200Response.md
 docs/AdminControllerGetPayments200ResponseDataInner.md
 docs/AdminControllerGetPayments200ResponseDataInnerOrder.md
@@ -52,6 +53,7 @@ docs/AdminOpsControllerGetSystemHealth200ResponseQueues.md
 docs/AdminPricingRuleResponseDto.md
 docs/AdminPricingRulesListResponseDto.md
 docs/AdminProductResponseDto.md
+docs/AuditAdminDto.md
 docs/AuditLogResponseDto.md
 docs/AuditLogsApi.md
 docs/AuthResponseDto.md
@@ -104,6 +106,7 @@ index.ts
 models/AdminControllerGetKeyAuditTrail200ResponseInner.ts
 models/AdminControllerGetOrders200Response.ts
 models/AdminControllerGetOrders200ResponseDataInner.ts
+models/AdminControllerGetOrders200ResponseDataInnerPayment.ts
 models/AdminControllerGetPayments200Response.ts
 models/AdminControllerGetPayments200ResponseDataInner.ts
 models/AdminControllerGetPayments200ResponseDataInnerOrder.ts
@@ -131,6 +134,7 @@ models/AdminOpsControllerGetSystemHealth200ResponseQueues.ts
 models/AdminPricingRuleResponseDto.ts
 models/AdminPricingRulesListResponseDto.ts
 models/AdminProductResponseDto.ts
+models/AuditAdminDto.ts
 models/AuditLogResponseDto.ts
 models/AuthResponseDto.ts
 models/CreateAuditLogDto.ts

@@ -16,7 +16,7 @@ Name | Type
 `drm` | string
 `ageRating` | string
 `category` | string
-`priceMinor` | number
+`price` | string
 `currency` | string
 `isPublished` | boolean
 `imageUrl` | string
@@ -40,7 +40,7 @@ const example = {
   "drm": Steam,
   "ageRating": M - Mature 17+,
   "category": Games,
-  "priceMinor": 5999,
+  "price": 59.99000000,
   "currency": USD,
   "isPublished": true,
   "imageUrl": https://cdn.bitloot.io/products/cyberpunk-2077-cover.jpg,

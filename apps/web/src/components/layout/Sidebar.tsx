@@ -29,7 +29,7 @@ const sidebarItems = [
     },
 ];
 
-export function Sidebar() {
+export function Sidebar(): React.ReactElement {
     const pathname = usePathname();
     const { logout } = useAuth();
 

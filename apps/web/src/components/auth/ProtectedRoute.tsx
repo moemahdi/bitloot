@@ -8,7 +8,7 @@ interface ProtectedRouteProps {
     children: React.ReactNode;
 }
 
-export function ProtectedRoute({ children }: ProtectedRouteProps) {
+export function ProtectedRoute({ children }: ProtectedRouteProps): React.ReactElement | null {
     const { isAuthenticated, isLoading } = useAuth();
     const router = useRouter();
 

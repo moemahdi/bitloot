@@ -3,6 +3,7 @@
 export * from './AdminControllerGetKeyAuditTrail200ResponseInner';
 export * from './AdminControllerGetOrders200Response';
 export * from './AdminControllerGetOrders200ResponseDataInner';
+export * from './AdminControllerGetOrders200ResponseDataInnerPayment';
 export * from './AdminControllerGetPayments200Response';
 export * from './AdminControllerGetPayments200ResponseDataInner';
 export * from './AdminControllerGetPayments200ResponseDataInnerOrder';
@@ -30,6 +31,7 @@ export * from './AdminOpsControllerGetSystemHealth200ResponseQueues';
 export * from './AdminPricingRuleResponseDto';
 export * from './AdminPricingRulesListResponseDto';
 export * from './AdminProductResponseDto';
+export * from './AuditAdminDto';
 export * from './AuditLogResponseDto';
 export * from './AuthResponseDto';
 export * from './CreateAuditLogDto';

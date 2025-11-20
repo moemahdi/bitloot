@@ -15,6 +15,9 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { toast } from 'sonner';
 import { ChevronLeft, CheckCircle2, AlertCircle } from 'lucide-react';
+import { useMutation } from '@tanstack/react-query';
+import { OrdersApi, Configuration } from '@bitloot/sdk';
+import type { OrderResponseDto } from '@bitloot/sdk';
 
 // Validation schema for email step
 const emailSchema = z.object({
@@ -28,6 +31,12 @@ const emailSchema = z.object({
 type EmailFormData = z.infer<typeof emailSchema>;
 
 type CheckoutStep = 'review' | 'email' | 'payment' | 'confirmation';
+
+// Initialize SDK client
+const apiConfig = new Configuration({
+  basePath: process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000',
+});
+const ordersClient = new OrdersApi(apiConfig);
 
 export default function CheckoutPage(): React.ReactElement | void {
   const { items, total, clearCart } = useCart();
@@ -44,6 +53,55 @@ export default function CheckoutPage(): React.ReactElement | void {
     formState: { errors },
   } = useForm<EmailFormData>({
     resolver: zodResolver(emailSchema),
+  });
+
+  // Helper function to safely create order via SDK
+  const performOrderCreation = async (): Promise<OrderResponseDto> => {
+    if (items.length === 0) {
+      throw new Error('Cart is empty');
+    }
+
+    // Use the first item (single product per order in this phase)
+    const firstItem = items[0];
+    if (firstItem === undefined) {
+      throw new Error('No product in cart');
+    }
+
+    try {
+      const response = await ordersClient.ordersControllerCreate({
+        createOrderDto: {
+          email,
+          productId: firstItem.productId,
+          captchaToken: '', // TODO: Integrate Turnstile CAPTCHA token
+          note: `Quantity: ${firstItem.quantity}`,
+        },
+      });
+
+      if (response?.id === undefined || response.id === '') {
+        throw new Error('Invalid response from order creation: missing order ID');
+      }
+
+      return response;
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to create order';
+      throw new Error(errorMessage);
+    }
+  };
+
+  // Mutation for creating order with payment
+  const createOrderMutation = useMutation({
+    mutationFn: performOrderCreation,
+    onSuccess: (data: OrderResponseDto): void => {
+      setOrderId(data.id);
+      clearCart();
+      setCurrentStep('confirmation');
+      toast.success('Order created successfully! Proceeding to payment...');
+    },
+    onError: (error: Error): void => {
+      console.error('Order creation error:', error);
+      const errorMsg = error instanceof Error ? error.message : 'Unknown error occurred';
+      toast.error(`Failed to create order: ${errorMsg}`);
+    },
   });
 
   if (items.length === 0) {
@@ -74,22 +132,15 @@ export default function CheckoutPage(): React.ReactElement | void {
     setCurrentStep('payment');
   };
 
-  const handlePaymentSubmit = (): void => {
+  const handlePaymentSubmit = async (): Promise<void> => {
     setIsProcessing(true);
     try {
-      // TODO: Integrate with NOWPayments API to create payment
-      // For now, simulate order creation
-      const mockOrderId = `ORD-${Date.now()}`;
-      setOrderId(mockOrderId);
-
-      // Clear cart after successful checkout
-      clearCart();
-      
-      // Move to confirmation
-      setCurrentStep('confirmation');
+      // Create order via SDK (handles NOWPayments payment creation internally)
+      await createOrderMutation.mutateAsync();
     } catch (error) {
       console.error('Payment error:', error);
-      toast.error('Payment processing failed. Please try again.');
+      const errorMessage = error instanceof Error ? error.message : 'Payment processing failed';
+      toast.error(`${errorMessage}. Please try again.`);
     } finally {
       setIsProcessing(false);
     }

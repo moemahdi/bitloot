@@ -44,6 +44,12 @@ export interface OrderResponseDto {
      * @type {string}
      * @memberof OrderResponseDto
      */
+    userId?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof OrderResponseDto
+     */
     status: string;
     /**
      * 
@@ -97,6 +103,7 @@ export function OrderResponseDtoFromJSONTyped(json: any, ignoreDiscriminator: bo
         
         'id': json['id'],
         'email': json['email'],
+        'userId': json['userId'] == null ? undefined : json['userId'],
         'status': json['status'],
         'total': json['total'],
         'items': ((json['items'] as Array<any>).map(OrderItemResponseDtoFromJSON)),
@@ -118,6 +125,7 @@ export function OrderResponseDtoToJSONTyped(value?: OrderResponseDto | null, ign
         
         'id': value['id'],
         'email': value['email'],
+        'userId': value['userId'],
         'status': value['status'],
         'total': value['total'],
         'items': ((value['items'] as Array<any>).map(OrderItemResponseDtoToJSON)),

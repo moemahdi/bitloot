@@ -33,7 +33,7 @@ import { Product } from './entities/product.entity';
 @UseGuards(JwtAuthGuard, AdminGuard)
 @ApiBearerAuth('JWT-auth')
 export class AdminProductsController {
-  constructor(private readonly catalogService: CatalogService) {}
+  constructor(private readonly catalogService: CatalogService) { }
 
   /**
    * Convert Product entity to response DTO
@@ -42,7 +42,7 @@ export class AdminProductsController {
     if (value === undefined) return undefined;
     if (typeof value === 'number') return value;
     if (typeof value === 'string' && value.length > 0) {
-      return Number.parseInt(value, 10);
+      return Number.parseFloat(value);
     }
     return undefined;
   }
@@ -61,12 +61,9 @@ export class AdminProductsController {
       drm: product.drm ?? undefined,
       ageRating: product.ageRating ?? undefined,
       category: product.category ?? undefined,
-      costMinor: product.costMinor,
-      priceMinor: product.priceMinor,
-      price: {
-        amount: (product.priceMinor / 100).toFixed(2),
-        currency: product.currency,
-      },
+
+      cost: product.cost,
+      price: product.price,
       currency: product.currency,
       isPublished: product.isPublished,
       isCustom: product.isCustom,
@@ -131,11 +128,6 @@ export class AdminProductsController {
   @ApiResponse({ status: 201, type: AdminProductResponseDto })
   async create(@Body() dto: CreateProductDto): Promise<AdminProductResponseDto> {
     try {
-      const costMinor =
-        typeof dto.costMinor === 'string' ? Number.parseInt(dto.costMinor, 10) : dto.costMinor;
-      const priceMinor =
-        typeof dto.priceMinor === 'string' ? Number.parseInt(dto.priceMinor, 10) : dto.priceMinor;
-
       const product = await this.catalogService.createCustomProduct({
         title: dto.title,
         subtitle: dto.subtitle,
@@ -145,8 +137,8 @@ export class AdminProductsController {
         drm: dto.drm,
         ageRating: dto.ageRating,
         category: dto.category,
-        costMinor: costMinor ?? 0,
-        priceMinor: priceMinor ?? 0,
+        cost: dto.cost,
+        price: dto.price,
         currency: dto.currency,
         isPublished: dto.isPublished,
       });
@@ -168,9 +160,6 @@ export class AdminProductsController {
     @Body() dto: UpdateProductDto,
   ): Promise<AdminProductResponseDto> {
     try {
-      const costMinor = this.parseNumberField(dto.costMinor);
-      const priceMinor = this.parseNumberField(dto.priceMinor);
-
       const product = await this.catalogService.updateProduct(id, {
         title: dto.title,
         subtitle: dto.subtitle,
@@ -180,8 +169,8 @@ export class AdminProductsController {
         drm: dto.drm,
         ageRating: dto.ageRating,
         category: dto.category,
-        costMinor,
-        priceMinor,
+        cost: dto.cost,
+        price: dto.price,
         currency: dto.currency,
       });
       return this.toResponseDto(product);

@@ -6,6 +6,7 @@ import { Key } from './key.entity';
 import { OrdersService } from './orders.service';
 import { OrdersController } from './orders.controller';
 import { EmailsModule } from '../emails/emails.module';
+import { CatalogModule } from '../catalog/catalog.module';
 
 /**
  * Orders Module
@@ -28,9 +29,9 @@ import { EmailsModule } from '../emails/emails.module';
  * constructor(private readonly orders: OrdersService) {}
  */
 @Module({
-  imports: [TypeOrmModule.forFeature([Order, OrderItem, Key]), EmailsModule],
+  imports: [TypeOrmModule.forFeature([Order, OrderItem, Key]), EmailsModule, CatalogModule],
   providers: [OrdersService],
   controllers: [OrdersController],
   exports: [OrdersService],
 })
-export class OrdersModule {}
+export class OrdersModule { }

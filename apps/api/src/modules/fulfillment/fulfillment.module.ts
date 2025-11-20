@@ -16,6 +16,7 @@ import { DeliveryService } from './delivery.service';
 import { EmailsModule } from '../emails/emails.module';
 import { MetricsModule } from '../metrics/metrics.module';
 import { OrdersService } from '../orders/orders.service';
+import { CatalogModule } from '../catalog/catalog.module';
 
 /**
  * Fulfillment Module
@@ -56,6 +57,9 @@ import { OrdersService } from '../orders/orders.service';
 
     // Metrics module (provides MetricsService for EmailsService)
     MetricsModule,
+
+    // Catalog module (provides CatalogService for OrdersService)
+    CatalogModule,
   ],
   providers: [
     // Kinguin API client (factory pattern for environment config)

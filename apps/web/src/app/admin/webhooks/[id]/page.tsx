@@ -7,16 +7,16 @@ import { Configuration, AdminApi } from '@bitloot/sdk';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/design-system/primitives/card';
 import { Badge } from '@/design-system/primitives/badge';
 import { Button } from '@/design-system/primitives/button';
-import { Loader2, ArrowLeft, RefreshCw, AlertTriangle, CheckCircle, XCircle } from 'lucide-react';
+import { Loader2, ArrowLeft, RefreshCw, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
 import { useAdminGuard } from '@/features/admin/hooks/useAdminGuard';
 import { toast } from 'sonner';
 
 const apiConfig = new Configuration({
     basePath: process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000',
-    accessToken: () => {
+    accessToken: (): string => {
         if (typeof window !== 'undefined') {
-            return localStorage.getItem('accessToken') || '';
+            return localStorage.getItem('accessToken') ?? '';
         }
         return '';
     },
@@ -24,7 +24,7 @@ const apiConfig = new Configuration({
 
 const adminApi = new AdminApi(apiConfig);
 
-export default function AdminWebhookDetailPage() {
+export default function AdminWebhookDetailPage(): React.ReactElement | null {
     const params = useParams();
     const id = params.id as string;
     const { isLoading: isGuardLoading, isAdmin } = useAdminGuard();
@@ -47,7 +47,7 @@ export default function AdminWebhookDetailPage() {
             void queryClient.invalidateQueries({ queryKey: ['admin-webhook', id] });
             void refetch();
         },
-        onError: (error: Error) => {
+        onError: (error: Error): void => {
             toast.error(`Failed to replay webhook: ${error.message}`);
         },
     });
@@ -61,10 +61,10 @@ export default function AdminWebhookDetailPage() {
     }
 
     if (!isAdmin) {
-        return null;
+        return <div />;
     }
 
-    if (!webhook) {
+    if (webhook === null || webhook === undefined) {
         return (
             <div className="container mx-auto py-8">
                 <div className="flex flex-col items-center justify-center space-y-4">
@@ -80,7 +80,7 @@ export default function AdminWebhookDetailPage() {
         );
     }
 
-    const getStatusBadge = (status?: string) => {
+    const _getStatusBadge = (status?: string): React.ReactElement => {
         switch (status) {
             case 'processed':
             case 'completed':
@@ -149,7 +149,7 @@ export default function AdminWebhookDetailPage() {
                 </Card>
 
                 {/* Error Info */}
-                {webhook.error && (
+                {webhook?.error != null && (
                     <Card className="border-red-200 bg-red-50">
                         <CardHeader>
                             <div className="flex items-center gap-2">
@@ -159,7 +159,7 @@ export default function AdminWebhookDetailPage() {
                         </CardHeader>
                         <CardContent>
                             <pre className="whitespace-pre-wrap text-sm text-red-800 font-mono">
-                                {webhook.error}
+                                {webhook?.error}
                             </pre>
                         </CardContent>
                     </Card>

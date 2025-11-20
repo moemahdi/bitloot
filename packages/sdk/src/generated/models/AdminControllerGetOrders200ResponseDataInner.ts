@@ -13,6 +13,14 @@
  */
 
 import { mapValues } from '../runtime';
+import type { AdminControllerGetOrders200ResponseDataInnerPayment } from './AdminControllerGetOrders200ResponseDataInnerPayment';
+import {
+    AdminControllerGetOrders200ResponseDataInnerPaymentFromJSON,
+    AdminControllerGetOrders200ResponseDataInnerPaymentFromJSONTyped,
+    AdminControllerGetOrders200ResponseDataInnerPaymentToJSON,
+    AdminControllerGetOrders200ResponseDataInnerPaymentToJSONTyped,
+} from './AdminControllerGetOrders200ResponseDataInnerPayment';
+
 /**
  * 
  * @export
@@ -49,6 +57,12 @@ export interface AdminControllerGetOrders200ResponseDataInner {
      * @memberof AdminControllerGetOrders200ResponseDataInner
      */
     createdAt?: Date;
+    /**
+     * 
+     * @type {AdminControllerGetOrders200ResponseDataInnerPayment}
+     * @memberof AdminControllerGetOrders200ResponseDataInner
+     */
+    payment?: AdminControllerGetOrders200ResponseDataInnerPayment | null;
 }
 
 /**
@@ -73,6 +87,7 @@ export function AdminControllerGetOrders200ResponseDataInnerFromJSONTyped(json: 
         'status': json['status'] == null ? undefined : json['status'],
         'total': json['total'] == null ? undefined : json['total'],
         'createdAt': json['createdAt'] == null ? undefined : (new Date(json['createdAt'])),
+        'payment': json['payment'] == null ? undefined : AdminControllerGetOrders200ResponseDataInnerPaymentFromJSON(json['payment']),
     };
 }
 
@@ -92,6 +107,7 @@ export function AdminControllerGetOrders200ResponseDataInnerToJSONTyped(value?: 
         'status': value['status'],
         'total': value['total'],
         'createdAt': value['createdAt'] == null ? value['createdAt'] : value['createdAt'].toISOString(),
+        'payment': AdminControllerGetOrders200ResponseDataInnerPaymentToJSON(value['payment']),
     };
 }
 

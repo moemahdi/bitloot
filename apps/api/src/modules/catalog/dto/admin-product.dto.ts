@@ -65,16 +65,16 @@ export class CreateProductDto {
   @MaxLength(50)
   category?: string;
 
-  @ApiProperty({ description: 'Wholesale price in minor units (cents)', minimum: 0 })
+  @ApiProperty({ description: 'Wholesale cost (decimal string)', example: '45.00' })
   @IsNumberString()
-  costMinor!: string;
+  cost!: string;
 
   @ApiProperty({
-    description: 'Retail price in minor units (cents)',
-    minimum: 0,
+    description: 'Retail price (decimal string)',
+    example: '59.99',
   })
   @IsNumberString()
-  priceMinor!: string;
+  price!: string;
 
   @ApiProperty({ description: 'Currency code (USD, EUR, GBP)', default: 'USD' })
   @IsOptional()
@@ -137,15 +137,15 @@ export class UpdateProductDto {
   @MaxLength(50)
   category?: string;
 
-  @ApiProperty({ description: 'Wholesale price in minor units', required: false })
+  @ApiProperty({ description: 'Wholesale cost', required: false })
   @IsOptional()
   @IsNumberString()
-  costMinor?: string;
+  cost?: string;
 
-  @ApiProperty({ description: 'Retail price in minor units', required: false })
+  @ApiProperty({ description: 'Retail price', required: false })
   @IsOptional()
   @IsNumberString()
-  priceMinor?: string;
+  price?: string;
 
   @ApiProperty({ description: 'Currency code', required: false })
   @IsOptional()
@@ -206,13 +206,10 @@ export class AdminProductResponseDto {
   category?: string;
 
   @ApiProperty()
-  costMinor!: number;
+  cost!: string;
 
   @ApiProperty()
-  priceMinor!: number;
-
-  @ApiProperty({ type: ProductPriceDto })
-  price!: ProductPriceDto;
+  price!: string;
 
   @ApiProperty()
   currency!: string;

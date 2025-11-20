@@ -9,6 +9,9 @@ import { WebhookLog } from './entities/webhook-log.entity';
 import { User } from './entities/user.entity';
 import { AuditLog } from './entities/audit-log.entity';
 import { EmailBounce } from './entities/email-bounce.entity';
+import { Product } from '../modules/catalog/entities/product.entity';
+import { ProductOffer } from '../modules/catalog/entities/product-offer.entity';
+import { DynamicPricingRule } from '../modules/catalog/entities/dynamic-pricing-rule.entity';
 import { InitOrders1710000000000 } from './migrations/1710000000000-InitOrders';
 import { AddKeysReservation1720000000000 } from './migrations/1720000000000-add-keys-reservation';
 import { CreatePayments1730000000001 } from './migrations/1730000000001-CreatePayments';
@@ -17,13 +20,16 @@ import { UpdateOrdersStatusEnum1730000000003 } from './migrations/1730000000003-
 import { CreateUsers1735000000000 } from './migrations/1735000000000-CreateUsers';
 import { CreateAuditLogs1731700000000 } from './migrations/1731700000000-CreateAuditLogs';
 import { CreateEmailBounces1735604400000 } from './migrations/1735604400000-CreateEmailBounces';
+import { RefactorProductPrice1763647677731 } from './migrations/1763647677731-RefactorProductPrice';
+import { AddEncryptionKeyToKey1763652000000 } from './migrations/1763652000000-AddEncryptionKeyToKey';
+import { EnsureAdminUser1763653000000 } from './migrations/1763653000000-EnsureAdminUser';
 
-dotenv.config({ path: path.resolve(__dirname, '../../../.env') });
+dotenv.config({ path: path.resolve(__dirname, '../../../../.env') });
 
 export default new DataSource({
   type: 'postgres',
   url: process.env.DATABASE_URL,
-  entities: [Order, OrderItem, Key, Payment, WebhookLog, User, AuditLog, EmailBounce],
+  entities: [Order, OrderItem, Key, Payment, WebhookLog, User, AuditLog, EmailBounce, Product, ProductOffer, DynamicPricingRule],
   migrations: [
     InitOrders1710000000000,
     AddKeysReservation1720000000000,
@@ -33,6 +39,9 @@ export default new DataSource({
     CreateUsers1735000000000,
     CreateAuditLogs1731700000000,
     CreateEmailBounces1735604400000,
+    RefactorProductPrice1763647677731,
+    AddEncryptionKeyToKey1763652000000,
+    EnsureAdminUser1763653000000,
   ],
   logging: true,
   synchronize: false,

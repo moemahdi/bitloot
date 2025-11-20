@@ -100,6 +100,7 @@ export class UserService {
       id: user.id,
       email: user.email,
       emailConfirmed: user.emailConfirmed,
+      role: user.role,
       createdAt: user.createdAt,
     };
   }
