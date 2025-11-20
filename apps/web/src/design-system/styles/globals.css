@@ -2,101 +2,159 @@
 
 @layer base {
   :root {
-    /* BitLoot Brand Colors - Light Mode */
-    --background: 210 40% 98%; /* #F8FAFC (Light) */
-    --foreground: 222 47% 11%; /* #0F172A (Dark) */
+    /* ========================================
+       BitLoot Enhanced Design System
+       Neon Cyberpunk Aesthetic for Gaming/Crypto
+       Light mode uses dark colors for consistency
+       ======================================== */
 
-    --card: 0 0% 100%;
-    --card-foreground: 222 47% 11%;
+    /* --- Core Backgrounds --- */
+    --background: 220 40% 7%;
+    /* #0A0E1A - Deep space */
+    --foreground: 0 0% 100%;
+    /* #FFFFFF */
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
+    /* --- Neon Accent Colors --- */
+    --cyan-glow: 190 100% 50%;
+    /* #00D9FF - Electric cyan */
+    --purple-neon: 277 66% 59%;
+    /* #9D4EDD - Neon purple */
+    --green-success: 123 100% 54%;
+    /* #39FF14 - Neon green */
+    --orange-warning: 25 100% 50%;
+    /* #FF6B00 - Neon orange */
+    --pink-featured: 331 100% 50%;
+    /* #FF006E - Neon pink */
 
-    --primary: 203 49% 33%; /* #2B5F7F (Deep Blue) */
-    --primary-foreground: 210 40% 98%;
+    /* --- Semantic Backgrounds --- */
+    --bg-primary: 220 40% 7%;
+    /* Deep space */
+    --bg-secondary: 220 35% 10%;
+    /* Card backgrounds */
+    --bg-tertiary: 220 30% 14%;
+    /* Elevated surfaces */
 
-    --secondary: 36 90% 53%; /* #F59E1A (Amber) */
-    --secondary-foreground: 222 47% 11%;
+    /* --- Text Colors --- */
+    --text-primary: 0 0% 100%;
+    --text-secondary: 218 25% 75%;
+    --text-muted: 218 20% 55%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    /* --- Border Colors --- */
+    --border-subtle: 220 25% 20%;
+    --border-accent: 220 25% 26%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222 47% 11%;
+    /* --- Existing shadcn/ui colors --- */
+    --card: 220 35% 10%;
+    --card-foreground: 0 0% 100%;
 
-    --destructive: 0 84.2% 60.2%; /* #EF4444 (Red) */
-    --destructive-foreground: 210 40% 98%;
+    --popover: 220 35% 10%;
+    --popover-foreground: 0 0% 100%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 203 49% 33%;
+    --primary: 190 100% 50%;
+    /* Cyan glow */
+    --primary-foreground: 220 40% 7%;
+
+    --secondary: 277 66% 59%;
+    /* Purple neon */
+    --secondary-foreground: 0 0% 100%;
+
+    --muted: 220 30% 14%;
+    --muted-foreground: 218 20% 65%;
+
+    --accent: 220 30% 14%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 63% 31%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 220 25% 20%;
+    --input: 220 25% 20%;
+    --ring: 190 100% 50%;
 
     --radius: 0.5rem;
 
     /* Chart Colors */
-    --chart-1: 203 49% 33%;
-    --chart-2: 36 90% 53%;
-    --chart-3: 160 84% 39%;
-    --chart-4: 24 94% 53%;
-    --chart-5: 222 47% 11%;
+    --chart-1: 190 100% 50%;
+    --chart-2: 277 66% 59%;
+    --chart-3: 123 100% 54%;
+    --chart-4: 25 100% 50%;
+    --chart-5: 331 100% 50%;
 
     /* Sidebar */
-    --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 240 5.3% 26.1%;
-    --sidebar-primary: 240 5.9% 10%;
-    --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 240 4.8% 95.9%;
-    --sidebar-accent-foreground: 240 5.9% 10%;
-    --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --sidebar-background: 220 40% 7%;
+    --sidebar-foreground: 218 25% 75%;
+    --sidebar-primary: 190 100% 50%;
+    --sidebar-primary-foreground: 220 40% 7%;
+    --sidebar-accent: 220 30% 14%;
+    --sidebar-accent-foreground: 218 25% 75%;
+    --sidebar-border: 220 25% 20%;
+    --sidebar-ring: 190 100% 50%;
   }
 
   .dark {
-    /* BitLoot Brand Colors - Dark Mode */
-    --background: 222 47% 11%; /* #0F172A (Dark) */
-    --foreground: 210 40% 98%; /* #F8FAFC (Light) */
+    /* ========================================
+       Dark Mode - Deep Space Cyberpunk (Primary Theme)
+       ======================================== */
 
-    --card: 222 47% 11%;
-    --card-foreground: 210 40% 98%;
+    --background: 220 40% 7%;
+    --foreground: 0 0% 100%;
 
-    --popover: 222 47% 11%;
-    --popover-foreground: 210 40% 98%;
+    --cyan-glow: 190 100% 50%;
+    --purple-neon: 277 66% 59%;
+    --green-success: 123 100% 54%;
+    --orange-warning: 25 100% 50%;
+    --pink-featured: 331 100% 50%;
 
-    --primary: 203 49% 33%; /* #2B5F7F (Deep Blue) - Keep consistent or lighten for dark mode? Keeping consistent for brand */
-    --primary-foreground: 210 40% 98%;
+    --bg-primary: 220 40% 7%;
+    --bg-secondary: 220 35% 10%;
+    --bg-tertiary: 220 30% 14%;
 
-    --secondary: 36 90% 53%; /* #F59E1A (Amber) */
-    --secondary-foreground: 222 47% 11%;
+    --text-primary: 0 0% 100%;
+    --text-secondary: 218 25% 75%;
+    --text-muted: 218 20% 55%;
 
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
+    --border-subtle: 220 25% 20%;
+    --border-accent: 220 25% 26%;
 
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
+    --card: 220 35% 10%;
+    --card-foreground: 0 0% 100%;
 
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
+    --popover: 220 35% 10%;
+    --popover-foreground: 0 0% 100%;
 
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
+    --primary: 190 100% 50%;
+    --primary-foreground: 220 40% 7%;
 
-    /* Chart Colors */
-    --chart-1: 220 70% 50%;
-    --chart-2: 160 60% 45%;
-    --chart-3: 30 80% 55%;
-    --chart-4: 280 65% 60%;
-    --chart-5: 340 75% 55%;
+    --secondary: 277 66% 59%;
+    --secondary-foreground: 0 0% 100%;
 
-    /* Sidebar */
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --muted: 220 30% 14%;
+    --muted-foreground: 218 20% 65%;
+
+    --accent: 220 30% 14%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 63% 31%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 220 25% 20%;
+    --input: 220 25% 20%;
+    --ring: 190 100% 50%;
+
+    --chart-1: 190 100% 50%;
+    --chart-2: 277 66% 59%;
+    --chart-3: 123 100% 54%;
+    --chart-4: 25 100% 50%;
+    --chart-5: 331 100% 50%;
+
+    --sidebar-background: 220 40% 7%;
+    --sidebar-foreground: 218 25% 75%;
+    --sidebar-primary: 190 100% 50%;
+    --sidebar-primary-foreground: 220 40% 7%;
+    --sidebar-accent: 220 30% 14%;
+    --sidebar-accent-foreground: 218 25% 75%;
+    --sidebar-border: 220 25% 20%;
+    --sidebar-ring: 190 100% 50%;
   }
 }
 
@@ -104,8 +162,29 @@
   * {
     border-color: hsl(var(--border));
   }
+
   body {
     background-color: hsl(var(--background));
     color: hsl(var(--foreground));
+    font-feature-settings: 'rlig' 1, 'calt' 1;
+  }
+
+  /* Scrollbar Styling */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: hsl(var(--bg-secondary));
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: hsl(var(--border-accent));
+    border-radius: 5px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--cyan-glow) / 0.5);
   }
 }

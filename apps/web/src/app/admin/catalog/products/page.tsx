@@ -34,6 +34,7 @@ import {
 } from '@/design-system/primitives/table';
 import { Badge } from '@/design-system/primitives/badge';
 import { Button } from '@/design-system/primitives/button';
+import { GlowButton } from '@/design-system/primitives/glow-button';
 import {
   Select,
   SelectContent,
@@ -58,6 +59,7 @@ import type { AdminProductResponseDto } from '@bitloot/sdk';
 import { AdminCatalogProductsApi, Configuration } from '@bitloot/sdk';
 import { useErrorHandler } from '@/hooks/useErrorHandler';
 import { useNetworkStatus } from '@/hooks/useNetworkStatus';
+import { motion, AnimatePresence } from 'framer-motion';
 
 // Platform options for filter
 const PLATFORMS = [
@@ -125,7 +127,7 @@ export default function AdminCatalogProductsPage(): React.JSX.Element {
 
       try {
         const api = new AdminCatalogProductsApi(apiConfig);
-        
+
         // Build filter params (using empty string as fallback for required params)
         const response = await api.adminProductsControllerListAll({
           search: searchQuery !== '' ? searchQuery : '',
@@ -210,25 +212,26 @@ export default function AdminCatalogProductsPage(): React.JSX.Element {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Catalog Products</h1>
-          <p className="text-muted-foreground mt-2">
+          <h1 className="font-display text-3xl font-bold tracking-tight text-text-primary drop-shadow-[0_0_10px_rgba(0,217,255,0.1)]">Catalog Products</h1>
+          <p className="text-text-secondary mt-2">
             Manage products from Kinguin sync and custom listings
           </p>
         </div>
-        <Button
+        <GlowButton
           onClick={handleRefresh}
           disabled={isLoading}
-          variant="outline"
+          variant="secondary"
           size="sm"
+          glowColor="cyan"
         >
           <RefreshCw className={`mr-2 h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
           Refresh
-        </Button>
+        </GlowButton>
       </div>
 
       {/* Network Status Alert */}
       {!isOnline && (
-        <Alert variant="destructive">
+        <Alert variant="destructive" className="border-red-500/50 bg-red-500/10 text-red-500">
           <AlertTriangle className="h-4 w-4" />
           <AlertTitle>No Internet Connection</AlertTitle>
           <AlertDescription>
@@ -239,7 +242,7 @@ export default function AdminCatalogProductsPage(): React.JSX.Element {
 
       {/* Error Alert */}
       {lastError != null && lastError.length > 0 && isOnline && (
-        <Alert variant="destructive">
+        <Alert variant="destructive" className="border-red-500/50 bg-red-500/10 text-red-500">
           <AlertTriangle className="h-4 w-4" />
           <AlertTitle>Error Loading Products</AlertTitle>
           <AlertDescription className="mt-2 space-y-2">
@@ -248,7 +251,7 @@ export default function AdminCatalogProductsPage(): React.JSX.Element {
               onClick={handleRefresh}
               variant="outline"
               size="sm"
-              className="mt-2"
+              className="mt-2 border-red-500/30 hover:bg-red-500/10"
             >
               Try Again
             </Button>
@@ -257,10 +260,10 @@ export default function AdminCatalogProductsPage(): React.JSX.Element {
       )}
 
       {/* Filters Card */}
-      <Card>
+      <Card className="border-cyan-glow/20 bg-bg-secondary/50 backdrop-blur-sm shadow-[0_0_15px_rgba(0,217,255,0.05)]">
         <CardHeader>
-          <CardTitle>Filters</CardTitle>
-          <CardDescription>
+          <CardTitle className="text-text-primary">Filters</CardTitle>
+          <CardDescription className="text-text-secondary">
             Search and filter products by various criteria
           </CardDescription>
         </CardHeader>
@@ -268,27 +271,27 @@ export default function AdminCatalogProductsPage(): React.JSX.Element {
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             {/* Search Input */}
             <div className="space-y-2">
-              <Label htmlFor="search">Search</Label>
+              <Label htmlFor="search" className="text-text-secondary">Search</Label>
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-cyan-glow/50" />
                 <Input
                   id="search"
                   placeholder="Search by title..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9"
+                  className="pl-9 border-cyan-glow/20 bg-bg-tertiary/50 focus:border-cyan-glow/50 focus:ring-cyan-glow/20"
                 />
               </div>
             </div>
 
             {/* Platform Filter */}
             <div className="space-y-2">
-              <Label htmlFor="platform">Platform</Label>
+              <Label htmlFor="platform" className="text-text-secondary">Platform</Label>
               <Select value={platformFilter} onValueChange={setPlatformFilter}>
-                <SelectTrigger id="platform">
+                <SelectTrigger id="platform" className="border-cyan-glow/20 bg-bg-tertiary/50 focus:border-cyan-glow/50 focus:ring-cyan-glow/20">
                   <SelectValue placeholder="All platforms" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="border-cyan-glow/20 bg-bg-secondary/95 backdrop-blur-xl">
                   <SelectItem value="all">All Platforms</SelectItem>
                   {PLATFORMS.map((platform) => (
                     <SelectItem key={platform} value={platform}>
@@ -301,12 +304,12 @@ export default function AdminCatalogProductsPage(): React.JSX.Element {
 
             {/* Region Filter */}
             <div className="space-y-2">
-              <Label htmlFor="region">Region</Label>
+              <Label htmlFor="region" className="text-text-secondary">Region</Label>
               <Select value={regionFilter} onValueChange={setRegionFilter}>
-                <SelectTrigger id="region">
+                <SelectTrigger id="region" className="border-cyan-glow/20 bg-bg-tertiary/50 focus:border-cyan-glow/50 focus:ring-cyan-glow/20">
                   <SelectValue placeholder="All regions" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="border-cyan-glow/20 bg-bg-secondary/95 backdrop-blur-xl">
                   <SelectItem value="all">All Regions</SelectItem>
                   {REGIONS.map((region) => (
                     <SelectItem key={region} value={region}>
@@ -319,12 +322,12 @@ export default function AdminCatalogProductsPage(): React.JSX.Element {
 
             {/* Published Status Filter */}
             <div className="space-y-2">
-              <Label htmlFor="published">Status</Label>
+              <Label htmlFor="published" className="text-text-secondary">Status</Label>
               <Select value={publishedFilter} onValueChange={setPublishedFilter}>
-                <SelectTrigger id="published">
+                <SelectTrigger id="published" className="border-cyan-glow/20 bg-bg-tertiary/50 focus:border-cyan-glow/50 focus:ring-cyan-glow/20">
                   <SelectValue placeholder="All statuses" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="border-cyan-glow/20 bg-bg-secondary/95 backdrop-blur-xl">
                   <SelectItem value="all">All Products</SelectItem>
                   <SelectItem value="true">Published</SelectItem>
                   <SelectItem value="false">Hidden</SelectItem>
@@ -336,10 +339,10 @@ export default function AdminCatalogProductsPage(): React.JSX.Element {
       </Card>
 
       {/* Products Table Card */}
-      <Card>
+      <Card className="border-cyan-glow/20 bg-bg-secondary/50 backdrop-blur-sm shadow-[0_0_15px_rgba(0,217,255,0.05)]">
         <CardHeader>
-          <CardTitle>Products</CardTitle>
-          <CardDescription>
+          <CardTitle className="text-text-primary">Products</CardTitle>
+          <CardDescription className="text-text-secondary">
             {isLoading
               ? 'Loading products...'
               : products != null
@@ -350,22 +353,22 @@ export default function AdminCatalogProductsPage(): React.JSX.Element {
         <CardContent>
           {isLoading ? (
             <div className="flex items-center justify-center py-12">
-              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-              <span className="ml-3 text-muted-foreground">Loading products...</span>
+              <Loader2 className="h-8 w-8 animate-spin text-cyan-glow" />
+              <span className="ml-3 text-text-secondary">Loading products...</span>
             </div>
           ) : error != null && (lastError == null || lastError.length === 0) ? (
-            <Alert variant="destructive">
+            <Alert variant="destructive" className="border-red-500/50 bg-red-500/10 text-red-500">
               <AlertTriangle className="h-4 w-4" />
               <AlertTitle>Failed to Load Products</AlertTitle>
               <AlertDescription>
                 {error instanceof Error ? error.message : 'Unknown error occurred'}
               </AlertDescription>
-              </Alert>
+            </Alert>
           ) : products == null || products.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
-              <Eye className="h-12 w-12 text-muted-foreground/50 mb-4" />
-              <p className="text-lg font-medium">No products found</p>
-              <p className="text-sm text-muted-foreground mt-1">
+              <Eye className="h-12 w-12 text-text-muted mb-4" />
+              <p className="text-lg font-medium text-text-primary">No products found</p>
+              <p className="text-sm text-text-secondary mt-1">
                 Try adjusting your filters or run a Kinguin sync
               </p>
             </div>
@@ -373,117 +376,129 @@ export default function AdminCatalogProductsPage(): React.JSX.Element {
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
-                  <TableRow>
-                    <TableHead>Title</TableHead>
-                    <TableHead>Category</TableHead>
-                    <TableHead>Platform</TableHead>
-                    <TableHead>Region</TableHead>
-                    <TableHead className="text-right">Cost</TableHead>
-                    <TableHead className="text-right">Price</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
+                  <TableRow className="border-cyan-glow/20 hover:bg-transparent">
+                    <TableHead className="text-text-secondary uppercase tracking-wider text-xs">Title</TableHead>
+                    <TableHead className="text-text-secondary uppercase tracking-wider text-xs">Category</TableHead>
+                    <TableHead className="text-text-secondary uppercase tracking-wider text-xs">Platform</TableHead>
+                    <TableHead className="text-text-secondary uppercase tracking-wider text-xs">Region</TableHead>
+                    <TableHead className="text-right text-text-secondary uppercase tracking-wider text-xs">Cost</TableHead>
+                    <TableHead className="text-right text-text-secondary uppercase tracking-wider text-xs">Price</TableHead>
+                    <TableHead className="text-text-secondary uppercase tracking-wider text-xs">Status</TableHead>
+                    <TableHead className="text-right text-text-secondary uppercase tracking-wider text-xs">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {(products ?? []).map((product: AdminProductResponseDto) => {
-                    const isPublishing = publishMutation.isPending && publishMutation.variables === product.id;
-                    const isUnpublishing = unpublishMutation.isPending && unpublishMutation.variables === product.id;
-                    const isActionPending = isPublishing || isUnpublishing;
+                  <AnimatePresence>
+                    {(products ?? []).map((product: AdminProductResponseDto, index) => {
+                      const isPublishing = publishMutation.isPending && publishMutation.variables === product.id;
+                      const isUnpublishing = unpublishMutation.isPending && unpublishMutation.variables === product.id;
+                      const isActionPending = isPublishing || isUnpublishing;
 
-                    return (
-                      <TableRow key={product.id}>
-                        <TableCell className="font-medium max-w-xs truncate">
-                          {(product.title ?? '').length > 0 ? product.title : 'Untitled'}
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="outline">
-                            {product.category ?? 'Unknown'}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="secondary">
-                            {product.platform ?? 'N/A'}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="secondary">
-                            {product.region ?? 'N/A'}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-right font-mono">
-                          {formatPrice(product.costMinor)}
-                        </TableCell>
-                        <TableCell className="text-right font-mono font-semibold">
-                          {formatPrice(product.priceMinor)}
-                        </TableCell>
-                        <TableCell>
-                          {product.isPublished ? (
-                            <Badge variant="default" className="bg-green-600">
-                              <CheckCircle className="mr-1 h-3 w-3" />
-                              Published
+                      return (
+                        <motion.tr
+                          key={product.id}
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0 }}
+                          transition={{ duration: 0.2, delay: index * 0.05 }}
+                          className="border-b border-cyan-glow/10 hover:bg-cyan-glow/5 transition-colors"
+                        >
+                          <TableCell className="font-medium max-w-xs truncate text-text-primary">
+                            {(product.title ?? '').length > 0 ? product.title : 'Untitled'}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className="border-purple-glow/30 text-purple-glow bg-purple-glow/5">
+                              {product.category ?? 'Unknown'}
                             </Badge>
-                          ) : (
-                            <Badge variant="secondary">
-                              <XCircle className="mr-1 h-3 w-3" />
-                              Hidden
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="secondary" className="bg-bg-tertiary text-text-secondary">
+                              {product.platform ?? 'N/A'}
                             </Badge>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex items-center justify-end gap-2">
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="secondary" className="bg-bg-tertiary text-text-secondary">
+                              {product.region ?? 'N/A'}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-right font-mono text-text-muted">
+                            {formatPrice(product.costMinor)}
+                          </TableCell>
+                          <TableCell className="text-right font-mono font-semibold text-cyan-glow">
+                            {formatPrice(product.priceMinor)}
+                          </TableCell>
+                          <TableCell>
                             {product.isPublished ? (
+                              <Badge variant="default" className="bg-green-success/20 text-green-success border border-green-success/30 shadow-[0_0_8px_rgba(57,255,20,0.2)]">
+                                <CheckCircle className="mr-1 h-3 w-3" />
+                                Published
+                              </Badge>
+                            ) : (
+                              <Badge variant="secondary" className="bg-bg-tertiary text-text-muted">
+                                <XCircle className="mr-1 h-3 w-3" />
+                                Hidden
+                              </Badge>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex items-center justify-end gap-2">
+                              {product.isPublished ? (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => unpublishMutation.mutate(product.id)}
+                                  disabled={isActionPending || !isOnline}
+                                  className="border-red-500/30 text-red-500 hover:bg-red-500/10 hover:text-red-400"
+                                >
+                                  {isUnpublishing ? (
+                                    <>
+                                      <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                                      Hiding...
+                                    </>
+                                  ) : (
+                                    <>
+                                      <XCircle className="mr-1 h-3 w-3" />
+                                      Hide
+                                    </>
+                                  )}
+                                </Button>
+                              ) : (
+                                <Button
+                                  variant="default"
+                                  size="sm"
+                                  onClick={() => publishMutation.mutate(product.id)}
+                                  disabled={isActionPending || !isOnline}
+                                  className="bg-green-success/20 text-green-success border border-green-success/30 hover:bg-green-success/30"
+                                >
+                                  {isPublishing ? (
+                                    <>
+                                      <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                                      Publishing...
+                                    </>
+                                  ) : (
+                                    <>
+                                      <CheckCircle className="mr-1 h-3 w-3" />
+                                      Publish
+                                    </>
+                                  )}
+                                </Button>
+                              )}
                               <Button
                                 variant="outline"
                                 size="sm"
-                                onClick={() => unpublishMutation.mutate(product.id)}
-                                disabled={isActionPending || !isOnline}
+                                disabled={true}
+                                title="Reprice functionality coming in Task 5.4"
+                                className="border-cyan-glow/30 text-cyan-glow/50"
                               >
-                                {isUnpublishing ? (
-                                  <>
-                                    <Loader2 className="mr-1 h-3 w-3 animate-spin" />
-                                    Hiding...
-                                  </>
-                                ) : (
-                                  <>
-                                    <XCircle className="mr-1 h-3 w-3" />
-                                    Hide
-                                  </>
-                                )}
+                                <DollarSign className="mr-1 h-3 w-3" />
+                                Reprice
                               </Button>
-                            ) : (
-                              <Button
-                                variant="default"
-                                size="sm"
-                                onClick={() => publishMutation.mutate(product.id)}
-                                disabled={isActionPending || !isOnline}
-                              >
-                                {isPublishing ? (
-                                  <>
-                                    <Loader2 className="mr-1 h-3 w-3 animate-spin" />
-                                    Publishing...
-                                  </>
-                                ) : (
-                                  <>
-                                    <CheckCircle className="mr-1 h-3 w-3" />
-                                    Publish
-                                  </>
-                                )}
-                              </Button>
-                            )}
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              disabled={true}
-                              title="Reprice functionality coming in Task 5.4"
-                            >
-                              <DollarSign className="mr-1 h-3 w-3" />
-                              Reprice
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
+                            </div>
+                          </TableCell>
+                        </motion.tr>
+                      );
+                    })}
+                  </AnimatePresence>
                 </TableBody>
               </Table>
             </div>

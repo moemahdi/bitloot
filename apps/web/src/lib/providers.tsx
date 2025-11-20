@@ -12,7 +12,7 @@ const queryClient = new QueryClient();
 export function Providers({ children }: { children: ReactNode }): React.ReactElement {
   return (
     <QueryClientProvider client={queryClient}>
-      <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+      <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
         <CartProvider>
           <AuthProvider>{children}</AuthProvider>
         </CartProvider>

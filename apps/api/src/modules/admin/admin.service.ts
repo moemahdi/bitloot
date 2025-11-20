@@ -1,10 +1,12 @@
 import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, In } from 'typeorm';
 import { Order } from '../orders/order.entity';
 import { Payment } from '../payments/payment.entity';
 import { WebhookLog } from '../../database/entities/webhook-log.entity';
 import { Key } from '../orders/key.entity';
+import { User } from '../../database/entities/user.entity';
+import { DashboardStatsDto } from './dto/dashboard-stats.dto';
 
 /**
  * Admin Service - Business logic for admin operations
@@ -14,6 +16,7 @@ import { Key } from '../orders/key.entity';
  * - Reservation lookups (kinguinReservationId)
  * - Webhook log retrieval with pagination
  * - Key delivery audit trail
+ * - Dashboard analytics
  */
 @Injectable()
 export class AdminService {
@@ -24,7 +27,77 @@ export class AdminService {
     @InjectRepository(Payment) private readonly paymentsRepo: Repository<Payment>,
     @InjectRepository(WebhookLog) private readonly webhookLogsRepo: Repository<WebhookLog>,
     @InjectRepository(Key) private readonly keysRepo: Repository<Key>,
+    @InjectRepository(User) private readonly usersRepo: Repository<User>,
   ) { }
+
+  /**
+   * Get dashboard statistics
+   * Aggregates revenue, orders, users, and recent sales history
+   */
+  async getDashboardStats(): Promise<DashboardStatsDto> {
+    // 1. Total Revenue (Sum of completed payments)
+    const { revenue } = await this.paymentsRepo
+      .createQueryBuilder('p')
+      .select('SUM(p.payAmount)', 'revenue')
+      .where('p.status = :status', { status: 'finished' })
+      .getRawOne();
+
+    // 2. Total Orders
+    const totalOrders = await this.ordersRepo.count();
+
+    // 3. Total Users
+    const totalUsers = await this.usersRepo.count();
+
+    // 4. Active Orders (waiting/confirming/paid)
+    const activeOrders = await this.ordersRepo.count({
+      where: [
+        { status: 'waiting' },
+        { status: 'confirming' },
+        { status: 'paid' },
+      ]
+    });
+
+    // 5. Revenue History (Last 7 days)
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+    const revenueHistoryRaw = await this.paymentsRepo
+      .createQueryBuilder('p')
+      .select("DATE_TRUNC('day', p.createdAt)", 'date')
+      .addSelect('SUM(p.payAmount)', 'revenue')
+      .where('p.status = :status', { status: 'finished' })
+      .andWhere('p.createdAt >= :startDate', { startDate: sevenDaysAgo })
+      .groupBy('date')
+      .orderBy('date', 'ASC')
+      .getRawMany();
+
+    // Format history
+    const revenueHistory = revenueHistoryRaw.map((item) => ({
+      date: new Date(item.date).toISOString().substring(0, 10),
+      revenue: parseFloat(item.revenue),
+    }));
+
+    // Fill in missing days with 0
+    const filledHistory: { date: string; revenue: number }[] = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const dateStr = d.toISOString().substring(0, 10);
+      const found = revenueHistory.find((h) => h.date === dateStr);
+      filledHistory.push({
+        date: dateStr,
+        revenue: found ? found.revenue : 0,
+      });
+    }
+
+    return {
+      totalRevenue: parseFloat(revenue ?? '0'),
+      totalOrders,
+      totalUsers,
+      activeOrders,
+      revenueHistory: filledHistory,
+    };
+  }
 
   /**
    * Get paginated list of orders with filtering
@@ -84,7 +157,7 @@ export class AdminService {
 
         return {
           id: o.id,
-          email: o.user?.email ?? 'Guest',
+          email: o.email,
           status: o.status,
           total: o.totalCrypto,
           createdAt: o.createdAt,

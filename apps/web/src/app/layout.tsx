@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from 'next';
-import { Inter } from 'next/font/google';
+import { Inter, Space_Grotesk } from 'next/font/google';
 
 import '@/design-system/styles/globals.css';
 import { Providers } from '../lib/providers';
@@ -9,6 +9,12 @@ import { Footer } from '@/components/layout/Footer';
 const inter = Inter({
   subsets: ['latin'],
   variable: '--font-sans',
+  display: 'swap',
+});
+
+const spaceGrotesk = Space_Grotesk({
+  subsets: ['latin'],
+  variable: '--font-display',
   display: 'swap',
 });
 
@@ -55,7 +61,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }):
       <head>
         <link rel="manifest" href="/manifest.json" />
       </head>
-      <body className={`min-h-screen bg-background font-sans antialiased ${inter.variable}`}>
+      <body className={`min-h-screen bg-background font-sans antialiased ${inter.variable} ${spaceGrotesk.variable}`}>
         <Providers>
           <div className="relative flex min-h-screen flex-col">
             <Header />

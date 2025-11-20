@@ -25,7 +25,8 @@
     "quality:lint": "node scripts/quality-check.js lint",
     "quality:test": "node scripts/quality-check.js test",
     "quality:build": "node scripts/quality-check.js build",
-    "quality:full": "node scripts/quality-check.js all --continue"
+    "quality:full": "node scripts/quality-check.js all --continue",
+    "test:kinguin": "node scripts/test-kinguin-api.js"
   },
   "devDependencies": {
     "@eslint/js": "^9.15.0",

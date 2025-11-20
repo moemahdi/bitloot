@@ -65,6 +65,8 @@ docs/CreateOrderDto.md
 docs/CreatePaymentDto.md
 docs/CreatePricingRuleDto.md
 docs/CreateProductDto.md
+docs/DashboardStatsDto.md
+docs/DashboardStatsDtoRevenueHistoryInner.md
 docs/DeliveryLinkDto.md
 docs/EmailsApi.md
 docs/ForgotPasswordDto.md
@@ -148,6 +150,8 @@ models/CreateOrderDto.ts
 models/CreatePaymentDto.ts
 models/CreatePricingRuleDto.ts
 models/CreateProductDto.ts
+models/DashboardStatsDto.ts
+models/DashboardStatsDtoRevenueHistoryInner.ts
 models/DeliveryLinkDto.ts
 models/ForgotPasswordDto.ts
 models/ForgotPasswordResponseDto.ts

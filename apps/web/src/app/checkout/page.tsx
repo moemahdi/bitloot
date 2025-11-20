@@ -1,9 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useCart } from '@/context/CartContext';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/design-system/primitives/card';
+import { GlowButton } from '@/design-system/primitives/glow-button';
 import { Button } from '@/design-system/primitives/button';
 import { Input } from '@/design-system/primitives/input';
 import { Label } from '@/design-system/primitives/label';
@@ -18,6 +19,9 @@ import { ChevronLeft, CheckCircle2, AlertCircle } from 'lucide-react';
 import { useMutation } from '@tanstack/react-query';
 import { OrdersApi, Configuration } from '@bitloot/sdk';
 import type { OrderResponseDto } from '@bitloot/sdk';
+import { CheckoutProgress } from '@/components/checkout/CheckoutProgress';
+import { PaymentStatusTracker, type PaymentStatus } from '@/components/checkout/PaymentStatusTracker';
+import { Confetti } from '@/components/animations/Confetti';
 
 // Validation schema for email step
 const emailSchema = z.object({
@@ -46,6 +50,8 @@ export default function CheckoutPage(): React.ReactElement | void {
   const [paymentMethod, setPaymentMethod] = useState<'BTC' | 'ETH' | 'USDT'>('BTC');
   const [isProcessing, setIsProcessing] = useState(false);
   const [orderId, setOrderId] = useState('');
+  const [paymentStatus, setPaymentStatus] = useState<PaymentStatus>('idle');
+  const [showConfetti, setShowConfetti] = useState(false);
 
   const {
     register,
@@ -94,11 +100,18 @@ export default function CheckoutPage(): React.ReactElement | void {
     onSuccess: (data: OrderResponseDto): void => {
       setOrderId(data.id);
       clearCart();
-      setCurrentStep('confirmation');
-      toast.success('Order created successfully! Proceeding to payment...');
+      setPaymentStatus('confirmed');
+      setShowConfetti(true);
+      toast.success('Order created successfully!');
+
+      // Delay transition to confirmation page to let user see "Confirmed" status
+      setTimeout(() => {
+        setCurrentStep('confirmation');
+      }, 2000);
     },
     onError: (error: Error): void => {
       console.error('Order creation error:', error);
+      setPaymentStatus('failed');
       const errorMsg = error instanceof Error ? error.message : 'Unknown error occurred';
       toast.error(`Failed to create order: ${errorMsg}`);
     },
@@ -134,11 +147,18 @@ export default function CheckoutPage(): React.ReactElement | void {
 
   const handlePaymentSubmit = async (): Promise<void> => {
     setIsProcessing(true);
+    setPaymentStatus('waiting');
+
+    // Simulate network delay/processing for visual feedback
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    setPaymentStatus('confirming');
+
     try {
       // Create order via SDK (handles NOWPayments payment creation internally)
       await createOrderMutation.mutateAsync();
     } catch (error) {
       console.error('Payment error:', error);
+      setPaymentStatus('failed');
       const errorMessage = error instanceof Error ? error.message : 'Payment processing failed';
       toast.error(`${errorMessage}. Please try again.`);
     } finally {
@@ -159,7 +179,10 @@ export default function CheckoutPage(): React.ReactElement | void {
   if (currentStep === 'review') {
     return (
       <div className="container mx-auto px-4 py-8">
-        <h1 className="text-3xl font-bold mb-8">Checkout - Step 1: Review Order</h1>
+        <CheckoutProgress currentStep="review" />
+        <h1 className="text-3xl font-bold mb-8 text-transparent bg-clip-text bg-gradient-to-r from-cyan-glow to-purple-neon">
+          Checkout - Step 1: Review Order
+        </h1>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Order Items */}
@@ -220,14 +243,14 @@ export default function CheckoutPage(): React.ReactElement | void {
 
                 <Separator />
 
-                <Button 
+                <GlowButton
                   onClick={() => setCurrentStep('email')}
                   className="w-full"
                   size="lg"
                 >
                   Continue to Email
-                </Button>
-                <Button 
+                </GlowButton>
+                <Button
                   variant="outline"
                   onClick={() => router.push('/cart')}
                   className="w-full"
@@ -246,15 +269,19 @@ export default function CheckoutPage(): React.ReactElement | void {
   if (currentStep === 'email') {
     return (
       <div className="container mx-auto px-4 py-8">
+        <CheckoutProgress currentStep="email" />
+
         <button
           onClick={handleBackStep}
-          className="flex items-center gap-2 text-muted-foreground hover:text-foreground mb-8"
+          className="flex items-center gap-2 text-muted-foreground hover:text-foreground mb-8 transition-colors"
         >
           <ChevronLeft className="h-4 w-4" />
           Back to Review
         </button>
 
-        <h1 className="text-3xl font-bold mb-8">Checkout - Step 2: Email Confirmation</h1>
+        <h1 className="text-3xl font-bold mb-8 text-transparent bg-clip-text bg-gradient-to-r from-cyan-glow to-purple-neon">
+          Checkout - Step 2: Email Confirmation
+        </h1>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Email Form */}
@@ -298,9 +325,9 @@ export default function CheckoutPage(): React.ReactElement | void {
                     <p>We&apos;ll send your purchased keys and order confirmation to this email address. Make sure it&apos;s correct!</p>
                   </div>
 
-                  <Button type="submit" className="w-full" size="lg">
+                  <GlowButton type="submit" className="w-full" size="lg">
                     Continue to Payment
-                  </Button>
+                  </GlowButton>
                 </form>
               </CardContent>
             </Card>
@@ -334,15 +361,20 @@ export default function CheckoutPage(): React.ReactElement | void {
   if (currentStep === 'payment') {
     return (
       <div className="container mx-auto px-4 py-8">
+        <CheckoutProgress currentStep="payment" />
+
         <button
           onClick={handleBackStep}
-          className="flex items-center gap-2 text-muted-foreground hover:text-foreground mb-8"
+          className="flex items-center gap-2 text-muted-foreground hover:text-foreground mb-8 transition-colors"
+          disabled={isProcessing || paymentStatus !== 'idle'}
         >
           <ChevronLeft className="h-4 w-4" />
           Back to Email
         </button>
 
-        <h1 className="text-3xl font-bold mb-8">Checkout - Step 3: Payment Method</h1>
+        <h1 className="text-3xl font-bold mb-8 text-transparent bg-clip-text bg-gradient-to-r from-cyan-glow to-purple-neon">
+          Checkout - Step 3: Payment Method
+        </h1>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Payment Methods */}
@@ -352,58 +384,66 @@ export default function CheckoutPage(): React.ReactElement | void {
                 <CardTitle>Select Payment Method</CardTitle>
               </CardHeader>
               <CardContent>
-                <RadioGroup value={paymentMethod} onValueChange={(val) => setPaymentMethod(val as 'BTC' | 'ETH' | 'USDT')}>
-                  <div className="space-y-4">
-                    {/* Bitcoin */}
-                    <div className="flex items-center space-x-2 p-4 border rounded-lg hover:bg-accent cursor-pointer">
-                      <RadioGroupItem value="BTC" id="btc" />
-                      <Label htmlFor="btc" className="flex-1 cursor-pointer">
-                        <div className="font-semibold">Bitcoin (BTC)</div>
-                        <div className="text-sm text-muted-foreground">Most secure & widely used</div>
-                      </Label>
-                      <Badge>Recommended</Badge>
-                    </div>
-
-                    {/* Ethereum */}
-                    <div className="flex items-center space-x-2 p-4 border rounded-lg hover:bg-accent cursor-pointer">
-                      <RadioGroupItem value="ETH" id="eth" />
-                      <Label htmlFor="eth" className="flex-1 cursor-pointer">
-                        <div className="font-semibold">Ethereum (ETH)</div>
-                        <div className="text-sm text-muted-foreground">Smart contract enabled</div>
-                      </Label>
-                    </div>
-
-                    {/* USDT */}
-                    <div className="flex items-center space-x-2 p-4 border rounded-lg hover:bg-accent cursor-pointer">
-                      <RadioGroupItem value="USDT" id="usdt" />
-                      <Label htmlFor="usdt" className="flex-1 cursor-pointer">
-                        <div className="font-semibold">Tether (USDT)</div>
-                        <div className="text-sm text-muted-foreground">Stablecoin, lowest volatility</div>
-                      </Label>
-                    </div>
+                {paymentStatus !== 'idle' ? (
+                  <div className="py-8">
+                    <PaymentStatusTracker status={paymentStatus} />
                   </div>
-                </RadioGroup>
+                ) : (
+                  <>
+                    <RadioGroup value={paymentMethod} onValueChange={(val) => setPaymentMethod(val as 'BTC' | 'ETH' | 'USDT')}>
+                      <div className="space-y-4">
+                        {/* Bitcoin */}
+                        <div className={`flex items-center space-x-2 p-4 border rounded-lg cursor-pointer transition-all duration-200 ${paymentMethod === 'BTC' ? 'border-cyan-glow bg-cyan-glow/5' : 'hover:bg-accent'}`}>
+                          <RadioGroupItem value="BTC" id="btc" />
+                          <Label htmlFor="btc" className="flex-1 cursor-pointer">
+                            <div className="font-semibold">Bitcoin (BTC)</div>
+                            <div className="text-sm text-muted-foreground">Most secure & widely used</div>
+                          </Label>
+                          <Badge variant="outline" className="border-cyan-glow text-cyan-glow">Recommended</Badge>
+                        </div>
 
-                <Separator className="my-6" />
+                        {/* Ethereum */}
+                        <div className={`flex items-center space-x-2 p-4 border rounded-lg cursor-pointer transition-all duration-200 ${paymentMethod === 'ETH' ? 'border-purple-neon bg-purple-neon/5' : 'hover:bg-accent'}`}>
+                          <RadioGroupItem value="ETH" id="eth" />
+                          <Label htmlFor="eth" className="flex-1 cursor-pointer">
+                            <div className="font-semibold">Ethereum (ETH)</div>
+                            <div className="text-sm text-muted-foreground">Smart contract enabled</div>
+                          </Label>
+                        </div>
 
-                <div className="bg-blue-50 dark:bg-blue-950 text-blue-900 dark:text-blue-100 p-4 rounded-md text-sm">
-                  <p className="font-semibold mb-2">How it works</p>
-                  <ol className="list-decimal list-inside space-y-1 text-xs">
-                    <li>Select your preferred cryptocurrency</li>
-                    <li>We&apos;ll generate a payment address</li>
-                    <li>Send the exact amount to receive your keys</li>
-                    <li>Instant delivery after confirmation</li>
-                  </ol>
-                </div>
+                        {/* USDT */}
+                        <div className={`flex items-center space-x-2 p-4 border rounded-lg cursor-pointer transition-all duration-200 ${paymentMethod === 'USDT' ? 'border-green-success bg-green-success/5' : 'hover:bg-accent'}`}>
+                          <RadioGroupItem value="USDT" id="usdt" />
+                          <Label htmlFor="usdt" className="flex-1 cursor-pointer">
+                            <div className="font-semibold">Tether (USDT)</div>
+                            <div className="text-sm text-muted-foreground">Stablecoin, lowest volatility</div>
+                          </Label>
+                        </div>
+                      </div>
+                    </RadioGroup>
 
-                <Button 
-                  onClick={() => handlePaymentSubmit()}
-                  className="w-full mt-6"
-                  size="lg"
-                  disabled={isProcessing}
-                >
-                  {isProcessing ? 'Processing...' : `Pay ${estimatedTotal.toFixed(2)} USD with ${paymentMethod}`}
-                </Button>
+                    <Separator className="my-6" />
+
+                    <div className="bg-blue-50 dark:bg-blue-950/30 text-blue-900 dark:text-blue-100 p-4 rounded-md text-sm border border-blue-200 dark:border-blue-800">
+                      <p className="font-semibold mb-2">How it works</p>
+                      <ol className="list-decimal list-inside space-y-1 text-xs">
+                        <li>Select your preferred cryptocurrency</li>
+                        <li>We&apos;ll generate a payment address</li>
+                        <li>Send the exact amount to receive your keys</li>
+                        <li>Instant delivery after confirmation</li>
+                      </ol>
+                    </div>
+
+                    <GlowButton
+                      onClick={() => handlePaymentSubmit()}
+                      className="w-full mt-6"
+                      size="lg"
+                      disabled={isProcessing}
+                    >
+                      {isProcessing ? 'Processing...' : `Pay ${estimatedTotal.toFixed(2)} USD with ${paymentMethod}`}
+                    </GlowButton>
+                  </>
+                )}
               </CardContent>
             </Card>
           </div>
@@ -446,13 +486,21 @@ export default function CheckoutPage(): React.ReactElement | void {
   if (currentStep === 'confirmation') {
     return (
       <div className="container mx-auto px-4 py-8">
+        <Confetti active={showConfetti} />
+        <CheckoutProgress currentStep="confirmation" />
+
         <div className="max-w-2xl mx-auto">
-          <Card className="text-center">
+          <Card className="text-center border-green-success/30 bg-green-success/5">
             <CardContent className="py-12">
-              <CheckCircle2 className="h-16 w-16 mx-auto text-green-600 mb-6" />
-              
-              <h1 className="text-4xl font-bold mb-4">Order Confirmed!</h1>
-              
+              <div className="mb-6 relative inline-block">
+                <div className="absolute inset-0 bg-green-success/20 blur-xl rounded-full animate-pulse" />
+                <CheckCircle2 className="h-16 w-16 text-green-success relative z-10" />
+              </div>
+
+              <h1 className="text-4xl font-bold mb-4 text-transparent bg-clip-text bg-gradient-to-r from-green-success to-cyan-glow">
+                Order Confirmed!
+              </h1>
+
               <p className="text-xl text-muted-foreground mb-8">
                 Your payment has been received and processed.
               </p>
@@ -492,14 +540,14 @@ export default function CheckoutPage(): React.ReactElement | void {
 
               {/* Actions */}
               <div className="space-y-3">
-                <Button 
+                <GlowButton
                   onClick={handleNewOrder}
                   className="w-full"
                   size="lg"
                 >
                   Continue Shopping
-                </Button>
-                <Button 
+                </GlowButton>
+                <Button
                   variant="outline"
                   asChild
                   className="w-full"

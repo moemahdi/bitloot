@@ -24,16 +24,19 @@ export function AdminHeader(): ReactNode {
     if (pathname.includes('/balances')) return 'Balances';
     if (pathname.includes('/flags')) return 'Feature Flags';
     if (pathname.includes('/audit')) return 'Audit Logs';
+    if (pathname.includes('/catalog')) return 'Catalog Management';
     return 'Admin Panel';
   };
 
   return (
-    <header className="sticky top-0 z-40 border-b border-border bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60">
+    <header className="sticky top-0 z-40 border-b border-cyan-glow/20 bg-bg-secondary/80 backdrop-blur-md supports-[backdrop-filter]:bg-bg-secondary/60 shadow-sm">
       <div className="flex items-center justify-between px-6 py-4">
         {/* Section Title */}
         <div>
-          <h1 className="text-2xl font-bold text-foreground">{getSectionName()}</h1>
-          <p className="text-sm text-muted-foreground">Manage your BitLoot platform</p>
+          <h1 className="text-2xl font-display font-bold text-text-primary tracking-tight drop-shadow-[0_0_10px_rgba(0,217,255,0.1)]">
+            {getSectionName()}
+          </h1>
+          <p className="text-sm text-text-secondary">Manage your BitLoot platform</p>
         </div>
 
         {/* User Navigation */}

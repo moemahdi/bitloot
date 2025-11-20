@@ -8,6 +8,7 @@ import { Order } from '../orders/order.entity';
 import { Payment } from '../payments/payment.entity';
 import { WebhookLog } from '../../database/entities/webhook-log.entity';
 import { Key } from '../orders/key.entity';
+import { User } from '../../database/entities/user.entity';
 
 /**
  * Admin Module - Management API for BitLoot operators
@@ -24,11 +25,11 @@ import { Key } from '../orders/key.entity';
  */
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Order, Payment, WebhookLog, Key]),
+    TypeOrmModule.forFeature([Order, Payment, WebhookLog, Key, User]),
     AdminOpsModule,
   ],
   providers: [AdminService],
   controllers: [AdminController, AdminOpsController],
   exports: [AdminService],
 })
-export class AdminModule {}
+export class AdminModule { }

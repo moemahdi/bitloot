@@ -18,13 +18,6 @@ interface AdminNavProps {
 
 const ADMIN_MENU_ITEMS = [
   { href: '/admin/orders', label: 'Orders', icon: '📦' },
-  { href: '/admin/payments', label: 'Payments', icon: '💳' },
-  { href: '/admin/webhooks', label: 'Webhooks', icon: '🔔' },
-  { href: '/admin/reservations', label: 'Reservations', icon: '🎫' },
-  { href: '/admin/queues', label: 'Queues', icon: '⏳' },
-  { href: '/admin/balances', label: 'Balances', icon: '💰' },
-  { href: '/admin/flags', label: 'Feature Flags', icon: '🚩' },
-  { href: '/admin/audit', label: 'Audit Logs', icon: '📋' },
 ];
 
 // AdminNav: Sidebar navigation for admin dashboard

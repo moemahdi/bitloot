@@ -14,8 +14,13 @@ import { Label } from '@/design-system/primitives/label';
 import { Separator } from '@/design-system/primitives/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/design-system/primitives/tabs';
 import { Badge } from '@/design-system/primitives/badge';
-import { Loader2, User, Shield, Lock, Key, Package, DollarSign, Check } from 'lucide-react';
+import { Loader2, User, Shield, Lock, Key, Package, DollarSign, Check, ArrowUpRight } from 'lucide-react';
 import { toast } from 'sonner';
+import { motion } from 'framer-motion';
+import { DashboardStatCard } from '@/components/dashboard/DashboardStatCard';
+import { AnimatedGridPattern } from '@/components/animations/FloatingParticles';
+import { GlowButton } from '@/design-system/primitives/glow-button';
+
 // Validation schemas
 const passwordSchema = z
   .object({
@@ -109,164 +114,199 @@ export default function ProfilePage(): React.ReactElement {
   if (user === null || user === undefined) {
     return (
       <div className="flex h-[50vh] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <Loader2 className="h-8 w-8 animate-spin text-cyan-glow" />
       </div>
     );
   }
 
   return (
     <div className="space-y-8">
-      {/* Welcome Banner */}
-      <div className="relative overflow-hidden rounded-xl bg-linear-to-r from-primary to-blue-800 p-8 text-primary-foreground shadow-lg">
+      {/* Neon Welcome Banner */}
+      <div className="relative overflow-hidden rounded-xl border border-cyan-glow/20 bg-bg-secondary p-8 shadow-lg shadow-cyan-glow/5">
+        <div className="absolute inset-0 opacity-30">
+          <AnimatedGridPattern />
+        </div>
         <div className="relative z-10 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
-            <h1 className="text-3xl font-bold">Welcome back, {user.email.split('@')[0]}</h1>
-            <p className="text-blue-100">Manage your profile, security, and digital keys all in one place.</p>
+            <h1 className="font-display text-3xl font-bold text-text-primary">
+              Welcome back, <span className="text-cyan-glow">{user.email.split('@')[0]}</span>
+            </h1>
+            <p className="text-text-secondary">Manage your profile, security, and digital keys all in one place.</p>
+          </div>
+          <div className="flex items-center gap-2 rounded-full border border-cyan-glow/30 bg-cyan-glow/10 px-4 py-1.5 backdrop-blur-sm">
+            <div className="h-2 w-2 animate-pulse rounded-full bg-green-success shadow-[0_0_8px_#39FF14]" />
+            <span className="text-sm font-medium text-cyan-glow">Account Active</span>
           </div>
         </div>
-        {/* Decorative background */}
-        <div className="absolute right-0 top-0 -mt-10 -mr-10 h-64 w-64 rounded-full bg-white/10 blur-3xl" />
-        <div className="absolute bottom-0 left-0 -mb-10 -ml-10 h-40 w-40 rounded-full bg-black/10 blur-3xl" />
       </div>
 
-      {/* Quick Stats Cards */}
+      {/* Animated Stats Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardContent className="flex items-center gap-4 p-6">
-            <div className="rounded-full bg-blue-100 p-3 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400">
-              <Package className="h-6 w-6" />
-            </div>
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">Total Orders</p>
-              <h3 className="text-2xl font-bold">{totalOrders}</h3>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="flex items-center gap-4 p-6">
-            <div className="rounded-full bg-green-100 p-3 text-green-600 dark:bg-green-900/30 dark:text-green-400">
-              <Check className="h-6 w-6" />
-            </div>
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">Completed</p>
-              <h3 className="text-2xl font-bold">{completedOrders}</h3>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="flex items-center gap-4 p-6">
-            <div className="rounded-full bg-orange-100 p-3 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400">
-              <DollarSign className="h-6 w-6" />
-            </div>
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">Total Spent</p>
-              <h3 className="text-2xl font-bold">${totalSpent.toFixed(2)}</h3>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="flex items-center gap-4 p-6">
-            <div className="rounded-full bg-purple-100 p-3 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400">
-              <Key className="h-6 w-6" />
-            </div>
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">Digital Keys</p>
-              <h3 className="text-2xl font-bold">{completedOrders}</h3>
-            </div>
-          </CardContent>
-        </Card>
+        <DashboardStatCard
+          title="Total Orders"
+          value={totalOrders}
+          icon={Package}
+          color="cyan"
+          delay={0.1}
+        />
+        <DashboardStatCard
+          title="Completed"
+          value={completedOrders}
+          icon={Check}
+          color="green"
+          delay={0.2}
+        />
+        <DashboardStatCard
+          title="Total Spent"
+          value={`$${totalSpent.toFixed(2)}`}
+          icon={DollarSign}
+          color="orange"
+          delay={0.3}
+        />
+        <DashboardStatCard
+          title="Digital Keys"
+          value={completedOrders}
+          icon={Key}
+          color="purple"
+          delay={0.4}
+        />
       </div>
 
       {/* Main Tabs Section */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="security">Security</TabsTrigger>
-          <TabsTrigger value="account">Account</TabsTrigger>
-          <TabsTrigger value="help">Help</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-4 bg-bg-secondary/50 p-1 backdrop-blur-sm">
+          <TabsTrigger
+            value="overview"
+            className="data-[state=active]:bg-cyan-glow/10 data-[state=active]:text-cyan-glow"
+          >
+            Overview
+          </TabsTrigger>
+          <TabsTrigger
+            value="security"
+            className="data-[state=active]:bg-cyan-glow/10 data-[state=active]:text-cyan-glow"
+          >
+            Security
+          </TabsTrigger>
+          <TabsTrigger
+            value="account"
+            className="data-[state=active]:bg-cyan-glow/10 data-[state=active]:text-cyan-glow"
+          >
+            Account
+          </TabsTrigger>
+          <TabsTrigger
+            value="help"
+            className="data-[state=active]:bg-cyan-glow/10 data-[state=active]:text-cyan-glow"
+          >
+            Help
+          </TabsTrigger>
         </TabsList>
 
         {/* Overview Tab */}
         <TabsContent value="overview" className="space-y-6">
           <div className="grid gap-8 lg:grid-cols-3">
             {/* Recent Orders */}
-            <div className="lg:col-span-2">
-              <Card>
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.4 }}
+              className="lg:col-span-2"
+            >
+              <Card className="border-border/50 bg-bg-secondary/50 backdrop-blur-sm">
                 <CardHeader>
-                  <CardTitle>Recent Orders</CardTitle>
-                  <CardDescription>Your latest purchases and delivery status</CardDescription>
+                  <CardTitle className="text-text-primary">Recent Orders</CardTitle>
+                  <CardDescription className="text-text-secondary">Your latest purchases and delivery status</CardDescription>
                 </CardHeader>
                 <CardContent>
                   {ordersLoading ? (
                     <div className="flex h-40 items-center justify-center">
-                      <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                      <Loader2 className="h-8 w-8 animate-spin text-cyan-glow" />
                     </div>
                   ) : orders.length === 0 ? (
-                    <div className="flex h-40 flex-col items-center justify-center text-muted-foreground">
+                    <div className="flex h-40 flex-col items-center justify-center text-text-muted">
                       <Package className="mb-4 h-12 w-12 opacity-20" />
                       <p className="text-lg font-medium">No orders yet</p>
                     </div>
                   ) : (
                     <div className="space-y-4">
-                      {orders.slice(0, 5).map((order: OrderResponseDto) => (
-                        <div key={order.id} className="flex items-center justify-between border-b pb-4 last:border-0">
-                          <div>
-                            <p className="font-medium">{order.id.slice(0, 8)}</p>
-                            <p className="text-sm text-muted-foreground">
-                              {new Date(order.createdAt ?? new Date()).toLocaleDateString()}
-                            </p>
+                      {orders.slice(0, 5).map((order: OrderResponseDto, index) => (
+                        <motion.div
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: index * 0.1 }}
+                          key={order.id}
+                          className="group flex items-center justify-between rounded-lg border border-transparent bg-bg-tertiary/30 p-4 transition-all hover:border-cyan-glow/30 hover:bg-bg-tertiary/50 hover:shadow-[0_0_15px_rgba(0,217,255,0.05)]"
+                        >
+                          <div className="flex items-center gap-4">
+                            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-bg-primary text-cyan-glow">
+                              <Package className="h-5 w-5" />
+                            </div>
+                            <div>
+                              <p className="font-medium text-text-primary font-mono">{order.id.slice(0, 8)}</p>
+                              <p className="text-sm text-text-secondary">
+                                {new Date(order.createdAt ?? new Date()).toLocaleDateString()}
+                              </p>
+                            </div>
                           </div>
                           <div className="text-right">
-                            <p className="font-medium">${(() => { const total = typeof order.total === 'string' ? parseFloat(order.total) : (order.total ?? 0); return typeof total === 'number' ? total.toFixed(2) : '0.00'; })()}</p>
-                            <Badge variant={order.status === 'fulfilled' ? 'default' : 'secondary'}>
+                            <p className="font-bold text-text-primary">
+                              ${(() => { const total = typeof order.total === 'string' ? parseFloat(order.total) : (order.total ?? 0); return typeof total === 'number' ? total.toFixed(2) : '0.00'; })()}
+                            </p>
+                            <Badge
+                              variant={order.status === 'fulfilled' ? 'default' : 'secondary'}
+                              className={order.status === 'fulfilled'
+                                ? 'bg-green-success/20 text-green-success hover:bg-green-success/30 border-green-success/20'
+                                : 'bg-orange-warning/20 text-orange-warning hover:bg-orange-warning/30 border-orange-warning/20'
+                              }
+                            >
                               {order.status ?? 'pending'}
                             </Badge>
                           </div>
-                        </div>
+                        </motion.div>
                       ))}
                     </div>
                   )}
                 </CardContent>
               </Card>
-            </div>
+            </motion.div>
 
-            {/* Quick Stats */}
-            <div>
-              <Card>
+            {/* Quick Actions / Promo */}
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.4, delay: 0.2 }}
+            >
+              <Card className="border-purple-neon/20 bg-gradient-to-br from-bg-secondary to-purple-neon/5 backdrop-blur-sm">
                 <CardHeader>
-                  <CardTitle>Quick Stats</CardTitle>
+                  <CardTitle className="text-text-primary">Need Help?</CardTitle>
+                  <CardDescription className="text-text-secondary">Contact our support team for assistance</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Pending Orders</p>
-                    <p className="text-3xl font-bold text-orange-600">{pendingOrders}</p>
+                  <div className="rounded-lg border border-purple-neon/20 bg-purple-neon/10 p-4">
+                    <p className="text-sm text-purple-neon">
+                      Our support team is available 24/7 to help with any issues regarding your keys or payments.
+                    </p>
                   </div>
-                  <Separator />
-                  <div>
-                    <p className="text-sm text-muted-foreground">Available Keys</p>
-                    <p className="text-3xl font-bold text-green-600">{completedOrders}</p>
-                  </div>
+                  <GlowButton variant="secondary" className="w-full">
+                    Contact Support
+                  </GlowButton>
                 </CardContent>
               </Card>
-            </div>
+            </motion.div>
           </div>
         </TabsContent>
 
         {/* Security Tab */}
         <TabsContent value="security" className="space-y-6">
-          <Card>
+          <Card className="border-border/50 bg-bg-secondary/50 backdrop-blur-sm">
             <CardHeader>
-              <CardTitle>Security Settings</CardTitle>
-              <CardDescription>Manage your password and security preferences</CardDescription>
+              <CardTitle className="text-text-primary">Security Settings</CardTitle>
+              <CardDescription className="text-text-secondary">Manage your password and security preferences</CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSubmit(onPasswordSubmit)} className="space-y-6">
                 <div className="space-y-2">
-                  <Label htmlFor="oldPassword" className="flex items-center gap-2">
-                    <Lock className="h-4 w-4" />
+                  <Label htmlFor="oldPassword" className="flex items-center gap-2 text-text-secondary">
+                    <Lock className="h-4 w-4 text-cyan-glow" />
                     Current Password
                   </Label>
                   <Input
@@ -275,17 +315,18 @@ export default function ProfilePage(): React.ReactElement {
                     {...register('oldPassword')}
                     placeholder="Enter current password"
                     disabled={isSubmittingPassword}
+                    className="border-border/50 bg-bg-tertiary/50 focus:border-cyan-glow/50 focus:ring-cyan-glow/20"
                   />
                   {errors.oldPassword !== null && errors.oldPassword !== undefined && (
                     <p className="text-sm text-destructive">{errors.oldPassword.message}</p>
                   )}
                 </div>
 
-                <Separator />
+                <Separator className="bg-border/50" />
 
                 <div className="space-y-2">
-                  <Label htmlFor="newPassword" className="flex items-center gap-2">
-                    <Shield className="h-4 w-4" />
+                  <Label htmlFor="newPassword" className="flex items-center gap-2 text-text-secondary">
+                    <Shield className="h-4 w-4 text-cyan-glow" />
                     New Password
                   </Label>
                   <Input
@@ -294,6 +335,7 @@ export default function ProfilePage(): React.ReactElement {
                     {...register('newPassword')}
                     placeholder="Enter new password (min 8 characters)"
                     disabled={isSubmittingPassword}
+                    className="border-border/50 bg-bg-tertiary/50 focus:border-cyan-glow/50 focus:ring-cyan-glow/20"
                   />
                   {errors.newPassword !== null && errors.newPassword !== undefined && (
                     <p className="text-sm text-destructive">{errors.newPassword.message}</p>
@@ -301,13 +343,14 @@ export default function ProfilePage(): React.ReactElement {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="confirmPassword">Confirm New Password</Label>
+                  <Label htmlFor="confirmPassword" className="text-text-secondary">Confirm New Password</Label>
                   <Input
                     id="confirmPassword"
                     type="password"
                     {...register('confirmPassword')}
                     placeholder="Confirm new password"
                     disabled={isSubmittingPassword}
+                    className="border-border/50 bg-bg-tertiary/50 focus:border-cyan-glow/50 focus:ring-cyan-glow/20"
                   />
                   {errors.confirmPassword !== null && errors.confirmPassword !== undefined && (
                     <p className="text-sm text-destructive">{errors.confirmPassword.message}</p>
@@ -315,7 +358,7 @@ export default function ProfilePage(): React.ReactElement {
                 </div>
 
                 <div className="flex justify-end pt-4">
-                  <Button type="submit" disabled={isSubmittingPassword}>
+                  <GlowButton type="submit" disabled={isSubmittingPassword} variant="primary">
                     {isSubmittingPassword ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -327,7 +370,7 @@ export default function ProfilePage(): React.ReactElement {
                         Update Password
                       </>
                     )}
-                  </Button>
+                  </GlowButton>
                 </div>
               </form>
             </CardContent>
@@ -336,41 +379,47 @@ export default function ProfilePage(): React.ReactElement {
 
         {/* Account Tab */}
         <TabsContent value="account" className="space-y-6">
-          <Card>
+          <Card className="border-border/50 bg-bg-secondary/50 backdrop-blur-sm">
             <CardHeader>
-              <CardTitle>Account Information</CardTitle>
-              <CardDescription>Your profile and account details</CardDescription>
+              <CardTitle className="text-text-primary">Account Information</CardTitle>
+              <CardDescription className="text-text-secondary">Your profile and account details</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="space-y-2">
-                <Label className="flex items-center gap-2">
-                  <User className="h-4 w-4" />
+                <Label className="flex items-center gap-2 text-text-secondary">
+                  <User className="h-4 w-4 text-cyan-glow" />
                   Email Address
                 </Label>
-                <Input value={user.email} disabled className="bg-muted" />
+                <Input value={user.email} disabled className="border-border/50 bg-bg-tertiary/50 text-text-muted" />
               </div>
 
-              <Separator />
+              <Separator className="bg-border/50" />
 
               <div className="space-y-2">
-                <Label>User ID</Label>
-                <Input value={user.id} disabled className="bg-muted font-mono text-xs" />
+                <Label className="text-text-secondary">User ID</Label>
+                <Input value={user.id} disabled className="border-border/50 bg-bg-tertiary/50 font-mono text-xs text-text-muted" />
               </div>
 
-              <Separator />
+              <Separator className="bg-border/50" />
 
               <div className="space-y-2">
-                <Label>Account Role</Label>
-                <Badge variant="outline">
+                <Label className="text-text-secondary">Account Role</Label>
+                <Badge variant="outline" className="border-cyan-glow/30 text-cyan-glow">
                   {user.role ?? 'user'}
                 </Badge>
               </div>
 
-              <Separator />
+              <Separator className="bg-border/50" />
 
               <div className="space-y-2">
-                <Label>Email Verified</Label>
-                <Badge variant={user.emailConfirmed ? 'default' : 'secondary'}>
+                <Label className="text-text-secondary">Email Verified</Label>
+                <Badge
+                  variant={user.emailConfirmed ? 'default' : 'secondary'}
+                  className={user.emailConfirmed
+                    ? 'bg-green-success/20 text-green-success border-green-success/20'
+                    : 'bg-orange-warning/20 text-orange-warning border-orange-warning/20'
+                  }
+                >
                   {user.emailConfirmed ? 'Verified' : 'Not Verified'}
                 </Badge>
               </div>
@@ -380,25 +429,25 @@ export default function ProfilePage(): React.ReactElement {
 
         {/* Help Tab */}
         <TabsContent value="help" className="space-y-6">
-          <Card>
+          <Card className="border-border/50 bg-bg-secondary/50 backdrop-blur-sm">
             <CardHeader>
-              <CardTitle>Help & Support</CardTitle>
-              <CardDescription>Frequently asked questions and support information</CardDescription>
+              <CardTitle className="text-text-primary">Help & Support</CardTitle>
+              <CardDescription className="text-text-secondary">Frequently asked questions and support information</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div>
-                <h4 className="font-medium mb-2">How do I download my keys?</h4>
-                <p className="text-sm text-muted-foreground">Keys are available immediately after purchase in the &quot;Overview&quot; tab and can be copied or downloaded.</p>
+                <h4 className="font-medium mb-2 text-text-primary">How do I download my keys?</h4>
+                <p className="text-sm text-text-secondary">Keys are available immediately after purchase in the &quot;Overview&quot; tab and can be copied or downloaded.</p>
               </div>
-              <Separator />
+              <Separator className="bg-border/50" />
               <div>
-                <h4 className="font-medium mb-2">How do I reset my password?</h4>
-                <p className="text-sm text-muted-foreground">Use the &quot;Security&quot; tab to change your password. You&apos;ll need to provide your current password.</p>
+                <h4 className="font-medium mb-2 text-text-primary">How do I reset my password?</h4>
+                <p className="text-sm text-text-secondary">Use the &quot;Security&quot; tab to change your password. You&apos;ll need to provide your current password.</p>
               </div>
-              <Separator />
+              <Separator className="bg-border/50" />
               <div>
-                <h4 className="font-medium mb-2">Can I change my email address?</h4>
-                <p className="text-sm text-muted-foreground">Email addresses cannot be self-changed. Please contact our support team for assistance.</p>
+                <h4 className="font-medium mb-2 text-text-primary">Can I change my email address?</h4>
+                <p className="text-sm text-text-secondary">Email addresses cannot be self-changed. Please contact our support team for assistance.</p>
               </div>
             </CardContent>
           </Card>

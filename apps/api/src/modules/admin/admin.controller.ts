@@ -3,6 +3,7 @@ import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags, ApiQuery } from '@ne
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { AdminGuard } from '../../common/guards/admin.guard';
 import { AdminService } from './admin.service';
+import { DashboardStatsDto } from './dto/dashboard-stats.dto';
 
 /**
  * Admin endpoints for monitoring payments, reservations, and webhooks.
@@ -14,7 +15,25 @@ import { AdminService } from './admin.service';
 @UseGuards(JwtAuthGuard, AdminGuard)
 @Controller('admin')
 export class AdminController {
-  constructor(private readonly admin: AdminService) {}
+  constructor(private readonly admin: AdminService) { }
+
+  /**
+   * Get dashboard statistics
+   * Returns aggregated revenue, orders, users, and sales history
+   */
+  @Get('stats')
+  @ApiOperation({
+    summary: 'Get dashboard statistics',
+    description: 'Returns aggregated revenue, orders, users, and sales history',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Dashboard statistics',
+    type: DashboardStatsDto,
+  })
+  async getDashboardStats(): Promise<DashboardStatsDto> {
+    return this.admin.getDashboardStats();
+  }
 
   /**
    * Get paginated list of orders

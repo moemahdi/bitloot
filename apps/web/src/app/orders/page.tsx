@@ -5,18 +5,9 @@ import { useAuth } from '@/hooks/useAuth';
 import { useQuery } from '@tanstack/react-query';
 import { Configuration, UsersApi } from '@bitloot/sdk';
 import type { OrderResponseDto } from '@bitloot/sdk';
-import { Card, CardContent, CardHeader, CardTitle } from '@/design-system/primitives/card';
 import { Button } from '@/design-system/primitives/button';
-import { Badge } from '@/design-system/primitives/badge';
+import { GlowButton } from '@/design-system/primitives/glow-button';
 import { Input } from '@/design-system/primitives/input';
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from '@/design-system/primitives/table';
 import {
     Select,
     SelectContent,
@@ -24,8 +15,11 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/design-system/primitives/select';
-import { Package, ExternalLink, Search, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Package, Search, Loader2, ChevronLeft, ChevronRight, ShoppingBag } from 'lucide-react';
 import Link from 'next/link';
+import { OrderHistoryCard } from '@/components/dashboard/OrderHistoryCard';
+import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatedGridPattern } from '@/components/animations/FloatingParticles';
 
 // Initialize SDK configuration
 const apiConfig = new Configuration({
@@ -45,7 +39,7 @@ export default function OrdersPage(): React.ReactElement {
     const [search, setSearch] = useState('');
     const [statusFilter, setStatusFilter] = useState('all');
     const [page, setPage] = useState(1);
-    const itemsPerPage = 10;
+    const itemsPerPage = 9; // Adjusted for grid layout (3x3)
 
     // Fetch user's orders
     const { data: orders = [], isLoading } = useQuery<OrderResponseDto[]>({
@@ -76,42 +70,67 @@ export default function OrdersPage(): React.ReactElement {
     if (user === null) {
         return (
             <div className="flex h-[50vh] items-center justify-center">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <Loader2 className="h-8 w-8 animate-spin text-cyan-glow" />
             </div>
         );
     }
 
     return (
-        <div className="container mx-auto py-8 space-y-8">
-            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                <div>
-                    <h1 className="text-3xl font-bold">My Orders</h1>
-                    <p className="text-muted-foreground">Manage and track your purchases</p>
-                </div>
-                <Link href="/catalog">
-                    <Button>Browse Store</Button>
-                </Link>
+        <div className="relative min-h-screen w-full overflow-hidden bg-bg-primary">
+            {/* Background Effects */}
+            <div className="absolute inset-0 z-0">
+                <AnimatedGridPattern />
+                <div className="absolute top-0 left-1/4 h-96 w-96 rounded-full bg-purple-glow/10 blur-[100px]" />
+                <div className="absolute bottom-0 right-1/4 h-96 w-96 rounded-full bg-cyan-glow/10 blur-[100px]" />
             </div>
 
-            <Card>
-                <CardHeader>
+            <div className="container relative z-10 mx-auto py-12 space-y-8 px-4">
+                {/* Header */}
+                <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
+                    <div className="space-y-2">
+                        <h1 className="font-display text-4xl font-bold tracking-tight text-text-primary drop-shadow-[0_0_15px_rgba(0,217,255,0.3)]">
+                            My Orders
+                        </h1>
+                        <p className="text-text-secondary text-lg">
+                            Track your digital loot and purchase history
+                        </p>
+                    </div>
+                    <Link href="/catalog">
+                        <GlowButton variant="primary" size="lg" glowColor="purple">
+                            <ShoppingBag className="mr-2 h-5 w-5" />
+                            Browse Store
+                        </GlowButton>
+                    </Link>
+                </div>
+
+                {/* Filters & Search */}
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5, delay: 0.1 }}
+                    className="rounded-xl border border-cyan-glow/20 bg-bg-secondary/50 p-4 backdrop-blur-md shadow-[0_0_20px_rgba(0,217,255,0.05)]"
+                >
                     <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-                        <CardTitle>Order History</CardTitle>
-                        <div className="flex flex-col gap-2 md:flex-row md:items-center">
+                        <div className="flex items-center gap-2 text-cyan-glow font-medium">
+                            <Package className="h-5 w-5" />
+                            <span>{filteredOrders.length} Orders Found</span>
+                        </div>
+
+                        <div className="flex flex-col gap-4 md:flex-row md:items-center">
                             <div className="relative">
-                                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-cyan-glow/50" />
                                 <Input
                                     placeholder="Search by Order ID..."
-                                    className="pl-9 w-full md:w-[250px]"
+                                    className="pl-10 w-full md:w-[300px] border-cyan-glow/20 bg-bg-tertiary/50 focus:border-cyan-glow/50 focus:ring-cyan-glow/20"
                                     value={search}
                                     onChange={(e) => setSearch(e.target.value)}
                                 />
                             </div>
                             <Select value={statusFilter} onValueChange={setStatusFilter}>
-                                <SelectTrigger className="w-full md:w-[150px]">
+                                <SelectTrigger className="w-full md:w-[180px] border-cyan-glow/20 bg-bg-tertiary/50 focus:border-cyan-glow/50 focus:ring-cyan-glow/20">
                                     <SelectValue placeholder="Filter by Status" />
                                 </SelectTrigger>
-                                <SelectContent>
+                                <SelectContent className="border-cyan-glow/20 bg-bg-secondary/95 backdrop-blur-xl">
                                     <SelectItem value="all">All Statuses</SelectItem>
                                     <SelectItem value="fulfilled">Fulfilled</SelectItem>
                                     <SelectItem value="pending">Pending</SelectItem>
@@ -120,103 +139,79 @@ export default function OrdersPage(): React.ReactElement {
                             </Select>
                         </div>
                     </div>
-                </CardHeader>
-                <CardContent>
+                </motion.div>
+
+                {/* Content Grid */}
+                <div className="min-h-[400px]">
                     {isLoading ? (
-                        <div className="flex h-40 items-center justify-center">
-                            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                        <div className="flex h-60 items-center justify-center">
+                            <Loader2 className="h-12 w-12 animate-spin text-cyan-glow drop-shadow-[0_0_10px_rgba(0,217,255,0.5)]" />
                         </div>
                     ) : filteredOrders.length === 0 ? (
-                        <div className="flex h-60 flex-col items-center justify-center text-muted-foreground">
-                            <Package className="mb-4 h-12 w-12 opacity-20" />
-                            <p className="text-lg font-medium">No orders found</p>
-                            <p className="text-sm">Try adjusting your filters or browse the catalog.</p>
-                        </div>
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.9 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            className="flex h-80 flex-col items-center justify-center text-center rounded-2xl border border-dashed border-cyan-glow/20 bg-bg-secondary/30"
+                        >
+                            <div className="rounded-full bg-bg-tertiary p-6 mb-4 shadow-[0_0_20px_rgba(0,217,255,0.1)]">
+                                <Package className="h-12 w-12 text-text-muted opacity-50" />
+                            </div>
+                            <p className="text-xl font-bold text-text-primary mb-2">No orders found</p>
+                            <p className="text-text-secondary max-w-md">
+                                We couldn't find any orders matching your criteria. Try adjusting your filters or browse our catalog to make your first purchase!
+                            </p>
+                        </motion.div>
                     ) : (
                         <>
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>Order ID</TableHead>
-                                        <TableHead>Date</TableHead>
-                                        <TableHead>Total Crypto</TableHead>
-                                        <TableHead>Status</TableHead>
-                                        <TableHead className="text-right">Actions</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {paginatedOrders.map((order) => (
-                                        <TableRow key={order.id}>
-                                            <TableCell className="font-medium font-mono text-xs">
-                                                {order.id}
-                                            </TableCell>
-                                            <TableCell>
-                                                {new Date(order.createdAt).toLocaleDateString()}
-                                            </TableCell>
-                                            <TableCell>{order.total}</TableCell>
-                                            <TableCell>
-                                                <Badge
-                                                    variant={
-                                                        order.status === 'fulfilled'
-                                                            ? 'default'
-                                                            : order.status === 'pending'
-                                                                ? 'secondary'
-                                                                : 'destructive'
-                                                    }
-                                                    className={
-                                                        order.status === 'fulfilled'
-                                                            ? 'bg-green-500 hover:bg-green-600'
-                                                            : order.status === 'pending'
-                                                                ? 'bg-orange-500 hover:bg-orange-600 text-white'
-                                                                : ''
-                                                    }
-                                                >
-                                                    {order.status}
-                                                </Badge>
-                                            </TableCell>
-                                            <TableCell className="text-right">
-                                                <Link href={`/orders/${order.id}`}>
-                                                    <Button variant="ghost" size="sm">
-                                                        Details
-                                                        <ExternalLink className="ml-2 h-4 w-4" />
-                                                    </Button>
-                                                </Link>
-                                            </TableCell>
-                                        </TableRow>
+                            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                                <AnimatePresence mode="popLayout">
+                                    {paginatedOrders.map((order, index) => (
+                                        <OrderHistoryCard
+                                            key={order.id}
+                                            order={order}
+                                            index={index}
+                                        />
                                     ))}
-                                </TableBody>
-                            </Table>
+                                </AnimatePresence>
+                            </div>
 
                             {/* Pagination */}
                             {totalPages > 1 && (
-                                <div className="flex items-center justify-end space-x-2 py-4">
+                                <motion.div
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    transition={{ delay: 0.5 }}
+                                    className="flex items-center justify-center space-x-4 py-8"
+                                >
                                     <Button
                                         variant="outline"
                                         size="sm"
                                         onClick={() => setPage((p) => Math.max(1, p - 1))}
                                         disabled={page === 1}
+                                        className="border-cyan-glow/20 hover:bg-cyan-glow/10 hover:text-cyan-glow disabled:opacity-30"
                                     >
-                                        <ChevronLeft className="h-4 w-4" />
+                                        <ChevronLeft className="h-4 w-4 mr-1" />
                                         Previous
                                     </Button>
-                                    <div className="text-sm font-medium">
-                                        Page {page} of {totalPages}
+                                    <div className="text-sm font-medium text-text-secondary">
+                                        Page <span className="text-cyan-glow font-bold">{page}</span> of {totalPages}
                                     </div>
                                     <Button
                                         variant="outline"
                                         size="sm"
                                         onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                                         disabled={page === totalPages}
+                                        className="border-cyan-glow/20 hover:bg-cyan-glow/10 hover:text-cyan-glow disabled:opacity-30"
                                     >
                                         Next
-                                        <ChevronRight className="h-4 w-4" />
+                                        <ChevronRight className="h-4 w-4 ml-1" />
                                     </Button>
-                                </div>
+                                </motion.div>
                             )}
                         </>
                     )}
-                </CardContent>
-            </Card>
+                </div>
+            </div>
         </div>
     );
 }

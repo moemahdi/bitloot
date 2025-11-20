@@ -1,115 +1,41 @@
 'use client';
 
-import type { ReactNode } from 'react';
-import { Component, type ErrorInfo } from 'react';
-import { AlertTriangle, RefreshCw } from 'lucide-react';
-import { Alert, AlertDescription, AlertTitle } from '@/design-system/primitives/alert';
-import { Button } from '@/design-system/primitives/button';
+import * as React from 'react';
+import { motion } from 'framer-motion';
+import { AlertTriangle, Home, RefreshCw } from 'lucide-react';
+import { GlowButton } from '@/design-system/primitives/glow-button';
+import { Card, CardContent } from '@/design-system/primitives/card';
 
-interface Props {
-  children: ReactNode;
-  fallback?: (error: Error, reset: () => void) => ReactNode;
+interface ErrorBoundaryProps {
+  children: React.ReactNode;
 }
 
-interface State {
+interface ErrorBoundaryState {
   hasError: boolean;
   error: Error | null;
 }
 
-/**
- * ErrorBoundary: Catches React render errors and displays fallback UI
- *
- * Features:
- * ✅ Catches render errors in child components
- * ✅ Displays user-friendly error message
- * ✅ Provides reset button to recover
- * ✅ Logs errors for debugging
- * ✅ Prevents app crashes
- *
- * Usage:
- * <ErrorBoundary>
- *   <YourComponent />
- * </ErrorBoundary>
- */
-export class ErrorBoundary extends Component<Props, State> {
-  public constructor(props: Props) {
+export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  constructor(props: ErrorBoundaryProps) {
     super(props);
     this.state = { hasError: false, error: null };
   }
 
-  public static getDerivedStateFromError(error: Error): State {
+  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
     return { hasError: true, error };
   }
 
-  public override componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
-    // Log error to console in development
-    if (process.env.NODE_ENV === 'development') {
-      console.error('ErrorBoundary caught an error:', error, errorInfo);
-    }
-
-    // Log to monitoring service (e.g., Sentry)
-    if (
-      typeof window !== 'undefined' &&
-      window.__logErrorToService !== null &&
-      window.__logErrorToService !== undefined &&
-      typeof window.__logErrorToService === 'function'
-    ) {
-      window.__logErrorToService(error, errorInfo);
-    }
+  override componentDidCatch(error: Error, errorInfo: React.ErrorInfo): void {
+    console.error('ErrorBoundary caught an error:', error, errorInfo);
   }
 
-  private handleReset = (): void => {
-    this.setState({ hasError: false, error: null });
-  };
-
-  public override render(): ReactNode {
-    if (this.state.hasError && this.state.error !== null && this.state.error !== undefined) {
-      if (this.props.fallback !== null && this.props.fallback !== undefined) {
-        return this.props.fallback(this.state.error, this.handleReset);
-      }
-
+  override render(): React.ReactNode {
+    if (this.state.hasError) {
       return (
-        <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-950 p-4">
-          <div className="w-full max-w-md">
-            <Alert variant="destructive" className="border-red-300 bg-red-50 dark:bg-red-950 dark:border-red-900">
-              <AlertTriangle className="h-5 w-5 text-red-600 dark:text-red-400" />
-              <AlertTitle className="text-lg">Something went wrong</AlertTitle>
-              <AlertDescription className="mt-3 space-y-3">
-                <p className="text-sm text-red-800 dark:text-red-200">
-                  {this.state.error.message !== null && this.state.error.message !== undefined && this.state.error.message.length > 0
-                    ? this.state.error.message
-                    : 'An unexpected error occurred'}
-                </p>
-                {process.env.NODE_ENV === 'development' && (
-                  <details className="text-xs text-red-700 dark:text-red-300 bg-white dark:bg-gray-900 p-2 rounded border border-red-200 dark:border-red-800">
-                    <summary className="cursor-pointer font-mono">Stack trace</summary>
-                    <pre className="mt-2 overflow-auto whitespace-pre-wrap wrap-break-word">
-                      {this.state.error.stack ?? 'No stack trace available'}
-                    </pre>
-                  </details>
-                )}
-                <div className="flex gap-2 pt-2">
-                  <Button
-                    onClick={this.handleReset}
-                    className="flex-1 bg-red-600 hover:bg-red-700 text-white"
-                    size="sm"
-                  >
-                    <RefreshCw className="w-4 h-4 mr-2" />
-                    Try again
-                  </Button>
-                  <Button
-                    onClick={() => window.location.href = '/'}
-                    variant="outline"
-                    size="sm"
-                    className="flex-1"
-                  >
-                    Go home
-                  </Button>
-                </div>
-              </AlertDescription>
-            </Alert>
-          </div>
-        </div>
+        <ErrorFallback
+          error={this.state.error}
+          resetError={() => this.setState({ hasError: false, error: null })}
+        />
       );
     }
 
@@ -117,9 +43,87 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 }
 
-// Extend window interface for error logging
-declare global {
-  interface Window {
-    __logErrorToService?: (error: Error, errorInfo: ErrorInfo) => void;
-  }
+interface ErrorFallbackProps {
+  error: Error | null;
+  resetError: () => void;
 }
+
+function ErrorFallback({ error, resetError }: ErrorFallbackProps): React.ReactElement {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-bg-primary px-4">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.3 }}
+        className="max-w-md w-full"
+      >
+        <Card className="bg-bg-secondary border-error/30 shadow-xl shadow-error/10">
+          <CardContent className="p-8 text-center">
+            {/* Error Icon with Shake Animation */}
+            <motion.div
+              animate={{
+                rotate: [0, -10, 10, -10, 0],
+                scale: [1, 1.1, 1.1, 1.1, 1]
+              }}
+              transition={{ duration: 0.5 }}
+              className="w-20 h-20 mx-auto mb-6 rounded-full bg-error/20 flex items-center justify-center"
+            >
+              <AlertTriangle className="w-10 h-10 text-error" />
+            </motion.div>
+
+            {/* Error Title */}
+            <h2 className="text-2xl font-display font-bold text-white mb-2">
+              Oops! Something went wrong
+            </h2>
+
+            {/* Error Message */}
+            <p className="text-text-secondary mb-2">
+              {error?.message || 'An unexpected error occurred'}
+            </p>
+
+            {/* Technical Details (development only) */}
+            {process.env.NODE_ENV === 'development' && error?.stack && (
+              <details className="mt-4 text-left">
+                <summary className="cursor-pointer text-sm text-text-muted hover:text-cyan-glow mb-2 transition-colors">
+                  Technical Details
+                </summary>
+                <pre className="text-xs bg-bg-tertiary p-3 rounded-lg overflow-auto max-h-40 text-text-muted font-mono border border-border-subtle">
+                  {error.stack}
+                </pre>
+              </details>
+            )}
+
+            {/* Action Buttons */}
+            <div className="space-y-3 mt-6">
+              <GlowButton
+                onClick={resetError}
+                className="w-full"
+                size="lg"
+              >
+                <RefreshCw className="mr-2 h-4 w-4" />
+                Try Again
+              </GlowButton>
+
+              <GlowButton
+                variant="outline"
+                className="w-full"
+                size="lg"
+                onClick={() => window.location.href = '/'}
+              >
+                <Home className="mr-2 h-4 w-4" />
+                Go Home
+              </GlowButton>
+            </div>
+
+            {/* Help Text */}
+            <p className="text-xs text-text-muted mt-6">
+              If this problem persists, please contact support
+            </p>
+          </CardContent>
+        </Card>
+      </motion.div>
+    </div>
+  );
+}
+
+export { ErrorFallback };

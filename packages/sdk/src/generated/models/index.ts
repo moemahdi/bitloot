@@ -39,6 +39,8 @@ export * from './CreateOrderDto';
 export * from './CreatePaymentDto';
 export * from './CreatePricingRuleDto';
 export * from './CreateProductDto';
+export * from './DashboardStatsDto';
+export * from './DashboardStatsDtoRevenueHistoryInner';
 export * from './DeliveryLinkDto';
 export * from './ForgotPasswordDto';
 export * from './ForgotPasswordResponseDto';
