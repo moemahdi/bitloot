@@ -1,26 +1,32 @@
 
-# AuthResponseDto
+# FulfillmentStatusDto
 
 
 ## Properties
 
 Name | Type
 ------------ | -------------
-`accessToken` | string
-`refreshToken` | string
-`user` | [UserResponseDto](UserResponseDto.md)
+`orderId` | string
+`status` | string
+`itemsFulfilled` | number
+`itemsTotal` | number
+`allFulfilled` | boolean
+`updatedAt` | Date
 
 ## Example
 
 ```typescript
-import type { AuthResponseDto } from ''
+import type { FulfillmentStatusDto } from ''
 
 // TODO: Update the object below with actual values
 const example = {
-  "accessToken": null,
-  "refreshToken": null,
-  "user": null,
-} satisfies AuthResponseDto
+  "orderId": 550e8400-e29b-41d4-a716-446655440000,
+  "status": paid,
+  "itemsFulfilled": 2,
+  "itemsTotal": 3,
+  "allFulfilled": true,
+  "updatedAt": 2025-11-10T15:30Z,
+} satisfies FulfillmentStatusDto
 
 console.log(example)
 
@@ -29,7 +35,7 @@ const exampleJSON: string = JSON.stringify(example)
 console.log(exampleJSON)
 
 // Parse the JSON string back to an object
-const exampleParsed = JSON.parse(exampleJSON) as AuthResponseDto
+const exampleParsed = JSON.parse(exampleJSON) as FulfillmentStatusDto
 console.log(exampleParsed)
 ```
 

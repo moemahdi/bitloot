@@ -10,8 +10,8 @@ export function useAdminReservations(state: TableState): {
   error: Error | null;
 } {
   const { page, limit, filters } = state;
-  const statusFilter = (filters.status ?? '') as string;
-  const reservationFilter = (filters.reservationId ?? '') as string;
+  const statusFilter = (filters?.status ?? '') as string;
+  const reservationFilter = (filters?.reservationId ?? '') as string;
 
   const apiConfig = new Configuration({
     basePath: process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000',

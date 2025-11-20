@@ -1,26 +1,30 @@
 
-# AuthResponseDto
+# HealthCheckResultDto
 
 
 ## Properties
 
 Name | Type
 ------------ | -------------
-`accessToken` | string
-`refreshToken` | string
-`user` | [UserResponseDto](UserResponseDto.md)
+`service` | string
+`status` | string
+`dependencies` | object
+`timestamp` | Date
+`error` | string
 
 ## Example
 
 ```typescript
-import type { AuthResponseDto } from ''
+import type { HealthCheckResultDto } from ''
 
 // TODO: Update the object below with actual values
 const example = {
-  "accessToken": null,
-  "refreshToken": null,
-  "user": null,
-} satisfies AuthResponseDto
+  "service": FulfillmentService,
+  "status": healthy,
+  "dependencies": {"r2Storage":true},
+  "timestamp": 2025-11-08T14:00Z,
+  "error": R2 storage connection timeout,
+} satisfies HealthCheckResultDto
 
 console.log(example)
 
@@ -29,7 +33,7 @@ const exampleJSON: string = JSON.stringify(example)
 console.log(exampleJSON)
 
 // Parse the JSON string back to an object
-const exampleParsed = JSON.parse(exampleJSON) as AuthResponseDto
+const exampleParsed = JSON.parse(exampleJSON) as HealthCheckResultDto
 console.log(exampleParsed)
 ```
 

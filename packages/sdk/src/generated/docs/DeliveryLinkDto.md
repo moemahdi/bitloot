@@ -1,26 +1,30 @@
 
-# AuthResponseDto
+# DeliveryLinkDto
 
 
 ## Properties
 
 Name | Type
 ------------ | -------------
-`accessToken` | string
-`refreshToken` | string
-`user` | [UserResponseDto](UserResponseDto.md)
+`orderId` | string
+`signedUrl` | string
+`expiresAt` | Date
+`itemCount` | number
+`message` | string
 
 ## Example
 
 ```typescript
-import type { AuthResponseDto } from ''
+import type { DeliveryLinkDto } from ''
 
 // TODO: Update the object below with actual values
 const example = {
-  "accessToken": null,
-  "refreshToken": null,
-  "user": null,
-} satisfies AuthResponseDto
+  "orderId": 550e8400-e29b-41d4-a716-446655440000,
+  "signedUrl": https://r2-example.example.com/orders/550e8400.json?signature=xyz,
+  "expiresAt": 2025-11-08T14:15Z,
+  "itemCount": 3,
+  "message": Your order is ready for download. Link expires in 15 minutes.,
+} satisfies DeliveryLinkDto
 
 console.log(example)
 
@@ -29,7 +33,7 @@ const exampleJSON: string = JSON.stringify(example)
 console.log(exampleJSON)
 
 // Parse the JSON string back to an object
-const exampleParsed = JSON.parse(exampleJSON) as AuthResponseDto
+const exampleParsed = JSON.parse(exampleJSON) as DeliveryLinkDto
 console.log(exampleParsed)
 ```
 

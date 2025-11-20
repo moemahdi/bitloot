@@ -95,12 +95,12 @@ export class CatalogService {
   /**
    * Calculate selling price based on cost and pricing rules
    */
-  calculatePrice(product: Product, cost: string): string {
+  async calculatePrice(product: Product, cost: string): Promise<string> {
     const costNum = parseFloat(cost);
     let priceNum = costNum;
 
     // Get applicable pricing rule (product-specific or default)
-    const rule = this.getPricingRule(product.id);
+    const rule = await this.getPricingRule(product.id);
 
     switch (rule.rule_type) {
       case 'margin_percent': {
@@ -117,8 +117,10 @@ export class CatalogService {
       }
 
       case 'floor_cap': {
-        // Apply floor and cap
-        priceNum = costNum;
+        // Use margin if defined, else default
+        const marginPercent = Number(rule.marginPercent ?? 10);
+        const margin = marginPercent / 100;
+        priceNum = costNum * (1 + margin);
         break;
       }
 
@@ -150,11 +152,33 @@ export class CatalogService {
   }
 
   /**
-   * Get pricing rule for product (product-specific, category, or global default)
+   * Get pricing rule for product (product-specific or global default)
+   * Implements hierarchy: Product Rule → Global Default
+   * Note: Category-level rules require adding a 'category' column to DynamicPricingRule entity
    */
-  private getPricingRule(_productId: string): PricingRuleData {
-    // For now, return a default rule
-    // In future, implement rule hierarchy: product → category → global
+  private async getPricingRule(productId: string): Promise<PricingRuleData> {
+    // Step 1: Try to find product-specific rule (highest priority)
+    const productRule = await this.pricingRuleRepo.findOne({
+      where: { productId, isActive: true },
+      order: { priority: 'DESC' }, // Highest priority first
+    });
+
+    if (productRule !== null) {
+      return {
+        rule_type: productRule.rule_type,
+        marginPercent: productRule.marginPercent,
+        fixedMarkupMinor: productRule.fixedMarkupMinor,
+        floorMinor: productRule.floorMinor,
+        capMinor: productRule.capMinor,
+      };
+    }
+
+    // Step 2: Try to find global default rule (productId is for a non-existent product or null equivalent)
+    // Since we can't query for null productId directly, we'll look for rules with a special marker
+    // For now, skip global rules from DB and use hardcoded fallback
+    // TODO: Add a 'isGlobal' boolean column to DynamicPricingRule entity for proper global rules
+
+    // Step 3: Fallback to hardcoded default (8% margin)
     return {
       rule_type: 'margin_percent',
       marginPercent: '8',
@@ -320,7 +344,7 @@ export class CatalogService {
     }
 
     // Recompute price based on current pricing rules
-    const newPrice = this.calculatePrice(product, product.cost);
+    const newPrice = await this.calculatePrice(product, product.cost);
     product.price = newPrice;
 
     await this.productRepo.save(product);
@@ -438,7 +462,7 @@ export class CatalogService {
     }
 
     // Recompute price based on current pricing rules
-    const newPrice = this.calculatePrice(product, product.cost);
+    const newPrice = await this.calculatePrice(product, product.cost);
     product.price = newPrice;
 
     return this.productRepo.save(product);

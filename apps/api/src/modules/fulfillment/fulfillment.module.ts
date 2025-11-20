@@ -3,6 +3,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { BullModule } from '@nestjs/bullmq';
 import { QUEUE_NAMES } from '../../jobs/queues';
 import { HttpModule } from '@nestjs/axios';
+import { JwtModule } from '@nestjs/jwt';
 
 import { Order } from '../orders/order.entity';
 import { OrderItem } from '../orders/order-item.entity';
@@ -17,6 +18,8 @@ import { EmailsModule } from '../emails/emails.module';
 import { MetricsModule } from '../metrics/metrics.module';
 import { OrdersService } from '../orders/orders.service';
 import { CatalogModule } from '../catalog/catalog.module';
+import { FulfillmentController } from './fulfillment.controller';
+import { FulfillmentGateway } from './fulfillment.gateway';
 
 /**
  * Fulfillment Module
@@ -60,6 +63,12 @@ import { CatalogModule } from '../catalog/catalog.module';
 
     // Catalog module (provides CatalogService for OrdersService)
     CatalogModule,
+
+    // JWT module for WebSocket authentication
+    JwtModule.register({
+      secret: process.env.JWT_SECRET ?? 'dev-secret-key',
+      signOptions: { expiresIn: '15m' },
+    }),
   ],
   providers: [
     // Kinguin API client (factory pattern for environment config)
@@ -117,7 +126,10 @@ import { CatalogModule } from '../catalog/catalog.module';
     OrdersService,
     // Delivery service used by fulfillment
     DeliveryService,
+    // WebSocket gateway for real-time updates
+    FulfillmentGateway,
   ],
+  controllers: [FulfillmentController],
   exports: [FulfillmentService, KinguinClient, R2StorageClient, OrdersService, DeliveryService],
 })
-export class FulfillmentModule {}
+export class FulfillmentModule { }

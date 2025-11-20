@@ -1,9 +1,9 @@
 'use client';
 
 import { useParams } from 'next/navigation';
-import { useQuery } from '@tanstack/react-query';
-import { Configuration, OrdersApi } from '@bitloot/sdk';
-import type { OrderResponseDto } from '@bitloot/sdk';
+import { useQuery, useMutation } from '@tanstack/react-query';
+import { Configuration, OrdersApi, FulfillmentApi } from '@bitloot/sdk';
+import type { OrderResponseDto, RevealedKeyDto } from '@bitloot/sdk';
 import { Card, CardContent, CardHeader, CardTitle } from '@/design-system/primitives/card';
 import { Button } from '@/design-system/primitives/button';
 import { Badge } from '@/design-system/primitives/badge';
@@ -16,7 +16,7 @@ import {
     TableHeader,
     TableRow,
 } from '@/design-system/primitives/table';
-import { Package, Calendar, CreditCard, ArrowLeft, Download, Key, Loader2, Copy, Check } from 'lucide-react';
+import { Package, Calendar, CreditCard, ArrowLeft, Download, Key, Loader2, Copy, Check, Eye, EyeOff } from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';
 
@@ -32,11 +32,14 @@ const apiConfig = new Configuration({
 });
 
 const ordersClient = new OrdersApi(apiConfig);
+const fulfillmentClient = new FulfillmentApi(apiConfig);
 
 export default function OrderDetailPage(): React.ReactElement {
     const params = useParams();
     const orderId = params.id as string;
     const [copiedKey, setCopiedKey] = useState<string | null>(null);
+    const [revealedKeys, setRevealedKeys] = useState<Record<string, RevealedKeyDto>>({});
+    const [revealingItemId, setRevealingItemId] = useState<string | null>(null);
 
     const { data: order, isLoading, error } = useQuery<OrderResponseDto>({
         queryKey: ['order', orderId],
@@ -45,6 +48,29 @@ export default function OrderDetailPage(): React.ReactElement {
         },
         enabled: Boolean(orderId),
     });
+
+    const revealKeyMutation = useMutation({
+        mutationFn: async ({ itemId }: { itemId: string }) => {
+            setRevealingItemId(itemId);
+            return await fulfillmentClient.fulfillmentControllerRevealMyKey({
+                id: orderId,
+                itemId,
+            });
+        },
+        onSuccess: (data, variables) => {
+            setRevealedKeys(prev => ({ ...prev, [variables.itemId]: data }));
+            setRevealingItemId(null);
+        },
+        onError: (err) => {
+            console.error('Failed to reveal key:', err);
+            setRevealingItemId(null);
+            alert('Failed to reveal key. Please try again.');
+        },
+    });
+
+    const handleRevealKey = (itemId: string): void => {
+        revealKeyMutation.mutate({ itemId });
+    };
 
     const copyToClipboard = (text: string): void => {
         void navigator.clipboard.writeText(text);
@@ -135,34 +161,64 @@ export default function OrderDetailPage(): React.ReactElement {
                                 </CardTitle>
                             </CardHeader>
                             <CardContent className="space-y-4">
-                                {/* Mock keys for now as they might not be in OrderResponseDto directly yet */}
-                                {order.items.map((item, index) => (
-                                    <div
-                                        key={index}
-                                        className="flex flex-col gap-2 rounded-lg border bg-background p-4 shadow-sm md:flex-row md:items-center md:justify-between"
-                                    >
-                                        <div>
-                                            <p className="font-medium">{item.productId}</p>
-                                            <p className="text-xs text-muted-foreground">Ready to activate</p>
-                                        </div>
-                                        <div className="flex items-center gap-2">
-                                            <code className="rounded bg-muted px-3 py-1 font-mono text-sm">
-                                                XXXX-XXXX-XXXX-XXXX
-                                            </code>
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                onClick={() => copyToClipboard('XXXX-XXXX-XXXX-XXXX')}
-                                            >
-                                                {copiedKey === 'XXXX-XXXX-XXXX-XXXX' ? (
-                                                    <Check className="h-4 w-4 text-green-500" />
+                                {order.items.map((item, index) => {
+                                    const itemId = typeof item === 'object' && item !== null && 'id' in item && typeof item.id === 'string' ? item.id : `item-${index}`;
+                                    const revealedKey = revealedKeys[itemId];
+                                    const isRevealing = revealingItemId === itemId;
+
+                                    return (
+                                        <div
+                                            key={index}
+                                            className="flex flex-col gap-2 rounded-lg border bg-background p-4 shadow-sm md:flex-row md:items-center md:justify-between"
+                                        >
+                                            <div>
+                                                <p className="font-medium">{item.productId}</p>
+                                                <p className="text-xs text-muted-foreground">
+                                                    {revealedKey !== null && revealedKey !== undefined ? 'Revealed' : 'Ready to activate'}
+                                                </p>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                {revealedKey !== null && revealedKey !== undefined ? (
+                                                    <>
+                                                        <code className="rounded bg-muted px-3 py-1 font-mono text-sm">
+                                                            {revealedKey.plainKey}
+                                                        </code>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            onClick={() => copyToClipboard(revealedKey.plainKey)}
+                                                        >
+                                                            {copiedKey === revealedKey.plainKey ? (
+                                                                <Check className="h-4 w-4 text-green-500" />
+                                                            ) : (
+                                                                <Copy className="h-4 w-4" />
+                                                            )}
+                                                        </Button>
+                                                    </>
                                                 ) : (
-                                                    <Copy className="h-4 w-4" />
+                                                    <Button
+                                                        variant="default"
+                                                        size="sm"
+                                                        onClick={() => handleRevealKey(itemId)}
+                                                        disabled={isRevealing}
+                                                    >
+                                                        {isRevealing ? (
+                                                            <>
+                                                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                                                Revealing...
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <Eye className="mr-2 h-4 w-4" />
+                                                                Reveal Key
+                                                            </>
+                                                        )}
+                                                    </Button>
                                                 )}
-                                            </Button>
+                                            </div>
                                         </div>
-                                    </div>
-                                ))}
+                                    );
+                                })}
                             </CardContent>
                         </Card>
                     )}
