@@ -3,7 +3,8 @@
 import { useEffect } from 'react';
 import { Button } from '@/design-system/primitives/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/design-system/primitives/card';
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, Home, RefreshCw, Shield, HelpCircle } from 'lucide-react';
+import Link from 'next/link';
 
 export default function ErrorPage({
   error,
@@ -18,34 +19,112 @@ export default function ErrorPage({
   }, [error]);
 
   return (
-    <div className="container flex items-center justify-center min-h-[calc(100vh-4rem)] py-12">
-      <Card className="w-full max-w-md text-center border-destructive/20 shadow-none sm:border sm:shadow-sm">
-        <CardHeader>
-          <div className="flex justify-center mb-4">
-            <div className="p-3 rounded-full bg-destructive/10">
-              <AlertTriangle className="w-10 h-10 text-destructive" />
+    <div className="fixed inset-0 flex items-center justify-center p-4 bg-gradient-dark z-50">
+      {/* Background Effects */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-1/4 -left-32 w-96 h-96 bg-red-500/5 rounded-full blur-3xl" />
+        <div className="absolute bottom-1/4 -right-32 w-96 h-96 bg-purple-neon/5 rounded-full blur-3xl" />
+      </div>
+
+      <Card className="relative w-full max-w-md glass border border-red-500/20 shadow-lg animate-fade-in">
+        {/* Top accent line */}
+        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-red-500/50 to-transparent" />
+        
+        <CardHeader className="text-center space-y-4 pb-2">
+          {/* Error Icon */}
+          <div className="flex justify-center">
+            <div className="relative">
+              <div className="absolute inset-0 bg-red-500/20 rounded-full blur-xl animate-pulse" />
+              <div className="relative p-4 rounded-full bg-red-500/10 border border-red-500/30">
+                <AlertTriangle className="w-10 h-10 text-red-400" />
+              </div>
             </div>
           </div>
-          <CardTitle className="text-2xl font-bold text-destructive">Something went wrong!</CardTitle>
+
+          {/* Title */}
+          <div className="space-y-2">
+            <CardTitle className="text-2xl font-bold text-text-primary">
+              Something went wrong
+            </CardTitle>
+            <p className="text-sm text-text-muted">
+              We encountered an unexpected error while processing your request.
+            </p>
+          </div>
         </CardHeader>
-        <CardContent>
-          <p className="text-muted-foreground">
-            We apologize for the inconvenience. An unexpected error has occurred.
-          </p>
-          {process.env.NODE_ENV === 'development' && (
-            <div className="mt-4 p-4 bg-muted rounded-md text-left overflow-auto max-h-40 text-xs font-mono">
-              {error.message}
+
+        <CardContent className="space-y-4">
+          {/* Error Details (Development Only) */}
+          {process.env.NODE_ENV === 'development' && error.message && (
+            <div className="p-4 rounded-lg bg-bg-secondary/50 border border-border-subtle overflow-hidden">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-2 h-2 rounded-full bg-red-400 animate-pulse" />
+                <span className="text-xs font-medium text-text-muted uppercase tracking-wider">
+                  Debug Info
+                </span>
+              </div>
+              <pre className="text-xs font-mono text-red-400/80 overflow-auto max-h-32 whitespace-pre-wrap break-words">
+                {error.message}
+              </pre>
+              {error.digest && (
+                <p className="mt-2 text-xs text-text-muted">
+                  Error ID: <code className="text-purple-neon">{error.digest}</code>
+                </p>
+              )}
             </div>
           )}
+
+          {/* Security Notice */}
+          <div className="flex items-center justify-center gap-2 px-3 py-2 rounded-full bg-green-success/10 border border-green-success/30">
+            <Shield className="w-3.5 h-3.5 text-green-success" />
+            <span className="text-xs text-green-success font-medium">
+              Your data remains secure
+            </span>
+          </div>
+
+          {/* Help Text */}
+          <p className="text-xs text-center text-text-muted">
+            If this problem persists, please{' '}
+            <Link href="/support" className="text-cyan-glow hover:text-cyan-300 underline underline-offset-2 transition-colors">
+              contact support
+            </Link>
+          </p>
         </CardContent>
-        <CardFooter className="flex justify-center gap-4">
-          <Button variant="outline" onClick={() => window.location.href = '/'}>
-            Go Home
-          </Button>
-          <Button onClick={() => reset()}>
+
+        <CardFooter className="flex flex-col gap-3 pt-2">
+          {/* Primary Action */}
+          <Button 
+            onClick={() => reset()}
+            variant="outline"
+            className="w-full h-11 gap-2 border-cyan-glow/30 text-cyan-glow hover:bg-cyan-glow/10 hover:border-cyan-glow/60 hover:text-cyan-300 font-medium transition-all duration-200"
+          >
+            <RefreshCw className="w-4 h-4" />
             Try Again
           </Button>
+
+          {/* Secondary Actions */}
+          <div className="flex gap-3 w-full">
+            <Button 
+              variant="ghost" 
+              onClick={() => window.location.href = '/'}
+              className="flex-1 h-10 gap-2 text-text-muted hover:text-text-primary hover:bg-bg-secondary/50 transition-all duration-200"
+            >
+              <Home className="w-4 h-4" />
+              Home
+            </Button>
+            <Link href="/support" className="flex-1">
+              <Button 
+                variant="ghost" 
+                className="w-full h-10 gap-2 text-text-muted hover:text-purple-neon hover:bg-purple-neon/10 transition-all duration-200"
+              >
+                <HelpCircle className="w-4 h-4" />
+                Support
+              </Button>
+            </Link>
+          </div>
         </CardFooter>
+
+        {/* Bottom accent line */}
+        <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-red-500/30 to-transparent" />
       </Card>
     </div>
   );

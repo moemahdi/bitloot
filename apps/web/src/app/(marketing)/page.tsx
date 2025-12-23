@@ -6,7 +6,17 @@ import { motion } from 'framer-motion';
 import { useQuery } from '@tanstack/react-query';
 import { GlowButton } from '@/design-system/primitives/glow-button';
 import { Input } from '@/design-system/primitives/input';
-import { Search, Zap, Clock, Star, TrendingUp, Gamepad2, Shield } from 'lucide-react';
+import {
+  Search,
+  Zap,
+  Clock,
+  Star,
+  TrendingUp,
+  Gamepad2,
+  Shield,
+  Bitcoin,
+  CheckCircle2,
+} from 'lucide-react';
 import type { Product } from '@/features/catalog/components/ProductCard';
 import { FloatingParticles, AnimatedGridPattern } from '@/components/animations/FloatingParticles';
 import { StatCard } from '@/components/StatCard';
@@ -78,10 +88,25 @@ export default function HomePage(): React.ReactElement {
 
   return (
     <div className="min-h-screen bg-bg-primary">
+      {/* Skip Link for Accessibility (WCAG 2.4.1) */}
+      <a
+        href="#main-content"
+        className="skip-link"
+      >
+        Skip to main content
+      </a>
+
       {/* Hero Section */}
-      <section className="relative min-h-[85vh] overflow-hidden">
-        {/* Animated Background */}
-        <div className="absolute inset-0 bg-gradient-to-br from-bg-primary via-bg-secondary to-bg-tertiary">
+      <section
+        id="main-content"
+        className="relative min-h-[85vh] overflow-hidden"
+        aria-labelledby="hero-heading"
+      >
+        {/* Animated Background with Radial Glow Accents */}
+        <div className="absolute inset-0 bg-gradient-dark">
+          {/* Radial gradient spotlights for depth */}
+          <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-radial-cyan opacity-40 blur-3xl pointer-events-none" />
+          <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-radial-purple opacity-30 blur-3xl pointer-events-none" />
           <AnimatedGridPattern />
           <FloatingParticles count={40} />
         </div>
@@ -95,10 +120,15 @@ export default function HomePage(): React.ReactElement {
             transition={{ duration: 0.6 }}
             className="text-center mb-8"
           >
-            <h1 className="text-5xl md:text-7xl font-display font-bold mb-6">
-              <span className="text-white">Gaming Keys.</span>
+            <h1
+              id="hero-heading"
+              className="text-5xl md:text-7xl font-display font-bold mb-6"
+            >
+              <span className="text-white drop-shadow-lg">Gaming Keys.</span>
               <br />
-              <span className="text-cyan-glow animate-glow-pulse">Crypto Powered.</span>
+              <span className="text-gradient-primary animate-glow-pulse text-glow-cyan">
+                Crypto Powered.
+              </span>
             </h1>
             <motion.p
               initial={{ opacity: 0 }}
@@ -106,7 +136,20 @@ export default function HomePage(): React.ReactElement {
               transition={{ delay: 0.2, duration: 0.6 }}
               className="text-xl md:text-2xl text-text-secondary max-w-3xl mx-auto mb-4"
             >
-              Instant delivery • 300+ Crypto Accepted • Verified Keys
+              <span className="inline-flex items-center gap-2">
+                <Zap className="w-5 h-5 text-accent-success" aria-hidden="true" />
+                Instant delivery
+              </span>
+              <span className="mx-3 text-border-accent">•</span>
+              <span className="inline-flex items-center gap-2">
+                <Bitcoin className="w-5 h-5 text-orange-warning" aria-hidden="true" />
+                300+ Crypto
+              </span>
+              <span className="mx-3 text-border-accent">•</span>
+              <span className="inline-flex items-center gap-2">
+                <CheckCircle2 className="w-5 h-5 text-accent-success" aria-hidden="true" />
+                Verified Keys
+              </span>
             </motion.p>
           </motion.div>
 
@@ -122,21 +165,31 @@ export default function HomePage(): React.ReactElement {
             <StatCard icon={Star} value="4.8/5" label="Rating" />
           </motion.div>
 
-          {/* Search Bar */}
+          {/* Search Bar with Glass Effect */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4, duration: 0.6 }}
             className="max-w-2xl mx-auto mb-8"
           >
-            <div className="relative">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-text-muted" />
-              <Input
-                type="text"
-                placeholder="Search for games, software, or gift cards..."
-                className="pl-12 pr-4 py-6 text-base bg-bg-secondary border-border-accent hover:border-cyan-glow/50 focus:border-cyan-glow transition-colors text-white placeholder:text-text-muted"
+            <form
+              role="search"
+              aria-label="Search products"
+              className="relative group"
+              onSubmit={(e) => e.preventDefault()}
+            >
+              <div className="absolute inset-0 bg-radial-cyan opacity-0 group-focus-within:opacity-20 blur-xl transition-opacity duration-300 pointer-events-none rounded-xl" />
+              <Search
+                className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-text-muted group-focus-within:text-cyan-glow transition-colors"
+                aria-hidden="true"
               />
-            </div>
+              <Input
+                type="search"
+                placeholder="Search for games, software, or gift cards..."
+                aria-label="Search for games, software, or gift cards"
+                className="glass pl-12 pr-4 py-6 text-base border-border-accent hover:border-cyan-glow/50 focus:border-cyan-glow focus:shadow-glow-cyan transition-all duration-300 text-white placeholder:text-text-muted w-full rounded-xl"
+              />
+            </form>
           </motion.div>
 
           {/* CTA Buttons */}
@@ -163,8 +216,14 @@ export default function HomePage(): React.ReactElement {
       </section>
 
       {/* Trending Products Section */}
-      <section className="py-16 bg-bg-secondary">
-        <div className="container mx-auto px-4">
+      <section
+        className="py-16 bg-bg-secondary relative overflow-hidden"
+        aria-labelledby="trending-heading"
+      >
+        {/* Subtle ambient glow */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[400px] bg-radial-purple opacity-20 blur-3xl pointer-events-none" />
+
+        <div className="container mx-auto px-4 relative z-10">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -172,14 +231,25 @@ export default function HomePage(): React.ReactElement {
             className="flex items-center justify-between mb-8"
           >
             <div className="flex items-center gap-3">
-              <TrendingUp className="w-8 h-8 text-pink-featured" />
-              <h2 className="text-3xl md:text-4xl font-display font-bold text-white">
+              <div className="p-2 rounded-lg bg-pink-featured/10 glow-error">
+                <TrendingUp className="w-7 h-7 text-pink-featured" aria-hidden="true" />
+              </div>
+              <h2
+                id="trending-heading"
+                className="text-3xl md:text-4xl font-display font-bold text-white"
+              >
                 Trending Now
               </h2>
             </div>
             <GlowButton variant="ghost" asChild>
-              <Link href="/catalog">
-                View All <span className="ml-2">→</span>
+              <Link href="/catalog" className="group">
+                View All
+                <span
+                  className="ml-2 inline-block group-hover:translate-x-1 transition-transform"
+                  aria-hidden="true"
+                >
+                  →
+                </span>
               </Link>
             </GlowButton>
           </motion.div>
@@ -193,15 +263,24 @@ export default function HomePage(): React.ReactElement {
       </section>
 
       {/* Social Proof Section */}
-      <section className="py-16 bg-bg-primary">
-        <div className="container mx-auto px-4">
+      <section
+        className="py-16 bg-bg-primary relative"
+        aria-labelledby="social-proof-heading"
+      >
+        {/* Decorative gradient orb */}
+        <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-radial-cyan opacity-10 blur-3xl pointer-events-none" />
+
+        <div className="container mx-auto px-4 relative z-10">
           <motion.h2
+            id="social-proof-heading"
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             className="text-3xl md:text-4xl font-display font-bold text-white text-center mb-12"
           >
-            Join Thousands of Satisfied Gamers
+            Join{' '}
+            <span className="text-gradient-primary">Thousands</span> of Satisfied
+            Gamers
           </motion.h2>
 
           <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
@@ -227,47 +306,74 @@ export default function HomePage(): React.ReactElement {
       </section>
 
       {/* Benefits Section */}
-      <section className="py-16 bg-bg-secondary border-t border-border-subtle">
-        <div className="container mx-auto px-4">
-          <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4">
+      <section
+        className="py-16 bg-bg-secondary border-t border-border-subtle relative overflow-hidden"
+        aria-labelledby="benefits-heading"
+      >
+        {/* Ambient glow effects */}
+        <div className="absolute bottom-0 left-0 w-[500px] h-[300px] bg-radial-cyan opacity-10 blur-3xl pointer-events-none" />
+        <div className="absolute top-0 right-0 w-[400px] h-[250px] bg-radial-purple opacity-10 blur-3xl pointer-events-none" />
+
+        <div className="container mx-auto px-4 relative z-10">
+          <h2 id="benefits-heading" className="sr-only">
+            Why Choose BitLoot
+          </h2>
+          <div className="grid gap-6 md:gap-8 md:grid-cols-2 lg:grid-cols-4">
             {[
               {
                 icon: Zap,
                 title: 'Instant Delivery',
                 description: 'Get your keys in seconds, not hours',
+                iconBg: 'bg-cyan-glow/10',
+                iconColor: 'text-cyan-glow',
+                glowClass: 'group-hover:glow-cyan',
               },
               {
                 icon: Shield,
                 title: 'Secure Payments',
                 description: '256-bit encryption & blockchain security',
+                iconBg: 'bg-accent-success/10',
+                iconColor: 'text-accent-success',
+                glowClass: 'group-hover:glow-success',
               },
               {
                 icon: Star,
                 title: 'Verified Keys',
                 description: '100% authentic from trusted sources',
+                iconBg: 'bg-orange-warning/10',
+                iconColor: 'text-orange-warning',
+                glowClass: 'group-hover:glow-purple',
               },
               {
                 icon: Clock,
                 title: '24/7 Support',
                 description: 'Always here to help you',
+                iconBg: 'bg-purple-neon/10',
+                iconColor: 'text-purple-neon',
+                glowClass: 'group-hover:glow-purple',
               },
             ].map((benefit, index) => (
-              <motion.div
+              <motion.article
                 key={benefit.title}
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: index * 0.1 }}
-                className="text-center p-6 rounded-lg bg-bg-tertiary border border-border-subtle hover:border-cyan-glow/50 transition-all group"
+                className="glass text-center p-6 rounded-xl border border-border-subtle card-hover-glow group focus-within:ring-2 focus-within:ring-cyan-glow/50"
               >
-                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-cyan-glow/10 flex items-center justify-center group-hover:scale-110 transition-transform">
-                  <benefit.icon className="w-8 h-8 text-cyan-glow" />
+                <div
+                  className={`w-16 h-16 mx-auto mb-4 rounded-xl ${benefit.iconBg} flex items-center justify-center group-hover:scale-110 ${benefit.glowClass} transition-all duration-300`}
+                  aria-hidden="true"
+                >
+                  <benefit.icon className={`w-8 h-8 ${benefit.iconColor}`} />
                 </div>
                 <h3 className="text-xl font-display font-semibold text-white mb-2">
                   {benefit.title}
                 </h3>
-                <p className="text-text-secondary text-sm">{benefit.description}</p>
-              </motion.div>
+                <p className="text-text-secondary text-sm leading-relaxed">
+                  {benefit.description}
+                </p>
+              </motion.article>
             ))}
           </div>
         </div>

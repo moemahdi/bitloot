@@ -7,19 +7,19 @@ import { cn } from '@/design-system/utils/utils';
 import { Loader2 } from 'lucide-react';
 
 const glowButtonVariants = cva(
-    'relative inline-flex items-center justify-center whitespace-nowrap rounded-lg text-sm font-semibold transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 overflow-hidden group',
+    'relative inline-flex items-center justify-center whitespace-nowrap rounded-lg text-sm font-semibold cursor-pointer transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-cyan-glow disabled:pointer-events-none disabled:opacity-50 overflow-hidden group',
     {
         variants: {
             variant: {
                 default:
-                    'bg-cyan-glow text-black hover:bg-cyan-glow/90 shadow-lg shadow-cyan-glow/20 hover:shadow-cyan-glow/40 before:absolute before:inset-0 before:bg-gradient-to-r before:from-transparent before:via-white/10 before:to-transparent before:translate-x-[-200%] hover:before:translate-x-[200%] before:transition-transform before:duration-700',
+                    'bg-gradient-to-r from-cyan-glow to-cyan-500 text-bg-primary hover:from-cyan-400 hover:to-cyan-glow shadow-lg shadow-cyan-glow/25 hover:shadow-cyan-glow/50 hover:scale-[1.02] active:scale-[0.98] before:absolute before:inset-0 before:bg-gradient-to-r before:from-transparent before:via-white/20 before:to-transparent before:translate-x-[-200%] hover:before:translate-x-[200%] before:transition-transform before:duration-700',
                 secondary:
-                    'bg-purple-neon text-white hover:bg-purple-neon/90 shadow-lg shadow-purple-neon/20 hover:shadow-purple-neon/40',
+                    'bg-gradient-to-r from-purple-neon to-purple-500 text-white hover:from-purple-400 hover:to-purple-neon shadow-lg shadow-purple-neon/25 hover:shadow-purple-neon/50 hover:scale-[1.02] active:scale-[0.98]',
                 success:
-                    'bg-green-success text-black hover:bg-green-success/90 shadow-lg shadow-green-success/20 hover:shadow-green-success/40',
+                    'bg-gradient-to-r from-green-success to-emerald-500 text-bg-primary hover:from-emerald-400 hover:to-green-success shadow-lg shadow-green-success/25 hover:shadow-green-success/50 hover:scale-[1.02] active:scale-[0.98]',
                 outline:
-                    'border-2 border-cyan-glow text-cyan-glow hover:bg-cyan-glow/10 shadow-lg shadow-cyan-glow/10 hover:shadow-cyan-glow/30',
-                ghost: 'text-cyan-glow hover:bg-cyan-glow/10',
+                    'border-2 border-cyan-glow text-cyan-glow bg-transparent hover:bg-cyan-glow/10 shadow-lg shadow-cyan-glow/10 hover:shadow-cyan-glow/30 hover:scale-[1.02] active:scale-[0.98]',
+                ghost: 'text-cyan-glow hover:bg-cyan-glow/10 hover:text-cyan-400',
             },
             size: {
                 default: 'h-10 px-4 py-2',
