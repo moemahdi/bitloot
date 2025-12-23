@@ -49,6 +49,6 @@ import { PaymentProcessorService } from '../../jobs/payment-processor.service';
       },
     },
   ],
-  exports: [PaymentsService, PaymentProcessorService],
+  exports: [PaymentsService, PaymentProcessorService, NowPaymentsClient],
 })
 export class PaymentsModule {}
