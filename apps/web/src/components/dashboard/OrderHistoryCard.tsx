@@ -13,7 +13,7 @@ interface OrderHistoryCardProps {
     index: number;
 }
 
-export function OrderHistoryCard({ order, index }: OrderHistoryCardProps) {
+export function OrderHistoryCard({ order, index }: OrderHistoryCardProps): React.ReactElement {
     const statusColor =
         order.status === 'fulfilled'
             ? 'green'

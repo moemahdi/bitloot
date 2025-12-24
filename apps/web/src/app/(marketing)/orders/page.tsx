@@ -96,7 +96,7 @@ export default function OrdersPage(): React.ReactElement {
                         </p>
                     </div>
                     <Link href="/catalog">
-                        <GlowButton variant="primary" size="lg" glowColor="purple">
+                        <GlowButton variant="default" size="lg" glowColor="purple">
                             <ShoppingBag className="mr-2 h-5 w-5" />
                             Browse Store
                         </GlowButton>
@@ -158,7 +158,7 @@ export default function OrdersPage(): React.ReactElement {
                             </div>
                             <p className="text-xl font-bold text-text-primary mb-2">No orders found</p>
                             <p className="text-text-secondary max-w-md">
-                                We couldn't find any orders matching your criteria. Try adjusting your filters or browse our catalog to make your first purchase!
+                                We couldn&apos;t find any orders matching your criteria. Try adjusting your filters or browse our catalog to make your first purchase!
                             </p>
                         </motion.div>
                     ) : (

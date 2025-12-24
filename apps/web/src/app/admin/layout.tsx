@@ -2,90 +2,69 @@
 
 import type { ReactNode } from 'react';
 import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
+import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
-import { AdminSidebar } from '@/features/admin/components/AdminSidebar';
-import { AdminHeader } from '@/features/admin/components/AdminHeader';
 import { cn } from '@/design-system/utils/utils';
-import { ShieldAlert, LogOut } from 'lucide-react';
+import {
+  ShieldAlert,
+  LogOut,
+  LayoutDashboard,
+  Package,
+  CreditCard,
+  Webhook,
+  BookOpen,
+  Boxes,
+  ToggleLeft,
+  ListOrdered,
+  Wallet,
+  ClipboardList,
+  ShoppingBag,
+  Settings,
+  RefreshCw,
+  Zap,
+  Loader2,
+} from 'lucide-react';
+import { Header } from '@/components/layout/Header';
+import { Footer } from '@/components/layout/Footer';
+
+// Admin navigation tabs configuration
+const ADMIN_TABS = [
+  { href: '/admin', label: 'Dashboard', icon: LayoutDashboard },
+  { href: '/admin/orders', label: 'Orders', icon: Package },
+  { href: '/admin/payments', label: 'Payments', icon: CreditCard },
+  { href: '/admin/webhooks', label: 'Webhooks', icon: Webhook },
+  { href: '/admin/reservations', label: 'Reservations', icon: BookOpen },
+  { href: '/admin/catalog', label: 'Catalog', icon: ShoppingBag },
+  { href: '/admin/catalog/products', label: 'Products', icon: Boxes },
+  { href: '/admin/catalog/rules', label: 'Pricing', icon: Settings },
+  { href: '/admin/catalog/sync', label: 'Sync', icon: RefreshCw },
+  { href: '/admin/flags', label: 'Flags', icon: ToggleLeft },
+  { href: '/admin/queues', label: 'Queues', icon: ListOrdered },
+  { href: '/admin/balances', label: 'Balances', icon: Wallet },
+  { href: '/admin/audit', label: 'Audit', icon: ClipboardList },
+] as const;
 
 /**
  * Branded loading skeleton for admin panel
- * Shows app shell structure while authenticating
  */
 function AdminLoadingSkeleton(): ReactNode {
   return (
-    <div className="flex h-screen bg-bg-primary" role="status" aria-label="Loading admin panel">
-      {/* Sidebar Skeleton */}
-      <div className="hidden lg:flex w-[280px] flex-col bg-bg-secondary/95 border-r border-cyan-glow/20">
-        {/* Logo skeleton */}
-        <div className="flex items-center gap-3 px-5 pt-6 pb-4 border-b border-white/5">
-          <div className="h-11 w-11 rounded-xl bg-gradient-to-br from-cyan-glow/20 to-accent-purple/20 animate-pulse" />
-          <div className="space-y-2">
-            <div className="h-4 w-20 bg-white/10 rounded animate-pulse" />
-            <div className="h-2.5 w-24 bg-cyan-glow/20 rounded animate-pulse" />
-          </div>
-        </div>
-
-        {/* Nav items skeleton */}
-        <div className="flex-1 p-4 space-y-2">
-          {[...Array(4)].map((_, i) => (
-            <div key={i} className="space-y-1">
-              <div className="h-8 w-full bg-white/5 rounded-lg animate-pulse" />
-              <div className="ml-6 space-y-1">
-                {[...Array(3)].map((_, j) => (
-                  <div
-                    key={j}
-                    className="h-7 w-4/5 bg-white/5 rounded animate-pulse"
-                    style={{ animationDelay: `${(i * 3 + j) * 100}ms` }}
-                  />
-                ))}
-              </div>
+    <div className="flex min-h-screen flex-col bg-gradient-dark">
+      <Header />
+      <main className="flex-1 flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="relative">
+            <div className="absolute -inset-4 animate-ping rounded-full bg-cyan-glow/20" />
+            <div className="relative flex h-16 w-16 items-center justify-center rounded-2xl border border-cyan-glow/30 bg-bg-secondary">
+              <Zap className="h-8 w-8 animate-pulse text-cyan-glow" fill="currentColor" />
             </div>
-          ))}
-        </div>
-
-        {/* Footer skeleton */}
-        <div className="border-t border-white/10 px-5 py-4">
-          <div className="flex items-center justify-between">
-            <div className="h-3 w-16 bg-white/10 rounded animate-pulse" />
-            <div className="h-2 w-2 rounded-full bg-cyan-glow/30 animate-pulse" />
           </div>
+          <p className="text-sm text-text-muted">Verifying admin access...</p>
+          <Loader2 className="h-5 w-5 animate-spin text-cyan-glow" />
         </div>
-      </div>
-
-      {/* Main content skeleton */}
-      <div className="flex-1 flex flex-col">
-        {/* Header skeleton */}
-        <div className="h-16 border-b border-white/10 bg-bg-secondary/50 flex items-center justify-between px-6">
-          <div className="flex items-center gap-3">
-            <div className="h-5 w-5 bg-cyan-glow/20 rounded animate-pulse" />
-            <div className="h-5 w-32 bg-white/10 rounded animate-pulse" />
-          </div>
-          <div className="flex items-center gap-3">
-            <div className="h-8 w-8 bg-white/10 rounded-lg animate-pulse" />
-            <div className="h-8 w-8 bg-white/10 rounded-full animate-pulse" />
-          </div>
-        </div>
-
-        {/* Content skeleton */}
-        <div className="flex-1 p-6 lg:p-8 space-y-6">
-          <div className="h-8 w-48 bg-white/10 rounded animate-pulse" />
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {[...Array(4)].map((_, i) => (
-              <div
-                key={i}
-                className="h-28 bg-bg-secondary/50 rounded-xl border border-white/10 animate-pulse"
-                style={{ animationDelay: `${i * 150}ms` }}
-              />
-            ))}
-          </div>
-          <div className="h-64 bg-bg-secondary/50 rounded-xl border border-white/10 animate-pulse" />
-        </div>
-      </div>
-
-      {/* Screen reader announcement */}
-      <span className="sr-only">Verifying admin credentials...</span>
+      </main>
+      <Footer />
     </div>
   );
 }
@@ -116,46 +95,41 @@ function RedirectingState({
   const { icon: Icon, title, description } = messages[reason];
 
   return (
-    <div
-      className="flex h-screen items-center justify-center bg-bg-primary"
-      role="alert"
-      aria-live="assertive"
-    >
-      <div className="text-center space-y-4 max-w-sm px-6">
-        <div className="mx-auto w-16 h-16 rounded-2xl bg-accent-error/10 flex items-center justify-center">
-          <Icon className="w-8 h-8 text-accent-error" />
+    <div className="flex min-h-screen flex-col bg-gradient-dark">
+      <Header />
+      <main className="flex-1 flex items-center justify-center">
+        <div className="text-center space-y-4 max-w-sm px-6">
+          <div className="mx-auto w-16 h-16 rounded-2xl bg-accent-error/10 flex items-center justify-center border border-accent-error/30">
+            <Icon className="w-8 h-8 text-accent-error" />
+          </div>
+          <div className="space-y-2">
+            <h1 className="text-xl font-semibold text-text-primary">{title}</h1>
+            <p className="text-sm text-text-secondary">{description}</p>
+          </div>
+          <div className="flex items-center justify-center gap-2 text-sm text-text-muted">
+            <Loader2 className="h-4 w-4 animate-spin text-cyan-glow" />
+            <span>Redirecting to {destination}...</span>
+          </div>
         </div>
-        <div className="space-y-2">
-          <h1 className="text-xl font-semibold text-text-primary">{title}</h1>
-          <p className="text-sm text-text-secondary">{description}</p>
-        </div>
-        <div className="flex items-center justify-center gap-2 text-sm text-text-muted">
-          <div className="h-4 w-4 animate-spin rounded-full border-2 border-cyan-glow border-t-transparent" />
-          <span>Redirecting to {destination}...</span>
-        </div>
-      </div>
+      </main>
+      <Footer />
     </div>
   );
 }
 
 /**
- * AdminLayout: Protects all /admin/* routes with JWT + admin role
+ * AdminLayout: Tab-based navigation for admin dashboard
  *
  * Features:
- * - Verifies user authentication via useAuth hook
- * - Branded loading skeleton during auth check
- * - Clear feedback before auth redirects
- * - Accessible with proper ARIA landmarks
- * - Skip-to-content link for keyboard users
- * - Responsive sidebar + header layout
- *
- * Security:
- * - Redirects to /auth/login if not authenticated
- * - Redirects to / if user is not admin
- * - Never renders admin content for unauthorized users
+ * - 13 navigation tabs for all admin sections
+ * - Active tab highlighting with cyan glow
+ * - Horizontal scrollable tabs on mobile
+ * - Header + Footer from main layout
+ * - No sidebar - cleaner single-page feel
  */
 export default function AdminLayout({ children }: { children: ReactNode }): ReactNode {
   const router = useRouter();
+  const pathname = usePathname();
   const { user, isLoading } = useAuth();
   const [redirectReason, setRedirectReason] = useState<'unauthenticated' | 'unauthorized' | null>(
     null
@@ -165,16 +139,14 @@ export default function AdminLayout({ children }: { children: ReactNode }): Reac
   useEffect(() => {
     if (isLoading) return;
 
-    // Not authenticated
     if (user === null) {
       setRedirectReason('unauthenticated');
       const timer = setTimeout(() => {
         router.push('/auth/login');
-      }, 1500); // Brief delay to show feedback
+      }, 1500);
       return () => clearTimeout(timer);
     }
 
-    // Not admin
     if (user?.role !== 'admin') {
       setRedirectReason('unauthorized');
       const timer = setTimeout(() => {
@@ -184,7 +156,7 @@ export default function AdminLayout({ children }: { children: ReactNode }): Reac
     }
   }, [user, isLoading, router]);
 
-  // Show branded loading skeleton during auth check
+  // Show loading skeleton during auth check
   if (isLoading) {
     return <AdminLoadingSkeleton />;
   }
@@ -198,46 +170,70 @@ export default function AdminLayout({ children }: { children: ReactNode }): Reac
     return <RedirectingState reason="unauthorized" destination="home" />;
   }
 
-  // Not authenticated - should not reach here but safety check
   if (user === null) {
     return null;
   }
 
+  // Check if current path matches a tab
+  const isActiveTab = (href: string): boolean => {
+    if (href === '/admin') {
+      return pathname === '/admin';
+    }
+    return pathname.startsWith(href);
+  };
+
   return (
-    <div className="flex h-screen bg-bg-primary">
-      {/* Skip to main content - Accessibility */}
-      <a
-        href="#admin-main-content"
-        className={cn(
-          'sr-only focus:not-sr-only focus:absolute focus:z-50',
-          'focus:top-4 focus:left-4 focus:px-4 focus:py-2',
-          'focus:bg-cyan-glow focus:text-bg-primary focus:rounded-lg',
-          'focus:font-medium focus:text-sm focus:outline-none',
-          'focus:shadow-[0_0_20px_rgba(0,217,255,0.5)]'
-        )}
-      >
-        Skip to main content
-      </a>
+    <div className="relative flex min-h-screen flex-col bg-gradient-dark">
+      <Header />
 
-      {/* Sidebar Navigation */}
-      <AdminSidebar />
+      {/* Admin Tabs Navigation */}
+      <div className="sticky top-0 z-40 border-b border-border-subtle bg-bg-primary/80 backdrop-blur-xl">
+        <div className="container mx-auto px-4">
+          <nav
+            className="flex gap-1 overflow-x-auto py-2 scrollbar-thin scrollbar-thumb-border-subtle scrollbar-track-transparent"
+            role="tablist"
+            aria-label="Admin navigation"
+          >
+            {ADMIN_TABS.map((tab) => {
+              const Icon = tab.icon;
+              const isActive = isActiveTab(tab.href);
 
-      {/* Main Content Area */}
-      <div className="flex-1 flex flex-col overflow-hidden lg:ml-0">
-        {/* Top Header */}
-        <AdminHeader />
-
-        {/* Page Content */}
-        <main
-          id="admin-main-content"
-          className="flex-1 overflow-auto focus:outline-none"
-          tabIndex={-1}
-          role="main"
-          aria-label="Admin page content"
-        >
-          <div className="p-6 lg:p-8">{children}</div>
-        </main>
+              return (
+                <Link
+                  key={tab.href}
+                  href={tab.href}
+                  role="tab"
+                  aria-selected={isActive}
+                  aria-current={isActive ? 'page' : undefined}
+                  className={cn(
+                    'flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200',
+                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-glow/50 focus-visible:ring-offset-2 focus-visible:ring-offset-bg-primary',
+                    isActive
+                      ? 'bg-cyan-glow/10 text-cyan-glow shadow-[0_0_12px_rgba(0,217,255,0.15)]'
+                      : 'text-text-muted hover:bg-bg-secondary hover:text-text-primary'
+                  )}
+                >
+                  <Icon className="h-4 w-4" />
+                  <span className="whitespace-nowrap">{tab.label}</span>
+                </Link>
+              );
+            })}
+          </nav>
+        </div>
       </div>
+
+      {/* Page Content */}
+      <main
+        id="admin-main-content"
+        className="flex-1 focus:outline-none"
+        tabIndex={-1}
+        role="main"
+        aria-label="Admin page content"
+      >
+        <div className="container mx-auto px-4 py-6 lg:py-8">{children}</div>
+      </main>
+
+      <Footer />
     </div>
   );
 }

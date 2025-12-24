@@ -1,17 +1,22 @@
 'use client';
 
+interface ChartPayloadItem {
+    fill?: string;
+    [key: string]: unknown;
+}
+
 interface NeonChartTooltipProps {
     active?: boolean;
     payload?: Array<{
         value: number | string;
         dataKey: string;
-        payload: any;
+        payload: ChartPayloadItem;
     }>;
     label?: string;
 }
 
 export function NeonChartTooltip({ active, payload, label }: NeonChartTooltipProps): React.ReactElement | null {
-    if (!active || !payload || payload.length === 0) {
+    if (active !== true || payload === undefined || payload === null || payload.length === 0) {
         return null;
     }
 
@@ -22,7 +27,7 @@ export function NeonChartTooltip({ active, payload, label }: NeonChartTooltipPro
                 <div key={index} className="flex items-center gap-2">
                     <div
                         className="h-2 w-2 rounded-full shadow-[0_0_8px_currentColor]"
-                        style={{ backgroundColor: entry.payload.fill || 'hsl(var(--cyan-glow))' }}
+                        style={{ backgroundColor: entry.payload.fill ?? 'hsl(var(--cyan-glow))' }}
                     />
                     <span className="text-sm font-bold text-text-primary">
                         ${typeof entry.value === 'number' ? entry.value.toFixed(2) : entry.value}

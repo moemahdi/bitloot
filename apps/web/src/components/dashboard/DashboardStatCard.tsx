@@ -11,7 +11,7 @@ interface DashboardStatCardProps {
     trend?: {
         value: number;
         label: string;
-        direction: 'up' | 'down';
+        direction: 'up' | 'down' | 'neutral';
     };
     color?: 'cyan' | 'purple' | 'green' | 'orange';
     delay?: number;
@@ -73,17 +73,17 @@ export function DashboardStatCard({
                 </div>
             </div>
 
-            {trend && (
+            {trend !== undefined && trend !== null && (
                 <div className="mt-4 flex items-center gap-2">
                     <div
-                        className={`flex items-center text-xs font-medium ${trend.direction === 'up' ? 'text-green-success' : 'text-orange-warning'
+                        className={`flex items-center text-xs font-medium ${trend.direction === 'up' ? 'text-green-success' : trend.direction === 'down' ? 'text-orange-warning' : 'text-text-muted'
                             }`}
                     >
                         {trend.direction === 'up' ? (
                             <ArrowUpRight className="mr-1 h-3 w-3" />
-                        ) : (
+                        ) : trend.direction === 'down' ? (
                             <ArrowDownRight className="mr-1 h-3 w-3" />
-                        )}
+                        ) : null}
                         {Math.abs(trend.value)}%
                     </div>
                     <p className="text-xs text-text-muted">{trend.label}</p>

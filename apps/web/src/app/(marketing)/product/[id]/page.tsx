@@ -47,8 +47,8 @@ export default function ProductPage(): React.ReactElement {
     );
   }
 
-  // Calculate price in dollars (priceMinor is in cents)
-  const priceInDollars = (product?.priceMinor ?? 0) / 100;
+  // Calculate price in dollars (price is a string from the SDK)
+  const priceInDollars = parseFloat(product?.price ?? '0');
 
   return (
     <div className="container py-8">

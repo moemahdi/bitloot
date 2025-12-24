@@ -15,7 +15,7 @@ export interface Order {
   createdAt: string;
 }
 
-export function useAdminOrders(state: TableState): { orders: Order[]; total: number; isLoading: boolean; refetch: () => void; error: Error | null } {
+export function useAdminOrders(state: TableState): { orders: Order[]; total: number; isLoading: boolean; refetch: () => Promise<unknown>; error: Error | null } {
   const { page, limit, filters } = state;
   const search = (filters?.search as string) ?? '';
   const statusFilter = (filters?.status as string) ?? '';

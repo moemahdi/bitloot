@@ -1,4 +1,4 @@
-import { Card, CardContent, CardHeader, CardTitle } from '@/design-system/primitives/card';
+import { Card, CardContent } from '@/design-system/primitives/card';
 import { Skeleton } from '@/design-system/primitives/skeleton';
 
 interface ProductCardSkeletonProps {

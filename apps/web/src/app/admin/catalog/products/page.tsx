@@ -422,10 +422,10 @@ export default function AdminCatalogProductsPage(): React.JSX.Element {
                             </Badge>
                           </TableCell>
                           <TableCell className="text-right font-mono text-text-muted">
-                            {formatPrice(product.costMinor)}
+                            {formatPrice(parseFloat(product.cost ?? '0'))}
                           </TableCell>
                           <TableCell className="text-right font-mono font-semibold text-cyan-glow">
-                            {formatPrice(product.priceMinor)}
+                            {formatPrice(parseFloat(product.price ?? '0'))}
                           </TableCell>
                           <TableCell>
                             {product.isPublished ? (

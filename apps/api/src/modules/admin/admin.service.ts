@@ -1,6 +1,6 @@
 import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, In } from 'typeorm';
+import { Repository } from 'typeorm';
 import { Order } from '../orders/order.entity';
 import { Payment } from '../payments/payment.entity';
 import { WebhookLog } from '../../database/entities/webhook-log.entity';
@@ -36,11 +36,13 @@ export class AdminService {
    */
   async getDashboardStats(): Promise<DashboardStatsDto> {
     // 1. Total Revenue (Sum of completed payments)
-    const { revenue } = await this.paymentsRepo
+    const revenueResult = await this.paymentsRepo
       .createQueryBuilder('p')
       .select('SUM(p.payAmount)', 'revenue')
       .where('p.status = :status', { status: 'finished' })
-      .getRawOne();
+      .getRawOne<{ revenue: string | null }>();
+
+    const revenue = revenueResult?.revenue ?? '0';
 
     // 2. Total Orders
     const totalOrders = await this.ordersRepo.count();
@@ -69,7 +71,7 @@ export class AdminService {
       .andWhere('p.createdAt >= :startDate', { startDate: sevenDaysAgo })
       .groupBy('date')
       .orderBy('date', 'ASC')
-      .getRawMany();
+      .getRawMany<{ date: string; revenue: string }>();
 
     // Format history
     const revenueHistory = revenueHistoryRaw.map((item) => ({
@@ -86,12 +88,12 @@ export class AdminService {
       const found = revenueHistory.find((h) => h.date === dateStr);
       filledHistory.push({
         date: dateStr,
-        revenue: found ? found.revenue : 0,
+        revenue: found !== undefined ? found.revenue : 0,
       });
     }
 
     return {
-      totalRevenue: parseFloat(revenue ?? '0'),
+      totalRevenue: parseFloat(revenue),
       totalOrders,
       totalUsers,
       activeOrders,

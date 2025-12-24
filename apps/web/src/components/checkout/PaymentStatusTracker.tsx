@@ -111,7 +111,7 @@ export function PaymentStatusTracker({
                         <h3 className={`text-lg font-display font-semibold ${config.color}`}>
                             {config.label}
                         </h3>
-                        {message && <p className="text-sm text-text-secondary mt-1">{message}</p>}
+                        {message !== undefined && message !== '' && <p className="text-sm text-text-secondary mt-1">{message}</p>}
                     </div>
                 </div>
 
@@ -142,15 +142,15 @@ function ProgressStep({ label, completed, inProgress }: ProgressStepProps): Reac
     return (
         <div className="flex items-center gap-2 text-sm">
             <div
-                className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${completed
+                className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${completed === true
                         ? 'border-green-success bg-green-success'
-                        : inProgress
+                        : inProgress === true
                             ? 'border-cyan-glow bg-cyan-glow/20'
                             : 'border-border-subtle'
                     }`}
             >
-                {completed && <CheckCircle className="w-3 h-3 text-white" />}
-                {inProgress && (
+                {completed === true && <CheckCircle className="w-3 h-3 text-white" />}
+                {inProgress === true && (
                     <motion.div
                         animate={{ scale: [1, 1.2, 1] }}
                         transition={{ duration: 1, repeat: Infinity }}
@@ -160,7 +160,7 @@ function ProgressStep({ label, completed, inProgress }: ProgressStepProps): Reac
             </div>
             <span
                 className={
-                    completed || inProgress ? 'text-text-primary' : 'text-text-muted'
+                    completed === true || inProgress === true ? 'text-text-primary' : 'text-text-muted'
                 }
             >
                 {label}

@@ -143,13 +143,13 @@ export default function AdminWebhookDetailPage(): React.ReactElement | null {
                         </div>
                         <div className="flex justify-between">
                             <span className="text-muted-foreground">Created At</span>
-                            <span>{webhook.createdAt ? new Date(webhook.createdAt).toLocaleString() : '-'}</span>
+                            <span>{webhook.createdAt !== undefined && webhook.createdAt !== null ? new Date(webhook.createdAt).toLocaleString() : '-'}</span>
                         </div>
                     </CardContent>
                 </Card>
 
                 {/* Error Info */}
-                {webhook?.error != null && (
+                {webhook.error !== null && webhook.error !== undefined && (
                     <Card className="border-red-200 bg-red-50">
                         <CardHeader>
                             <div className="flex items-center gap-2">

@@ -29,7 +29,6 @@ import {
   Activity,
   Users,
   Package,
-  Loader2,
   ArrowUpRight,
   AlertTriangle,
   RefreshCw,
@@ -37,9 +36,6 @@ import {
   XCircle,
   Clock,
   Zap,
-  TrendingUp,
-  TrendingDown,
-  Minus,
   AlertCircle,
   Server,
   Database,
@@ -130,7 +126,7 @@ function DashboardSkeleton(): React.ReactElement {
 
       {/* KPI Cards skeleton */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {[...Array(4)].map((_, i) => (
+        {Array.from({ length: 4 }, (_, i) => (
           <div
             key={i}
             className="h-32 rounded-xl border border-white/10 bg-bg-secondary/50 animate-pulse"
@@ -186,7 +182,6 @@ function SystemStatusBadge({ health }: { health: SystemHealth }): React.ReactEle
   };
 
   const config = statusConfig[health.status];
-  const Icon = config.icon;
 
   return (
     <TooltipProvider>
@@ -383,6 +378,7 @@ function OrderStatusBadge({ status }: { status: string }): React.ReactElement {
   };
 
   const config = statusConfig[status] ?? statusConfig.waiting;
+  if (config === undefined) return <></>;
   const Icon = config.icon;
 
   return (
@@ -481,7 +477,7 @@ export default function AdminDashboardPage(): React.ReactElement | null {
     }
 
     // Info alert for recent activity
-    if (stats && stats.totalOrders > 0) {
+    if (stats !== null && stats !== undefined && stats.totalOrders > 0) {
       alertsList.push({
         id: 'catalog-sync',
         severity: 'info',
@@ -534,14 +530,14 @@ export default function AdminDashboardPage(): React.ReactElement | null {
   // Chart summary for screen readers
   const chartSummary = useMemo(() => {
     if (chartData.length === 0) return 'No revenue data available';
-    const total = chartData.reduce((sum, d) => sum + d.total, 0);
+    const total = chartData.reduce((sum, d) => sum + (d.total ?? 0), 0);
     const avg = total / chartData.length;
     return `Revenue chart showing ${chartData.length} days of data. Total: $${total.toFixed(2)}, Average: $${avg.toFixed(2)} per day.`;
   }, [chartData]);
 
   // Last updated time
   const lastUpdated = useMemo(() => {
-    if (!dataUpdatedAt) return null;
+    if (dataUpdatedAt === undefined || dataUpdatedAt === 0) return null;
     return new Date(dataUpdatedAt).toLocaleTimeString();
   }, [dataUpdatedAt]);
 
@@ -570,7 +566,7 @@ export default function AdminDashboardPage(): React.ReactElement | null {
             <h1 className="font-display text-3xl font-bold text-text-primary">Admin Dashboard</h1>
             <p className="text-text-secondary">
               Overview of system performance and sales.
-              {lastUpdated && (
+              {lastUpdated !== null && lastUpdated !== '' && (
                 <span className="text-text-muted ml-2 text-sm">Updated {lastUpdated}</span>
               )}
             </p>

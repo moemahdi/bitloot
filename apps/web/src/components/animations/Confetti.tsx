@@ -24,6 +24,17 @@ const colors = [
     'hsl(var(--green-success))',
 ];
 
+// Helper for crypto-safe random numbers
+function getRandomFloat(): number {
+    const array = new Uint32Array(1);
+    crypto.getRandomValues(array);
+    return array[0]! / 4294967295;
+}
+
+function getRandomInt(max: number): number {
+    return Math.floor(getRandomFloat() * max);
+}
+
 export function Confetti({ active, duration = 3000 }: ConfettiProps): React.ReactElement {
     const particles = useRef<Particle[]>([]);
 
@@ -32,11 +43,11 @@ export function Confetti({ active, duration = 3000 }: ConfettiProps): React.Reac
             // Generate 50 particles
             particles.current = Array.from({ length: 50 }, (_, i) => ({
                 id: i,
-                x: Math.random() * 100,
+                x: getRandomFloat() * 100,
                 y: -10,
-                rotation: Math.random() * 360,
-                color: colors[Math.floor(Math.random() * colors.length)] ?? colors[0]!,
-                scale: Math.random() * 0.5 + 0.5,
+                rotation: getRandomFloat() * 360,
+                color: colors[getRandomInt(colors.length)] ?? colors[0]!,
+                scale: getRandomFloat() * 0.5 + 0.5,
             }));
         }
     }, [active]);

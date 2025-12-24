@@ -3,6 +3,13 @@
 import { motion } from 'framer-motion';
 import { useEffect, useState } from 'react';
 
+// Helper for crypto-safe random numbers
+function getRandomFloat(): number {
+    const array = new Uint32Array(1);
+    crypto.getRandomValues(array);
+    return array[0]! / 4294967295;
+}
+
 interface Particle {
     id: number;
     x: number;
@@ -18,11 +25,11 @@ export function FloatingParticles({ count = 30 }: { count?: number }): React.Rea
     useEffect(() => {
         const newParticles = Array.from({ length: count }, (_, i) => ({
             id: i,
-            x: Math.random() * 100,
-            y: Math.random() * 100,
-            size: Math.random() * 4 + 1,
-            duration: Math.random() * 20 + 10,
-            delay: Math.random() * 5,
+            x: getRandomFloat() * 100,
+            y: getRandomFloat() * 100,
+            size: getRandomFloat() * 4 + 1,
+            duration: getRandomFloat() * 20 + 10,
+            delay: getRandomFloat() * 5,
         }));
         setParticles(newParticles);
     }, [count]);

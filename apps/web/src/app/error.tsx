@@ -54,7 +54,7 @@ export default function ErrorPage({
 
         <CardContent className="space-y-4">
           {/* Error Details (Development Only) */}
-          {process.env.NODE_ENV === 'development' && error.message && (
+          {process.env.NODE_ENV === 'development' && error.message !== undefined && error.message !== '' && (
             <div className="p-4 rounded-lg bg-bg-secondary/50 border border-border-subtle overflow-hidden">
               <div className="flex items-center gap-2 mb-2">
                 <div className="w-2 h-2 rounded-full bg-red-400 animate-pulse" />
@@ -65,7 +65,7 @@ export default function ErrorPage({
               <pre className="text-xs font-mono text-red-400/80 overflow-auto max-h-32 whitespace-pre-wrap break-words">
                 {error.message}
               </pre>
-              {error.digest && (
+              {error.digest !== undefined && error.digest !== '' && (
                 <p className="mt-2 text-xs text-text-muted">
                   Error ID: <code className="text-purple-neon">{error.digest}</code>
                 </p>

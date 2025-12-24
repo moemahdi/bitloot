@@ -78,11 +78,11 @@ function ErrorFallback({ error, resetError }: ErrorFallbackProps): React.ReactEl
 
             {/* Error Message */}
             <p className="text-text-secondary mb-2">
-              {error?.message || 'An unexpected error occurred'}
+              {error?.message ?? 'An unexpected error occurred'}
             </p>
 
             {/* Technical Details (development only) */}
-            {process.env.NODE_ENV === 'development' && error?.stack && (
+            {process.env.NODE_ENV === 'development' && error?.stack !== undefined && error.stack !== '' && (
               <details className="mt-4 text-left">
                 <summary className="cursor-pointer text-sm text-text-muted hover:text-cyan-glow mb-2 transition-colors">
                   Technical Details

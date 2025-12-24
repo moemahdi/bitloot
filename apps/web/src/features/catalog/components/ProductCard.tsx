@@ -84,7 +84,7 @@ export function ProductCard({ product, onQuickView, onAddToCart }: ProductCardPr
                                     className="absolute inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center gap-3 z-20"
                                     onClick={(e) => e.preventDefault()}
                                 >
-                                    {onQuickView && (
+                                    {onQuickView !== undefined && (
                                         <GlowButton
                                             size="sm"
                                             onClick={(e) => {
@@ -96,7 +96,7 @@ export function ProductCard({ product, onQuickView, onAddToCart }: ProductCardPr
                                             Quick View
                                         </GlowButton>
                                     )}
-                                    {onAddToCart && (
+                                    {onAddToCart !== undefined && (
                                         <GlowButton
                                             size="sm"
                                             variant="outline"

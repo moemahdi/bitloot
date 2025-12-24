@@ -23,14 +23,21 @@ const MOCK_PURCHASES: Purchase[] = [
 export function LivePurchaseFeed(): React.ReactElement {
     const [purchases, setPurchases] = useState(MOCK_PURCHASES);
 
+    // Helper to get a random integer
+    const getRandomInt = (max: number): number => {
+        const array = new Uint32Array(1);
+        crypto.getRandomValues(array);
+        return array[0]! % max;
+    };
+
     useEffect(() => {
         const interval = setInterval(() => {
             setPurchases((prev) => {
                 const newPurchases = [...prev];
                 newPurchases.unshift({
                     id: Date.now().toString(),
-                    initial: String.fromCharCode(65 + Math.floor(Math.random() * 26)),
-                    product: ['Hogwarts Legacy', 'Starfield', 'Baldurs Gate 3', 'Spider-Man'][Math.floor(Math.random() * 4)],
+                    initial: String.fromCharCode(65 + getRandomInt(26)),
+                    product: ['Hogwarts Legacy', 'Starfield', 'Baldurs Gate 3', 'Spider-Man'][getRandomInt(4)] ?? 'Game',
                     timeAgo: 'Just now',
                 });
                 return newPurchases.slice(0, 4);

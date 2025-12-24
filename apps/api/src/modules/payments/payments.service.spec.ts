@@ -1,3 +1,4 @@
+import 'reflect-metadata';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { InternalServerErrorException } from '@nestjs/common';
 import { PaymentsService } from './payments.service';

@@ -2,7 +2,7 @@ import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 
 // Skip link component for accessibility (WCAG 2.4.1)
-function SkipLink() {
+function SkipLink(): React.ReactElement {
   return (
     <a
       href="#main-content"

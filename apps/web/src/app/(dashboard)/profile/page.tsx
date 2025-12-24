@@ -888,7 +888,7 @@ export default function ProfilePage(): React.ReactElement {
                         size="sm"
                         className="text-text-muted hover:text-cyan-glow"
                         onClick={() => {
-                          navigator.clipboard.writeText(user.id);
+                          void navigator.clipboard.writeText(user.id);
                           toast.success('User ID copied to clipboard');
                         }}
                       >

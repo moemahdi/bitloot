@@ -1,4 +1,4 @@
-import { MigrationInterface, QueryRunner } from "typeorm";
+import type { MigrationInterface, QueryRunner } from "typeorm";
 
 export class EnsureAdminUser1763653000000 implements MigrationInterface {
 
@@ -8,9 +8,9 @@ export class EnsureAdminUser1763653000000 implements MigrationInterface {
         // Check if user exists
         const user = await queryRunner.query(
             `SELECT id FROM "users" WHERE "email" = '${email}'`
-        );
+        ) as Array<{ id: string }> | undefined;
 
-        if (user && user.length > 0) {
+        if (user !== undefined && user.length > 0) {
             // Update existing user
             await queryRunner.query(
                 `UPDATE "users" SET "role" = 'admin' WHERE "email" = '${email}'`

@@ -4,9 +4,10 @@ import { AdminApi as AdminApiImpl, Configuration } from '@bitloot/sdk';
 import type { TableState } from './useAdminTableState';
 
 export function useAdminReservations(state: TableState): {
-  data: unknown[];
+  reservations: unknown[];
   total: number;
   isLoading: boolean;
+  refetch: () => Promise<unknown>;
   error: Error | null;
 } {
   const { page, limit, filters } = state;

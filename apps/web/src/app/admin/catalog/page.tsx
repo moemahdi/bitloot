@@ -155,7 +155,7 @@ export default function AdminCatalogPage(): React.ReactElement | null {
                                                     <TableCell className="font-medium">{product.title}</TableCell>
                                                     <TableCell>{product.platform}</TableCell>
                                                     <TableCell>{product.region}</TableCell>
-                                                    <TableCell>${(product.priceMinor / 100).toFixed(2)}</TableCell>
+                                                    <TableCell>${parseFloat(product.price ?? '0').toFixed(2)}</TableCell>
                                                     <TableCell>
                                                         <Badge variant={product.isPublished ? 'default' : 'secondary'}>
                                                             {product.isPublished ? 'Published' : 'Draft'}

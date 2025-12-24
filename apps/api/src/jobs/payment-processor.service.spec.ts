@@ -1,3 +1,4 @@
+import 'reflect-metadata';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { PaymentProcessorService } from './payment-processor.service';
 import type { NowPaymentsClient } from '../modules/payments/nowpayments.client';

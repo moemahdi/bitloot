@@ -37,6 +37,7 @@ export default [
       '**/vitest-global-setup.ts', // Exclude vitest setup from linting
       '**/test-setup.ts', // Exclude test setup from linting
       '**/vitest.config.ts', // Exclude vitest config from linting
+      'apps/api/check-migrations.ts', // Standalone script not in tsconfig
     ],
   },
 

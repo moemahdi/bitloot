@@ -41,7 +41,7 @@ export interface UseAdminWebhooksOptions extends TableState {
 
 export interface UseAdminWebhooksReturn {
   query: ReturnType<typeof useQuery<WebhooksListResponse>>;
-  replayMutation: ReturnType<typeof useMutation>;
+  replayMutation: { mutate: (id: string) => void; mutateAsync: (id: string) => Promise<void>; isPending: boolean };
 }
 
 export function useAdminWebhooks(state: UseAdminWebhooksOptions): UseAdminWebhooksReturn {
@@ -86,6 +86,6 @@ export function useAdminWebhooks(state: UseAdminWebhooksOptions): UseAdminWebhoo
 
   return {
     query,
-    replayMutation,
+    replayMutation: replayMutation as unknown as { mutate: (id: string) => void; mutateAsync: (id: string) => Promise<void>; isPending: boolean },
   };
 }

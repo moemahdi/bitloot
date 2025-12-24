@@ -226,7 +226,7 @@ export default function GlobalError({
             </div>
 
             {/* Error ID (Production) */}
-            {error.digest && (
+            {error.digest !== undefined && error.digest !== '' && (
               <p
                 style={{
                   marginTop: '1rem',

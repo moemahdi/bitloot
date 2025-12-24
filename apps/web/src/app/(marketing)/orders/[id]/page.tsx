@@ -16,9 +16,10 @@ import {
     TableHeader,
     TableRow,
 } from '@/design-system/primitives/table';
-import { Package, Calendar, CreditCard, ArrowLeft, Download, Key, Loader2, Copy, Check, Eye, EyeOff } from 'lucide-react';
+import { Package, Calendar, CreditCard, ArrowLeft, Download, Key, Loader2, Copy, Check, Eye } from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';
+import { toast } from 'sonner';
 
 // Initialize SDK configuration
 const apiConfig = new Configuration({
@@ -64,7 +65,7 @@ export default function OrderDetailPage(): React.ReactElement {
         onError: (err) => {
             console.error('Failed to reveal key:', err);
             setRevealingItemId(null);
-            alert('Failed to reveal key. Please try again.');
+            toast.error('Failed to reveal key. Please try again.');
         },
     });
 

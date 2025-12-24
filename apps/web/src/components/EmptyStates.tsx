@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { AlertCircle, PackageOpen, Search, ShoppingCart, FileQuestion } from 'lucide-react';
 import { GlowButton } from '@/design-system/primitives/glow-button';
 import { cn } from '@/design-system/utils/utils';
@@ -39,7 +39,7 @@ export function EmptyState({ icon: Icon, title, description, action, className }
             <h3 className="text-xl font-display font-semibold text-text-primary mb-2">{title}</h3>
             <p className="text-text-secondary mb-6 max-w-sm">{description}</p>
 
-            {action && (
+            {action !== undefined && action !== null && (
                 <motion.div
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
@@ -118,7 +118,7 @@ export function ErrorState({ message, onRetry }: { message: string; onRetry?: ()
             title="Something went wrong"
             description={message}
             action={
-                onRetry
+                onRetry !== undefined
                     ? {
                         label: 'Try Again',
                         onClick: onRetry,
