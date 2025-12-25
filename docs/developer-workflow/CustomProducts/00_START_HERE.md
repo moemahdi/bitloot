@@ -581,14 +581,3 @@ Create the missing admin endpoint to upload keys manually. Would you like me to 
 POST /admin/orders/:orderId/items/:itemId/deliver-key
 Body: { key: "XXXXX-XXXXX", reason?: "Manual delivery" }
 ```
-
-### **Step 2: Proceed to Level 7 (Promo Codes)** 
-
-Once manual fulfillment works end-to-end, Level 7 (Marketing & Promos) is the logical next step. It includes:
-- Promo codes (fixed/% discounts)
-- Referral codes
-- Email campaigns
-
----
-
-**Want me to implement the missing manual delivery endpoint now?** This will complete your manual fulfillment flow so you can actually deliver keys to customers.
