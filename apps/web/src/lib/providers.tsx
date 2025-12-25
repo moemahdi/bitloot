@@ -2,9 +2,22 @@
 
 import type { ReactNode } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { ThemeProvider } from 'next-themes';
+import { AuthProvider } from '@/hooks/useAuth';
+import { CartProvider } from '@/context/CartContext';
+import { Toaster } from '@/design-system/primitives/sonner';
 
 const queryClient = new QueryClient();
 
 export function Providers({ children }: { children: ReactNode }): React.ReactElement {
-  return <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>;
+  return (
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
+        <CartProvider>
+          <AuthProvider>{children}</AuthProvider>
+        </CartProvider>
+        <Toaster />
+      </ThemeProvider>
+    </QueryClientProvider>
+  );
 }

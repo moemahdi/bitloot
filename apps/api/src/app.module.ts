@@ -17,7 +17,6 @@ import { AdminModule } from './modules/admin/admin.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { PaymentsModule } from './modules/payments/payments.module';
 import { BullQueues, FulfillmentQueue } from './jobs/queues';
-import { PaymentProcessorService } from './jobs/payment-processor.service';
 import { FulfillmentProcessor } from './jobs/fulfillment.processor';
 import { FulfillmentModule } from './modules/fulfillment/fulfillment.module';
 import { WebSocketModule } from './modules/fulfillment/websocket.module';
@@ -80,7 +79,7 @@ import { CatalogProcessor } from './jobs/catalog.processor';
     OrdersService,
     StorageService,
     // BullMQ Processors (must be registered as providers to be instantiated)
-    PaymentProcessorService,
+    // Note: PaymentProcessorService is provided by PaymentsModule
     FulfillmentProcessor,
     CatalogProcessor,
   ],

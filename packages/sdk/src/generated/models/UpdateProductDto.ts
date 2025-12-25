@@ -68,17 +68,17 @@ export interface UpdateProductDto {
      */
     category?: string;
     /**
-     * Wholesale price in minor units
+     * Wholesale cost
      * @type {string}
      * @memberof UpdateProductDto
      */
-    costMinor?: string;
+    cost?: string;
     /**
-     * Retail price in minor units
+     * Retail price
      * @type {string}
      * @memberof UpdateProductDto
      */
-    priceMinor?: string;
+    price?: string;
     /**
      * Currency code
      * @type {string}
@@ -112,8 +112,8 @@ export function UpdateProductDtoFromJSONTyped(json: any, ignoreDiscriminator: bo
         'drm': json['drm'] == null ? undefined : json['drm'],
         'ageRating': json['ageRating'] == null ? undefined : json['ageRating'],
         'category': json['category'] == null ? undefined : json['category'],
-        'costMinor': json['costMinor'] == null ? undefined : json['costMinor'],
-        'priceMinor': json['priceMinor'] == null ? undefined : json['priceMinor'],
+        'cost': json['cost'] == null ? undefined : json['cost'],
+        'price': json['price'] == null ? undefined : json['price'],
         'currency': json['currency'] == null ? undefined : json['currency'],
     };
 }
@@ -137,8 +137,8 @@ export function UpdateProductDtoToJSONTyped(value?: UpdateProductDto | null, ign
         'drm': value['drm'],
         'ageRating': value['ageRating'],
         'category': value['category'],
-        'costMinor': value['costMinor'],
-        'priceMinor': value['priceMinor'],
+        'cost': value['cost'],
+        'price': value['price'],
         'currency': value['currency'],
     };
 }

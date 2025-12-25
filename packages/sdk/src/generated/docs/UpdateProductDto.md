@@ -14,8 +14,8 @@ Name | Type
 `drm` | string
 `ageRating` | string
 `category` | string
-`costMinor` | string
-`priceMinor` | string
+`cost` | string
+`price` | string
 `currency` | string
 
 ## Example
@@ -33,8 +33,8 @@ const example = {
   "drm": null,
   "ageRating": null,
   "category": null,
-  "costMinor": null,
-  "priceMinor": null,
+  "cost": null,
+  "price": null,
   "currency": null,
 } satisfies UpdateProductDto
 

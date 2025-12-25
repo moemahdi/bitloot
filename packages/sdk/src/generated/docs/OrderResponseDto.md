@@ -8,6 +8,7 @@ Name | Type
 ------------ | -------------
 `id` | string
 `email` | string
+`userId` | string
 `status` | string
 `total` | string
 `items` | [Array&lt;OrderItemResponseDto&gt;](OrderItemResponseDto.md)
@@ -23,6 +24,7 @@ import type { OrderResponseDto } from ''
 const example = {
   "id": null,
   "email": null,
+  "userId": null,
   "status": null,
   "total": null,
   "items": null,

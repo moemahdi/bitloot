@@ -5,6 +5,7 @@ import { Order } from './order.entity';
 import { OrderItem } from './order-item.entity';
 import { CreateOrderDto, OrderResponseDto, OrderItemResponseDto } from './dto/create-order.dto';
 import { EmailsService } from '../emails/emails.service';
+import { CatalogService } from '../catalog/catalog.service';
 
 @Injectable()
 export class OrdersService {
@@ -14,13 +15,19 @@ export class OrdersService {
     @InjectRepository(Order) private readonly ordersRepo: Repository<Order>,
     @InjectRepository(OrderItem) private readonly itemsRepo: Repository<OrderItem>,
     private readonly emailsService: EmailsService,
-  ) {}
+    private readonly catalogService: CatalogService,
+  ) { }
 
   async create(dto: CreateOrderDto): Promise<OrderResponseDto> {
+    const product = await this.catalogService.getProductById(dto.productId);
+    if (product === null || product === undefined) {
+      throw new NotFoundException(`Product not found: ${dto.productId}`);
+    }
+
     const order = this.ordersRepo.create({
       email: dto.email,
       status: 'created',
-      total: '1.00', // for level 1, hardcode a price
+      totalCrypto: product.price,
     });
     const savedOrder = await this.ordersRepo.save(order);
 
@@ -293,8 +300,9 @@ export class OrdersService {
     return {
       id: order.id,
       email: order.email,
+      userId: order.userId,
       status: order.status,
-      total: order.total,
+      total: order.totalCrypto,
       items: items.map(
         (item): OrderItemResponseDto => ({
           id: item.id,

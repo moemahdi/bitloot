@@ -48,6 +48,12 @@ export interface AdminProductResponseDto {
      * @type {string}
      * @memberof AdminProductResponseDto
      */
+    name: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof AdminProductResponseDto
+     */
     subtitle?: string;
     /**
      * 
@@ -87,16 +93,16 @@ export interface AdminProductResponseDto {
     category?: string;
     /**
      * 
-     * @type {number}
+     * @type {string}
      * @memberof AdminProductResponseDto
      */
-    costMinor: number;
+    cost: string;
     /**
      * 
-     * @type {number}
+     * @type {string}
      * @memberof AdminProductResponseDto
      */
-    priceMinor: number;
+    price: string;
     /**
      * 
      * @type {string}
@@ -142,8 +148,9 @@ export function instanceOfAdminProductResponseDto(value: object): value is Admin
     if (!('id' in value) || value['id'] === undefined) return false;
     if (!('slug' in value) || value['slug'] === undefined) return false;
     if (!('title' in value) || value['title'] === undefined) return false;
-    if (!('costMinor' in value) || value['costMinor'] === undefined) return false;
-    if (!('priceMinor' in value) || value['priceMinor'] === undefined) return false;
+    if (!('name' in value) || value['name'] === undefined) return false;
+    if (!('cost' in value) || value['cost'] === undefined) return false;
+    if (!('price' in value) || value['price'] === undefined) return false;
     if (!('currency' in value) || value['currency'] === undefined) return false;
     if (!('isPublished' in value) || value['isPublished'] === undefined) return false;
     if (!('isCustom' in value) || value['isCustom'] === undefined) return false;
@@ -166,6 +173,7 @@ export function AdminProductResponseDtoFromJSONTyped(json: any, ignoreDiscrimina
         'externalId': json['externalId'] == null ? undefined : json['externalId'],
         'slug': json['slug'],
         'title': json['title'],
+        'name': json['name'],
         'subtitle': json['subtitle'] == null ? undefined : json['subtitle'],
         'description': json['description'] == null ? undefined : json['description'],
         'platform': json['platform'] == null ? undefined : json['platform'],
@@ -173,8 +181,8 @@ export function AdminProductResponseDtoFromJSONTyped(json: any, ignoreDiscrimina
         'drm': json['drm'] == null ? undefined : json['drm'],
         'ageRating': json['ageRating'] == null ? undefined : json['ageRating'],
         'category': json['category'] == null ? undefined : json['category'],
-        'costMinor': json['costMinor'],
-        'priceMinor': json['priceMinor'],
+        'cost': json['cost'],
+        'price': json['price'],
         'currency': json['currency'],
         'isPublished': json['isPublished'],
         'isCustom': json['isCustom'],
@@ -199,6 +207,7 @@ export function AdminProductResponseDtoToJSONTyped(value?: AdminProductResponseD
         'externalId': value['externalId'],
         'slug': value['slug'],
         'title': value['title'],
+        'name': value['name'],
         'subtitle': value['subtitle'],
         'description': value['description'],
         'platform': value['platform'],
@@ -206,8 +215,8 @@ export function AdminProductResponseDtoToJSONTyped(value?: AdminProductResponseD
         'drm': value['drm'],
         'ageRating': value['ageRating'],
         'category': value['category'],
-        'costMinor': value['costMinor'],
-        'priceMinor': value['priceMinor'],
+        'cost': value['cost'],
+        'price': value['price'],
         'currency': value['currency'],
         'isPublished': value['isPublished'],
         'isCustom': value['isCustom'],

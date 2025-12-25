@@ -34,6 +34,9 @@ export class UserResponseDto {
   @ApiProperty({ description: 'Whether email has been confirmed' })
   emailConfirmed!: boolean;
 
+  @ApiProperty({ description: 'User role', enum: ['user', 'admin'] })
+  role!: 'user' | 'admin';
+
   @ApiProperty({ description: 'Account creation timestamp' })
   createdAt!: Date;
 }
@@ -112,13 +115,8 @@ export class AuthResponseDto {
   @ApiProperty({ description: 'JWT refresh token (7 day expiry)' })
   refreshToken!: string;
 
-  @ApiProperty({ description: 'User info' })
-  user!: {
-    id: string;
-    email: string;
-    emailConfirmed: boolean;
-    createdAt: Date;
-  };
+  @ApiProperty({ description: 'User info', type: UserResponseDto })
+  user!: UserResponseDto;
 }
 
 export class RefreshTokenRequestDto {

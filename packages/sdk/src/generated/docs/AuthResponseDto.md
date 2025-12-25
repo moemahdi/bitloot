@@ -8,7 +8,7 @@ Name | Type
 ------------ | -------------
 `accessToken` | string
 `refreshToken` | string
-`user` | object
+`user` | [UserResponseDto](UserResponseDto.md)
 
 ## Example
 

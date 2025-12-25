@@ -8,7 +8,7 @@ Name | Type
 ------------ | -------------
 `id` | string
 `adminUserId` | string
-`admin` | object
+`admin` | [AuditAdminDto](AuditAdminDto.md)
 `action` | string
 `target` | string
 `payload` | object

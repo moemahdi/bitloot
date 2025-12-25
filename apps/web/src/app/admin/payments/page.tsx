@@ -1,398 +1,276 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { useRouter } from 'next/navigation';
-import { AdminApi, Configuration } from '@bitloot/sdk';
-import { convertToCSV, downloadCSV } from '@/utils/csv-export';
-import { Download } from 'lucide-react';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/design-system/primitives/card';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/design-system/primitives/table';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/design-system/primitives/select';
+import { Button } from '@/design-system/primitives/button';
+import { Badge } from '@/design-system/primitives/badge';
+import { Download, RefreshCw, AlertCircle, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { format } from 'date-fns';
+import { useAdminTableState } from '@/features/admin/hooks/useAdminTableState';
+import { useAdminPayments, type Payment } from '@/features/admin/hooks/useAdminPayments';
+import { useAdminGuard } from '@/features/admin/hooks/useAdminGuard';
 
-// Initialize SDK admin client
-const apiConfig = new Configuration({
-  basePath: process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000',
-});
-const adminApi = new AdminApi(apiConfig);
-
-interface Payment {
-  id: string;
-  orderId: string;
-  externalId: string;
-  status: string;
-  provider: string;
-  priceAmount: number;
-  priceCurrency: string;
-  payAmount: number;
-  payCurrency: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-interface PaymentsListResponse {
-  data: Payment[];
-  total: number;
-  page: number;
-  limit: number;
-  totalPages: number;
-  hasNextPage: boolean;
-}
-
-const LIMIT = 20;
-
-export default function AdminPaymentsPage(): React.ReactElement | null {
-  const router = useRouter();
-  const [page, setPage] = useState(1);
-  const [limit, setLimit] = useState(LIMIT);
-  const [statusFilter, setStatusFilter] = useState('');
-  const [providerFilter, setProviderFilter] = useState('');
-  const [orderIdFilter, setOrderIdFilter] = useState('');
-  const [isAuthorized, setIsAuthorized] = useState(false);
-
-  // Redirect to login if no token
-  useEffect(() => {
-    const token = localStorage.getItem('jwt_token');
-    if (token === null || token === '') {
-      void router.push('/login');
-    } else {
-      setIsAuthorized(true);
-    }
-  }, [router]);
-
-  // Fetch payments list
-  const query = useQuery<PaymentsListResponse>({
-    queryKey: ['admin-payments', page, limit, statusFilter, providerFilter, orderIdFilter],
-    queryFn: async (): Promise<PaymentsListResponse> => {
-      const response = await adminApi.adminControllerGetPayments({
-        limit,
-        offset: (page - 1) * limit,
-        status: statusFilter !== '' ? statusFilter : undefined,
-        provider: providerFilter !== '' ? providerFilter : undefined,
-      });
-
-      // Map API response to our interface
-      return {
-        data: (response.data as unknown as Payment[]) ?? [],
-        total: response.total ?? 0,
-        page,
-        limit,
-        totalPages: Math.ceil((response.total ?? 0) / limit),
-        hasNextPage: page < Math.ceil((response.total ?? 0) / limit),
-      };
+export default function AdminPaymentsPage(): React.ReactElement {
+  const { isLoading: isGuardLoading, isAdmin } = useAdminGuard();
+  const state = useAdminTableState({
+    initialFilters: {
+      status: 'all',
+      provider: 'all',
     },
-    staleTime: 30_000,
-    enabled: isAuthorized,
   });
 
-  const { data: paymentsList, isLoading, error, refetch } = query;
+  const {
+    payments,
+    total,
+    isLoading,
+    refetch,
+    error,
+  } = useAdminPayments(state);
 
-  // Handle filter changes
-  const handleStatusFilterChange = (e: React.ChangeEvent<HTMLSelectElement>): void => {
-    setStatusFilter(e.target.value);
-    setPage(1);
-  };
-
-  const handleProviderFilterChange = (e: React.ChangeEvent<HTMLSelectElement>): void => {
-    setProviderFilter(e.target.value);
-    setPage(1);
-  };
-
-  const handleOrderIdFilterChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
-    setOrderIdFilter(e.target.value);
-    setPage(1);
-  };
-
-  // Apply filters
-  const applyFilters = (): void => {
-    void refetch();
-  };
-
-  // Export to CSV
   const handleExportCSV = (): void => {
-    const payments = paymentsList?.data ?? [];
-    if (payments.length === 0) return;
+    if ((payments?.length ?? 0) === 0) return;
 
-    const csvData = payments.map((payment) => ({
-      ID: payment.id,
-      'Order ID': payment.orderId,
-      'External ID': payment.externalId,
-      Status: payment.status,
-      Provider: payment.provider,
-      'Amount (Crypto)': `${payment.priceAmount} ${payment.priceCurrency}`,
-      'Amount (Paid)': `${payment.payAmount} ${payment.payCurrency}`,
-      'Created At': formatDate(payment.createdAt),
-    }));
-
-    const csv = convertToCSV(csvData, [
-      'ID',
-      'Order ID',
-      'External ID',
-      'Status',
-      'Provider',
-      'Amount (Crypto)',
-      'Amount (Paid)',
-      'Created At',
+    const headers = ['ID', 'Order ID', 'Price Amount', 'Price Currency', 'Status', 'Provider', 'Date'];
+    const rows = payments.map((payment: Payment): string[] => [
+      payment.id,
+      payment.orderId,
+      payment.priceAmount,
+      payment.priceCurrency,
+      payment.status,
+      payment.provider,
+      payment.createdAt,
     ]);
 
-    const filename = `payments-${new Date().toISOString().split('T')[0]}.csv`;
-    downloadCSV(csv, filename);
+    const csvContent: string =
+      'data:text/csv;charset=utf-8,' +
+      [headers.join(','), ...rows.map((r: string[]): string => r.join(','))].join('\n');
+
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `payments_export_${new Date().toISOString()}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
-  // Format date
-  const formatDate = (dateString: string): string => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  };
-
-  // Get status badge color
-  const getStatusColor = (status: string): string => {
+  const getStatusBadge = (status: string): React.ReactElement => {
     switch (status) {
       case 'finished':
-        return 'bg-green-100 text-green-800';
-      case 'confirming':
-        return 'bg-blue-100 text-blue-800';
+        return <Badge className="bg-green-500 hover:bg-green-600">Finished</Badge>;
       case 'waiting':
-        return 'bg-yellow-100 text-yellow-800';
+        return <Badge variant="secondary" className="bg-yellow-500 hover:bg-yellow-600 text-white">Waiting</Badge>;
       case 'failed':
-        return 'bg-red-100 text-red-800';
-      case 'underpaid':
-        return 'bg-orange-100 text-orange-800';
+      case 'expired':
+        return <Badge variant="destructive">Failed</Badge>;
       default:
-        return 'bg-gray-100 text-gray-800';
+        return <Badge variant="secondary">{status}</Badge>;
     }
   };
 
-  if (!isAuthorized) {
-    return null; // Prevent rendering until redirect
+  if (isGuardLoading) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!isAdmin) {
+    return <div />;
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-8">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">[ADMIN] Payments Dashboard</h1>
-          <p className="text-gray-600">Monitor all payments and payment statuses</p>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Payments</h1>
+          <p className="text-muted-foreground">
+            Monitor and manage cryptocurrency payments
+          </p>
         </div>
-
-        {/* Filters */}
-        <div className="bg-white rounded-lg shadow p-6 mb-6">
-          <h2 className="text-lg font-semibold mb-4">Filters</h2>
-
-          {/* First Row: Limit and Status/Provider/Order */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
-            {/* Limit Selector */}
-            <div>
-              <label htmlFor="limit-selector" className="block text-sm font-medium text-gray-700 mb-2">Items Per Page</label>
-              <select
-                id="limit-selector"
-                aria-label="Select number of items per page"
-                value={limit.toString()}
-                onChange={(e) => {
-                  setLimit(parseInt(e.target.value, 10));
-                  setPage(1);
-                }}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-              >
-                <option value="10">10 items</option>
-                <option value="25">25 items</option>
-                <option value="50">50 items</option>
-                <option value="100">100 items</option>
-              </select>
-            </div>
-
-            {/* Status Filter */}
-            <div>
-              <label htmlFor="status-filter" className="block text-sm font-medium text-gray-700 mb-2">Status</label>
-              <select
-                id="status-filter"
-                aria-label="Filter payments by status"
-                value={statusFilter}
-                onChange={handleStatusFilterChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-              >
-                <option value="">All Statuses</option>
-                <option value="finished">Finished</option>
-                <option value="confirming">Confirming</option>
-                <option value="waiting">Waiting</option>
-                <option value="failed">Failed</option>
-                <option value="underpaid">Underpaid</option>
-              </select>
-            </div>
-
-            {/* Provider Filter */}
-            <div>
-              <label htmlFor="provider-filter" className="block text-sm font-medium text-gray-700 mb-2">Provider</label>
-              <select
-                id="provider-filter"
-                aria-label="Filter payments by provider"
-                value={providerFilter}
-                onChange={handleProviderFilterChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-              >
-                <option value="">All Providers</option>
-                <option value="nowpayments">NOWPayments</option>
-              </select>
-            </div>
-
-          {/* Second Row: Order ID and Action Buttons */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Order ID Filter */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Order ID</label>
-              <input
-                type="text"
-                value={orderIdFilter}
-                onChange={handleOrderIdFilterChange}
-                placeholder="Enter order ID"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-              />
-            </div>
-
-            {/* Action Buttons */}
-            <div className="flex items-end gap-2">
-              <button
-                onClick={applyFilters}
-                className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"
-              >
-                Apply Filters
-              </button>
-              <button
-                onClick={handleExportCSV}
-                disabled={isLoading || (paymentsList?.data?.length ?? 0) === 0}
-                className="flex-1 bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-              >
-                <Download size={18} />
-                Export CSV
-              </button>
-            </div>
-          </div>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={() => refetch()} disabled={isLoading}>
+            <RefreshCw className="mr-2 h-4 w-4" />
+            Refresh
+          </Button>
+          <Button variant="outline" onClick={handleExportCSV} disabled={(payments?.length ?? 0) === 0}>
+            <Download className="mr-2 h-4 w-4" />
+            Export CSV
+          </Button>
         </div>
-
-        {/* Loading State */}
-        {isLoading && (
-          <div className="bg-white rounded-lg shadow p-8 text-center">
-            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-            <p className="mt-4 text-gray-600">Loading payments...</p>
-          </div>
-        )}
-
-        {/* Error State */}
-        {error !== null && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
-            <p className="text-red-800">
-              <strong>Error:</strong>{' '}
-              {error instanceof Error ? error.message : 'Failed to fetch payments'}
-            </p>
-          </div>
-        )}
-
-        {/* Data Table */}
-        {paymentsList !== null && paymentsList !== undefined && !isLoading && (
-          <>
-            {paymentsList.data.length === 0 ? (
-              <div className="bg-white rounded-lg shadow p-8 text-center">
-                <p className="text-gray-600">No payments found</p>
-              </div>
-            ) : (
-              <>
-                {/* Table Summary */}
-                <div className="mb-4 text-sm text-gray-600">
-                  Showing {(page - 1) * LIMIT + 1} to {Math.min(page * LIMIT, paymentsList.total)}{' '}
-                  of {paymentsList.total} payments
-                </div>
-
-                {/* Table */}
-                <div className="bg-white rounded-lg shadow overflow-hidden">
-                  <table className="w-full">
-                    <thead className="bg-gray-50 border-b border-gray-200">
-                      <tr>
-                        <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase">
-                          Payment ID
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase">
-                          Order
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase">
-                          Status
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase">
-                          Amount
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase">
-                          Provider
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase">
-                          Created
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-200">
-                      {paymentsList.data.map((payment) => (
-                        <tr
-                          key={payment.id}
-                          className="hover:bg-gray-50 transition-colors cursor-pointer"
-                          onClick={() => {
-                            // Future: Navigate to payment detail page
-                          }}
-                        >
-                          <td className="px-6 py-4 text-sm text-gray-900 font-mono">
-                            {payment.externalId.substring(0, 8)}...
-                          </td>
-                          <td className="px-6 py-4 text-sm text-gray-600 font-mono">
-                            {payment.orderId.substring(0, 8)}...
-                          </td>
-                          <td className="px-6 py-4 text-sm">
-                            <span
-                              className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(payment.status)}`}
-                            >
-                              {payment.status}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 text-sm text-gray-900">
-                            {payment.priceAmount.toFixed(8)} {payment.priceCurrency}
-                          </td>
-                          <td className="px-6 py-4 text-sm text-gray-600">{payment.provider}</td>
-                          <td className="px-6 py-4 text-sm text-gray-600">
-                            {formatDate(payment.createdAt)}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-
-                {/* Pagination */}
-                <div className="mt-6 flex items-center justify-between">
-                  <div className="text-sm text-gray-600">
-                    Page {paymentsList.page} of {paymentsList.totalPages}
-                  </div>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => setPage(Math.max(1, page - 1))}
-                      disabled={page === 1}
-                      className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      Previous
-                    </button>
-                    <button
-                      onClick={() => setPage(page + 1)}
-                      disabled={!paymentsList.hasNextPage}
-                      className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      Next
-                    </button>
-                  </div>
-                </div>
-              </>
-            )}
-          </>
-        )}
       </div>
-    </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Payment History</CardTitle>
+          <CardDescription>
+            View all payment transactions and their status
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col gap-4">
+            {/* Filters */}
+            <div className="flex flex-wrap gap-4">
+              <div className="w-[200px]">
+                <Select
+                  value={state.filters.status as string}
+                  onValueChange={(value) => state.handleFilterChange('status', value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Filter by status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Statuses</SelectItem>
+                    <SelectItem value="finished">Finished</SelectItem>
+                    <SelectItem value="waiting">Waiting</SelectItem>
+                    <SelectItem value="failed">Failed</SelectItem>
+                    <SelectItem value="expired">Expired</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="w-[200px]">
+                <Select
+                  value={state.filters.provider as string}
+                  onValueChange={(value) => state.handleFilterChange('provider', value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Filter by provider" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Providers</SelectItem>
+                    <SelectItem value="nowpayments">NOWPayments</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Table */}
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>ID</TableHead>
+                    <TableHead>Order ID</TableHead>
+                    <TableHead>Amount</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Provider</TableHead>
+                    <TableHead>Date</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {isLoading ? (
+                    <TableRow>
+                      <TableCell colSpan={6} className="h-24 text-center">
+                        <div className="flex items-center justify-center">
+                          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ) : error !== null ? (
+                    <TableRow>
+                      <TableCell colSpan={6} className="h-24 text-center text-red-500">
+                        <div className="flex items-center justify-center gap-2">
+                          <AlertCircle className="h-4 w-4" />
+                          Failed to load payments: {error instanceof Error ? error.message : 'Unknown error'}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ) : payments.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={6} className="h-24 text-center">
+                        No payments found
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    payments.map((payment: Payment) => (
+                      <TableRow key={payment.id}>
+                        <TableCell className="font-mono text-xs">{payment.id.slice(0, 8)}...</TableCell>
+                        <TableCell className="font-mono text-xs">{payment.orderId.slice(0, 8)}...</TableCell>
+                        <TableCell>
+                          {payment.priceAmount} {payment.priceCurrency.toUpperCase()}
+                        </TableCell>
+                        <TableCell>{getStatusBadge(payment.status)}</TableCell>
+                        <TableCell className="capitalize">{payment.provider}</TableCell>
+                        <TableCell>
+                          {format(new Date(payment.createdAt), 'MMM d, yyyy HH:mm')}
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+
+            {/* Pagination */}
+            <div className="flex items-center justify-between">
+              <div className="text-sm text-muted-foreground">
+                Showing {payments.length} of {total} payments
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 mr-4">
+                  <span className="text-sm text-muted-foreground">Rows per page</span>
+                  <Select
+                    value={state.limit.toString()}
+                    onValueChange={(value) => state.setLimit(Number(value))}
+                  >
+                    <SelectTrigger className="w-[70px]">
+                      <SelectValue placeholder="20" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="10">10</SelectItem>
+                      <SelectItem value="20">20</SelectItem>
+                      <SelectItem value="50">50</SelectItem>
+                      <SelectItem value="100">100</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => state.setPage(Math.max(1, state.page - 1))}
+                  disabled={state.page <= 1 || isLoading}
+                >
+                  <ChevronLeft className="h-4 w-4 mr-2" />
+                  Previous
+                </Button>
+                <div className="text-sm font-medium">
+                  Page {state.page} of {Math.ceil(total / state.limit)}
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => state.setPage(Math.min(Math.ceil(total / state.limit), state.page + 1))}
+                  disabled={state.page >= Math.ceil(total / state.limit) || isLoading}
+                >
+                  Next
+                  <ChevronRight className="h-4 w-4 ml-2" />
+                </Button>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

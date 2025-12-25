@@ -142,6 +142,7 @@ export class AuthController {
           id: user.id,
           email: user.email,
           emailConfirmed: user.emailConfirmed,
+          role: user.role, // Include role for RBAC
           createdAt: user.createdAt,
         },
       };

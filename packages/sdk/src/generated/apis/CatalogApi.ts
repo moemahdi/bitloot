@@ -14,6 +14,16 @@
 
 
 import * as runtime from '../runtime';
+import type {
+  ProductListResponseDto,
+  ProductResponseDto,
+} from '../models/index';
+import {
+    ProductListResponseDtoFromJSON,
+    ProductListResponseDtoToJSON,
+    ProductResponseDtoFromJSON,
+    ProductResponseDtoToJSON,
+} from '../models/index';
 
 export interface CatalogControllerGetProductRequest {
     slug: string;
@@ -37,7 +47,7 @@ export class CatalogApi extends runtime.BaseAPI {
     /**
      * Get single product by slug
      */
-    async catalogControllerGetProductRaw(requestParameters: CatalogControllerGetProductRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<object>> {
+    async catalogControllerGetProductRaw(requestParameters: CatalogControllerGetProductRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<ProductResponseDto>> {
         if (requestParameters['slug'] == null) {
             throw new runtime.RequiredError(
                 'slug',
@@ -60,13 +70,13 @@ export class CatalogApi extends runtime.BaseAPI {
             query: queryParameters,
         }, initOverrides);
 
-        return new runtime.JSONApiResponse<any>(response);
+        return new runtime.JSONApiResponse(response, (jsonValue) => ProductResponseDtoFromJSON(jsonValue));
     }
 
     /**
      * Get single product by slug
      */
-    async catalogControllerGetProduct(requestParameters: CatalogControllerGetProductRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<object> {
+    async catalogControllerGetProduct(requestParameters: CatalogControllerGetProductRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ProductResponseDto> {
         const response = await this.catalogControllerGetProductRaw(requestParameters, initOverrides);
         return await response.value();
     }
@@ -74,7 +84,7 @@ export class CatalogApi extends runtime.BaseAPI {
     /**
      * List products with filtering and pagination
      */
-    async catalogControllerListProductsRaw(requestParameters: CatalogControllerListProductsRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<object>> {
+    async catalogControllerListProductsRaw(requestParameters: CatalogControllerListProductsRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<ProductListResponseDto>> {
         const queryParameters: any = {};
 
         if (requestParameters['q'] != null) {
@@ -117,13 +127,13 @@ export class CatalogApi extends runtime.BaseAPI {
             query: queryParameters,
         }, initOverrides);
 
-        return new runtime.JSONApiResponse<any>(response);
+        return new runtime.JSONApiResponse(response, (jsonValue) => ProductListResponseDtoFromJSON(jsonValue));
     }
 
     /**
      * List products with filtering and pagination
      */
-    async catalogControllerListProducts(requestParameters: CatalogControllerListProductsRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<object> {
+    async catalogControllerListProducts(requestParameters: CatalogControllerListProductsRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ProductListResponseDto> {
         const response = await this.catalogControllerListProductsRaw(requestParameters, initOverrides);
         return await response.value();
     }

@@ -21,6 +21,7 @@ import type {
   AdminControllerGetReservations200Response,
   AdminControllerGetWebhookLog200Response,
   AdminControllerGetWebhookLogs200Response,
+  DashboardStatsDto,
 } from '../models/index';
 import {
     AdminControllerGetKeyAuditTrail200ResponseInnerFromJSON,
@@ -35,6 +36,8 @@ import {
     AdminControllerGetWebhookLog200ResponseToJSON,
     AdminControllerGetWebhookLogs200ResponseFromJSON,
     AdminControllerGetWebhookLogs200ResponseToJSON,
+    DashboardStatsDtoFromJSON,
+    DashboardStatsDtoToJSON,
 } from '../models/index';
 
 export interface AdminControllerGetKeyAuditTrailRequest {
@@ -81,6 +84,45 @@ export interface AdminControllerReplayWebhookRequest {
  * 
  */
 export class AdminApi extends runtime.BaseAPI {
+
+    /**
+     * Returns aggregated revenue, orders, users, and sales history
+     * Get dashboard statistics
+     */
+    async adminControllerGetDashboardStatsRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<DashboardStatsDto>> {
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("JWT-auth", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/admin/stats`;
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => DashboardStatsDtoFromJSON(jsonValue));
+    }
+
+    /**
+     * Returns aggregated revenue, orders, users, and sales history
+     * Get dashboard statistics
+     */
+    async adminControllerGetDashboardStats(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<DashboardStatsDto> {
+        const response = await this.adminControllerGetDashboardStatsRaw(initOverrides);
+        return await response.value();
+    }
 
     /**
      * Returns when keys were revealed to the customer

@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Order } from '../orders/order.entity';
 import { OrderItem } from '../orders/order-item.entity';
+import { Key } from '../orders/key.entity';
 import { R2StorageClient } from '../storage/r2.client';
 import { decryptKey } from '../storage/encryption.util';
 
@@ -47,15 +48,12 @@ import { decryptKey } from '../storage/encryption.util';
 export class DeliveryService {
   private readonly logger = new Logger('DeliveryService');
 
-  // Encryption key storage (mock for MVP - use KeyVault in production)
-  // Maps orderId -> encryptionKey (32-byte Buffer)
-  private readonly encryptionKeys = new Map<string, Buffer>();
-
   constructor(
     @InjectRepository(Order) private readonly orderRepo: Repository<Order>,
     @InjectRepository(OrderItem) private readonly orderItemRepo: Repository<OrderItem>,
+    @InjectRepository(Key) private readonly keyRepo: Repository<Key>,
     private readonly r2StorageClient: R2StorageClient,
-  ) {}
+  ) { }
 
   /**
    * Generate a delivery link for a fulfilled order
@@ -232,11 +230,15 @@ export class DeliveryService {
 
       // Step 3-4: Retrieve encrypted key and decryption key
       const encryptedKeyData = this.getEncryptedKeyFromR2(orderId);
-      const decryptionKey = this.getEncryptionKey(orderId);
 
-      if (decryptionKey === null || decryptionKey === undefined) {
-        throw new Error(`Decryption key not found for order: ${orderId}. Check KeyVault.`);
+      // Fetch Key entity to get the decryption key
+      const keyEntity = await this.keyRepo.findOne({ where: { orderItemId: itemId } });
+
+      if (keyEntity?.encryptionKey == null) {
+        throw new Error(`Decryption key not found for item: ${itemId}`);
       }
+
+      const decryptionKey = Buffer.from(keyEntity.encryptionKey, 'base64');
 
       // Step 5: Decrypt key
       let plainKey: string;
@@ -286,65 +288,7 @@ export class DeliveryService {
     }
   }
 
-  /**
-   * Get decryption key for an order (mock for MVP)
-   *
-   * In production, this would:
-   * 1. Query KeyVault service with orderId
-   * 2. Verify requester has permission
-   * 3. Return encryption key (only in memory, never logged)
-   *
-   * For MVP, we store in memory map.
-   *
-   * @param orderId Order ID
-   * @returns 32-byte decryption key or null if not found
-   */
-  private getEncryptionKey(orderId: string): Buffer | null {
-    const key = this.encryptionKeys.get(orderId);
-    return key ?? null;
-  }
 
-  /**
-   * Store encryption key for an order (called by FulfillmentService after encryption)
-   *
-   * In production, this would:
-   * 1. Call KeyVault.store(orderId, key, metadata)
-   * 2. Verify key is securely stored (encrypted at rest)
-   * 3. Return key ID
-   *
-   * For MVP, store in memory map.
-   *
-   * @param orderId Order ID
-   * @param encryptionKey 32-byte encryption key
-   */
-  storeEncryptionKey(orderId: string, encryptionKey: Buffer): void {
-    try {
-      this.logger.debug(`[DELIVERY] Storing encryption key for order: ${orderId}`);
-      this.encryptionKeys.set(orderId, encryptionKey);
-      this.logger.debug(`[DELIVERY] Encryption key stored (${encryptionKey.length} bytes)`);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      this.logger.error(`[DELIVERY] Failed to store encryption key: ${message}`);
-      throw error;
-    }
-  }
-
-  /**
-   * Clear encryption key from memory (called after refund/revocation)
-   *
-   * @param orderId Order ID
-   */
-  clearEncryptionKey(orderId: string): void {
-    try {
-      this.logger.debug(`[DELIVERY] Clearing encryption key for order: ${orderId}`);
-      this.encryptionKeys.delete(orderId);
-      this.logger.debug(`[DELIVERY] Encryption key cleared`);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      this.logger.error(`[DELIVERY] Failed to clear encryption key: ${message}`);
-      throw error;
-    }
-  }
 
   /**
    * Log key revelation event for audit trail

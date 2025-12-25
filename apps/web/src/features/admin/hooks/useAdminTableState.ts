@@ -33,16 +33,22 @@ export interface UseAdminTableStateReturn {
   buildQueryParams: () => string;
 }
 
+export interface TableStateOptions {
+  initialLimit?: number;
+  initialFilters?: Record<string, string | Date | undefined>;
+}
+
 /**
  * Hook for managing admin table state (pagination, sorting, filtering)
  * Provides consistent behavior across all admin data tables
  */
-export function useAdminTableState(defaultLimit: number = 50): UseAdminTableStateReturn {
+export function useAdminTableState(options: TableStateOptions = {}): UseAdminTableStateReturn {
+  const { initialLimit = 50, initialFilters = {} } = options;
   const [page, setPage] = useState(1);
-  const [limit, setLimit] = useState(defaultLimit);
+  const [limit, setLimit] = useState(initialLimit);
   const [sortBy, setSortBy] = useState<string | undefined>();
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
-  const [filters, setFilters] = useState<Record<string, string | Date | undefined>>({});
+  const [filters, setFilters] = useState<Record<string, string | Date | undefined>>(initialFilters);
 
   // Handle column header click for sorting
   const handleSort = useCallback((columnKey: string) => {
@@ -75,11 +81,11 @@ export function useAdminTableState(defaultLimit: number = 50): UseAdminTableStat
   // Clear all filters and sorting
   const resetState = useCallback(() => {
     setPage(1);
-    setLimit(defaultLimit);
+    setLimit(initialLimit);
     setSortBy(undefined);
     setSortDirection('desc');
     setFilters({});
-  }, [defaultLimit]);
+  }, [initialLimit]);
 
   // Build query parameters from state
   const buildQueryParams = useCallback(() => {

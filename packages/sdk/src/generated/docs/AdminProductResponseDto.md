@@ -10,6 +10,7 @@ Name | Type
 `externalId` | string
 `slug` | string
 `title` | string
+`name` | string
 `subtitle` | string
 `description` | string
 `platform` | string
@@ -17,8 +18,8 @@ Name | Type
 `drm` | string
 `ageRating` | string
 `category` | string
-`costMinor` | number
-`priceMinor` | number
+`cost` | string
+`price` | string
 `currency` | string
 `isPublished` | boolean
 `isCustom` | boolean
@@ -37,6 +38,7 @@ const example = {
   "externalId": null,
   "slug": null,
   "title": null,
+  "name": null,
   "subtitle": null,
   "description": null,
   "platform": null,
@@ -44,8 +46,8 @@ const example = {
   "drm": null,
   "ageRating": null,
   "category": null,
-  "costMinor": null,
-  "priceMinor": null,
+  "cost": null,
+  "price": null,
   "currency": null,
   "isPublished": null,
   "isCustom": null,

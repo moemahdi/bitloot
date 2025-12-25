@@ -10,6 +10,7 @@ export * from './AuditLogsApi';
 export * from './AuthenticationApi';
 export * from './CatalogApi';
 export * from './EmailsApi';
+export * from './FulfillmentApi';
 export * from './HealthApi';
 export * from './KinguinApi';
 export * from './MetricsApi';

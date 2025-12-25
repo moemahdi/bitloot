@@ -5,6 +5,8 @@ import { Order } from '../orders/order.entity';
 import { Payment } from '../payments/payment.entity';
 import { WebhookLog } from '../../database/entities/webhook-log.entity';
 import { Key } from '../orders/key.entity';
+import { User } from '../../database/entities/user.entity';
+import { DashboardStatsDto } from './dto/dashboard-stats.dto';
 
 /**
  * Admin Service - Business logic for admin operations
@@ -14,6 +16,7 @@ import { Key } from '../orders/key.entity';
  * - Reservation lookups (kinguinReservationId)
  * - Webhook log retrieval with pagination
  * - Key delivery audit trail
+ * - Dashboard analytics
  */
 @Injectable()
 export class AdminService {
@@ -24,7 +27,79 @@ export class AdminService {
     @InjectRepository(Payment) private readonly paymentsRepo: Repository<Payment>,
     @InjectRepository(WebhookLog) private readonly webhookLogsRepo: Repository<WebhookLog>,
     @InjectRepository(Key) private readonly keysRepo: Repository<Key>,
-  ) {}
+    @InjectRepository(User) private readonly usersRepo: Repository<User>,
+  ) { }
+
+  /**
+   * Get dashboard statistics
+   * Aggregates revenue, orders, users, and recent sales history
+   */
+  async getDashboardStats(): Promise<DashboardStatsDto> {
+    // 1. Total Revenue (Sum of completed payments)
+    const revenueResult = await this.paymentsRepo
+      .createQueryBuilder('p')
+      .select('SUM(p.payAmount)', 'revenue')
+      .where('p.status = :status', { status: 'finished' })
+      .getRawOne<{ revenue: string | null }>();
+
+    const revenue = revenueResult?.revenue ?? '0';
+
+    // 2. Total Orders
+    const totalOrders = await this.ordersRepo.count();
+
+    // 3. Total Users
+    const totalUsers = await this.usersRepo.count();
+
+    // 4. Active Orders (waiting/confirming/paid)
+    const activeOrders = await this.ordersRepo.count({
+      where: [
+        { status: 'waiting' },
+        { status: 'confirming' },
+        { status: 'paid' },
+      ]
+    });
+
+    // 5. Revenue History (Last 7 days)
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+    const revenueHistoryRaw = await this.paymentsRepo
+      .createQueryBuilder('p')
+      .select("DATE_TRUNC('day', p.createdAt)", 'date')
+      .addSelect('SUM(p.payAmount)', 'revenue')
+      .where('p.status = :status', { status: 'finished' })
+      .andWhere('p.createdAt >= :startDate', { startDate: sevenDaysAgo })
+      .groupBy('date')
+      .orderBy('date', 'ASC')
+      .getRawMany<{ date: string; revenue: string }>();
+
+    // Format history
+    const revenueHistory = revenueHistoryRaw.map((item) => ({
+      date: new Date(item.date).toISOString().substring(0, 10),
+      revenue: parseFloat(item.revenue),
+    }));
+
+    // Fill in missing days with 0
+    const filledHistory: { date: string; revenue: number }[] = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const dateStr = d.toISOString().substring(0, 10);
+      const found = revenueHistory.find((h) => h.date === dateStr);
+      filledHistory.push({
+        date: dateStr,
+        revenue: found !== undefined ? found.revenue : 0,
+      });
+    }
+
+    return {
+      totalRevenue: parseFloat(revenue),
+      totalOrders,
+      totalUsers,
+      activeOrders,
+      revenueHistory: filledHistory,
+    };
+  }
 
   /**
    * Get paginated list of orders with filtering
@@ -44,6 +119,11 @@ export class AdminService {
       status: string;
       total: string;
       createdAt: Date;
+      payment?: {
+        id: string;
+        provider: string;
+        status: string;
+      };
     }>;
     total: number;
     limit: number;
@@ -52,28 +132,46 @@ export class AdminService {
     const limit = Math.min(options.limit ?? 50, 100);
     const offset = options.offset ?? 0;
 
-    const query = this.ordersRepo.createQueryBuilder('o');
+    const qb = this.ordersRepo
+      .createQueryBuilder('o')
+      .leftJoinAndSelect('o.user', 'u')
+      .leftJoinAndSelect('o.payments', 'p')
+      .orderBy('o.createdAt', 'DESC')
+      .skip(offset)
+      .take(limit);
 
-    if (typeof options.email === 'string' && options.email.length > 0) {
-      query.andWhere('o.email ILIKE :email', { email: `%${options.email}%` });
+    if (options.email != null && options.email !== '') {
+      qb.andWhere('u.email ILIKE :email', { email: `%${options.email}%` });
     }
 
-    if (typeof options.status === 'string' && options.status.length > 0) {
-      query.andWhere('o.status = :status', { status: options.status });
+    if (options.status != null) {
+      qb.andWhere('o.status = :status', { status: options.status });
     }
 
-    query.orderBy('o.createdAt', 'DESC').skip(offset).take(limit);
-
-    const [data, total] = await query.getManyAndCount();
+    const [orders, total] = await qb.getManyAndCount();
 
     return {
-      data: data.map((o) => ({
-        id: o.id,
-        email: o.email,
-        status: o.status,
-        total: o.total,
-        createdAt: o.createdAt,
-      })),
+      data: orders.map((o) => {
+        // Get latest payment if any
+        const latestPayment = o.payments?.sort(
+          (a, b) => b.createdAt.getTime() - a.createdAt.getTime(),
+        )[0];
+
+        return {
+          id: o.id,
+          email: o.email,
+          status: o.status,
+          total: o.totalCrypto,
+          createdAt: o.createdAt,
+          payment: latestPayment !== undefined && latestPayment !== null
+            ? {
+              id: latestPayment.id,
+              provider: latestPayment.provider,
+              status: latestPayment.status,
+            }
+            : undefined,
+        };
+      }),
       total,
       limit,
       offset,

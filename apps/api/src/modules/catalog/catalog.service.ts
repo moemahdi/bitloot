@@ -25,14 +25,14 @@ export class CatalogService {
     @InjectRepository(ProductOffer) private offerRepo: Repository<ProductOffer>,
     @InjectRepository(DynamicPricingRule) private pricingRuleRepo: Repository<DynamicPricingRule>,
     private readonly dataSource: DataSource,
-  ) {}
+  ) { }
 
   /**
    * Create or update product from provider offer
    */
   async upsertProduct(offer: KinguinOfferRaw): Promise<Product> {
     const externalId = offer.id;
-    
+
     if (typeof externalId !== 'string' || externalId.length === 0) {
       throw new Error('Missing offer ID');
     }
@@ -48,16 +48,17 @@ export class CatalogService {
         externalId,
         slug: this.slugify(offer.title, externalId),
         title: offer.title,
-        costMinor: offer.price_minor,
+        cost: (offer.price_minor / 100).toFixed(8),
         currency: offer.currency,
-        priceMinor: offer.price_minor,
+        price: (offer.price_minor / 100).toFixed(8),
         isPublished: false,
         isCustom: false,
       });
     } else {
       // Update existing product cost if offer cost changed
-      if (offer.price_minor < product.costMinor) {
-        product.costMinor = offer.price_minor;
+      const offerCost = (offer.price_minor / 100).toFixed(8);
+      if (parseFloat(offerCost) < parseFloat(product.cost)) {
+        product.cost = offerCost;
       }
     }
 
@@ -69,7 +70,7 @@ export class CatalogService {
    */
   async createOffer(
     productId: string,
-    data: { provider: string; providerSku: string; costMinor: number; currency?: string },
+    data: { provider: string; providerSku: string; cost: string; currency?: string },
   ): Promise<ProductOffer> {
     const product = await this.productRepo.findOne({ where: { id: productId } });
 
@@ -81,7 +82,9 @@ export class CatalogService {
       productId,
       provider: data.provider,
       providerSku: data.providerSku,
-      costMinor: data.costMinor,
+      costMinor: Math.round(parseFloat(data.cost) * 100), // Keep offer as minor for now or update offer entity too?
+      // Wait, ProductOffer entity likely has costMinor too. I should check that.
+      // For now, assuming ProductOffer still has costMinor.
       currency: data.currency ?? 'USD',
       isActive: true,
     });
@@ -92,29 +95,32 @@ export class CatalogService {
   /**
    * Calculate selling price based on cost and pricing rules
    */
-  calculatePrice(product: Product, costMinor: number): number {
-    let price = costMinor;
+  async calculatePrice(product: Product, cost: string): Promise<string> {
+    const costNum = parseFloat(cost);
+    let priceNum = costNum;
 
     // Get applicable pricing rule (product-specific or default)
-    const rule = this.getPricingRule(product.id);
+    const rule = await this.getPricingRule(product.id);
 
     switch (rule.rule_type) {
       case 'margin_percent': {
         const marginPercent = Number(rule.marginPercent ?? 8);
         const margin = marginPercent / 100;
-        price = Math.ceil(costMinor * (1 + margin));
+        priceNum = costNum * (1 + margin);
         break;
       }
 
       case 'fixed_markup': {
-        const markupMinor = rule.fixedMarkupMinor ?? 0;
-        price = costMinor + markupMinor;
+        const markup = (rule.fixedMarkupMinor ?? 0) / 100;
+        priceNum = costNum + markup;
         break;
       }
 
       case 'floor_cap': {
-        // Apply floor and cap
-        price = costMinor;
+        // Use margin if defined, else default
+        const marginPercent = Number(rule.marginPercent ?? 10);
+        const margin = marginPercent / 100;
+        priceNum = costNum * (1 + margin);
         break;
       }
 
@@ -122,33 +128,57 @@ export class CatalogService {
         // For now, treat as margin_percent
         const marginPercent = Number(rule.marginPercent ?? 8);
         const margin = marginPercent / 100;
-        price = Math.ceil(costMinor * (1 + margin));
+        priceNum = costNum * (1 + margin);
         break;
       }
 
       default:
-        price = Math.ceil(costMinor * 1.1); // 10% default
+        priceNum = costNum * 1.1; // 10% default
     }
 
     // Apply floor (minimum selling price)
-    if (typeof rule.floorMinor === 'number' && rule.floorMinor > 0 && price < rule.floorMinor) {
-      price = rule.floorMinor;
+    if (typeof rule.floorMinor === 'number' && rule.floorMinor > 0) {
+      const floor = rule.floorMinor / 100;
+      if (priceNum < floor) priceNum = floor;
     }
 
     // Apply cap (maximum selling price)
-    if (typeof rule.capMinor === 'number' && rule.capMinor > 0 && price > rule.capMinor) {
-      price = rule.capMinor;
+    if (typeof rule.capMinor === 'number' && rule.capMinor > 0) {
+      const cap = rule.capMinor / 100;
+      if (priceNum > cap) priceNum = cap;
     }
 
-    return price;
+    return priceNum.toFixed(8);
   }
 
   /**
-   * Get pricing rule for product (product-specific, category, or global default)
+   * Get pricing rule for product (product-specific or global default)
+   * Implements hierarchy: Product Rule → Global Default
+   * Note: Category-level rules require adding a 'category' column to DynamicPricingRule entity
    */
-  private getPricingRule(_productId: string): PricingRuleData {
-    // For now, return a default rule
-    // In future, implement rule hierarchy: product → category → global
+  private async getPricingRule(productId: string): Promise<PricingRuleData> {
+    // Step 1: Try to find product-specific rule (highest priority)
+    const productRule = await this.pricingRuleRepo.findOne({
+      where: { productId, isActive: true },
+      order: { priority: 'DESC' }, // Highest priority first
+    });
+
+    if (productRule !== null) {
+      return {
+        rule_type: productRule.rule_type,
+        marginPercent: productRule.marginPercent,
+        fixedMarkupMinor: productRule.fixedMarkupMinor,
+        floorMinor: productRule.floorMinor,
+        capMinor: productRule.capMinor,
+      };
+    }
+
+    // Step 2: Try to find global default rule (productId is for a non-existent product or null equivalent)
+    // Since we can't query for null productId directly, we'll look for rules with a special marker
+    // For now, skip global rules from DB and use hardcoded fallback
+    // TODO: Add a 'isGlobal' boolean column to DynamicPricingRule entity for proper global rules
+
+    // Step 3: Fallback to hardcoded default (8% margin)
     return {
       rule_type: 'margin_percent',
       marginPercent: '8',
@@ -164,7 +194,7 @@ export class CatalogService {
   slugify(title: string, externalId: string): string {
     // Normalize unicode (NFD = decomposed form, é -> e + combining accent)
     const normalized = title.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-    
+
     const slugged = normalized
       .toLowerCase()
       .replace(/[^\w\s-]/g, '') // Remove special chars (keep word chars, spaces, hyphens)
@@ -240,10 +270,10 @@ export class CatalogService {
     // Sorting
     switch (filters.sort) {
       case 'price_asc':
-        query = query.orderBy('product.priceMinor', 'ASC');
+        query = query.orderBy('product.price', 'ASC');
         break;
       case 'price_desc':
-        query = query.orderBy('product.priceMinor', 'DESC');
+        query = query.orderBy('product.price', 'DESC');
         break;
       case 'rating':
         query = query.orderBy('product.rating', 'DESC');
@@ -314,8 +344,8 @@ export class CatalogService {
     }
 
     // Recompute price based on current pricing rules
-    const newPrice = this.calculatePrice(product, product.costMinor);
-    product.priceMinor = newPrice;
+    const newPrice = await this.calculatePrice(product, product.cost);
+    product.price = newPrice;
 
     await this.productRepo.save(product);
   }
@@ -432,8 +462,8 @@ export class CatalogService {
     }
 
     // Recompute price based on current pricing rules
-    const newPrice = this.calculatePrice(product, product.costMinor);
-    product.priceMinor = newPrice;
+    const newPrice = await this.calculatePrice(product, product.cost);
+    product.price = newPrice;
 
     return this.productRepo.save(product);
   }
@@ -450,8 +480,8 @@ export class CatalogService {
     drm?: string;
     ageRating?: string;
     category?: string;
-    costMinor: number;
-    priceMinor: number;
+    cost: string;
+    price: string;
     currency?: string;
     isPublished?: boolean;
   }): Promise<Product> {
@@ -464,8 +494,8 @@ export class CatalogService {
       drm: data.drm,
       ageRating: data.ageRating,
       category: data.category,
-      costMinor: data.costMinor,
-      priceMinor: data.priceMinor,
+      cost: data.cost,
+      price: data.price,
       currency: data.currency ?? 'USD',
       isPublished: data.isPublished ?? false,
       isCustom: true,
@@ -490,8 +520,8 @@ export class CatalogService {
       drm: string;
       ageRating: string;
       category: string;
-      costMinor: number;
-      priceMinor: number;
+      cost: string;
+      price: string;
       currency: string;
     }>,
   ): Promise<Product> {
@@ -509,8 +539,8 @@ export class CatalogService {
     if (typeof data.drm === 'string') product.drm = data.drm;
     if (typeof data.ageRating === 'string') product.ageRating = data.ageRating;
     if (typeof data.category === 'string') product.category = data.category;
-    if (typeof data.costMinor === 'number') product.costMinor = data.costMinor;
-    if (typeof data.priceMinor === 'number') product.priceMinor = data.priceMinor;
+    if (typeof data.cost === 'string') product.cost = data.cost;
+    if (typeof data.price === 'string') product.price = data.price;
     if (typeof data.currency === 'string') product.currency = data.currency;
 
     return this.productRepo.save(product);

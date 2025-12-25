@@ -20,6 +20,7 @@ export interface VerifyOtpResponse {
     id: string;
     email: string;
     emailVerified: boolean;
+    role?: string;
   };
   error?: string;
 }
@@ -100,7 +101,11 @@ export class AuthClient {
       };
     }
 
-    return response.json() as Promise<VerifyOtpResponse>;
+    const data = (await response.json()) as Omit<VerifyOtpResponse, 'success'>;
+    return {
+      success: true,
+      ...data,
+    };
   }
 
   /**

@@ -1,3 +1,4 @@
+import 'reflect-metadata';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { IpnHandlerService } from './ipn-handler.service';
 

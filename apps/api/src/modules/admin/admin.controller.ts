@@ -3,6 +3,7 @@ import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags, ApiQuery } from '@ne
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { AdminGuard } from '../../common/guards/admin.guard';
 import { AdminService } from './admin.service';
+import { DashboardStatsDto } from './dto/dashboard-stats.dto';
 
 /**
  * Admin endpoints for monitoring payments, reservations, and webhooks.
@@ -14,7 +15,25 @@ import { AdminService } from './admin.service';
 @UseGuards(JwtAuthGuard, AdminGuard)
 @Controller('admin')
 export class AdminController {
-  constructor(private readonly admin: AdminService) {}
+  constructor(private readonly admin: AdminService) { }
+
+  /**
+   * Get dashboard statistics
+   * Returns aggregated revenue, orders, users, and sales history
+   */
+  @Get('stats')
+  @ApiOperation({
+    summary: 'Get dashboard statistics',
+    description: 'Returns aggregated revenue, orders, users, and sales history',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Dashboard statistics',
+    type: DashboardStatsDto,
+  })
+  async getDashboardStats(): Promise<DashboardStatsDto> {
+    return this.admin.getDashboardStats();
+  }
 
   /**
    * Get paginated list of orders
@@ -45,6 +64,15 @@ export class AdminController {
               status: { type: 'string' },
               total: { type: 'string' },
               createdAt: { type: 'string', format: 'date-time' },
+              payment: {
+                type: 'object',
+                nullable: true,
+                properties: {
+                  id: { type: 'string' },
+                  provider: { type: 'string' },
+                  status: { type: 'string' },
+                },
+              },
             },
           },
         },
@@ -59,7 +87,7 @@ export class AdminController {
     @Query('offset') offset?: string,
     @Query('email') email?: string,
     @Query('status') status?: string,
-  ): Promise<{ data: Array<{ id: string; email: string; status: string; total: string; createdAt: Date }>; total: number; limit: number; offset: number }> {
+  ): Promise<{ data: Array<{ id: string; email: string; status: string; total: string; createdAt: Date; payment?: { id: string; provider: string; status: string } }>; total: number; limit: number; offset: number }> {
     return this.admin.getOrders({
       limit: parseInt(limit ?? '50', 10),
       offset: parseInt(offset ?? '0', 10),
@@ -93,6 +121,7 @@ export class AdminController {
             type: 'object',
             properties: {
               id: { type: 'string' },
+              orderId: { type: 'string' },
               externalId: { type: 'string' },
               status: { type: 'string' },
               provider: { type: 'string' },
@@ -226,6 +255,15 @@ export class AdminController {
               externalId: { type: 'string' },
               webhookType: { type: 'string' },
               paymentStatus: { type: 'string' },
+              payload: { type: 'object' },
+              processed: { type: 'boolean' },
+              signature: { type: 'string' },
+              signatureValid: { type: 'boolean' },
+              orderId: { type: 'string' },
+              paymentId: { type: 'string' },
+              result: { type: 'string' },
+              sourceIp: { type: 'string' },
+              attemptCount: { type: 'number' },
               error: { type: 'string' },
               createdAt: { type: 'string', format: 'date-time' },
             },

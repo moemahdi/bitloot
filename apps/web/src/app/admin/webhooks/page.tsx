@@ -1,467 +1,288 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { useRouter } from 'next/navigation';
-import { AdminApi, Configuration } from '@bitloot/sdk';
-import { convertToCSV, downloadCSV } from '@/utils/csv-export';
-import { useAutoRefresh } from '@/hooks/useAutoRefresh';
-import { Download, RefreshCw } from 'lucide-react';
-
-// Initialize SDK admin client
-const apiConfig = new Configuration({
-  basePath: process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000',
-});
-const adminApi = new AdminApi(apiConfig);
-
-// Type definitions
-interface WebhookLog {
-  id: string;
-  externalId: string;
-  webhookType: string;
-  payload: string;
-  signature?: string;
-  signatureValid: boolean;
-  processed: boolean;
-  orderId?: string;
-  paymentId?: string;
-  result?: string;
-  paymentStatus?: string;
-  error?: string;
-  sourceIp?: string;
-  attemptCount?: number;
-  createdAt: string;
-  updatedAt: string;
-}
-
-interface WebhooksListResponse {
-  data: WebhookLog[];
-  total: number;
-  page: number;
-  limit: number;
-  totalPages: number;
-  hasNextPage: boolean;
-}
-
-const LIMIT = 20;
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/design-system/primitives/card';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/design-system/primitives/table';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/design-system/primitives/select';
+import { Button } from '@/design-system/primitives/button';
+import { Badge } from '@/design-system/primitives/badge';
+import { Download, RefreshCw, AlertCircle, Loader2, ChevronLeft, ChevronRight, RotateCcw } from 'lucide-react';
+import { format } from 'date-fns';
+import { useAdminTableState } from '@/features/admin/hooks/useAdminTableState';
+import { useAdminWebhooks } from '@/features/admin/hooks/useAdminWebhooks';
+import { useAdminGuard } from '@/features/admin/hooks/useAdminGuard';
+import { toast } from 'sonner';
 
 export default function AdminWebhooksPage(): React.ReactElement {
-  const router = useRouter();
-
-  // State
-  const [page, setPage] = useState(1);
-  const [limit, setLimit] = useState(LIMIT);
-  const [webhookTypeFilter, setWebhookTypeFilter] = useState('');
-  const [processedFilter, setProcessedFilter] = useState('');
-  const [paymentStatusFilter, setPaymentStatusFilter] = useState('');
-  const [externalIdFilter, setExternalIdFilter] = useState('');
-  const [isAuthorized, setIsAuthorized] = useState(false);
-
-  // Authorization check
-  useEffect(() => {
-    const token = localStorage.getItem('jwt_token');
-    if (token === null || token === '') {
-      void router.push('/login');
-    } else {
-      setIsAuthorized(true);
-    }
-  }, [router]);
-
-  // Fetch webhooks
-  const query = useQuery<WebhooksListResponse>({
-    queryKey: [
-      'admin-webhooks',
-      page,
-      limit,
-      webhookTypeFilter,
-      processedFilter,
-      paymentStatusFilter,
-      externalIdFilter,
-    ],
-    queryFn: async (): Promise<WebhooksListResponse> => {
-      const response = await adminApi.adminControllerGetWebhookLogs({
-        limit,
-        offset: (page - 1) * limit,
-        webhookType: webhookTypeFilter !== '' ? webhookTypeFilter : undefined,
-        paymentStatus: paymentStatusFilter !== '' ? paymentStatusFilter : undefined,
-      });
-
-      // Map API response to our interface
-      return {
-        data: (response.data as unknown as WebhookLog[]) ?? [],
-        total: response.total ?? 0,
-        page,
-        limit,
-        totalPages: Math.ceil((response.total ?? 0) / limit),
-        hasNextPage: page < Math.ceil((response.total ?? 0) / limit),
-      };
+  const { isLoading: isGuardLoading, isAdmin } = useAdminGuard();
+  const state = useAdminTableState({
+    initialFilters: {
+      webhookType: 'all',
+      processed: 'all',
     },
-    staleTime: 30_000,
-    enabled: isAuthorized,
   });
 
-  const { data: webhooksList, isLoading, error, refetch } = query;
+  const { query, replayMutation } = useAdminWebhooks(state);
+  const {
+    data,
+    isLoading,
+    isError,
+    error,
+    refetch,
+    isRefetching
+  } = query;
 
-  // Auto-refresh hook
-  const { isAutoRefreshEnabled, setIsAutoRefreshEnabled, handleRefresh, lastRefreshTime } =
-    useAutoRefresh(query, { enableAutoRefresh: false, refetchInterval: 30_000 });
-
-  // Filter handlers
-  const handleWebhookTypeFilterChange = (e: React.ChangeEvent<HTMLSelectElement>): void => {
-    setWebhookTypeFilter(e.target.value);
-    setPage(1);
-  };
-
-  const handleProcessedFilterChange = (e: React.ChangeEvent<HTMLSelectElement>): void => {
-    setProcessedFilter(e.target.value);
-    setPage(1);
-  };
-
-  const handlePaymentStatusFilterChange = (e: React.ChangeEvent<HTMLSelectElement>): void => {
-    setPaymentStatusFilter(e.target.value);
-    setPage(1);
-  };
-
-  const handleExternalIdFilterChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
-    setExternalIdFilter(e.target.value);
-    setPage(1);
-  };
-
-  const applyFilters = (): void => {
-    void refetch();
-  };
-
-  // Export to CSV
   const handleExportCSV = (): void => {
-    const webhooks = webhooksList?.data ?? [];
-    if (webhooks.length === 0) return;
+    if ((data?.data?.length ?? 0) === 0) return;
 
-    const csvData = webhooks.map((webhook) => ({
-      ID: webhook.id,
-      'External ID': webhook.externalId,
-      Type: webhook.webhookType,
-      'Payment Status': webhook.paymentStatus ?? 'N/A',
-      Processed: webhook.processed ? 'Yes' : 'No',
-      'Signature Valid': webhook.signatureValid ? 'Yes' : 'No',
-      'Order ID': webhook.orderId ?? 'N/A',
-      'Created At': formatDate(webhook.createdAt),
-    }));
-
-    const csv = convertToCSV(csvData, [
-      'ID',
-      'External ID',
-      'Type',
-      'Payment Status',
-      'Processed',
-      'Signature Valid',
-      'Order ID',
-      'Created At',
+    const headers = ['ID', 'External ID', 'Type', 'Processed', 'Valid', 'Date'];
+    const webhookData = data?.data ?? [];
+    const rows = webhookData.map((log) => [
+      log.id,
+      log.externalId,
+      log.webhookType,
+      log.processed ? 'Yes' : 'No',
+      log.signatureValid ? 'Yes' : 'No',
+      new Date(log.createdAt).toISOString(),
     ]);
 
-    const filename = `webhooks-${new Date().toISOString().split('T')[0]}.csv`;
-    downloadCSV(csv, filename);
+    const csvContent =
+      'data:text/csv;charset=utf-8,' +
+      [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
+
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `webhooks_export_${new Date().toISOString()}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
-  // Utility functions
-  const formatDate = (dateString: string): string => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  };
-
-  const getProcessedColor = (processed: boolean): string => {
-    return processed ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800';
-  };
-
-  const getSignatureValidColor = (valid: boolean): string => {
-    return valid ? 'bg-blue-100 text-blue-800' : 'bg-red-100 text-red-800';
-  };
-
-  const getPaymentStatusColor = (status?: string): string => {
-    switch (status) {
-      case 'finished':
-        return 'bg-green-100 text-green-800';
-      case 'confirming':
-        return 'bg-blue-100 text-blue-800';
-      case 'waiting':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'failed':
-        return 'bg-red-100 text-red-800';
-      case 'underpaid':
-        return 'bg-orange-100 text-orange-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
+  const handleReplay = async (id: string): Promise<void> => {
+    try {
+      await replayMutation.mutateAsync(id);
+      toast.success('Webhook replay triggered successfully');
+    } catch (error) {
+      toast.error('Failed to replay webhook');
+      console.error(error);
     }
   };
 
-  // Render
+  const getStatusBadge = (processed: boolean, valid: boolean): React.ReactElement => {
+    if (!valid) return <Badge variant="destructive">Invalid Sig</Badge>;
+    if (processed) return <Badge className="bg-green-500 hover:bg-green-600">Processed</Badge>;
+    return <Badge variant="secondary">Pending</Badge>;
+  };
+
+  if (isGuardLoading) {
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!isAdmin) {
+    return <div />;
+  }
+
   return (
-    <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Webhook Logs</h1>
-          <p className="mt-2 text-gray-600">
-            Monitor and manage all webhook events from payment providers
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Webhooks</h1>
+          <p className="text-muted-foreground">
+            Audit and replay webhook events
           </p>
         </div>
-
-        {/* Filters */}
-        <div className="bg-white rounded-lg shadow p-6 mb-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-gray-900">Filters</h2>
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => void handleRefresh()}
-                disabled={isLoading}
-                className="flex items-center gap-2 px-3 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
-                title="Manually refresh data"
-              >
-                <RefreshCw size={16} className={isLoading ? 'animate-spin' : ''} />
-                Refresh
-              </button>
-              <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={isAutoRefreshEnabled}
-                  onChange={(e) => setIsAutoRefreshEnabled(e.target.checked)}
-                  className="w-4 h-4 rounded"
-                />
-                Auto-refresh (30s)
-              </label>
-              {lastRefreshTime !== null && (
-                <span className="text-xs text-gray-500">
-                  Last refresh: {lastRefreshTime.toLocaleTimeString()}
-                </span>
-              )}
-            </div>
-          </div>
-          
-          {/* First Row: Limit, Webhook Type, Processed, Payment Status */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-4">
-            <div>
-              <label htmlFor="limit-selector" className="block text-sm font-medium text-gray-700 mb-2">Items Per Page</label>
-              <select
-                id="limit-selector"
-                aria-label="Select number of items per page"
-                value={limit.toString()}
-                onChange={(e): void => {
-                  setLimit(parseInt(e.target.value, 10));
-                  setPage(1);
-                }}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-              >
-                <option value="10">10 items</option>
-                <option value="25">25 items</option>
-                <option value="50">50 items</option>
-                <option value="100">100 items</option>
-              </select>
-            </div>
-
-            <div>
-              <label htmlFor="webhook-type-filter" className="block text-sm font-medium text-gray-700 mb-2">Webhook Type</label>
-              <select
-                id="webhook-type-filter"
-                aria-label="Filter webhooks by type"
-                value={webhookTypeFilter}
-                onChange={handleWebhookTypeFilterChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-              >
-                <option value="">All Types</option>
-                <option value="nowpayments_ipn">NOWPayments IPN</option>
-                <option value="kinguin_webhook">Kinguin Webhook</option>
-              </select>
-            </div>
-
-            <div>
-              <label htmlFor="processed-filter" className="block text-sm font-medium text-gray-700 mb-2">Processed</label>
-              <select
-                id="processed-filter"
-                aria-label="Filter webhooks by processed status"
-                value={processedFilter}
-                onChange={handleProcessedFilterChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-              >
-                <option value="">All Status</option>
-                <option value="true">Processed</option>
-                <option value="false">Pending</option>
-              </select>
-            </div>
-
-            <div>
-              <label htmlFor="payment-status-filter" className="block text-sm font-medium text-gray-700 mb-2">Payment Status</label>
-              <select
-                id="payment-status-filter"
-                aria-label="Filter webhooks by payment status"
-                value={paymentStatusFilter}
-                onChange={handlePaymentStatusFilterChange}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-              >
-                <option value="">All Statuses</option>
-                <option value="waiting">Waiting</option>
-                <option value="confirming">Confirming</option>
-                <option value="finished">Finished</option>
-                <option value="failed">Failed</option>
-                <option value="underpaid">Underpaid</option>
-              </select>
-            </div>
-          </div>
-
-          {/* Second Row: External ID, Action Buttons */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label htmlFor="external-id-filter" className="block text-sm font-medium text-gray-700 mb-2">External ID</label>
-              <input
-                id="external-id-filter"
-                type="text"
-                value={externalIdFilter}
-                onChange={handleExternalIdFilterChange}
-                placeholder="Filter by ID..."
-                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-              />
-            </div>
-
-            <div className="flex items-end gap-2">
-              <button
-                onClick={applyFilters}
-                className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"
-              >
-                Apply Filters
-              </button>
-              <button
-                onClick={handleExportCSV}
-                disabled={isLoading || (webhooksList?.data?.length ?? 0) === 0}
-                className="flex-1 bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-              >
-                <Download size={18} />
-                Export CSV
-              </button>
-            </div>
-          </div>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={() => refetch()} disabled={isLoading || isRefetching}>
+            <RefreshCw className={`mr-2 h-4 w-4 ${isRefetching ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
+          <Button variant="outline" onClick={handleExportCSV} disabled={(data?.data?.length ?? 0) === 0}>
+            <Download className="mr-2 h-4 w-4" />
+            Export CSV
+          </Button>
         </div>
-
-        {/* Loading State */}
-        {isLoading && (
-          <div className="bg-white rounded-lg shadow p-8 text-center">
-            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-            <p className="mt-4 text-gray-600">Loading webhooks...</p>
-          </div>
-        )}
-
-        {/* Error State */}
-        {error !== null && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
-            <p className="text-red-800">
-              <strong>Error:</strong>{' '}
-              {error instanceof Error ? error.message : 'Failed to fetch webhooks'}
-            </p>
-          </div>
-        )}
-
-        {/* Data Table */}
-        {!isLoading && webhooksList !== undefined && (
-          <div className="bg-white rounded-lg shadow overflow-hidden">
-            {webhooksList.data.length === 0 ? (
-              <div className="p-8 text-center text-gray-600">
-                <p>No webhooks found matching your filters.</p>
-              </div>
-            ) : (
-              <>
-                <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                          External ID
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                          Webhook Type
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                          Payment Status
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                          Processed
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                          Signature
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">
-                          Created
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {webhooksList.data.map((webhook) => (
-                        <tr key={webhook.id} className="hover:bg-gray-50">
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-900">
-                            {webhook.externalId.substring(0, 16)}...
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            {webhook.webhookType}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm">
-                            <span
-                              className={`px-3 py-1 rounded-full text-xs font-medium ${getPaymentStatusColor(webhook.paymentStatus)}`}
-                            >
-                              {webhook.paymentStatus ?? 'N/A'}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm">
-                            <span
-                              className={`px-3 py-1 rounded-full text-xs font-medium ${getProcessedColor(webhook.processed)}`}
-                            >
-                              {webhook.processed ? '✅ Processed' : '⏳ Pending'}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm">
-                            <span
-                              className={`px-3 py-1 rounded-full text-xs font-medium ${getSignatureValidColor(webhook.signatureValid)}`}
-                            >
-                              {webhook.signatureValid ? '✅ Valid' : '❌ Invalid'}
-                            </span>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            {formatDate(webhook.createdAt)}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-
-                {/* Pagination */}
-                <div className="bg-white px-6 py-4 border-t border-gray-200 flex items-center justify-between">
-                  <div className="text-sm text-gray-600">
-                    Page {webhooksList.page} of {webhooksList.totalPages} (Total:{' '}
-                    {webhooksList.total})
-                  </div>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => setPage(Math.max(1, page - 1))}
-                      disabled={page === 1}
-                      className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
-                    >
-                      Previous
-                    </button>
-                    <button
-                      onClick={() => setPage(page + 1)}
-                      disabled={!webhooksList.hasNextPage}
-                      className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
-                    >
-                      Next
-                    </button>
-                  </div>
-                </div>
-              </>
-            )}
-          </div>
-        )}
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Webhook Logs</CardTitle>
+          <CardDescription>
+            View incoming webhooks and their processing status
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col gap-4">
+            {/* Filters */}
+            <div className="flex flex-wrap gap-4">
+              <div className="w-[200px]">
+                <Select
+                  value={state.filters.webhookType as string}
+                  onValueChange={(value) => state.handleFilterChange('webhookType', value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Filter by type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Types</SelectItem>
+                    <SelectItem value="payment">Payment</SelectItem>
+                    <SelectItem value="fulfillment">Fulfillment</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="w-[200px]">
+                <Select
+                  value={state.filters.processed as string}
+                  onValueChange={(value) => state.handleFilterChange('processed', value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Filter by status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Statuses</SelectItem>
+                    <SelectItem value="true">Processed</SelectItem>
+                    <SelectItem value="false">Pending</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Table */}
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>ID</TableHead>
+                    <TableHead>External ID</TableHead>
+                    <TableHead>Type</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Date</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {isLoading ? (
+                    <TableRow>
+                      <TableCell colSpan={6} className="h-24 text-center">
+                        <div className="flex items-center justify-center">
+                          <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ) : isError ? (
+                    <TableRow>
+                      <TableCell colSpan={6} className="h-24 text-center text-red-500">
+                        <div className="flex items-center justify-center gap-2">
+                          <AlertCircle className="h-4 w-4" />
+                          Failed to load webhooks: {error instanceof Error ? error.message : 'Unknown error'}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ) : (data?.data?.length ?? 0) === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={6} className="h-24 text-center">
+                        No webhooks found
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    data?.data.map((log) => (
+                      <TableRow key={log.id}>
+                        <TableCell className="font-mono text-xs">{log.id.slice(0, 8)}...</TableCell>
+                        <TableCell className="font-mono text-xs">{log.externalId}</TableCell>
+                        <TableCell className="capitalize">{log.webhookType}</TableCell>
+                        <TableCell>{getStatusBadge(log.processed, log.signatureValid)}</TableCell>
+                        <TableCell>
+                          {format(new Date(log.createdAt), 'MMM d, yyyy HH:mm')}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleReplay(log.id)}
+                            disabled={replayMutation.isPending}
+                            title="Replay Webhook"
+                          >
+                            <RotateCcw className="h-4 w-4" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+
+            {/* Pagination */}
+            <div className="flex items-center justify-between">
+              <div className="text-sm text-muted-foreground">
+                Showing {data?.data.length ?? 0} of {data?.total ?? 0} logs
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 mr-4">
+                  <span className="text-sm text-muted-foreground">Rows per page</span>
+                  <Select
+                    value={state.limit.toString()}
+                    onValueChange={(value) => state.setLimit(Number(value))}
+                  >
+                    <SelectTrigger className="w-[70px]">
+                      <SelectValue placeholder="20" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="10">10</SelectItem>
+                      <SelectItem value="20">20</SelectItem>
+                      <SelectItem value="50">50</SelectItem>
+                      <SelectItem value="100">100</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => state.setPage(state.page - 1)}
+                  disabled={state.page <= 1 || isLoading}
+                >
+                  <ChevronLeft className="h-4 w-4 mr-2" />
+                  Previous
+                </Button>
+                <div className="text-sm font-medium">
+                  Page {state.page} of {data?.totalPages ?? 1}
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => state.setPage(state.page + 1)}
+                  disabled={state.page >= (data?.totalPages ?? 1) || isLoading}
+                >
+                  Next
+                  <ChevronRight className="h-4 w-4 ml-2" />
+                </Button>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

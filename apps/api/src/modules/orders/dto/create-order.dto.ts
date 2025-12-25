@@ -41,6 +41,9 @@ export class OrderResponseDto {
   @ApiProperty()
   email!: string;
 
+  @ApiProperty({ required: false })
+  userId?: string;
+
   @ApiProperty()
   status!: string;
 

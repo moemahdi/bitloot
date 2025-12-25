@@ -6,10 +6,13 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
   Index,
+  ManyToOne,
+  JoinColumn,
 } from 'typeorm';
 import { OrderItem } from './order-item.entity';
 import { Payment } from '../payments/payment.entity';
 import { Key } from './key.entity';
+import { User } from '../../database/entities/user.entity';
 
 /**
  * OrderStatus — Comprehensive order lifecycle states
@@ -50,6 +53,10 @@ export class Order {
   @Column({ type: 'uuid', nullable: true })
   userId?: string;
 
+  @ManyToOne(() => User, { onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'userId' })
+  user?: User;
+
   /**
    * Status field — updated via Payment status machine
    * - created: Initial, awaiting payment creation
@@ -68,7 +75,7 @@ export class Order {
   status!: OrderStatus;
 
   @Column({ type: 'numeric', precision: 20, scale: 8, default: 0 })
-  total!: string; // store as string to avoid FP issues
+  totalCrypto!: string; // store as string to avoid FP issues
 
   /**
    * Kinguin reservation ID for tracking fulfillment status

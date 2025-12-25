@@ -13,6 +13,14 @@
  */
 
 import { mapValues } from '../runtime';
+import type { UserResponseDto } from './UserResponseDto';
+import {
+    UserResponseDtoFromJSON,
+    UserResponseDtoFromJSONTyped,
+    UserResponseDtoToJSON,
+    UserResponseDtoToJSONTyped,
+} from './UserResponseDto';
+
 /**
  * 
  * @export
@@ -33,10 +41,10 @@ export interface AuthResponseDto {
     refreshToken: string;
     /**
      * User info
-     * @type {object}
+     * @type {UserResponseDto}
      * @memberof AuthResponseDto
      */
-    user: object;
+    user: UserResponseDto;
 }
 
 /**
@@ -61,7 +69,7 @@ export function AuthResponseDtoFromJSONTyped(json: any, ignoreDiscriminator: boo
         
         'accessToken': json['accessToken'],
         'refreshToken': json['refreshToken'],
-        'user': json['user'],
+        'user': UserResponseDtoFromJSON(json['user']),
     };
 }
 
@@ -78,7 +86,7 @@ export function AuthResponseDtoToJSONTyped(value?: AuthResponseDto | null, ignor
         
         'accessToken': value['accessToken'],
         'refreshToken': value['refreshToken'],
-        'user': value['user'],
+        'user': UserResponseDtoToJSON(value['user']),
     };
 }
 

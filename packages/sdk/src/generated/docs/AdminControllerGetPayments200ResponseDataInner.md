@@ -7,6 +7,7 @@
 Name | Type
 ------------ | -------------
 `id` | string
+`orderId` | string
 `externalId` | string
 `status` | string
 `provider` | string
@@ -25,6 +26,7 @@ import type { AdminControllerGetPayments200ResponseDataInner } from ''
 // TODO: Update the object below with actual values
 const example = {
   "id": null,
+  "orderId": null,
   "externalId": null,
   "status": null,
   "provider": null,

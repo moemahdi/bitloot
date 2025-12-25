@@ -14,8 +14,8 @@ Name | Type
 `drm` | string
 `ageRating` | string
 `category` | string
-`costMinor` | string
-`priceMinor` | string
+`cost` | string
+`price` | string
 `currency` | string
 `isPublished` | boolean
 
@@ -34,8 +34,8 @@ const example = {
   "drm": null,
   "ageRating": null,
   "category": null,
-  "costMinor": null,
-  "priceMinor": null,
+  "cost": 45.00,
+  "price": 59.99,
   "currency": null,
   "isPublished": null,
 } satisfies CreateProductDto

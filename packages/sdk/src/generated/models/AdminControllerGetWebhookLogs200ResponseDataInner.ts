@@ -45,6 +45,60 @@ export interface AdminControllerGetWebhookLogs200ResponseDataInner {
     paymentStatus?: string;
     /**
      * 
+     * @type {object}
+     * @memberof AdminControllerGetWebhookLogs200ResponseDataInner
+     */
+    payload?: object;
+    /**
+     * 
+     * @type {boolean}
+     * @memberof AdminControllerGetWebhookLogs200ResponseDataInner
+     */
+    processed?: boolean;
+    /**
+     * 
+     * @type {string}
+     * @memberof AdminControllerGetWebhookLogs200ResponseDataInner
+     */
+    signature?: string;
+    /**
+     * 
+     * @type {boolean}
+     * @memberof AdminControllerGetWebhookLogs200ResponseDataInner
+     */
+    signatureValid?: boolean;
+    /**
+     * 
+     * @type {string}
+     * @memberof AdminControllerGetWebhookLogs200ResponseDataInner
+     */
+    orderId?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof AdminControllerGetWebhookLogs200ResponseDataInner
+     */
+    paymentId?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof AdminControllerGetWebhookLogs200ResponseDataInner
+     */
+    result?: string;
+    /**
+     * 
+     * @type {string}
+     * @memberof AdminControllerGetWebhookLogs200ResponseDataInner
+     */
+    sourceIp?: string;
+    /**
+     * 
+     * @type {number}
+     * @memberof AdminControllerGetWebhookLogs200ResponseDataInner
+     */
+    attemptCount?: number;
+    /**
+     * 
      * @type {string}
      * @memberof AdminControllerGetWebhookLogs200ResponseDataInner
      */
@@ -78,6 +132,15 @@ export function AdminControllerGetWebhookLogs200ResponseDataInnerFromJSONTyped(j
         'externalId': json['externalId'] == null ? undefined : json['externalId'],
         'webhookType': json['webhookType'] == null ? undefined : json['webhookType'],
         'paymentStatus': json['paymentStatus'] == null ? undefined : json['paymentStatus'],
+        'payload': json['payload'] == null ? undefined : json['payload'],
+        'processed': json['processed'] == null ? undefined : json['processed'],
+        'signature': json['signature'] == null ? undefined : json['signature'],
+        'signatureValid': json['signatureValid'] == null ? undefined : json['signatureValid'],
+        'orderId': json['orderId'] == null ? undefined : json['orderId'],
+        'paymentId': json['paymentId'] == null ? undefined : json['paymentId'],
+        'result': json['result'] == null ? undefined : json['result'],
+        'sourceIp': json['sourceIp'] == null ? undefined : json['sourceIp'],
+        'attemptCount': json['attemptCount'] == null ? undefined : json['attemptCount'],
         'error': json['error'] == null ? undefined : json['error'],
         'createdAt': json['createdAt'] == null ? undefined : (new Date(json['createdAt'])),
     };
@@ -98,6 +161,15 @@ export function AdminControllerGetWebhookLogs200ResponseDataInnerToJSONTyped(val
         'externalId': value['externalId'],
         'webhookType': value['webhookType'],
         'paymentStatus': value['paymentStatus'],
+        'payload': value['payload'],
+        'processed': value['processed'],
+        'signature': value['signature'],
+        'signatureValid': value['signatureValid'],
+        'orderId': value['orderId'],
+        'paymentId': value['paymentId'],
+        'result': value['result'],
+        'sourceIp': value['sourceIp'],
+        'attemptCount': value['attemptCount'],
         'error': value['error'],
         'createdAt': value['createdAt'] == null ? value['createdAt'] : value['createdAt'].toISOString(),
     };
