@@ -12,7 +12,7 @@ All URIs are relative to *http://localhost*
 
 ## adminSyncControllerGetConfigStatus
 
-> object adminSyncControllerGetConfigStatus()
+> SyncConfigStatusDto adminSyncControllerGetConfigStatus()
 
 Check Kinguin integration status
 
@@ -53,7 +53,7 @@ This endpoint does not need any parameter.
 
 ### Return type
 
-**object**
+[**SyncConfigStatusDto**](SyncConfigStatusDto.md)
 
 ### Authorization
 
@@ -77,7 +77,7 @@ This endpoint does not need any parameter.
 
 ## adminSyncControllerGetSyncStatus
 
-> object adminSyncControllerGetSyncStatus(jobId)
+> SyncJobStatusResponseDto adminSyncControllerGetSyncStatus(jobId)
 
 Check sync job status
 
@@ -126,7 +126,7 @@ example().catch(console.error);
 
 ### Return type
 
-**object**
+[**SyncJobStatusResponseDto**](SyncJobStatusResponseDto.md)
 
 ### Authorization
 
@@ -152,7 +152,7 @@ example().catch(console.error);
 
 ## adminSyncControllerTriggerSync
 
-> object adminSyncControllerTriggerSync(fullSync)
+> SyncJobResponseDto adminSyncControllerTriggerSync(fullSync)
 
 Trigger Kinguin catalog sync
 
@@ -201,7 +201,7 @@ example().catch(console.error);
 
 ### Return type
 
-**object**
+[**SyncJobResponseDto**](SyncJobResponseDto.md)
 
 ### Authorization
 

@@ -95,11 +95,11 @@ export default function CartPage(): React.ReactElement {
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Subtotal</span>
-                  <span>${subtotal.toFixed(2)}</span>
+                  <span>€{subtotal.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Tax (8%)</span>
-                  <span>${tax.toFixed(2)}</span>
+                  <span>€{tax.toFixed(2)}</span>
                 </div>
               </div>
 
@@ -108,7 +108,7 @@ export default function CartPage(): React.ReactElement {
               {/* Total */}
               <div className="flex justify-between text-lg font-semibold">
                 <span>Total</span>
-                <span>${estimatedTotal.toFixed(2)}</span>
+                <span>€{estimatedTotal.toFixed(2)}</span>
               </div>
 
               {/* Payment Note */}

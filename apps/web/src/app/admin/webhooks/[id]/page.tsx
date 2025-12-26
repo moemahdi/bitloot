@@ -3,7 +3,7 @@
 import { useParams } from 'next/navigation';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { AdminControllerGetWebhookLog200Response } from '@bitloot/sdk';
-import { Configuration, AdminApi } from '@bitloot/sdk';
+import { AdminApi } from '@bitloot/sdk';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/design-system/primitives/card';
 import { Badge } from '@/design-system/primitives/badge';
 import { Button } from '@/design-system/primitives/button';

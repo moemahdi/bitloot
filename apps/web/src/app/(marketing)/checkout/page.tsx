@@ -199,9 +199,9 @@ export default function CheckoutPage(): React.ReactElement | void {
                       </p>
                     </div>
                     <div className="text-right">
-                      <p className="font-semibold">${(item.price * item.quantity).toFixed(2)}</p>
+                      <p className="font-semibold">€{(item.price * item.quantity).toFixed(2)}</p>
                       <p className="text-sm text-muted-foreground">
-                        ${item.price.toFixed(2)} each
+                        €{item.price.toFixed(2)} each
                       </p>
                     </div>
                   </div>
@@ -220,11 +220,11 @@ export default function CheckoutPage(): React.ReactElement | void {
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Subtotal</span>
-                    <span>${subtotal.toFixed(2)}</span>
+                    <span>€{subtotal.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Tax (8%)</span>
-                    <span>${tax.toFixed(2)}</span>
+                    <span>€{tax.toFixed(2)}</span>
                   </div>
                 </div>
 
@@ -232,7 +232,7 @@ export default function CheckoutPage(): React.ReactElement | void {
 
                 <div className="flex justify-between text-lg font-semibold">
                   <span>Total</span>
-                  <span>${estimatedTotal.toFixed(2)}</span>
+                  <span>€{estimatedTotal.toFixed(2)}</span>
                 </div>
 
                 <div className="bg-blue-50 dark:bg-blue-950 text-blue-900 dark:text-blue-100 p-3 rounded-md text-xs">
@@ -345,7 +345,7 @@ export default function CheckoutPage(): React.ReactElement | void {
                 <Separator />
                 <div className="flex justify-between">
                   <span>Total</span>
-                  <span className="font-semibold">${estimatedTotal.toFixed(2)}</span>
+                  <span className="font-semibold">€{estimatedTotal.toFixed(2)}</span>
                 </div>
               </CardContent>
             </Card>
@@ -438,7 +438,7 @@ export default function CheckoutPage(): React.ReactElement | void {
                       size="lg"
                       disabled={isProcessing}
                     >
-                      {isProcessing ? 'Processing...' : `Pay ${estimatedTotal.toFixed(2)} USD with ${paymentMethod}`}
+                      {isProcessing ? 'Processing...' : `Pay €${estimatedTotal.toFixed(2)} with ${paymentMethod}`}
                     </GlowButton>
                   </>
                 )}
@@ -456,17 +456,17 @@ export default function CheckoutPage(): React.ReactElement | void {
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Subtotal</span>
-                    <span>${subtotal.toFixed(2)}</span>
+                    <span>€{subtotal.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-muted-foreground">Tax</span>
-                    <span>${tax.toFixed(2)}</span>
+                    <span>€{tax.toFixed(2)}</span>
                   </div>
                 </div>
                 <Separator />
                 <div className="flex justify-between text-lg font-semibold">
                   <span>Total</span>
-                  <span>${estimatedTotal.toFixed(2)}</span>
+                  <span>€{estimatedTotal.toFixed(2)}</span>
                 </div>
                 <div className="text-xs text-muted-foreground">
                   <p>Email: {email}</p>
@@ -519,7 +519,7 @@ export default function CheckoutPage(): React.ReactElement | void {
                     <Separator />
                     <div className="flex justify-between">
                       <span className="text-muted-foreground">Total Paid</span>
-                      <span className="text-lg font-semibold">${estimatedTotal.toFixed(2)}</span>
+                      <span className="text-lg font-semibold">€{estimatedTotal.toFixed(2)}</span>
                     </div>
                     <Separator />
                     <div className="flex justify-between">

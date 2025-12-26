@@ -14,6 +14,19 @@
 
 
 import * as runtime from '../runtime';
+import type {
+  SyncConfigStatusDto,
+  SyncJobResponseDto,
+  SyncJobStatusResponseDto,
+} from '../models/index';
+import {
+    SyncConfigStatusDtoFromJSON,
+    SyncConfigStatusDtoToJSON,
+    SyncJobResponseDtoFromJSON,
+    SyncJobResponseDtoToJSON,
+    SyncJobStatusResponseDtoFromJSON,
+    SyncJobStatusResponseDtoToJSON,
+} from '../models/index';
 
 export interface AdminSyncControllerGetSyncStatusRequest {
     jobId: string;
@@ -32,7 +45,7 @@ export class AdminCatalogSyncApi extends runtime.BaseAPI {
      * Verify if Kinguin API is properly configured and accessible
      * Check Kinguin integration status
      */
-    async adminSyncControllerGetConfigStatusRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<object>> {
+    async adminSyncControllerGetConfigStatusRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<SyncConfigStatusDto>> {
         const queryParameters: any = {};
 
         const headerParameters: runtime.HTTPHeaders = {};
@@ -55,14 +68,14 @@ export class AdminCatalogSyncApi extends runtime.BaseAPI {
             query: queryParameters,
         }, initOverrides);
 
-        return new runtime.JSONApiResponse<any>(response);
+        return new runtime.JSONApiResponse(response, (jsonValue) => SyncConfigStatusDtoFromJSON(jsonValue));
     }
 
     /**
      * Verify if Kinguin API is properly configured and accessible
      * Check Kinguin integration status
      */
-    async adminSyncControllerGetConfigStatus(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<object> {
+    async adminSyncControllerGetConfigStatus(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<SyncConfigStatusDto> {
         const response = await this.adminSyncControllerGetConfigStatusRaw(initOverrides);
         return await response.value();
     }
@@ -71,7 +84,7 @@ export class AdminCatalogSyncApi extends runtime.BaseAPI {
      * Get detailed status of a specific Kinguin sync job by ID
      * Check sync job status
      */
-    async adminSyncControllerGetSyncStatusRaw(requestParameters: AdminSyncControllerGetSyncStatusRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<object>> {
+    async adminSyncControllerGetSyncStatusRaw(requestParameters: AdminSyncControllerGetSyncStatusRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<SyncJobStatusResponseDto>> {
         if (requestParameters['jobId'] == null) {
             throw new runtime.RequiredError(
                 'jobId',
@@ -105,14 +118,14 @@ export class AdminCatalogSyncApi extends runtime.BaseAPI {
             query: queryParameters,
         }, initOverrides);
 
-        return new runtime.JSONApiResponse<any>(response);
+        return new runtime.JSONApiResponse(response, (jsonValue) => SyncJobStatusResponseDtoFromJSON(jsonValue));
     }
 
     /**
      * Get detailed status of a specific Kinguin sync job by ID
      * Check sync job status
      */
-    async adminSyncControllerGetSyncStatus(requestParameters: AdminSyncControllerGetSyncStatusRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<object> {
+    async adminSyncControllerGetSyncStatus(requestParameters: AdminSyncControllerGetSyncStatusRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<SyncJobStatusResponseDto> {
         const response = await this.adminSyncControllerGetSyncStatusRaw(requestParameters, initOverrides);
         return await response.value();
     }
@@ -121,7 +134,7 @@ export class AdminCatalogSyncApi extends runtime.BaseAPI {
      * Enqueues a BullMQ job to fetch latest products from Kinguin API and update local database
      * Trigger Kinguin catalog sync
      */
-    async adminSyncControllerTriggerSyncRaw(requestParameters: AdminSyncControllerTriggerSyncRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<object>> {
+    async adminSyncControllerTriggerSyncRaw(requestParameters: AdminSyncControllerTriggerSyncRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<SyncJobResponseDto>> {
         const queryParameters: any = {};
 
         if (requestParameters['fullSync'] != null) {
@@ -148,14 +161,14 @@ export class AdminCatalogSyncApi extends runtime.BaseAPI {
             query: queryParameters,
         }, initOverrides);
 
-        return new runtime.JSONApiResponse<any>(response);
+        return new runtime.JSONApiResponse(response, (jsonValue) => SyncJobResponseDtoFromJSON(jsonValue));
     }
 
     /**
      * Enqueues a BullMQ job to fetch latest products from Kinguin API and update local database
      * Trigger Kinguin catalog sync
      */
-    async adminSyncControllerTriggerSync(requestParameters: AdminSyncControllerTriggerSyncRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<object> {
+    async adminSyncControllerTriggerSync(requestParameters: AdminSyncControllerTriggerSyncRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<SyncJobResponseDto> {
         const response = await this.adminSyncControllerTriggerSyncRaw(requestParameters, initOverrides);
         return await response.value();
     }

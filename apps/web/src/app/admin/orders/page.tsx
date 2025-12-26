@@ -196,7 +196,7 @@ export default function AdminOrdersPage(): React.ReactElement {
                     <TableRow key={order.id}>
                       <TableCell className="font-mono text-xs">{order.id.slice(0, 8)}...</TableCell>
                       <TableCell>{order.email}</TableCell>
-                      <TableCell>${parseFloat(order.total).toFixed(2)}</TableCell>
+                      <TableCell>€{parseFloat(order.total).toFixed(2)}</TableCell>
                       <TableCell>
                         <Badge
                           variant={

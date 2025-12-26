@@ -603,9 +603,7 @@ _Full roadmap rationale, dependencies, and task-by-task breakdowns available in 
 
 _⚠️ AI Agent Note: Do NOT load these integration docs in every chat unless the current task explicitly involves that API integration._
 - **nowpayments-API-documentaion.md: See `docs/nowpayments-API-documentaion.md`** — Crypto payment gateway API for creating payments, handling IPN callbacks, and processing transactions. Load only when working on payment flows.
-- **kinguin-API-documentation-summary.md: See `docs/kinguin-API-documentation-summary.md`** — Kinguin Sales Manager API quick reference for product sync, stock models, and order fulfillment. Load only when working on fulfillment.
-- **kinguin-API-documentation.md: See `docs/kinguin-API-documentation.md`** — Full Kinguin API documentation with fee structure and features. Load only when needed for Kinguin integration.
-- **kinguin-technical-documentation.md: See `docs/kinguin-technical-documentation.md`** — OpenAPI spec and technical details for Kinguin endpoints. Load only when implementing Kinguin API calls.
+- **[Kinguin_API_DOCS](../docs//Kinguin-eCommerce-API-master/README.md)** — Kinguin Sales Manager API quick reference for product sync, stock models, and order fulfillment. Load only when working on fulfillment.
 - **resend-API-documentaion.md: See `docs/resend-API-documentaion.md`** — Email service API for OTP, password reset, transactional, and promotional emails. Load only when working on email features.
 - **tawk-integration.md: See `docs/tawk-integration.md`** — Live chat widget setup and configuration for customer support. Load only when working on chat features.
 

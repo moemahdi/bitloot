@@ -3,7 +3,6 @@
 import { useSearchParams, useRouter, useParams } from 'next/navigation';
 import { useMutation } from '@tanstack/react-query';
 import { useState } from 'react';
-import { Configuration } from '@bitloot/sdk';
 import { apiConfig } from '@/lib/api-config';
 
 // Initialize SDK configuration for consistent API calls

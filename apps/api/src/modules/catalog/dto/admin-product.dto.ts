@@ -267,6 +267,20 @@ export class AdminProductResponseDto {
   @ApiProperty({ required: false })
   category?: string;
 
+  @ApiProperty({
+    description: 'Cover image URL for product display',
+    required: false,
+    example: 'https://cdn.kinguin.net/media/images/products/cover.jpg',
+  })
+  coverImageUrl?: string;
+
+  @ApiProperty({
+    description: 'Product rating (0-5 scale)',
+    required: false,
+    example: 4.5,
+  })
+  rating?: number;
+
   @ApiProperty()
   cost!: string;
 
@@ -290,6 +304,26 @@ export class AdminProductResponseDto {
 
   @ApiProperty({ required: false })
   deletedAt?: Date;
+}
+
+/**
+ * Paginated response for admin product listing
+ */
+export class AdminProductsListResponseDto {
+  @ApiProperty({ type: [AdminProductResponseDto], description: 'Array of products' })
+  products!: AdminProductResponseDto[];
+
+  @ApiProperty({ description: 'Total number of products matching filters' })
+  total!: number;
+
+  @ApiProperty({ description: 'Current page number (1-based)' })
+  page!: number;
+
+  @ApiProperty({ description: 'Items per page' })
+  limit!: number;
+
+  @ApiProperty({ description: 'Total number of pages' })
+  totalPages!: number;
 }
 
 export class AdminPricingRuleDto {

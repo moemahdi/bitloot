@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useQuery } from '@tanstack/react-query';
-import { Configuration, UsersApi } from '@bitloot/sdk';
+import { UsersApi } from '@bitloot/sdk';
 import type { OrderResponseDto } from '@bitloot/sdk';
 import { Button } from '@/design-system/primitives/button';
 import { GlowButton } from '@/design-system/primitives/glow-button';

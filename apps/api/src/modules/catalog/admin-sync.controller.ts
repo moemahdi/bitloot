@@ -15,6 +15,7 @@ import {
   ApiResponse,
   ApiBearerAuth,
   ApiQuery,
+  ApiProperty,
 } from '@nestjs/swagger';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
@@ -23,30 +24,63 @@ import { AdminGuard } from '../../common/guards/admin.guard';
 import { KinguinCatalogClient } from './kinguin-catalog.client';
 
 // ============ DTOs ============
-class SyncJobResponseDto {
+export class SyncJobResponseDto {
+  @ApiProperty({ description: 'BullMQ job ID' })
   jobId!: string;
+
+  @ApiProperty({ description: 'Job status (e.g., queued, running, completed)' })
   status!: string;
+
+  @ApiProperty({ description: 'Status message' })
   message!: string;
 }
 
-class SyncJobStatusResponseDto {
+export class SyncJobStatusResponseDto {
+  @ApiProperty({ description: 'BullMQ job ID' })
   jobId!: string;
+
+  @ApiProperty({ description: 'Job status (waiting, active, completed, failed)' })
   status!: string;
+
+  @ApiProperty({ description: 'Progress percentage (0-100)', required: false })
   progress?: number;
+
+  @ApiProperty({
+    description: 'Job result data',
+    required: false,
+    type: 'object',
+    properties: {
+      productsProcessed: { type: 'number' },
+      productsCreated: { type: 'number' },
+      productsUpdated: { type: 'number' },
+      errors: { type: 'array', items: { type: 'string' } },
+    },
+  })
   result?: {
     productsProcessed?: number;
     productsCreated?: number;
     productsUpdated?: number;
     errors?: string[];
   };
+
+  @ApiProperty({ description: 'Failure reason if job failed', required: false })
   failedReason?: string;
+
+  @ApiProperty({ description: 'Job creation timestamp', required: false })
   createdAt?: Date;
+
+  @ApiProperty({ description: 'Processing start timestamp', required: false })
   processedOn?: Date;
+
+  @ApiProperty({ description: 'Completion timestamp', required: false })
   finishedOn?: Date;
 }
 
-class SyncConfigStatusDto {
+export class SyncConfigStatusDto {
+  @ApiProperty({ description: 'Whether Kinguin API is properly configured' })
   configured!: boolean;
+
+  @ApiProperty({ description: 'Configuration status message' })
   message!: string;
 }
 
@@ -140,7 +174,7 @@ export class AdminSyncController {
   })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Forbidden - Admin only' })
-  async getConfigStatus(): Promise<SyncConfigStatusDto> {
+  getConfigStatus(): SyncConfigStatusDto {
     return {
       configured: this.kinguinClient.isConfigured(),
       message: this.kinguinClient.getConfigurationStatus(),
@@ -174,7 +208,7 @@ export class AdminSyncController {
     @Query('jobId') jobId: string,
   ): Promise<SyncJobStatusResponseDto> {
     // Handle missing or empty job ID
-    if (!jobId || jobId.trim() === '') {
+    if (jobId === undefined || jobId === '' || jobId.trim() === '') {
       throw new BadRequestException(
         'No sync job is currently running. Please trigger a sync first.',
       );

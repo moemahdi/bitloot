@@ -56,7 +56,7 @@ import {
   Edit,
 } from 'lucide-react';
 import { useErrorHandler } from '@/hooks/useErrorHandler';
-import { Configuration, AdminCatalogPricingApi } from '@bitloot/sdk';
+import { AdminCatalogPricingApi } from '@bitloot/sdk';
 
 interface PricingRuleDto {
   id: string;

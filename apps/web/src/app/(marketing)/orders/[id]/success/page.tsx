@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useParams } from 'next/navigation';
 import { useState } from 'react';
 import { AlertCircle, Download, Copy, XCircle } from 'lucide-react';
-import { OrdersApi, Configuration } from '@bitloot/sdk';
+import { OrdersApi } from '@bitloot/sdk';
 import type { OrderResponseDto } from '@bitloot/sdk';
 import {
   Alert,

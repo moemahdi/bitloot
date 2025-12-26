@@ -16,6 +16,7 @@ import {
 import {
   ApiBearerAuth,
   ApiOperation,
+  ApiQuery,
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
@@ -27,6 +28,7 @@ import {
   CreateProductDto,
   UpdateProductDto,
   AdminProductResponseDto,
+  AdminProductsListResponseDto,
 } from './dto/admin-product.dto';
 import { Product } from './entities/product.entity';
 
@@ -68,6 +70,8 @@ export class AdminProductsController {
       drm: product.drm ?? undefined,
       ageRating: product.ageRating ?? undefined,
       category: product.category ?? undefined,
+      coverImageUrl: product.coverImageUrl ?? undefined,
+      rating: product.rating ?? undefined,
 
       cost: product.cost,
       price: product.price,
@@ -80,11 +84,18 @@ export class AdminProductsController {
   }
 
   @Get()
-  @ApiOperation({ summary: 'List all products (admin - no pagination limit)' })
+  @ApiOperation({ summary: 'List products with pagination (admin)' })
+  @ApiQuery({ name: 'search', required: false, description: 'Search by title' })
+  @ApiQuery({ name: 'platform', required: false, description: 'Filter by platform' })
+  @ApiQuery({ name: 'region', required: false, description: 'Filter by region' })
+  @ApiQuery({ name: 'published', required: false, description: 'Filter by published status (true/false)' })
+  @ApiQuery({ name: 'source', required: false, description: 'Filter by source (kinguin/custom)' })
+  @ApiQuery({ name: 'page', required: false, description: 'Page number (1-based)', example: 1 })
+  @ApiQuery({ name: 'limit', required: false, description: 'Items per page (max 100)', example: 25 })
   @ApiResponse({
     status: 200,
-    type: [AdminProductResponseDto],
-    description: 'All products regardless of publish status',
+    type: AdminProductsListResponseDto,
+    description: 'Paginated products list with total count',
   })
   async listAll(
     @Query('search') search?: string,
@@ -92,18 +103,36 @@ export class AdminProductsController {
     @Query('region') region?: string,
     @Query('published') published?: string,
     @Query('source') source?: string,
-  ): Promise<AdminProductResponseDto[]> {
+    @Query('page') pageStr?: string,
+    @Query('limit') limitStr?: string,
+  ): Promise<AdminProductsListResponseDto> {
     try {
       const publishedBool =
         published === 'true' ? true : published === 'false' ? false : undefined;
-      const products = await this.catalogService.listAllProductsAdmin(
+      
+      // Parse pagination params with defaults
+      const parsedPage = parseInt(pageStr ?? '1', 10);
+      const page = isNaN(parsedPage) ? 1 : parsedPage;
+      const parsedLimit = parseInt(limitStr ?? '25', 10);
+      const limit = isNaN(parsedLimit) ? 25 : parsedLimit;
+
+      const result = await this.catalogService.listAllProductsAdmin(
         search,
         platform,
         region,
         publishedBool,
         source,
+        page,
+        limit,
       );
-      return products.map((p: Product) => this.toResponseDto(p));
+
+      return {
+        products: result.products.map((p: Product) => this.toResponseDto(p)),
+        total: result.total,
+        page: result.page,
+        limit: result.limit,
+        totalPages: result.totalPages,
+      };
     } catch (error) {
       throw new HttpException(
         `Failed to list products: ${error instanceof Error ? error.message : 'Unknown error'}`,

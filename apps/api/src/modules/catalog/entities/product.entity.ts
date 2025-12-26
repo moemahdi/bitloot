@@ -77,6 +77,13 @@ export class Product {
   kinguinOfferId?: string;
 
   /**
+   * Cover image URL for product display
+   * Fetched from Kinguin API images.cover.url or set manually for custom products
+   */
+  @Column({ type: 'text', nullable: true })
+  coverImageUrl?: string;
+
+  /**
    * @deprecated Use sourceType instead. Kept for backward compatibility.
    */
   @Column({ type: 'boolean', default: false })
@@ -86,9 +93,9 @@ export class Product {
   isPublished!: boolean;
 
   @Column('decimal', { precision: 20, scale: 8, default: '0.00000000' })
-  cost!: string; // Cost in crypto
+  cost!: string; // Cost in EUR (from Kinguin)
 
-  @Column({ type: 'char', length: 3, default: 'USD' })
+  @Column({ type: 'char', length: 3, default: 'EUR' })
   currency!: string;
 
   @Column('decimal', { precision: 20, scale: 8, default: '0.00000000' })

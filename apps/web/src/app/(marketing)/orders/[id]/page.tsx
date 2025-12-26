@@ -2,7 +2,7 @@
 
 import { useParams } from 'next/navigation';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { Configuration, OrdersApi, FulfillmentApi } from '@bitloot/sdk';
+import { OrdersApi, FulfillmentApi } from '@bitloot/sdk';
 import type { OrderResponseDto, RevealedKeyDto } from '@bitloot/sdk';
 import { Card, CardContent, CardHeader, CardTitle } from '@/design-system/primitives/card';
 import { Button } from '@/design-system/primitives/button';
@@ -250,7 +250,7 @@ export default function OrderDetailPage(): React.ReactElement {
                                     <TableRow>
                                         <TableCell className="font-bold">Total</TableCell>
                                         <TableCell className="text-right font-bold text-lg">
-                                            ${parseFloat(order.total).toFixed(2)}
+                                            €{parseFloat(order.total).toFixed(2)}
                                         </TableCell>
                                     </TableRow>
                                 </TableBody>
@@ -281,7 +281,7 @@ export default function OrderDetailPage(): React.ReactElement {
                             <Separator />
                             <div className="flex items-center justify-between">
                                 <span className="text-sm text-muted-foreground">Total Paid</span>
-                                <span className="font-bold">${parseFloat(order.total).toFixed(2)}</span>
+                                <span className="font-bold">€{parseFloat(order.total).toFixed(2)}</span>
                             </div>
                         </CardContent>
                     </Card>

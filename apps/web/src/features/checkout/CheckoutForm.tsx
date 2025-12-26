@@ -6,7 +6,7 @@ import { useMutation } from '@tanstack/react-query';
 import { Turnstile } from '@marsidev/react-turnstile';
 import type { TurnstileInstance } from '@marsidev/react-turnstile';
 import { AlertCircle, Loader2 } from 'lucide-react';
-import { OrdersApi, PaymentsApi, Configuration } from '@bitloot/sdk';
+import { OrdersApi, PaymentsApi } from '@bitloot/sdk';
 import type { OrderResponseDto } from '@bitloot/sdk';
 import { Alert, AlertTitle, AlertDescription } from '@/design-system/primitives/alert';
 import { Button } from '@/design-system/primitives/button';
@@ -91,7 +91,7 @@ export default function CheckoutForm(): React.ReactElement {
         createPaymentDto: {
           orderId: order.id,
           priceAmount: order.total, // Use dynamic price from order
-          priceCurrency: 'usd',
+          priceCurrency: 'eur',
           payCurrency: data.payCurrency,
           email: order.email, // Use email from order
         },

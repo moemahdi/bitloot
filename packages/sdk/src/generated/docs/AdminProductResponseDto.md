@@ -20,6 +20,8 @@ Name | Type
 `drm` | string
 `ageRating` | string
 `category` | string
+`coverImageUrl` | string
+`rating` | number
 `cost` | string
 `price` | string
 `currency` | string
@@ -50,6 +52,8 @@ const example = {
   "drm": null,
   "ageRating": null,
   "category": null,
+  "coverImageUrl": https://cdn.kinguin.net/media/images/products/cover.jpg,
+  "rating": 4.5,
   "cost": null,
   "price": null,
   "currency": null,

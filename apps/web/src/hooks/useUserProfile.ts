@@ -2,7 +2,7 @@
 
 import type { UseQueryResult, UseMutationResult } from '@tanstack/react-query';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Configuration, UsersApi } from '@bitloot/sdk';
+import { UsersApi } from '@bitloot/sdk';
 import type { UpdatePasswordDto, UserResponseDto } from '@bitloot/sdk';
 
 import { apiConfig } from '@/lib/api-config';

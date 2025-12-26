@@ -212,6 +212,80 @@ export class MockKinguinClient {
   }
 
   /**
+   * Mock: Search orders by various criteria
+   *
+   * Simulates searching through orders with filters
+   * Returns all orders matching the criteria
+   *
+   * @param params Search parameters (orderId, status, limit, offset, etc.)
+   * @returns List of matching orders
+   */
+  async searchOrders(params?: {
+    orderId?: string;
+    status?: string;
+    limit?: number;
+    offset?: number;
+    createdAtFrom?: string;
+    createdAtTo?: string;
+    sortBy?: string;
+    sortDirection?: 'asc' | 'desc';
+    dispatch?: string;
+    dispatchId?: string;
+  }): Promise<{
+    results: Array<{
+      orderId: string;
+      status: string;
+      totalPrice: number;
+      createdAt: string;
+      externalId?: string;
+    }>;
+    totalCount: number;
+  }> {
+    // Simulate async operation
+    await new Promise((resolve) => setImmediate(resolve));
+
+    const { orderId, status, limit = 20, offset = 0 } = params ?? {};
+
+    // Filter orders based on criteria
+    let filteredOrders = Array.from(this.orders.values()).map((order) => ({
+      orderId: order.id,
+      status: order.status,
+      totalPrice: 9.99, // Mock price
+      createdAt: new Date().toISOString(),
+      externalId: `ext-${order.id}`,
+    }));
+
+    // Apply filters
+    if (orderId !== undefined && orderId.length > 0) {
+      filteredOrders = filteredOrders.filter((o) => o.orderId === orderId);
+    }
+
+    if (status !== undefined && status.length > 0) {
+      filteredOrders = filteredOrders.filter((o) => o.status === status);
+    }
+
+    // Apply pagination
+    const paginatedOrders = filteredOrders.slice(offset, offset + limit);
+
+    this.logger.debug(`[MOCK] Search orders: found ${paginatedOrders.length} of ${filteredOrders.length} total`);
+
+    return {
+      results: paginatedOrders,
+      totalCount: filteredOrders.length,
+    };
+  }
+
+  /**
+   * Mock: Health check endpoint
+   *
+   * Always returns true for mock client
+   */
+  async healthCheck(): Promise<boolean> {
+    await new Promise((resolve) => setImmediate(resolve));
+    return true;
+  }
+
+  /**
    * Get internal state for testing/debugging
    */
   getInternalState(): {

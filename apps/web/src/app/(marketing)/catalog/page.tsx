@@ -110,6 +110,7 @@ function CatalogContent(): React.ReactElement {
   // Map ProductResponseDto to Product interface expected by ProductCard
   const products: Product[] = (data?.data ?? []).map((dto) => ({
     id: dto.id,
+    slug: dto.slug,
     name: dto.title,
     description: dto.description ?? '',
     price: dto.price,

@@ -3,7 +3,7 @@
 import { useParams } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import type { OrderResponseDto, AdminControllerGetKeyAuditTrail200ResponseInner } from '@bitloot/sdk';
-import { Configuration, OrdersApi, AdminApi } from '@bitloot/sdk';
+import { OrdersApi, AdminApi } from '@bitloot/sdk';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/design-system/primitives/card';
 import { Badge } from '@/design-system/primitives/badge';
 import { Button } from '@/design-system/primitives/button';
@@ -110,7 +110,7 @@ export default function AdminOrderDetailPage(): React.ReactElement | null {
                         </div>
                         <div className="flex justify-between">
                             <span className="text-muted-foreground">Total</span>
-                            <span className="font-medium">${parseFloat(order.total).toFixed(2)}</span>
+                            <span className="font-medium">€{parseFloat(order.total).toFixed(2)}</span>
                         </div>
                         {/* Assuming user email is available in order object or fetched separately if needed. 
                  The OrderResponseDto might not have user email directly if it's strict DTO.
@@ -127,7 +127,7 @@ export default function AdminOrderDetailPage(): React.ReactElement | null {
                     <CardContent className="space-y-4">
                         <div className="flex justify-between">
                             <span className="text-muted-foreground">Order Total</span>
-                            <span className="font-mono">${order.total}</span>
+                            <span className="font-mono">€{order.total}</span>
                         </div>
                         <div className="flex justify-between">
                             <span className="text-muted-foreground">Order Status</span>

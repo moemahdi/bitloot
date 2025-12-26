@@ -2,7 +2,13 @@
 const nextConfig = {
   reactCompiler: true,
   images: {
-    remotePatterns: [],
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'static.kinguin.net',
+        pathname: '/**',
+      },
+    ],
   },
   typescript: {
     tsconfigPath: './tsconfig.json',

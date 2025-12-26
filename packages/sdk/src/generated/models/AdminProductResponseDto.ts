@@ -104,6 +104,18 @@ export interface AdminProductResponseDto {
      */
     category?: string;
     /**
+     * Cover image URL for product display
+     * @type {string}
+     * @memberof AdminProductResponseDto
+     */
+    coverImageUrl?: string;
+    /**
+     * Product rating (0-5 scale)
+     * @type {number}
+     * @memberof AdminProductResponseDto
+     */
+    rating?: number;
+    /**
      * 
      * @type {string}
      * @memberof AdminProductResponseDto
@@ -207,6 +219,8 @@ export function AdminProductResponseDtoFromJSONTyped(json: any, ignoreDiscrimina
         'drm': json['drm'] == null ? undefined : json['drm'],
         'ageRating': json['ageRating'] == null ? undefined : json['ageRating'],
         'category': json['category'] == null ? undefined : json['category'],
+        'coverImageUrl': json['coverImageUrl'] == null ? undefined : json['coverImageUrl'],
+        'rating': json['rating'] == null ? undefined : json['rating'],
         'cost': json['cost'],
         'price': json['price'],
         'currency': json['currency'],
@@ -243,6 +257,8 @@ export function AdminProductResponseDtoToJSONTyped(value?: AdminProductResponseD
         'drm': value['drm'],
         'ageRating': value['ageRating'],
         'category': value['category'],
+        'coverImageUrl': value['coverImageUrl'],
+        'rating': value['rating'],
         'cost': value['cost'],
         'price': value['price'],
         'currency': value['currency'],

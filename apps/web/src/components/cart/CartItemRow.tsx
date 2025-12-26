@@ -66,7 +66,7 @@ export function CartItemRow({
       <div className="flex-1 min-w-0">
         <h3 className="font-semibold text-sm sm:text-base truncate">{title}</h3>
         <p className="text-sm text-muted-foreground">
-          ${price.toFixed(2)} each
+          €{price.toFixed(2)} each
         </p>
       </div>
 
@@ -105,7 +105,7 @@ export function CartItemRow({
       {/* Item Total */}
       <div className="flex flex-col items-end justify-between">
         <Badge variant="secondary" className="text-xs mb-2">
-          ${itemTotal.toFixed(2)}
+          €{itemTotal.toFixed(2)}
         </Badge>
         <Button
           variant="ghost"

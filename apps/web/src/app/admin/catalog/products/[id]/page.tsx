@@ -146,8 +146,8 @@ export default function AdminEditProductPage(): React.JSX.Element {
     const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
     const [hasChanges, setHasChanges] = useState(false);
 
-    // API Configuration
-    const productsApi = new AdminCatalogProductsApi(apiConfig);
+    // API Configuration - used in mutations via new instances
+    const _productsApi = new AdminCatalogProductsApi(apiConfig);
 
     const { handleError, clearError } = useErrorHandler({
         maxRetries: 3,

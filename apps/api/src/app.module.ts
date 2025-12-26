@@ -26,7 +26,6 @@ import { MetricsModule } from './modules/metrics/metrics.module';
 import { EmailsModule } from './modules/emails/emails.module';
 import { AuditModule } from './modules/audit/audit.module';
 import { CatalogModule } from './modules/catalog/catalog.module';
-import { CatalogProcessor } from './jobs/catalog.processor';
 
 @Module({
   imports: [
@@ -80,8 +79,8 @@ import { CatalogProcessor } from './jobs/catalog.processor';
     StorageService,
     // BullMQ Processors (must be registered as providers to be instantiated)
     // Note: PaymentProcessorService is provided by PaymentsModule
+    // Note: CatalogProcessor is provided by CatalogModule
     FulfillmentProcessor,
-    CatalogProcessor,
   ],
 })
 export class AppModule {}

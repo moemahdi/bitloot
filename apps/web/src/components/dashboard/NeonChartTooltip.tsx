@@ -30,7 +30,7 @@ export function NeonChartTooltip({ active, payload, label }: NeonChartTooltipPro
                         style={{ backgroundColor: entry.payload.fill ?? 'hsl(var(--cyan-glow))' }}
                     />
                     <span className="text-sm font-bold text-text-primary">
-                        ${typeof entry.value === 'number' ? entry.value.toFixed(2) : entry.value}
+                        €{typeof entry.value === 'number' ? entry.value.toFixed(2) : entry.value}
                     </span>
                 </div>
             ))}

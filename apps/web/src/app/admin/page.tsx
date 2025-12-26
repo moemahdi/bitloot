@@ -2,7 +2,6 @@
 
 import { useQuery } from '@tanstack/react-query';
 import {
-  Configuration,
   AdminApi,
   type DashboardStatsDto,
   type AdminControllerGetOrders200Response,
@@ -523,7 +522,7 @@ export default function AdminDashboardPage(): React.ReactElement | null {
     if (chartData.length === 0) return 'No revenue data available';
     const total = chartData.reduce((sum, d) => sum + (d.total ?? 0), 0);
     const avg = total / chartData.length;
-    return `Revenue chart showing ${chartData.length} days of data. Total: $${total.toFixed(2)}, Average: $${avg.toFixed(2)} per day.`;
+    return `Revenue chart showing ${chartData.length} days of data. Total: €${total.toFixed(2)}, Average: €${avg.toFixed(2)} per day.`;
   }, [chartData]);
 
   // Last updated time
@@ -591,7 +590,7 @@ export default function AdminDashboardPage(): React.ReactElement | null {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <DashboardStatCard
           title="Total Revenue"
-          value={`$${stats?.totalRevenue.toFixed(2) ?? '0.00'}`}
+          value={`€${stats?.totalRevenue.toFixed(2) ?? '0.00'}`}
           icon={DollarSign}
           color="green"
           trend={{

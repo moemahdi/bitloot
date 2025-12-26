@@ -7,7 +7,7 @@ All URIs are relative to *http://localhost*
 | [**adminProductsControllerCreate**](AdminCatalogProductsApi.md#adminproductscontrollercreate) | **POST** /admin/catalog/products | Create custom product |
 | [**adminProductsControllerDelete**](AdminCatalogProductsApi.md#adminproductscontrollerdelete) | **DELETE** /admin/catalog/products/{id} | Delete product |
 | [**adminProductsControllerGetById**](AdminCatalogProductsApi.md#adminproductscontrollergetbyid) | **GET** /admin/catalog/products/{id} | Get product by ID (admin) |
-| [**adminProductsControllerListAll**](AdminCatalogProductsApi.md#adminproductscontrollerlistall) | **GET** /admin/catalog/products | List all products (admin - no pagination limit) |
+| [**adminProductsControllerListAll**](AdminCatalogProductsApi.md#adminproductscontrollerlistall) | **GET** /admin/catalog/products | List products with pagination (admin) |
 | [**adminProductsControllerPublish**](AdminCatalogProductsApi.md#adminproductscontrollerpublish) | **PATCH** /admin/catalog/products/{id}/publish | Publish product (set isPublished&#x3D;true) |
 | [**adminProductsControllerUnpublish**](AdminCatalogProductsApi.md#adminproductscontrollerunpublish) | **PATCH** /admin/catalog/products/{id}/unpublish | Unpublish product (set isPublished&#x3D;false) |
 | [**adminProductsControllerUpdate**](AdminCatalogProductsApi.md#adminproductscontrollerupdate) | **PATCH** /admin/catalog/products/{id} | Update product details |
@@ -226,9 +226,9 @@ example().catch(console.error);
 
 ## adminProductsControllerListAll
 
-> Array&lt;AdminProductResponseDto&gt; adminProductsControllerListAll(search, platform, region, published, source)
+> AdminProductsListResponseDto adminProductsControllerListAll(search, platform, region, published, source, page, limit)
 
-List all products (admin - no pagination limit)
+List products with pagination (admin)
 
 ### Example
 
@@ -248,16 +248,20 @@ async function example() {
   const api = new AdminCatalogProductsApi(config);
 
   const body = {
-    // string
+    // string | Search by title (optional)
     search: search_example,
-    // string
+    // string | Filter by platform (optional)
     platform: platform_example,
-    // string
+    // string | Filter by region (optional)
     region: region_example,
-    // string
+    // string | Filter by published status (true/false) (optional)
     published: published_example,
-    // string
+    // string | Filter by source (kinguin/custom) (optional)
     source: source_example,
+    // string | Page number (1-based) (optional)
+    page: 1,
+    // string | Items per page (max 100) (optional)
+    limit: 25,
   } satisfies AdminProductsControllerListAllRequest;
 
   try {
@@ -277,15 +281,17 @@ example().catch(console.error);
 
 | Name | Type | Description  | Notes |
 |------------- | ------------- | ------------- | -------------|
-| **search** | `string` |  | [Defaults to `undefined`] |
-| **platform** | `string` |  | [Defaults to `undefined`] |
-| **region** | `string` |  | [Defaults to `undefined`] |
-| **published** | `string` |  | [Defaults to `undefined`] |
-| **source** | `string` |  | [Defaults to `undefined`] |
+| **search** | `string` | Search by title | [Optional] [Defaults to `undefined`] |
+| **platform** | `string` | Filter by platform | [Optional] [Defaults to `undefined`] |
+| **region** | `string` | Filter by region | [Optional] [Defaults to `undefined`] |
+| **published** | `string` | Filter by published status (true/false) | [Optional] [Defaults to `undefined`] |
+| **source** | `string` | Filter by source (kinguin/custom) | [Optional] [Defaults to `undefined`] |
+| **page** | `string` | Page number (1-based) | [Optional] [Defaults to `undefined`] |
+| **limit** | `string` | Items per page (max 100) | [Optional] [Defaults to `undefined`] |
 
 ### Return type
 
-[**Array&lt;AdminProductResponseDto&gt;**](AdminProductResponseDto.md)
+[**AdminProductsListResponseDto**](AdminProductsListResponseDto.md)
 
 ### Authorization
 
@@ -300,7 +306,7 @@ example().catch(console.error);
 ### HTTP response details
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
-| **200** | All products regardless of publish status |  -  |
+| **200** | Paginated products list with total count |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 

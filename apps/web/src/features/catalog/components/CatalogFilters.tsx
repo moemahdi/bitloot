@@ -240,10 +240,10 @@ export function CatalogFilters(): React.ReactElement {
               {/* Quick Presets */}
               <div className="flex flex-wrap gap-2">
                 {[
-                  { label: 'Under $20', min: 0, max: 20 },
-                  { label: '$20-$50', min: 20, max: 50 },
-                  { label: '$50-$100', min: 50, max: 100 },
-                  { label: '$100+', min: 100, max: 200 },
+                  { label: 'Under €20', min: 0, max: 20 },
+                  { label: '€20-€50', min: 20, max: 50 },
+                  { label: '€50-€100', min: 50, max: 100 },
+                  { label: '€100+', min: 100, max: 200 },
                 ].map((preset) => (
                   <button
                     key={preset.label}

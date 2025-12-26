@@ -11,6 +11,7 @@ import { Eye, ShoppingCart, Star } from 'lucide-react';
 
 export interface Product {
     id: string;
+    slug: string;
     name: string;
     description: string;
     price: string;
@@ -39,7 +40,7 @@ export function ProductCard({ product, onQuickView, onAddToCart }: ProductCardPr
             onHoverEnd={() => setIsHovered(false)}
             className="relative group h-full"
         >
-            <Link href={`/product/${product.id}`} className="block h-full">
+            <Link href={`/product/${product.slug}`} className="block h-full">
                 <Card className="h-full overflow-hidden bg-bg-secondary border-border-subtle hover:border-cyan-glow/50 transition-all duration-300">
                     {/* Image Section with Blur Background */}
                     <div className="relative aspect-[3/4] overflow-hidden">
@@ -131,11 +132,11 @@ export function ProductCard({ product, onQuickView, onAddToCart }: ProductCardPr
                         <div>
                             <div className="flex items-baseline gap-2">
                                 <span className="text-2xl font-bold text-cyan-glow">
-                                    ${product.price}
+                                    €{parseFloat(product.price).toFixed(2)}
                                 </span>
                                 {product.discount !== null && product.discount !== undefined && product.discount > 0 && (
                                     <span className="text-sm text-text-muted line-through">
-                                        ${(parseFloat(product.price) / (1 - product.discount / 100)).toFixed(2)}
+                                        €{(parseFloat(product.price) / (1 - product.discount / 100)).toFixed(2)}
                                     </span>
                                 )}
                             </div>

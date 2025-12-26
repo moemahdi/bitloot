@@ -216,7 +216,7 @@ export default function ProfilePage(): React.ReactElement {
         />
         <DashboardStatCard
           title="Total Spent"
-          value={`$${totalSpent.toFixed(2)}`}
+          value={`€${totalSpent.toFixed(2)}`}
           icon={DollarSign}
           color="orange"
           delay={0.3}
@@ -330,7 +330,7 @@ export default function ProfilePage(): React.ReactElement {
                           </div>
                           <div className="text-right">
                             <p className="font-bold text-text-primary">
-                              ${(() => { const total = typeof order.total === 'string' ? parseFloat(order.total) : (order.total ?? 0); return typeof total === 'number' ? total.toFixed(2) : '0.00'; })()}
+                              €{(() => { const total = typeof order.total === 'string' ? parseFloat(order.total) : (order.total ?? 0); return typeof total === 'number' ? total.toFixed(2) : '0.00'; })()}
                             </p>
                             <Badge
                               variant={order.status === 'fulfilled' ? 'default' : 'secondary'}
@@ -456,7 +456,7 @@ export default function ProfilePage(): React.ReactElement {
                             {order.status ?? 'pending'}
                           </Badge>
                           <span className="font-bold text-lg text-text-primary">
-                            ${(() => { const total = typeof order.total === 'string' ? parseFloat(order.total) : (order.total ?? 0); return typeof total === 'number' ? total.toFixed(2) : '0.00'; })()}
+                            €{(() => { const total = typeof order.total === 'string' ? parseFloat(order.total) : (order.total ?? 0); return typeof total === 'number' ? total.toFixed(2) : '0.00'; })()}
                           </span>
                         </div>
                       </div>
@@ -913,7 +913,7 @@ export default function ProfilePage(): React.ReactElement {
                       <p className="text-xs text-text-muted">Total Orders</p>
                     </div>
                     <div className="rounded-lg border border-border/30 bg-bg-tertiary/30 p-4 text-center">
-                      <p className="text-2xl font-bold text-green-success">${totalSpent.toFixed(2)}</p>
+                      <p className="text-2xl font-bold text-green-success">€{totalSpent.toFixed(2)}</p>
                       <p className="text-xs text-text-muted">Total Spent</p>
                     </div>
                   </div>

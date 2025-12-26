@@ -223,6 +223,107 @@ export class FulfillmentProcessor extends WorkerHost {
         }
       }
 
+      // Handle fetch-keys job from Kinguin order.status webhook
+      if (jobName === 'fetch-keys') {
+        const dataObj: Record<string, unknown> =
+          typeof job.data === 'object' && job.data !== null ? job.data : {};
+        const kinguinOrderId =
+          typeof dataObj.kinguinOrderId === 'string' ? dataObj.kinguinOrderId : '';
+        const externalOrderId =
+          typeof dataObj.externalOrderId === 'string' ? dataObj.externalOrderId : '';
+
+        if (kinguinOrderId === '') {
+          throw new Error('fetch-keys job missing kinguinOrderId');
+        }
+
+        this.logger.log(
+          `[Fulfillment] Processing fetch-keys job: kinguinOrderId=${kinguinOrderId}, externalOrderId=${externalOrderId}`,
+        );
+
+        // kinguinOrderId is stored in our kinguinReservationId field
+        const { orderId: resolvedOrderId, signedUrl: _signedUrl } =
+          await this.fulfillmentService.finalizeDelivery(kinguinOrderId);
+
+        const finalOrder = await this.ordersService.markFulfilled(resolvedOrderId);
+
+        this.fulfillmentGateway.emitFulfillmentStatusChange({
+          orderId: resolvedOrderId,
+          status: finalOrder.status ?? 'fulfilled',
+          fulfillmentStatus: 'completed',
+          items:
+            typeof finalOrder.items === 'object' && Array.isArray(finalOrder.items)
+              ? (finalOrder.items as unknown as Record<string, unknown>[])
+              : undefined,
+        });
+
+        this.logger.log(
+          `[Fulfillment] Order ${resolvedOrderId} fulfilled via fetch-keys webhook, signedUrl generated`,
+        );
+
+        return {
+          orderId: resolvedOrderId,
+          status: 'fulfilled',
+          message: `Order ${resolvedOrderId} fulfilled via Kinguin webhook (fetch-keys)`,
+          itemsProcessed:
+            typeof finalOrder.items === 'object' && Array.isArray(finalOrder.items)
+              ? finalOrder.items.length
+              : 0,
+        };
+      }
+
+      // Handle order-canceled job from Kinguin order.status webhook
+      if (jobName === 'order-canceled') {
+        const dataObj: Record<string, unknown> =
+          typeof job.data === 'object' && job.data !== null ? job.data : {};
+        const kinguinOrderId =
+          typeof dataObj.kinguinOrderId === 'string' ? dataObj.kinguinOrderId : '';
+        const externalOrderId =
+          typeof dataObj.externalOrderId === 'string' ? dataObj.externalOrderId : '';
+
+        if (kinguinOrderId === '') {
+          throw new Error('order-canceled job missing kinguinOrderId');
+        }
+
+        this.logger.log(
+          `[Fulfillment] Processing order-canceled job: kinguinOrderId=${kinguinOrderId}, externalOrderId=${externalOrderId}`,
+        );
+
+        // Find order by kinguinReservationId
+        const canceledOrder = await this.ordersService.findByReservation(kinguinOrderId);
+
+        if (canceledOrder === null) {
+          this.logger.warn(
+            `[Fulfillment] Order not found for Kinguin order ${kinguinOrderId}, skipping cancellation`,
+          );
+          return {
+            orderId: kinguinOrderId,
+            status: 'not_found',
+            message: `Order not found for Kinguin order ${kinguinOrderId}`,
+          };
+        }
+
+        // Mark order as failed with cancellation reason
+        await this.ordersService.markFailed(
+          canceledOrder.id,
+          `Kinguin order ${kinguinOrderId} was canceled`,
+        );
+
+        this.fulfillmentGateway.emitFulfillmentStatusChange({
+          orderId: canceledOrder.id,
+          status: 'failed',
+          fulfillmentStatus: 'canceled',
+          error: 'Kinguin order was canceled',
+        });
+
+        this.logger.log(`[Fulfillment] Order ${canceledOrder.id} marked as failed (Kinguin canceled)`);
+
+        return {
+          orderId: canceledOrder.id,
+          status: 'canceled',
+          message: `Order ${canceledOrder.id} canceled due to Kinguin order ${kinguinOrderId} cancellation`,
+        };
+      }
+
       // Default: execute full fulfillment now
       const _fulfillmentResult = await this.fulfillmentService.fulfillOrder(orderId);
 

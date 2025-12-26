@@ -54,6 +54,7 @@ docs/AdminOpsControllerGetSystemHealth200ResponseQueues.md
 docs/AdminPricingRuleResponseDto.md
 docs/AdminPricingRulesListResponseDto.md
 docs/AdminProductResponseDto.md
+docs/AdminProductsListResponseDto.md
 docs/AuditAdminDto.md
 docs/AuditLogResponseDto.md
 docs/AuditLogsApi.md
@@ -100,6 +101,10 @@ docs/RequestOtpDto.md
 docs/ResetPasswordDto.md
 docs/ResetPasswordResponseDto.md
 docs/RevealedKeyDto.md
+docs/SyncConfigStatusDto.md
+docs/SyncJobResponseDto.md
+docs/SyncJobStatusResponseDto.md
+docs/SyncJobStatusResponseDtoResult.md
 docs/UnsubscribeEmailDto.md
 docs/UnsubscribeResponseDto.md
 docs/UpdatePasswordDto.md
@@ -142,6 +147,7 @@ models/AdminOpsControllerGetSystemHealth200ResponseQueues.ts
 models/AdminPricingRuleResponseDto.ts
 models/AdminPricingRulesListResponseDto.ts
 models/AdminProductResponseDto.ts
+models/AdminProductsListResponseDto.ts
 models/AuditAdminDto.ts
 models/AuditLogResponseDto.ts
 models/AuthResponseDto.ts
@@ -178,6 +184,10 @@ models/RequestOtpDto.ts
 models/ResetPasswordDto.ts
 models/ResetPasswordResponseDto.ts
 models/RevealedKeyDto.ts
+models/SyncConfigStatusDto.ts
+models/SyncJobResponseDto.ts
+models/SyncJobStatusResponseDto.ts
+models/SyncJobStatusResponseDtoResult.ts
 models/UnsubscribeEmailDto.ts
 models/UnsubscribeResponseDto.ts
 models/UpdatePasswordDto.ts

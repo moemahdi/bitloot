@@ -16,12 +16,15 @@
 import * as runtime from '../runtime';
 import type {
   AdminProductResponseDto,
+  AdminProductsListResponseDto,
   CreateProductDto,
   UpdateProductDto,
 } from '../models/index';
 import {
     AdminProductResponseDtoFromJSON,
     AdminProductResponseDtoToJSON,
+    AdminProductsListResponseDtoFromJSON,
+    AdminProductsListResponseDtoToJSON,
     CreateProductDtoFromJSON,
     CreateProductDtoToJSON,
     UpdateProductDtoFromJSON,
@@ -41,11 +44,13 @@ export interface AdminProductsControllerGetByIdRequest {
 }
 
 export interface AdminProductsControllerListAllRequest {
-    search: string;
-    platform: string;
-    region: string;
-    published: string;
-    source: string;
+    search?: string;
+    platform?: string;
+    region?: string;
+    published?: string;
+    source?: string;
+    page?: string;
+    limit?: string;
 }
 
 export interface AdminProductsControllerPublishRequest {
@@ -203,44 +208,9 @@ export class AdminCatalogProductsApi extends runtime.BaseAPI {
     }
 
     /**
-     * List all products (admin - no pagination limit)
+     * List products with pagination (admin)
      */
-    async adminProductsControllerListAllRaw(requestParameters: AdminProductsControllerListAllRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<AdminProductResponseDto>>> {
-        if (requestParameters['search'] == null) {
-            throw new runtime.RequiredError(
-                'search',
-                'Required parameter "search" was null or undefined when calling adminProductsControllerListAll().'
-            );
-        }
-
-        if (requestParameters['platform'] == null) {
-            throw new runtime.RequiredError(
-                'platform',
-                'Required parameter "platform" was null or undefined when calling adminProductsControllerListAll().'
-            );
-        }
-
-        if (requestParameters['region'] == null) {
-            throw new runtime.RequiredError(
-                'region',
-                'Required parameter "region" was null or undefined when calling adminProductsControllerListAll().'
-            );
-        }
-
-        if (requestParameters['published'] == null) {
-            throw new runtime.RequiredError(
-                'published',
-                'Required parameter "published" was null or undefined when calling adminProductsControllerListAll().'
-            );
-        }
-
-        if (requestParameters['source'] == null) {
-            throw new runtime.RequiredError(
-                'source',
-                'Required parameter "source" was null or undefined when calling adminProductsControllerListAll().'
-            );
-        }
-
+    async adminProductsControllerListAllRaw(requestParameters: AdminProductsControllerListAllRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<AdminProductsListResponseDto>> {
         const queryParameters: any = {};
 
         if (requestParameters['search'] != null) {
@@ -263,6 +233,14 @@ export class AdminCatalogProductsApi extends runtime.BaseAPI {
             queryParameters['source'] = requestParameters['source'];
         }
 
+        if (requestParameters['page'] != null) {
+            queryParameters['page'] = requestParameters['page'];
+        }
+
+        if (requestParameters['limit'] != null) {
+            queryParameters['limit'] = requestParameters['limit'];
+        }
+
         const headerParameters: runtime.HTTPHeaders = {};
 
         if (this.configuration && this.configuration.accessToken) {
@@ -283,13 +261,13 @@ export class AdminCatalogProductsApi extends runtime.BaseAPI {
             query: queryParameters,
         }, initOverrides);
 
-        return new runtime.JSONApiResponse(response, (jsonValue) => jsonValue.map(AdminProductResponseDtoFromJSON));
+        return new runtime.JSONApiResponse(response, (jsonValue) => AdminProductsListResponseDtoFromJSON(jsonValue));
     }
 
     /**
-     * List all products (admin - no pagination limit)
+     * List products with pagination (admin)
      */
-    async adminProductsControllerListAll(requestParameters: AdminProductsControllerListAllRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<AdminProductResponseDto>> {
+    async adminProductsControllerListAll(requestParameters: AdminProductsControllerListAllRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<AdminProductsListResponseDto> {
         const response = await this.adminProductsControllerListAllRaw(requestParameters, initOverrides);
         return await response.value();
     }

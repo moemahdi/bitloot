@@ -1,8 +1,33 @@
-import { Controller, Get, Param, Query } from '@nestjs/common';
+import { Controller, Get, Param, Query, NotFoundException } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags, ApiQuery } from '@nestjs/swagger';
 import { CatalogService } from './catalog.service';
 import { Product } from './entities/product.entity';
 import { ProductResponseDto, ProductListResponseDto } from './dto/product.dto';
+
+/**
+ * Map Product entity to ProductResponseDto for API response
+ * Ensures consistent field naming (entity uses coverImageUrl, DTO uses imageUrl)
+ */
+function toProductResponseDto(product: Product): ProductResponseDto {
+  return {
+    id: product.id,
+    slug: product.slug,
+    title: product.title,
+    subtitle: product.subtitle,
+    description: product.description,
+    platform: product.platform,
+    region: product.region,
+    drm: product.drm,
+    ageRating: product.ageRating,
+    category: product.category,
+    price: product.price,
+    currency: product.currency,
+    isPublished: product.isPublished,
+    imageUrl: product.coverImageUrl, // Map coverImageUrl → imageUrl
+    createdAt: product.createdAt,
+    updatedAt: product.updatedAt,
+  };
+}
 
 @ApiTags('Catalog')
 @Controller('catalog')
@@ -27,7 +52,7 @@ export class CatalogController {
     @Query('sort') sort?: 'newest' | 'price_asc' | 'price_desc' | 'rating',
     @Query('limit') limit: number = 24,
     @Query('offset') offset: number = 0,
-  ): Promise<{ data: Product[]; total: number; limit: number; offset: number; pages: number }> {
+  ): Promise<ProductListResponseDto> {
     const result = await this.catalogService.listProducts(limit, offset, {
       q,
       platform,
@@ -36,14 +61,25 @@ export class CatalogController {
       sort,
     });
 
-    return result;
+    // Map entities to DTOs
+    return {
+      data: result.data.map(toProductResponseDto),
+      total: result.total,
+      limit: result.limit,
+      offset: result.offset,
+      pages: result.pages,
+    };
   }
 
   @Get('products/:slug')
   @ApiOperation({ summary: 'Get single product by slug' })
   @ApiResponse({ status: 200, type: ProductResponseDto, description: 'Product details' })
   @ApiResponse({ status: 404, description: 'Product not found' })
-  async getProduct(@Param('slug') slug: string): Promise<Product | null> {
-    return this.catalogService.getProductBySlug(slug);
+  async getProduct(@Param('slug') slug: string): Promise<ProductResponseDto> {
+    const product = await this.catalogService.getProductBySlug(slug);
+    if (product === null) {
+      throw new NotFoundException(`Product not found: ${slug}`);
+    }
+    return toProductResponseDto(product);
   }
 }

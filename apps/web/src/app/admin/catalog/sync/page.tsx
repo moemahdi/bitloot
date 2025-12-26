@@ -39,19 +39,12 @@ import {
   Database,
 } from 'lucide-react';
 import { useErrorHandler } from '@/hooks/useErrorHandler';
-import { Configuration, AdminCatalogSyncApi } from '@bitloot/sdk';
+import { AdminCatalogSyncApi } from '@bitloot/sdk';
+import type {
+  SyncConfigStatusDto,
+  SyncJobStatusResponseDto,
+} from '@bitloot/sdk';
 
-interface SyncStatusDto {
-  syncJobId?: string;
-  status: 'idle' | 'running' | 'completed' | 'failed';
-  startedAt?: Date;
-  completedAt?: Date;
-  productsProcessed: number;
-  offersProcessed: number;
-  errorsCount: number;
-  lastSuccessfulSync?: Date;
-  nextScheduledSync?: Date;
-}
 
 import { apiConfig } from '@/lib/api-config';
 
@@ -85,7 +78,7 @@ export default function AdminCatalogSyncPage(): React.ReactNode {
   // Check Kinguin configuration status
   const configQuery = useQuery({
     queryKey: ['admin', 'catalog', 'sync', 'config'],
-    queryFn: async () => {
+    queryFn: async (): Promise<SyncConfigStatusDto> => {
       try {
         const api = new AdminCatalogSyncApi(apiConfig);
         const response = await api.adminSyncControllerGetConfigStatus();
@@ -102,22 +95,24 @@ export default function AdminCatalogSyncPage(): React.ReactNode {
   // Fetch sync status
   const statusQuery = useQuery({
     queryKey: ['admin', 'catalog', 'sync', 'status'],
-    queryFn: async (): Promise<SyncStatusDto> => {
+    queryFn: async (): Promise<SyncJobStatusResponseDto> => {
       if (!isOnline) {
         throw new Error('No internet connection');
       }
 
       // If no sync job ID, return a default "idle" status instead of making an API call
-      if (!syncJobId || syncJobId.trim() === '') {
+      if (syncJobId === undefined || syncJobId === '' || syncJobId.trim() === '') {
         return {
           jobId: '',
           status: 'idle',
           progress: 0,
-          result: null,
-          error: null,
-          createdAt: null,
-          completedAt: null,
-        } as SyncStatusDto;
+          result: {
+            productsProcessed: 0,
+            productsCreated: 0,
+            productsUpdated: 0,
+            errors: [],
+          },
+        } as SyncJobStatusResponseDto;
       }
 
       try {
@@ -127,7 +122,7 @@ export default function AdminCatalogSyncPage(): React.ReactNode {
         });
 
         clearError();
-        return response as SyncStatusDto;
+        return response;
       } catch (error) {
         // Handle specific sync-related errors
         if (error instanceof Error) {
@@ -139,11 +134,13 @@ export default function AdminCatalogSyncPage(): React.ReactNode {
               jobId: '',
               status: 'idle',
               progress: 0,
-              result: null,
-              error: 'No sync job is currently running',
-              createdAt: null,
-              completedAt: null,
-            } as SyncStatusDto;
+              result: {
+                productsProcessed: 0,
+                productsCreated: 0,
+                productsUpdated: 0,
+                errors: [],
+              },
+            } as SyncJobStatusResponseDto;
           }
         }
         
@@ -202,10 +199,10 @@ export default function AdminCatalogSyncPage(): React.ReactNode {
   // Sync trigger handler
   const handleTriggerSync = useCallback((): void => {
     // Check configuration before triggering
-    if (configQuery.data && typeof configQuery.data === 'object') {
-      const config = configQuery.data as any;
-      if (!config.configured || config.error) {
-        setLastError(config.error || 'Kinguin API is not properly configured');
+    if (configQuery.data !== null && configQuery.data !== undefined) {
+      const config = configQuery.data;
+      if (!config.configured) {
+        setLastError(config.message ?? 'Kinguin API is not properly configured');
         return;
       }
     }
@@ -217,10 +214,15 @@ export default function AdminCatalogSyncPage(): React.ReactNode {
   const isLoading = statusQuery.isLoading;
   const isRefetching = statusQuery.isRefetching;
   const status = statusQuery.data ?? {
+    jobId: '',
     status: 'idle' as const,
-    productsProcessed: 0,
-    offersProcessed: 0,
-    errorsCount: 0,
+    progress: 0,
+    result: {
+      productsProcessed: 0,
+      productsCreated: 0,
+      productsUpdated: 0,
+      errors: [],
+    },
   };
   const hasError = statusQuery.isError || lastError !== null;
   const isSyncing = status.status === 'running' || syncMutation.isPending;
@@ -263,16 +265,18 @@ export default function AdminCatalogSyncPage(): React.ReactNode {
               <Loader2 className="h-4 w-4 animate-spin" />
               <span>Checking configuration...</span>
             </div>
-          ) : configQuery.error ? (
+          ) : configQuery.error !== null && configQuery.error !== undefined ? (
             <div className="flex items-center gap-2 text-destructive">
               <XCircle className="h-4 w-4" />
-              <span>Configuration check failed: {(configQuery.error as Error).message}</span>
+              <span>Configuration check failed: {configQuery.error instanceof Error ? configQuery.error.message : String(configQuery.error)}</span>
             </div>
           ) : (
             (() => {
-              const config = configQuery.data as any;
+              const config = configQuery.data;
               const isConfigured = config?.configured === true;
-              const configError = config?.error;
+              // Extract error string safely - SDK might type error differently
+              const rawError = config !== null && config !== undefined && 'error' in config ? config.error : undefined;
+              const configError = typeof rawError === 'string' ? rawError : undefined;
               
               return (
                 <div className="flex items-center gap-2">
@@ -280,7 +284,7 @@ export default function AdminCatalogSyncPage(): React.ReactNode {
                     <>
                       <CheckCircle className="h-4 w-4 text-green-600" />
                       <span className="text-green-600">Kinguin API is properly configured</span>
-                      {config.message && (
+                      {config?.message !== undefined && config.message !== '' && (
                         <Badge variant="outline" className="ml-2">
                           {config.message}
                         </Badge>
@@ -290,7 +294,7 @@ export default function AdminCatalogSyncPage(): React.ReactNode {
                     <>
                       <XCircle className="h-4 w-4 text-destructive" />
                       <span className="text-destructive">
-                        {configError || 'Kinguin API is not configured'}
+                        {configError ?? 'Kinguin API is not configured'}
                       </span>
                       <Badge variant="destructive" className="ml-2">
                         Configuration Required
@@ -418,16 +422,16 @@ export default function AdminCatalogSyncPage(): React.ReactNode {
                     <Database className="h-4 w-4 text-blue-500" />
                     <span className="text-xs font-medium text-gray-600">Products</span>
                   </div>
-                  <p className="text-2xl font-bold">{status.productsProcessed}</p>
+                  <p className="text-2xl font-bold">{status.result?.productsProcessed ?? 0}</p>
                 </div>
 
-                {/* Offers Processed */}
+                {/* Products Created */}
                 <div className="border rounded-lg p-4">
                   <div className="flex items-center gap-2 mb-2">
                     <Database className="h-4 w-4 text-purple-500" />
-                    <span className="text-xs font-medium text-gray-600">Offers</span>
+                    <span className="text-xs font-medium text-gray-600">Created</span>
                   </div>
-                  <p className="text-2xl font-bold">{status.offersProcessed}</p>
+                  <p className="text-2xl font-bold">{status.result?.productsCreated ?? 0}</p>
                 </div>
 
                 {/* Errors Count */}
@@ -436,43 +440,35 @@ export default function AdminCatalogSyncPage(): React.ReactNode {
                     <AlertTriangle className="h-4 w-4 text-orange-500" />
                     <span className="text-xs font-medium text-gray-600">Errors</span>
                   </div>
-                  <p className={`text-2xl font-bold ${status.errorsCount > 0 ? 'text-orange-500' : 'text-gray-600'}`}>
-                    {status.errorsCount}
+                  <p className={`text-2xl font-bold ${(status.result?.errors?.length ?? 0) > 0 ? 'text-orange-500' : 'text-gray-600'}`}>
+                    {status.result?.errors?.length ?? 0}
                   </p>
                 </div>
               </div>
 
               {/* Timestamps */}
               <div className="border-t pt-4 space-y-2 text-sm">
-                {status.startedAt !== null && status.startedAt !== undefined && (
+                {status.processedOn !== null && status.processedOn !== undefined && (
                   <div className="flex justify-between">
                     <span className="text-gray-600">Sync Started:</span>
                     <span className="font-medium">
-                      {new Date(status.startedAt).toLocaleString()}
+                      {new Date(status.processedOn).toLocaleString()}
                     </span>
                   </div>
                 )}
-                {status.completedAt !== null && status.completedAt !== undefined && (
+                {status.finishedOn !== null && status.finishedOn !== undefined && (
                   <div className="flex justify-between">
                     <span className="text-gray-600">Completed:</span>
                     <span className="font-medium">
-                      {new Date(status.completedAt).toLocaleString()}
+                      {new Date(status.finishedOn).toLocaleString()}
                     </span>
                   </div>
                 )}
-                {status.lastSuccessfulSync !== null && status.lastSuccessfulSync !== undefined && (
+                {status.createdAt !== null && status.createdAt !== undefined && (
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Last Successful:</span>
+                    <span className="text-gray-600">Job Created:</span>
                     <span className="font-medium">
-                      {new Date(status.lastSuccessfulSync).toLocaleString()}
-                    </span>
-                  </div>
-                )}
-                {status.nextScheduledSync !== null && status.nextScheduledSync !== undefined && (
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Next Scheduled:</span>
-                    <span className="font-medium">
-                      {new Date(status.nextScheduledSync).toLocaleString()}
+                      {new Date(status.createdAt).toLocaleString()}
                     </span>
                   </div>
                 )}

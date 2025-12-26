@@ -1,17 +1,28 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { AdminApi } from "@bitloot/sdk";
+import React, { useState } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { AdminApi, KinguinApi } from "@bitloot/sdk";
+import type { KinguinControllerGetStatus200Response } from "@bitloot/sdk";
 import { apiConfig } from '@/lib/api-config';
 import { convertToCSV, downloadCSV } from "@/utils/csv-export";
 import { useAutoRefresh } from "@/hooks/useAutoRefresh";
 import { useAdminGuard } from '@/features/admin/hooks/useAdminGuard';
-import { Download, RefreshCw } from 'lucide-react';
+import { Download, RefreshCw, Eye, Loader2, CheckCircle, XCircle, Clock } from 'lucide-react';
+import { toast } from 'sonner';
 
 const adminApi = new AdminApi(apiConfig);
+const kinguinApi = new KinguinApi(apiConfig);
 
 const LIMIT = 20;
+
+// Interface for Kinguin status response
+interface KinguinStatusInfo {
+  reservationId: string;
+  status: 'completed' | 'pending' | 'error';
+  message: string;
+  checkedAt: Date;
+}
 
 export default function AdminReservationsPage(): React.ReactElement {
   const { isLoading: guardLoading, isAdmin } = useAdminGuard();
@@ -21,6 +32,8 @@ export default function AdminReservationsPage(): React.ReactElement {
   const [limit, setLimit] = useState(LIMIT);
   const [reservationFilter, setReservationFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
+  const [kinguinStatuses, setKinguinStatuses] = useState<Record<string, KinguinStatusInfo>>({});
+  const [checkingReservationId, setCheckingReservationId] = useState<string | null>(null);
 
   const query = useQuery({
     queryKey: [
@@ -45,6 +58,41 @@ export default function AdminReservationsPage(): React.ReactElement {
   });
 
   const { data, isLoading, error, refetch } = query;
+
+  // Mutation to check Kinguin reservation status
+  const checkKinguinStatusMutation = useMutation<KinguinControllerGetStatus200Response, Error, string>({
+    mutationFn: async (reservationId: string) => {
+      setCheckingReservationId(reservationId);
+      const response = await kinguinApi.kinguinControllerGetStatus({ reservationId });
+      return response;
+    },
+    onSuccess: (data, reservationId) => {
+      const statusInfo: KinguinStatusInfo = {
+        reservationId,
+        status: 'completed',
+        message: (data as { message?: string }).message ?? 'Status retrieved successfully',
+        checkedAt: new Date(),
+      };
+      setKinguinStatuses(prev => ({ ...prev, [reservationId]: statusInfo }));
+      setCheckingReservationId(null);
+      toast.success(`Kinguin status for ${reservationId}: ${statusInfo.message}`);
+    },
+    onError: (err, reservationId) => {
+      const statusInfo: KinguinStatusInfo = {
+        reservationId,
+        status: 'error',
+        message: err.message,
+        checkedAt: new Date(),
+      };
+      setKinguinStatuses(prev => ({ ...prev, [reservationId]: statusInfo }));
+      setCheckingReservationId(null);
+      toast.error(`Failed to check Kinguin status: ${err.message}`);
+    },
+  });
+
+  const handleCheckKinguinStatus = (reservationId: string): void => {
+    checkKinguinStatusMutation.mutate(reservationId);
+  };
 
   // Auto-refresh hook
   const { isAutoRefreshEnabled, setIsAutoRefreshEnabled, handleRefresh, lastRefreshTime } =
@@ -209,12 +257,17 @@ export default function AdminReservationsPage(): React.ReactElement {
                 <th className="px-3 py-2 text-left">Email</th>
                 <th className="px-3 py-2 text-left">Status</th>
                 <th className="px-3 py-2 text-left">Reservation ID</th>
+                <th className="px-3 py-2 text-left">Kinguin Status</th>
                 <th className="px-3 py-2 text-left">Created</th>
               </tr>
             </thead>
             <tbody>
               {((data?.data as unknown[]) ?? []).map((item: unknown) => {
                 const res = item as Record<string, unknown>;
+                const reservationId = res.kinguinReservationId as string | null;
+                const kinguinStatus = reservationId !== null ? kinguinStatuses[reservationId] : undefined;
+                const isChecking = checkingReservationId === reservationId;
+                
                 return (
                   <tr key={res.id as string} className="border-t">
                     <td className="px-3 py-2 font-mono">{res.id as string}</td>
@@ -223,7 +276,44 @@ export default function AdminReservationsPage(): React.ReactElement {
                       <span className="rounded bg-gray-200 px-2 py-0.5">{res.status as string}</span>
                     </td>
                     <td className="px-3 py-2 font-mono">
-                      {(res.kinguinReservationId as string | null) ?? "—"}
+                      {reservationId ?? "—"}
+                    </td>
+                    <td className="px-3 py-2">
+                      {reservationId !== null ? (
+                        <div className="flex items-center gap-2">
+                          {kinguinStatus !== undefined ? (
+                            <div className="flex items-center gap-1">
+                              {kinguinStatus.status === 'completed' && (
+                                <CheckCircle className="h-4 w-4 text-green-600" />
+                              )}
+                              {kinguinStatus.status === 'pending' && (
+                                <Clock className="h-4 w-4 text-yellow-600" />
+                              )}
+                              {kinguinStatus.status === 'error' && (
+                                <XCircle className="h-4 w-4 text-red-600" />
+                              )}
+                              <span className="text-xs text-gray-500">
+                                {kinguinStatus.message}
+                              </span>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => handleCheckKinguinStatus(reservationId)}
+                              disabled={isChecking}
+                              className="flex items-center gap-1 px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200 disabled:opacity-50"
+                            >
+                              {isChecking ? (
+                                <Loader2 className="h-3 w-3 animate-spin" />
+                              ) : (
+                                <Eye className="h-3 w-3" />
+                              )}
+                              {isChecking ? 'Checking...' : 'Check Status'}
+                            </button>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="text-gray-400 text-xs">N/A</span>
+                      )}
                     </td>
                     <td className="px-3 py-2">
                       {res.createdAt !== undefined && res.createdAt !== null

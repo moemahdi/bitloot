@@ -1,14 +1,15 @@
 'use client';
 
 import { useState } from 'react';
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useQuery, useMutation, keepPreviousData } from '@tanstack/react-query';
 import { AdminCatalogProductsApi, AdminCatalogSyncApi, AdminCatalogPricingApi } from '@bitloot/sdk';
 import { apiConfig } from '@/lib/api-config';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/design-system/primitives/tabs';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/design-system/primitives/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/design-system/primitives/card';
 import { Button } from '@/design-system/primitives/button';
 import { Input } from '@/design-system/primitives/input';
 import { Badge } from '@/design-system/primitives/badge';
+import { Progress } from '@/design-system/primitives/progress';
 import {
     Table,
     TableBody,
@@ -17,7 +18,9 @@ import {
     TableHeader,
     TableRow,
 } from '@/design-system/primitives/table';
-import { Loader2, RefreshCw, CheckCircle } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/design-system/primitives/select';
+import { Skeleton } from '@/design-system/primitives/skeleton';
+import { Loader2, RefreshCw, CheckCircle, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
 import { useAdminGuard } from '@/features/admin/hooks/useAdminGuard';
 import { Alert, AlertDescription, AlertTitle } from '@/design-system/primitives/alert';
 
@@ -25,18 +28,29 @@ const productsApi = new AdminCatalogProductsApi(apiConfig);
 const syncApi = new AdminCatalogSyncApi(apiConfig);
 const pricingApi = new AdminCatalogPricingApi(apiConfig);
 
+// Cache time constants - prevent excessive API calls to avoid rate limits
+const PRODUCTS_STALE_TIME = 60_000; // 1 minute - products don't change often
+const PRODUCTS_GC_TIME = 300_000; // 5 minutes - keep in cache for navigation
+
 export default function AdminCatalogPage(): React.ReactElement | null {
     const { isLoading, isAdmin } = useAdminGuard();
 
-    // Products State
+    // Products State with Pagination
     const [productSearch, setProductSearch] = useState('');
+    const [currentPage, setCurrentPage] = useState(1);
+    const [pageSize, setPageSize] = useState(25);
 
     // Sync State
     const [isSyncing, setIsSyncing] = useState(false);
 
-    // Products Query
-    const { data: products, isLoading: isProductsLoading, refetch: refetchProducts } = useQuery({
-        queryKey: ['admin-products', productSearch],
+    // Products Query with Pagination
+    const { 
+        data: productsData, 
+        isLoading: isProductsLoading, 
+        isFetching: isProductsFetching,
+        refetch: refetchProducts 
+    } = useQuery({
+        queryKey: ['admin-products', productSearch, currentPage, pageSize],
         queryFn: async () => {
             return await productsApi.adminProductsControllerListAll({
                 search: productSearch,
@@ -44,9 +58,14 @@ export default function AdminCatalogPage(): React.ReactElement | null {
                 region: '',
                 published: '',
                 source: '',
+                page: String(currentPage),
+                limit: String(pageSize),
             });
         },
         enabled: isAdmin,
+        staleTime: PRODUCTS_STALE_TIME, // Don't refetch for 1 minute
+        gcTime: PRODUCTS_GC_TIME, // Keep in cache for 5 minutes
+        placeholderData: keepPreviousData, // Show previous data while loading new page
     });
 
     // Pricing Rules Query
@@ -62,6 +81,8 @@ export default function AdminCatalogPage(): React.ReactElement | null {
             });
         },
         enabled: isAdmin,
+        staleTime: PRODUCTS_STALE_TIME,
+        gcTime: PRODUCTS_GC_TIME,
     });
 
     // Sync Mutation
@@ -76,6 +97,25 @@ export default function AdminCatalogPage(): React.ReactElement | null {
         },
     });
 
+    // Handle search with debounce reset to page 1
+    const handleSearchChange = (value: string): void => {
+        setProductSearch(value);
+        setCurrentPage(1); // Reset to first page on new search
+    };
+
+    // Handle page size change
+    const handlePageSizeChange = (value: string): void => {
+        setPageSize(parseInt(value, 10));
+        setCurrentPage(1); // Reset to first page
+    };
+
+    // Pagination helpers
+    const totalPages = productsData?.totalPages ?? 1;
+    const totalProducts = productsData?.total ?? 0;
+    const products = productsData?.products ?? [];
+    const canGoPrevious = currentPage > 1;
+    const canGoNext = currentPage < totalPages;
+
     if (isLoading) {
         return (
             <div className="flex h-screen items-center justify-center">
@@ -87,6 +127,21 @@ export default function AdminCatalogPage(): React.ReactElement | null {
     if (!isAdmin) {
         return null;
     }
+
+    // Loading skeleton for table rows
+    const LoadingSkeleton = (): React.ReactElement => (
+        <>
+            {Array.from({ length: 5 }).map((_, i) => (
+                <TableRow key={i}>
+                    <TableCell><Skeleton className="h-4 w-48" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-16" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-16" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-20" /></TableCell>
+                    <TableCell><Skeleton className="h-4 w-16" /></TableCell>
+                </TableRow>
+            ))}
+        </>
+    );
 
     return (
         <div className="container mx-auto py-8 space-y-8">
@@ -109,62 +164,132 @@ export default function AdminCatalogPage(): React.ReactElement | null {
                     <Card>
                         <CardHeader>
                             <div className="flex items-center justify-between">
-                                <CardTitle>Product Catalog</CardTitle>
+                                <div className="flex flex-col gap-1">
+                                    <CardTitle>Product Catalog</CardTitle>
+                                    <CardDescription>
+                                        {totalProducts.toLocaleString()} products total
+                                    </CardDescription>
+                                </div>
                                 <div className="flex items-center gap-2">
                                     <Input
                                         placeholder="Search products..."
                                         value={productSearch}
-                                        onChange={(e) => setProductSearch(e.target.value)}
+                                        onChange={(e) => handleSearchChange(e.target.value)}
                                         className="w-[250px]"
                                     />
-                                    <Button variant="outline" size="icon" onClick={() => refetchProducts()}>
-                                        <RefreshCw className="h-4 w-4" />
+                                    <Button 
+                                        variant="outline" 
+                                        size="icon" 
+                                        onClick={() => refetchProducts()}
+                                        disabled={isProductsFetching}
+                                    >
+                                        <RefreshCw className={`h-4 w-4 ${isProductsFetching ? 'animate-spin' : ''}`} />
                                     </Button>
                                 </div>
                             </div>
+                            {/* Loading Progress Bar */}
+                            {isProductsFetching && (
+                                <Progress value={undefined} className="h-1 mt-2" />
+                            )}
                         </CardHeader>
                         <CardContent>
-                            {isProductsLoading ? (
-                                <div className="flex justify-center p-8">
-                                    <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-                                </div>
-                            ) : (
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead>Name</TableHead>
-                                            <TableHead>Platform</TableHead>
-                                            <TableHead>Region</TableHead>
-                                            <TableHead>Price</TableHead>
-                                            <TableHead>Status</TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {(products?.length ?? 0) > 0 ? (
-                                            products?.map((product) => (
-                                                <TableRow key={product.id}>
-                                                    <TableCell className="font-medium">{product.title}</TableCell>
-                                                    <TableCell>{product.platform}</TableCell>
-                                                    <TableCell>{product.region}</TableCell>
-                                                    <TableCell>${parseFloat(product.price ?? '0').toFixed(2)}</TableCell>
-                                                    <TableCell>
-                                                        <Badge variant={product.isPublished ? 'default' : 'secondary'}>
-                                                            {product.isPublished ? 'Published' : 'Draft'}
-                                                        </Badge>
-                                                    </TableCell>
-                                                </TableRow>
-                                            ))
-                                        ) : (
-                                            <TableRow>
-                                                <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
-                                                    No products found
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Name</TableHead>
+                                        <TableHead>Platform</TableHead>
+                                        <TableHead>Region</TableHead>
+                                        <TableHead>Price</TableHead>
+                                        <TableHead>Status</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {isProductsLoading ? (
+                                        <LoadingSkeleton />
+                                    ) : products.length > 0 ? (
+                                        products.map((product) => (
+                                            <TableRow key={product.id}>
+                                                <TableCell className="font-medium max-w-[300px] truncate">
+                                                    {product.title}
+                                                </TableCell>
+                                                <TableCell>{product.platform ?? '-'}</TableCell>
+                                                <TableCell>{product.region ?? '-'}</TableCell>
+                                                <TableCell>€{parseFloat(product.price ?? '0').toFixed(2)}</TableCell>
+                                                <TableCell>
+                                                    <Badge variant={product.isPublished ? 'default' : 'secondary'}>
+                                                        {product.isPublished ? 'Published' : 'Draft'}
+                                                    </Badge>
                                                 </TableCell>
                                             </TableRow>
-                                        )}
-                                    </TableBody>
-                                </Table>
-                            )}
+                                        ))
+                                    ) : (
+                                        <TableRow>
+                                            <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                                                No products found
+                                            </TableCell>
+                                        </TableRow>
+                                    )}
+                                </TableBody>
+                            </Table>
                         </CardContent>
+                        {/* Pagination Footer */}
+                        <CardFooter className="flex items-center justify-between border-t pt-4">
+                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                <span>Rows per page:</span>
+                                <Select value={String(pageSize)} onValueChange={handlePageSizeChange}>
+                                    <SelectTrigger className="w-[70px] h-8">
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="10">10</SelectItem>
+                                        <SelectItem value="25">25</SelectItem>
+                                        <SelectItem value="50">50</SelectItem>
+                                        <SelectItem value="100">100</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <div className="flex items-center gap-1">
+                                <span className="text-sm text-muted-foreground mr-4">
+                                    Page {currentPage} of {totalPages}
+                                </span>
+                                <Button
+                                    variant="outline"
+                                    size="icon"
+                                    className="h-8 w-8"
+                                    onClick={() => setCurrentPage(1)}
+                                    disabled={!canGoPrevious || isProductsFetching}
+                                >
+                                    <ChevronsLeft className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    size="icon"
+                                    className="h-8 w-8"
+                                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                                    disabled={!canGoPrevious || isProductsFetching}
+                                >
+                                    <ChevronLeft className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    size="icon"
+                                    className="h-8 w-8"
+                                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                                    disabled={!canGoNext || isProductsFetching}
+                                >
+                                    <ChevronRight className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    size="icon"
+                                    className="h-8 w-8"
+                                    onClick={() => setCurrentPage(totalPages)}
+                                    disabled={!canGoNext || isProductsFetching}
+                                >
+                                    <ChevronsRight className="h-4 w-4" />
+                                </Button>
+                            </div>
+                        </CardFooter>
                     </Card>
                 </TabsContent>
 

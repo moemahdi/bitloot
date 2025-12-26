@@ -4,7 +4,7 @@ import { Repository, DataSource } from 'typeorm';
 import { Product } from './entities/product.entity';
 import { ProductOffer } from './entities/product-offer.entity';
 import { DynamicPricingRule } from './entities/dynamic-pricing-rule.entity';
-import { KinguinOfferRaw } from './kinguin-catalog.client';
+import { KinguinProductRaw } from './kinguin-catalog.client';
 
 // Internal interface for pricing rule calculations
 interface PricingRuleData {
@@ -28,38 +28,95 @@ export class CatalogService {
   ) { }
 
   /**
-   * Create or update product from provider offer
+   * Create or update product from Kinguin product data
+   * @param product - Kinguin product object from v1/products API
    */
-  async upsertProduct(offer: KinguinOfferRaw): Promise<Product> {
-    const externalId = offer.id;
+  async upsertProduct(kinguinProduct: KinguinProductRaw): Promise<Product> {
+    // Use productId as the unique external identifier
+    const externalId = kinguinProduct.productId;
 
     if (typeof externalId !== 'string' || externalId.length === 0) {
-      throw new Error('Missing offer ID');
+      throw new Error('Missing productId');
     }
 
+    // Note: No relations loaded during upsert - we only need to check if product exists
+    // This significantly reduces queries during bulk sync operations
     let product = await this.productRepo.findOne({
       where: { externalId },
-      relations: ['offers'],
     });
 
+    // Kinguin prices are in EUR (NOT cents - already full euro amounts)
+    const priceEur = kinguinProduct.price.toFixed(8);
+
+    // Extract cover image URL from Kinguin images object
+    const coverImageUrl = kinguinProduct.images?.cover?.url ?? kinguinProduct.images?.cover?.thumbnail;
+
+    // Map Kinguin regionId to readable region (common values)
+    const regionMap: Record<number, string> = {
+      1: 'Global',
+      2: 'Europe',
+      3: 'North America',
+      4: 'Asia',
+      5: 'South America',
+      6: 'Oceania',
+      7: 'Middle East',
+      8: 'Africa',
+    };
+    const region = kinguinProduct.regionId !== undefined
+      ? regionMap[kinguinProduct.regionId] ?? `Region ${kinguinProduct.regionId}`
+      : kinguinProduct.regionalLimitations ?? 'Global';
+
+    // Get the cheapest offer ID if available (for fulfillment)
+    const cheapestOffer = kinguinProduct.cheapestOfferId?.[0] ?? kinguinProduct.offers?.[0]?.offerId;
+
     if (product === null) {
-      // Create new product from offer
+      // Create new product from Kinguin data with all available fields
       product = this.productRepo.create({
         externalId,
-        slug: this.slugify(offer.title, externalId),
-        title: offer.title,
-        cost: (offer.price_minor / 100).toFixed(8),
-        currency: offer.currency,
-        price: (offer.price_minor / 100).toFixed(8),
+        slug: this.slugify(kinguinProduct.name, externalId),
+        title: kinguinProduct.name,
+        subtitle: kinguinProduct.originalName,
+        description: kinguinProduct.description,
+        platform: kinguinProduct.platform,
+        region,
+        category: kinguinProduct.genres?.[0] ?? 'Games', // Use first genre as category
+        ageRating: kinguinProduct.ageRating,
+        drm: kinguinProduct.steam !== undefined ? 'Steam' : kinguinProduct.activationDetails,
+        cost: priceEur,
+        currency: 'EUR', // Kinguin API returns EUR prices
+        price: priceEur,
         isPublished: false,
         isCustom: false,
+        // ✅ FIX: Set sourceType to 'kinguin' for Kinguin products
+        sourceType: 'kinguin',
+        // ✅ FIX: Store the cheapest offer ID for fulfillment
+        kinguinOfferId: cheapestOffer,
+        // Rating from Metacritic (scaled to 0-5)
+        rating: kinguinProduct.metacriticScore !== undefined
+          ? Math.min(5, kinguinProduct.metacriticScore / 20)
+          : undefined,
+        // Cover image URL for display
+        coverImageUrl,
       });
     } else {
-      // Update existing product cost if offer cost changed
-      const offerCost = (offer.price_minor / 100).toFixed(8);
-      if (parseFloat(offerCost) < parseFloat(product.cost)) {
-        product.cost = offerCost;
+      // Update existing product with latest Kinguin data
+      // Update cost if Kinguin cost changed (lower cost = better deal)
+      if (parseFloat(priceEur) < parseFloat(product.cost)) {
+        product.cost = priceEur;
       }
+
+      // Always update these fields to keep in sync with Kinguin
+      if (kinguinProduct.description !== undefined) product.description = kinguinProduct.description;
+      if (kinguinProduct.platform !== undefined) product.platform = kinguinProduct.platform;
+      if (region !== undefined) product.region = region;
+      if (kinguinProduct.genres?.[0] !== undefined) product.category = kinguinProduct.genres[0];
+      if (kinguinProduct.ageRating !== undefined) product.ageRating = kinguinProduct.ageRating;
+      if (coverImageUrl !== undefined) product.coverImageUrl = coverImageUrl;
+      if (cheapestOffer !== undefined) product.kinguinOfferId = cheapestOffer;
+
+      // ✅ FIX: Ensure sourceType is 'kinguin' (fix existing products synced before this fix)
+      product.sourceType = 'kinguin';
+      product.isCustom = false;
     }
 
     return this.productRepo.save(product);
@@ -351,6 +408,36 @@ export class CatalogService {
   }
 
   /**
+   * Update product stock by Kinguin ID
+   * Used by webhook processor when product is not found in Kinguin API
+   * @param kinguinId - The Kinguin product ID
+   * @param qty - Quantity available (digital keys)
+   * @param textQty - Quantity available (text content)
+   */
+  async updateProductStockByKinguinId(
+    kinguinId: string,
+    qty: number,
+    textQty: number,
+  ): Promise<void> {
+    // Find offer by kinguinId (stored as providerSku for kinguin offers)
+    const offer = await this.offerRepo.findOne({
+      where: { provider: 'kinguin', providerSku: kinguinId },
+    });
+
+    if (offer === null) {
+      // Log as debug since this is expected for new products
+      return;
+    }
+
+    // Update stock quantity on the offer
+    const totalStock = qty + textQty;
+    offer.stock = totalStock;
+    offer.lastSeenAt = new Date();
+
+    await this.offerRepo.save(offer);
+  }
+
+  /**
    * List all pricing rules (admin only)
    */
   async listPricingRules(): Promise<DynamicPricingRule[]> {
@@ -599,7 +686,8 @@ export class CatalogService {
   }
 
   /**
-   * List all products (admin - no published filter)
+   * List all products with pagination (admin - no published filter)
+   * Returns paginated results with total count for UI
    */
   async listAllProductsAdmin(
     search?: string,
@@ -607,25 +695,27 @@ export class CatalogService {
     region?: string,
     published?: boolean,
     source?: string,
-  ): Promise<Product[]> {
+    page: number = 1,
+    limit: number = 25,
+  ): Promise<{ products: Product[]; total: number; page: number; limit: number; totalPages: number }> {
     let query = this.productRepo.createQueryBuilder('product');
 
-    // Optional search
+    // Optional search - use ILIKE for partial matching on title
     if (typeof search === 'string' && search.length > 0) {
       query = query.andWhere(
-        `product.searchTsv @@ plainto_tsquery('simple', :search)`,
-        { search },
+        `LOWER(product.title) LIKE LOWER(:search)`,
+        { search: `%${search}%` },
       );
     }
 
-    // Optional platform filter
+    // Optional platform filter - case-insensitive matching
     if (typeof platform === 'string' && platform.length > 0) {
-      query = query.andWhere('product.platform = :platform', { platform });
+      query = query.andWhere('LOWER(product.platform) LIKE LOWER(:platform)', { platform: `%${platform}%` });
     }
 
-    // Optional region filter
+    // Optional region filter - case-insensitive matching
     if (typeof region === 'string' && region.length > 0) {
-      query = query.andWhere('product.region = :region', { region });
+      query = query.andWhere('LOWER(product.region) LIKE LOWER(:region)', { region: `%${region}%` });
     }
 
     // Optional published filter
@@ -638,6 +728,54 @@ export class CatalogService {
       query = query.andWhere('product.sourceType = :source', { source });
     }
 
-    return query.orderBy('product.createdAt', 'DESC').getMany();
+    // Ensure valid pagination values
+    const validPage = Math.max(1, page);
+    const validLimit = Math.min(100, Math.max(1, limit)); // Max 100 items per page
+    const offset = (validPage - 1) * validLimit;
+
+    // Get total count and paginated results
+    const [products, total] = await query
+      .orderBy('product.createdAt', 'DESC')
+      .skip(offset)
+      .take(validLimit)
+      .getManyAndCount();
+
+    const totalPages = Math.ceil(total / validLimit);
+
+    return {
+      products,
+      total,
+      page: validPage,
+      limit: validLimit,
+      totalPages,
+    };
+  }
+
+  /**
+   * Find product by Kinguin external ID
+   * Used by webhook handler to update products in real-time
+   */
+  async findByExternalId(externalId: string): Promise<Product | null> {
+    return this.productRepo.findOne({
+      where: { externalId },
+    });
+  }
+
+  /**
+   * Compute retail price for product based on cost and pricing rules
+   * Used by webhook handler when Kinguin price changes
+   */
+  async computePrice(productId: string, costUsd: number): Promise<number> {
+    const product = await this.productRepo.findOne({
+      where: { id: productId },
+    });
+
+    if (product === null || product === undefined) {
+      throw new NotFoundException(`Product not found: ${productId}`);
+    }
+
+    // Use existing calculatePrice method with cost as string
+    const retailPrice = await this.calculatePrice(product, costUsd.toString());
+    return parseFloat(retailPrice);
   }
 }
