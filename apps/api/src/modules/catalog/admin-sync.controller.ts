@@ -6,6 +6,8 @@ import {
   UseGuards,
   HttpCode,
   HttpStatus,
+  BadRequestException,
+  NotFoundException,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -18,6 +20,7 @@ import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { JwtAuthGuard } from '../../modules/auth/guards/jwt-auth.guard';
 import { AdminGuard } from '../../common/guards/admin.guard';
+import { KinguinCatalogClient } from './kinguin-catalog.client';
 
 // ============ DTOs ============
 class SyncJobResponseDto {
@@ -42,6 +45,11 @@ class SyncJobStatusResponseDto {
   finishedOn?: Date;
 }
 
+class SyncConfigStatusDto {
+  configured!: boolean;
+  message!: string;
+}
+
 @ApiTags('Admin - Catalog Sync')
 @Controller('admin/catalog/sync')
 @UseGuards(JwtAuthGuard, AdminGuard)
@@ -49,6 +57,7 @@ class SyncJobStatusResponseDto {
 export class AdminSyncController {
   constructor(
     @InjectQueue('catalog') private readonly catalogQueue: Queue,
+    private readonly kinguinClient: KinguinCatalogClient,
   ) {}
 
   /**
@@ -78,6 +87,13 @@ export class AdminSyncController {
   async triggerSync(
     @Query('fullSync') fullSync?: string,
   ): Promise<SyncJobResponseDto> {
+    // Check if Kinguin integration is configured
+    if (!this.kinguinClient.isConfigured()) {
+      throw new BadRequestException(
+        `Cannot start sync: ${this.kinguinClient.getConfigurationStatus()}`,
+      );
+    }
+
     const isFullSync =
       fullSync !== null &&
       fullSync !== undefined &&
@@ -85,7 +101,7 @@ export class AdminSyncController {
       (fullSync === 'true' || fullSync === '1');
 
     const job = await this.catalogQueue.add(
-      'kinguin-sync',
+      'catalog.sync.full', // Use the correct job name that the processor expects
       {
         fullSync: isFullSync,
         triggeredAt: new Date().toISOString(),
@@ -105,6 +121,29 @@ export class AdminSyncController {
       message: isFullSync
         ? 'Full catalog sync job enqueued'
         : 'Incremental catalog sync job enqueued',
+    };
+  }
+
+  /**
+   * GET /admin/catalog/sync/config
+   * Check Kinguin integration configuration status
+   */
+  @Get('config')
+  @ApiOperation({
+    summary: 'Check Kinguin integration status',
+    description: 'Verify if Kinguin API is properly configured and accessible',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Configuration status',
+    type: SyncConfigStatusDto,
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden - Admin only' })
+  async getConfigStatus(): Promise<SyncConfigStatusDto> {
+    return {
+      configured: this.kinguinClient.isConfigured(),
+      message: this.kinguinClient.getConfigurationStatus(),
     };
   }
 
@@ -130,13 +169,21 @@ export class AdminSyncController {
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Forbidden - Admin only' })
   @ApiResponse({ status: 404, description: 'Job not found' })
+  @ApiResponse({ status: 400, description: 'No job ID provided or invalid' })
   async getSyncStatus(
     @Query('jobId') jobId: string,
   ): Promise<SyncJobStatusResponseDto> {
+    // Handle missing or empty job ID
+    if (!jobId || jobId.trim() === '') {
+      throw new BadRequestException(
+        'No sync job is currently running. Please trigger a sync first.',
+      );
+    }
+
     const job = await this.catalogQueue.getJob(jobId);
 
     if (job === null || job === undefined) {
-      throw new Error(`Job ${jobId} not found`);
+      throw new NotFoundException(`Sync job ${jobId} not found. It may have completed or been removed.`);
     }
 
     const state = await job.getState();

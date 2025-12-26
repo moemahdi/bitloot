@@ -54,9 +54,15 @@ import {
   Search,
   DollarSign,
   Loader2,
+  Plus,
+  Pencil,
+  Store,
+  Crown,
 } from 'lucide-react';
+import Link from 'next/link';
 import type { AdminProductResponseDto } from '@bitloot/sdk';
-import { AdminCatalogProductsApi, Configuration } from '@bitloot/sdk';
+import { AdminCatalogProductsApi } from '@bitloot/sdk';
+import { apiConfig } from '@/lib/api-config';
 import { useErrorHandler } from '@/hooks/useErrorHandler';
 import { useNetworkStatus } from '@/hooks/useNetworkStatus';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -84,18 +90,8 @@ export default function AdminCatalogProductsPage(): React.JSX.Element {
   const [platformFilter, setPlatformFilter] = useState('all');
   const [regionFilter, setRegionFilter] = useState('all');
   const [publishedFilter, setPublishedFilter] = useState('all');
+  const [sourceFilter, setSourceFilter] = useState('all');
   const [lastError, setLastError] = useState<string | null>(null);
-
-  // API Configuration
-  const apiConfig = new Configuration({
-    basePath: process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000',
-    accessToken: (): string => {
-      if (typeof window !== 'undefined') {
-        return localStorage.getItem('accessToken') ?? '';
-      }
-      return '';
-    },
-  });
 
   // Error handling
   const { handleError, clearError } = useErrorHandler({
@@ -119,7 +115,7 @@ export default function AdminCatalogProductsPage(): React.JSX.Element {
 
   // Fetch products with filters
   const productsQuery = useQuery({
-    queryKey: ['admin', 'catalog', 'products', searchQuery, platformFilter, regionFilter, publishedFilter],
+    queryKey: ['admin', 'catalog', 'products', searchQuery, platformFilter, regionFilter, publishedFilter, sourceFilter],
     queryFn: async (): Promise<AdminProductResponseDto[]> => {
       if (!isOnline) {
         throw new Error('No internet connection. Please check your network.');
@@ -134,6 +130,7 @@ export default function AdminCatalogProductsPage(): React.JSX.Element {
           platform: platformFilter === 'all' ? '' : platformFilter,
           region: regionFilter === 'all' ? '' : regionFilter,
           published: publishedFilter === 'all' ? '' : publishedFilter,
+          source: sourceFilter === 'all' ? '' : sourceFilter,
         });
 
         clearError();
@@ -217,16 +214,28 @@ export default function AdminCatalogProductsPage(): React.JSX.Element {
             Manage products from Kinguin sync and custom listings
           </p>
         </div>
-        <GlowButton
-          onClick={handleRefresh}
-          disabled={isLoading}
-          variant="secondary"
-          size="sm"
-          glowColor="cyan"
-        >
-          <RefreshCw className={`mr-2 h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-          Refresh
-        </GlowButton>
+        <div className="flex items-center gap-3">
+          <Link href="/admin/catalog/products/new">
+            <GlowButton
+              variant="default"
+              size="sm"
+              glowColor="cyan"
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              Create Product
+            </GlowButton>
+          </Link>
+          <GlowButton
+            onClick={handleRefresh}
+            disabled={isLoading}
+            variant="secondary"
+            size="sm"
+            glowColor="cyan"
+          >
+            <RefreshCw className={`mr-2 h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+            Refresh
+          </GlowButton>
+        </div>
       </div>
 
       {/* Network Status Alert */}
@@ -268,7 +277,7 @@ export default function AdminCatalogProductsPage(): React.JSX.Element {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
             {/* Search Input */}
             <div className="space-y-2">
               <Label htmlFor="search" className="text-text-secondary">Search</Label>
@@ -282,6 +291,21 @@ export default function AdminCatalogProductsPage(): React.JSX.Element {
                   className="pl-9 border-cyan-glow/20 bg-bg-tertiary/50 focus:border-cyan-glow/50 focus:ring-cyan-glow/20"
                 />
               </div>
+            </div>
+
+            {/* Source Filter */}
+            <div className="space-y-2">
+              <Label htmlFor="source" className="text-text-secondary">Source</Label>
+              <Select value={sourceFilter} onValueChange={setSourceFilter}>
+                <SelectTrigger id="source" className="border-cyan-glow/20 bg-bg-tertiary/50 focus:border-cyan-glow/50 focus:ring-cyan-glow/20">
+                  <SelectValue placeholder="All sources" />
+                </SelectTrigger>
+                <SelectContent className="border-cyan-glow/20 bg-bg-secondary/95 backdrop-blur-xl">
+                  <SelectItem value="all">All Sources</SelectItem>
+                  <SelectItem value="custom">Custom</SelectItem>
+                  <SelectItem value="kinguin">Kinguin</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             {/* Platform Filter */}
@@ -378,6 +402,7 @@ export default function AdminCatalogProductsPage(): React.JSX.Element {
                 <TableHeader>
                   <TableRow className="border-cyan-glow/20 hover:bg-transparent">
                     <TableHead className="text-text-secondary uppercase tracking-wider text-xs">Title</TableHead>
+                    <TableHead className="text-text-secondary uppercase tracking-wider text-xs">Source</TableHead>
                     <TableHead className="text-text-secondary uppercase tracking-wider text-xs">Category</TableHead>
                     <TableHead className="text-text-secondary uppercase tracking-wider text-xs">Platform</TableHead>
                     <TableHead className="text-text-secondary uppercase tracking-wider text-xs">Region</TableHead>
@@ -405,6 +430,19 @@ export default function AdminCatalogProductsPage(): React.JSX.Element {
                         >
                           <TableCell className="font-medium max-w-xs truncate text-text-primary">
                             {(product.title ?? '').length > 0 ? product.title : 'Untitled'}
+                          </TableCell>
+                          <TableCell>
+                            {product.sourceType === 'custom' ? (
+                              <Badge variant="outline" className="border-cyan-glow/30 text-cyan-glow bg-cyan-glow/5">
+                                <Store className="mr-1 h-3 w-3" />
+                                Custom
+                              </Badge>
+                            ) : (
+                              <Badge variant="outline" className="border-orange-500/30 text-orange-400 bg-orange-500/5">
+                                <Crown className="mr-1 h-3 w-3" />
+                                Kinguin
+                              </Badge>
+                            )}
                           </TableCell>
                           <TableCell>
                             <Badge variant="outline" className="border-purple-glow/30 text-purple-glow bg-purple-glow/5">
@@ -442,6 +480,16 @@ export default function AdminCatalogProductsPage(): React.JSX.Element {
                           </TableCell>
                           <TableCell className="text-right">
                             <div className="flex items-center justify-end gap-2">
+                              <Link href={`/admin/catalog/products/${product.id}`}>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="border-cyan-glow/30 text-cyan-glow hover:bg-cyan-glow/10"
+                                >
+                                  <Pencil className="mr-1 h-3 w-3" />
+                                  Edit
+                                </Button>
+                              </Link>
                               {product.isPublished ? (
                                 <Button
                                   variant="outline"

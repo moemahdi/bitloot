@@ -53,9 +53,7 @@ interface SyncStatusDto {
   nextScheduledSync?: Date;
 }
 
-const apiConfig = new Configuration({
-  basePath: process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000',
-});
+import { apiConfig } from '@/lib/api-config';
 
 export default function AdminCatalogSyncPage(): React.ReactNode {
   // State management
@@ -84,6 +82,23 @@ export default function AdminCatalogSyncPage(): React.ReactNode {
   // Network status (basic implementation)
   const isOnline = typeof navigator !== 'undefined' ? navigator.onLine : true;
 
+  // Check Kinguin configuration status
+  const configQuery = useQuery({
+    queryKey: ['admin', 'catalog', 'sync', 'config'],
+    queryFn: async () => {
+      try {
+        const api = new AdminCatalogSyncApi(apiConfig);
+        const response = await api.adminSyncControllerGetConfigStatus();
+        return response;
+      } catch (error) {
+        console.error('Configuration check error:', error);
+        throw error;
+      }
+    },
+    staleTime: 60_000, // 1 minute - configuration doesn't change often
+    retry: 2,
+  });
+
   // Fetch sync status
   const statusQuery = useQuery({
     queryKey: ['admin', 'catalog', 'sync', 'status'],
@@ -92,15 +107,46 @@ export default function AdminCatalogSyncPage(): React.ReactNode {
         throw new Error('No internet connection');
       }
 
+      // If no sync job ID, return a default "idle" status instead of making an API call
+      if (!syncJobId || syncJobId.trim() === '') {
+        return {
+          jobId: '',
+          status: 'idle',
+          progress: 0,
+          result: null,
+          error: null,
+          createdAt: null,
+          completedAt: null,
+        } as SyncStatusDto;
+      }
+
       try {
         const api = new AdminCatalogSyncApi(apiConfig);
         const response = await api.adminSyncControllerGetSyncStatus({
-          jobId: syncJobId ?? '',
+          jobId: syncJobId,
         });
 
         clearError();
         return response as SyncStatusDto;
       } catch (error) {
+        // Handle specific sync-related errors
+        if (error instanceof Error) {
+          const message = error.message.toLowerCase();
+          if (message.includes('no sync job is currently running') || 
+              message.includes('job') && message.includes('not found')) {
+            // Return idle status instead of throwing error for missing jobs
+            return {
+              jobId: '',
+              status: 'idle',
+              progress: 0,
+              result: null,
+              error: 'No sync job is currently running',
+              createdAt: null,
+              completedAt: null,
+            } as SyncStatusDto;
+          }
+        }
+        
         handleError(error instanceof Error ? error : new Error(String(error)), 'fetch-sync-status');
         throw error;
       }
@@ -127,8 +173,22 @@ export default function AdminCatalogSyncPage(): React.ReactNode {
       void statusQuery.refetch();
       // Enable auto-refresh to watch sync progress
       setAutoRefreshEnabled(true);
+      setLastError(null); // Clear any previous errors
     },
     onError: (error: Error): void => {
+      // Enhanced error handling for sync trigger
+      let friendlyMessage = error.message;
+      if (error.message.includes('Kinguin API key')) {
+        friendlyMessage = 'Kinguin API is not properly configured. Please check KINGUIN_API_KEY environment variable.';
+      } else if (error.message.includes('KINGUIN_BASE_URL')) {
+        friendlyMessage = 'Kinguin API base URL is not configured. Please check KINGUIN_BASE_URL environment variable.';
+      } else if (error.message.includes('configuration')) {
+        friendlyMessage = 'Kinguin integration is not properly configured. Please contact your administrator.';
+      } else if (error.message.includes('network') || error.message.includes('fetch')) {
+        friendlyMessage = 'Network error: Unable to connect to Kinguin API. Please check your internet connection.';
+      }
+      
+      setLastError(friendlyMessage);
       handleError(error, 'trigger-sync');
     },
   });
@@ -136,12 +196,22 @@ export default function AdminCatalogSyncPage(): React.ReactNode {
   // Refresh handler
   const handleRefresh = useCallback((): void => {
     void statusQuery.refetch();
-  }, [statusQuery]);
+    void configQuery.refetch(); // Also refresh config status
+  }, [statusQuery, configQuery]);
 
   // Sync trigger handler
   const handleTriggerSync = useCallback((): void => {
+    // Check configuration before triggering
+    if (configQuery.data && typeof configQuery.data === 'object') {
+      const config = configQuery.data as any;
+      if (!config.configured || config.error) {
+        setLastError(config.error || 'Kinguin API is not properly configured');
+        return;
+      }
+    }
+    
     syncMutation.mutate();
-  }, [syncMutation]);
+  }, [syncMutation, configQuery.data]);
 
   // Loading and state
   const isLoading = statusQuery.isLoading;
@@ -177,6 +247,62 @@ export default function AdminCatalogSyncPage(): React.ReactNode {
         <h1 className="text-3xl font-bold">Catalog Sync</h1>
         <p className="text-gray-600">Manage Kinguin catalog synchronization</p>
       </div>
+
+      {/* Configuration Status Card */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Database className="h-5 w-5" />
+            Kinguin Integration Status
+          </CardTitle>
+          <CardDescription>Verify API configuration and connectivity</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {configQuery.isLoading ? (
+            <div className="flex items-center gap-2">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <span>Checking configuration...</span>
+            </div>
+          ) : configQuery.error ? (
+            <div className="flex items-center gap-2 text-destructive">
+              <XCircle className="h-4 w-4" />
+              <span>Configuration check failed: {(configQuery.error as Error).message}</span>
+            </div>
+          ) : (
+            (() => {
+              const config = configQuery.data as any;
+              const isConfigured = config?.configured === true;
+              const configError = config?.error;
+              
+              return (
+                <div className="flex items-center gap-2">
+                  {isConfigured ? (
+                    <>
+                      <CheckCircle className="h-4 w-4 text-green-600" />
+                      <span className="text-green-600">Kinguin API is properly configured</span>
+                      {config.message && (
+                        <Badge variant="outline" className="ml-2">
+                          {config.message}
+                        </Badge>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      <XCircle className="h-4 w-4 text-destructive" />
+                      <span className="text-destructive">
+                        {configError || 'Kinguin API is not configured'}
+                      </span>
+                      <Badge variant="destructive" className="ml-2">
+                        Configuration Required
+                      </Badge>
+                    </>
+                  )}
+                </div>
+              );
+            })()
+          )}
+        </CardContent>
+      </Card>
 
       {/* Error Alert */}
       {hasError && (

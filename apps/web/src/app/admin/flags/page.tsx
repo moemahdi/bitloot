@@ -1,7 +1,7 @@
 'use client';
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import {
   Card,
   CardContent,
@@ -14,11 +14,43 @@ import { Switch } from '@/design-system/primitives/switch';
 import { Label } from '@/design-system/primitives/label';
 import { Badge } from '@/design-system/primitives/badge';
 import { Alert, AlertDescription, AlertTitle } from '@/design-system/primitives/alert';
-import { AlertCircle, CheckCircle, Loader, RefreshCw } from 'lucide-react';
+import { Separator } from '@/design-system/primitives/separator';
+import {
+  AlertCircle,
+  CheckCircle,
+  Loader,
+  RefreshCw,
+  CreditCard,
+  Package,
+  Mail,
+  ShoppingCart,
+  Shield,
+  Wrench,
+} from 'lucide-react';
 import { AdminOperationsApi, Configuration } from '@bitloot/sdk';
+
+// Helper to get cookie value
+function getCookie(name: string): string | null {
+  if (typeof document === 'undefined') return null;
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; ${name}=`);
+  if (parts.length === 2) {
+    const cookieValue = parts[1];
+    if (cookieValue !== undefined) {
+      return cookieValue.split(';')[0] ?? null;
+    }
+  }
+  return null;
+}
 
 const apiConfig = new Configuration({
   basePath: process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000',
+  accessToken: (): string => {
+    if (typeof window !== 'undefined') {
+      return getCookie('accessToken') ?? '';
+    }
+    return '';
+  },
 });
 const adminOpsApi = new AdminOperationsApi(apiConfig);
 
@@ -28,17 +60,72 @@ interface FeatureFlag {
   description?: string;
 }
 
+// Flag metadata for enhanced display
+const FLAG_METADATA: Record<string, { category: string; description: string; icon: string }> = {
+  payment_processing: {
+    category: 'Payments',
+    description: 'Controls whether new payments are processed. Disabling stops all new orders from being created.',
+    icon: 'CreditCard',
+  },
+  fulfillment: {
+    category: 'Fulfillment',
+    description: 'Controls whether orders are fulfilled (key delivery). Disabling pauses all fulfillment jobs.',
+    icon: 'Package',
+  },
+  email: {
+    category: 'Notifications',
+    description: 'Controls email notifications (order confirmations, key delivery emails).',
+    icon: 'Mail',
+  },
+  auto_fulfill: {
+    category: 'Fulfillment',
+    description: 'Automatically fulfill orders when payment is confirmed. Disable for manual fulfillment.',
+    icon: 'Package',
+  },
+  captcha: {
+    category: 'Security',
+    description: 'Require CAPTCHA verification on checkout to prevent bot abuse.',
+    icon: 'Shield',
+  },
+  maintenance_mode: {
+    category: 'System',
+    description: 'Put store in maintenance mode. Disables checkout for customers.',
+    icon: 'Wrench',
+  },
+  kinguin_enabled: {
+    category: 'Products',
+    description: 'Enable Kinguin marketplace integration. Allows creating products sourced from Kinguin API.',
+    icon: 'ShoppingCart',
+  },
+  custom_products_enabled: {
+    category: 'Products',
+    description: 'Enable custom product creation. Allows admins to create BitLoot-only products with manual key inventory.',
+    icon: 'ShoppingCart',
+  },
+};
+
+const CATEGORY_ORDER = ['Payments', 'Fulfillment', 'Products', 'Notifications', 'Security', 'System'];
+
+const CATEGORY_ICONS: Record<string, React.ReactNode> = {
+  Payments: <CreditCard className="h-5 w-5" />,
+  Fulfillment: <Package className="h-5 w-5" />,
+  Products: <ShoppingCart className="h-5 w-5" />,
+  Notifications: <Mail className="h-5 w-5" />,
+  Security: <Shield className="h-5 w-5" />,
+  System: <Wrench className="h-5 w-5" />,
+};
+
 /**
  * AdminFlagsPage - Feature flags management
  * Phase 3: Ops Panels & Monitoring
  * 
  * Allows admins to toggle feature flags at runtime:
- * - payment_processing_enabled
- * - fulfillment_enabled
- * - email_notifications_enabled
- * - auto_fulfill_enabled
- * - captcha_enabled
- * - maintenance_mode
+ * - Payments: payment_processing
+ * - Fulfillment: fulfillment, auto_fulfill
+ * - Products: kinguin_enabled, custom_products_enabled
+ * - Notifications: email
+ * - Security: captcha
+ * - System: maintenance_mode
  */
 export default function AdminFlagsPage(): React.ReactElement {
   const queryClient = useQueryClient();
@@ -60,6 +147,40 @@ export default function AdminFlagsPage(): React.ReactElement {
     staleTime: 30_000, // 30 seconds
   });
 
+  // Group flags by category
+  const groupedFlags = useMemo(() => {
+    const groups: Record<string, FeatureFlag[]> = {};
+    
+    for (const flag of flags) {
+      const flagName = flag.name ?? '';
+      const metadata = FLAG_METADATA[flagName];
+      const category = metadata?.category ?? 'Other';
+      
+      groups[category] ??= [];
+      groups[category].push(flag);
+    }
+    
+    // Sort groups by defined order
+    const sortedGroups: Record<string, FeatureFlag[]> = {};
+    for (const cat of CATEGORY_ORDER) {
+      const catFlags = groups[cat];
+      if (catFlags !== undefined) {
+        sortedGroups[cat] = catFlags;
+      }
+    }
+    // Add any other categories at the end
+    for (const cat of Object.keys(groups)) {
+      if (sortedGroups[cat] === undefined) {
+        const catFlags = groups[cat];
+        if (catFlags !== undefined) {
+          sortedGroups[cat] = catFlags;
+        }
+      }
+    }
+    
+    return sortedGroups;
+  }, [flags]);
+
   // Mutation for toggling a flag
   const toggleFlagMutation = useMutation<FeatureFlag, Error, FeatureFlag>({
     mutationFn: async (flag: FeatureFlag): Promise<FeatureFlag> => {
@@ -75,7 +196,7 @@ export default function AdminFlagsPage(): React.ReactElement {
       }
     },
     onSuccess: (_, flag) => {
-      setSuccessMessage(`✓ Flag "${flag.name}" toggled successfully`);
+      setSuccessMessage(`✓ Flag "${formatFlagName(flag.name ?? '')}" toggled successfully`);
       setTimeout(() => setSuccessMessage(null), 3000);
       void queryClient.invalidateQueries({ queryKey: ['admin', 'feature-flags'] });
     },
@@ -85,6 +206,10 @@ export default function AdminFlagsPage(): React.ReactElement {
       setTimeout(() => setErrorMessage(null), 5000);
     },
   });
+
+  // Count enabled/disabled flags
+  const enabledCount = flags.filter(f => f.enabled === true).length;
+  const disabledCount = flags.length - enabledCount;
 
   if (isLoading) {
     return (
@@ -116,15 +241,21 @@ export default function AdminFlagsPage(): React.ReactElement {
             Toggle features on/off at runtime without redeploying
           </p>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => refetch()}
-          disabled={isLoading}
-        >
-          <RefreshCw className="h-4 w-4 mr-2" />
-          Refresh
-        </Button>
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 text-sm">
+            <Badge variant="default" className="bg-green-600">{enabledCount} enabled</Badge>
+            <Badge variant="secondary">{disabledCount} disabled</Badge>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => refetch()}
+            disabled={isLoading}
+          >
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Refresh
+          </Button>
+        </div>
       </div>
 
       {/* Success Message */}
@@ -144,67 +275,72 @@ export default function AdminFlagsPage(): React.ReactElement {
         </Alert>
       ) : null}
 
-      {/* Flags Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {flags.map((flag: FeatureFlag) => (
-          <Card key={flag.name}>
-            <CardHeader>
-              <div className="flex justify-between items-start">
-                <div>
-                  <CardTitle className="text-lg">{formatFlagName(flag.name ?? '')}</CardTitle>
-                  <CardDescription className="mt-2">{flag.description}</CardDescription>
-                </div>
-                <Badge variant={(flag.enabled ?? false) ? 'default' : 'secondary'}>
-                  {(flag.enabled ?? false) ? 'Enabled' : 'Disabled'}
-                </Badge>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center space-x-3">
-                <Switch
-                  id={flag.name}
-                  checked={flag.enabled}
-                  onCheckedChange={() => toggleFlagMutation.mutate(flag)}
-                  disabled={(toggleFlagMutation.isPending ?? false)}
-                />
-                <Label htmlFor={flag.name} className="cursor-pointer">
-                  {(flag.enabled ?? false) ? 'Currently Enabled' : 'Currently Disabled'}
-                </Label>
-                {(toggleFlagMutation.isPending ?? false) && (
-                  <Loader className="h-4 w-4 animate-spin ml-auto text-primary" />
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+      {/* Flags by Category */}
+      {Object.entries(groupedFlags).map(([category, categoryFlags]) => (
+        <div key={category} className="space-y-4">
+          <div className="flex items-center gap-2">
+            {CATEGORY_ICONS[category]}
+            <h2 className="text-xl font-semibold">{category}</h2>
+            <Separator className="flex-1" />
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {categoryFlags.map((flag: FeatureFlag) => {
+              const flagName = flag.name ?? '';
+              const metadata = FLAG_METADATA[flagName];
+              const description = metadata?.description ?? flag.description ?? 'No description available';
+              
+              return (
+                <Card key={flag.name} className={flag.enabled === true ? 'border-green-200 bg-green-50/30' : ''}>
+                  <CardHeader className="pb-3">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <CardTitle className="text-lg">{formatFlagName(flagName)}</CardTitle>
+                        <CardDescription className="mt-2">{description}</CardDescription>
+                      </div>
+                      <Badge 
+                        variant={(flag.enabled ?? false) ? 'default' : 'secondary'}
+                        className={(flag.enabled ?? false) ? 'bg-green-600' : ''}
+                      >
+                        {(flag.enabled ?? false) ? 'Enabled' : 'Disabled'}
+                      </Badge>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex items-center space-x-3">
+                      <Switch
+                        id={flag.name}
+                        checked={flag.enabled}
+                        onCheckedChange={() => toggleFlagMutation.mutate(flag)}
+                        disabled={(toggleFlagMutation.isPending ?? false)}
+                      />
+                      <Label htmlFor={flag.name} className="cursor-pointer">
+                        {(flag.enabled ?? false) ? 'Currently Enabled' : 'Currently Disabled'}
+                      </Label>
+                      {(toggleFlagMutation.isPending ?? false) && (
+                        <Loader className="h-4 w-4 animate-spin ml-auto text-primary" />
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        </div>
+      ))}
 
-      {/* Info Card */}
-      <Card className="bg-blue-50 border-blue-200">
-        <CardHeader>
-          <CardTitle className="text-sm text-blue-900">💡 About Feature Flags</CardTitle>
-        </CardHeader>
-        <CardContent className="text-sm text-blue-800 space-y-2">
-          <p>
-            <strong>payment_processing_enabled:</strong> Controls whether payments are processed
-          </p>
-          <p>
-            <strong>fulfillment_enabled:</strong> Controls whether orders are fulfilled
-          </p>
-          <p>
-            <strong>email_notifications_enabled:</strong> Controls email notifications
-          </p>
-          <p>
-            <strong>auto_fulfill_enabled:</strong> Automatically fulfill orders when payment confirms
-          </p>
-          <p>
-            <strong>captcha_enabled:</strong> Require CAPTCHA on checkout
-          </p>
-          <p>
-            <strong>maintenance_mode:</strong> Disable checkout (put store in maintenance)
-          </p>
-        </CardContent>
-      </Card>
+      {/* Warning for critical flags */}
+      <Alert className="bg-amber-50 border-amber-200">
+        <AlertCircle className="h-4 w-4 text-amber-600" />
+        <AlertTitle className="text-amber-900">⚠️ Important</AlertTitle>
+        <AlertDescription className="text-amber-800">
+          <ul className="list-disc list-inside space-y-1 mt-2">
+            <li><strong>Maintenance Mode:</strong> Will block all customer checkouts when enabled</li>
+            <li><strong>Payment Processing:</strong> Disabling will prevent new orders from being created</li>
+            <li><strong>Kinguin / Custom Products:</strong> Disabling will prevent creation of products from those sources and block fulfillment</li>
+          </ul>
+        </AlertDescription>
+      </Alert>
     </div>
   );
 }

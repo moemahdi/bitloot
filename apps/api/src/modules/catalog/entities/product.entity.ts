@@ -10,11 +10,19 @@ import {
 import { ProductOffer } from './product-offer.entity';
 import { DynamicPricingRule } from './dynamic-pricing-rule.entity';
 
+/**
+ * Product source type for hybrid fulfillment model
+ * - 'custom': Fulfilled manually (admin uploads keys to R2)
+ * - 'kinguin': Fulfilled automatically via Kinguin API
+ */
+export type ProductSourceType = 'custom' | 'kinguin';
+
 @Entity('products')
 @Index(['isPublished', 'price', 'createdAt'])
 @Index(['platform', 'region', 'isPublished'])
 @Index(['slug'])
 @Index(['category', 'isPublished'])
+@Index(['sourceType'])
 export class Product {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
@@ -49,6 +57,28 @@ export class Product {
   @Column({ type: 'varchar', length: 50, nullable: true })
   category?: string;
 
+  /**
+   * Source type for fulfillment routing
+   * - 'custom': Manual fulfillment (you upload the key)
+   * - 'kinguin': Automatic fulfillment via Kinguin API
+   */
+  @Column({
+    type: 'enum',
+    enum: ['custom', 'kinguin'],
+    default: 'custom',
+  })
+  sourceType!: ProductSourceType;
+
+  /**
+   * Kinguin offer ID - required when sourceType = 'kinguin'
+   * This is the offer ID from Kinguin's catalog
+   */
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  kinguinOfferId?: string;
+
+  /**
+   * @deprecated Use sourceType instead. Kept for backward compatibility.
+   */
   @Column({ type: 'boolean', default: false })
   isCustom!: boolean;
 

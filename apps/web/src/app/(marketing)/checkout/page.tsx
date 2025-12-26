@@ -17,7 +17,8 @@ import { z } from 'zod';
 import { toast } from 'sonner';
 import { ChevronLeft, CheckCircle2, AlertCircle } from 'lucide-react';
 import { useMutation } from '@tanstack/react-query';
-import { OrdersApi, Configuration } from '@bitloot/sdk';
+import { OrdersApi } from '@bitloot/sdk';
+import { apiConfig } from '@/lib/api-config';
 import type { OrderResponseDto } from '@bitloot/sdk';
 import { CheckoutProgress } from '@/components/checkout/CheckoutProgress';
 import { PaymentStatusTracker, type PaymentStatus } from '@/components/checkout/PaymentStatusTracker';
@@ -37,9 +38,6 @@ type EmailFormData = z.infer<typeof emailSchema>;
 type CheckoutStep = 'review' | 'email' | 'payment' | 'confirmation';
 
 // Initialize SDK client
-const apiConfig = new Configuration({
-  basePath: process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000',
-});
 const ordersClient = new OrdersApi(apiConfig);
 
 export default function CheckoutPage(): React.ReactElement | void {

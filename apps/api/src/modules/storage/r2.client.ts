@@ -333,6 +333,162 @@ export class R2StorageClient {
   }
 
   /**
+   * Check if a file exists at arbitrary path in R2
+   *
+   * Generic method for checking existence at any path.
+   * Used for custom product keys stored outside standard order paths.
+   *
+   * @param path Full path to the file (e.g., 'products/{productId}/key.json')
+   * @returns true if file exists, false otherwise
+   *
+   * @throws Error if check fails (network/permission error)
+   *
+   * @example
+   * const exists = await client.exists('products/550e8400.../key.json');
+   */
+  async exists(path: string): Promise<boolean> {
+    if (path === '' || path === null || path === undefined) {
+      throw new Error('Invalid path: must be a non-empty string');
+    }
+
+    try {
+      this.logger.debug(`Checking if file exists: ${path}`);
+
+      const command = new GetObjectCommand({
+        Bucket: this.bucketName,
+        Key: path,
+      });
+
+      const response = await this.s3.send(command);
+      const exists = response.ContentLength !== undefined && response.ContentLength > 0;
+
+      if (exists) {
+        this.logger.debug(`✅ File exists in R2: ${path}`);
+      } else {
+        this.logger.warn(`⚠️ File not found or empty: ${path}`);
+      }
+
+      return exists;
+    } catch (error) {
+      const message = this.extractErrorMessage(error);
+      if (message.includes('NoSuchKey') || message.includes('404')) {
+        this.logger.debug(`File not found: ${path}`);
+        return false;
+      }
+      this.logger.error(`❌ Failed to check file existence: ${message}`);
+      throw new Error(`R2 existence check failed: ${message}`);
+    }
+  }
+
+  /**
+   * Generate signed URL for arbitrary path in R2
+   *
+   * Generic method for generating signed URLs at any path.
+   * Used for custom product keys stored outside standard order paths.
+   *
+   * @param params URL generation parameters
+   * @param params.path Full path to the file
+   * @param params.expiresInSeconds URL expiry time (default: 900 = 15 min)
+   *
+   * @returns Signed download URL
+   *
+   * @example
+   * const url = await client.generateSignedUrlForPath({
+   *   path: 'products/550e8400.../key.json',
+   *   expiresInSeconds: 900,
+   * });
+   */
+  async generateSignedUrlForPath(params: {
+    path: string;
+    expiresInSeconds?: number;
+  }): Promise<string> {
+    if (params.path === '' || params.path === null || params.path === undefined) {
+      throw new Error('Invalid path: must be a non-empty string');
+    }
+
+    const expiresInSeconds = params.expiresInSeconds ?? 900;
+
+    if (typeof expiresInSeconds !== 'number' || expiresInSeconds < 1 || expiresInSeconds > 604800) {
+      throw new Error('Invalid expiresInSeconds: must be between 1 and 604800 (7 days)');
+    }
+
+    try {
+      this.logger.debug(`Generating signed URL for path: ${params.path} (expires in ${expiresInSeconds}s)`);
+
+      const input: GetObjectCommandInput = {
+        Bucket: this.bucketName,
+        Key: params.path,
+        ResponseContentDisposition: `attachment; filename="bitloot-key.json"`,
+      };
+
+      const command = new GetObjectCommand(input);
+      const url = await getSignedUrl(this.s3, command, { expiresIn: expiresInSeconds });
+
+      this.logger.log(`✅ Signed URL generated for path: ${params.path}`);
+      return url;
+    } catch (error) {
+      const message = this.extractErrorMessage(error);
+      this.logger.error(`❌ Failed to generate signed URL for path: ${message}`);
+      throw new Error(`R2 signed URL generation failed: ${message}`);
+    }
+  }
+
+  /**
+   * Upload file to arbitrary path in R2
+   *
+   * Generic method for uploading files to any path.
+   * Used for custom product key uploads by admin.
+   *
+   * @param params Upload parameters
+   * @param params.path Full path to store the file
+   * @param params.data File content (JSON object or string)
+   * @param params.metadata Optional metadata
+   *
+   * @returns S3 ETag
+   *
+   * @example
+   * const etag = await client.uploadToPath({
+   *   path: 'products/550e8400.../key.json',
+   *   data: { keys: ['KEY-123', 'KEY-456'] },
+   * });
+   */
+  async uploadToPath(params: {
+    path: string;
+    data: Record<string, unknown> | string;
+    metadata?: Record<string, string>;
+  }): Promise<string> {
+    if (params.path === '' || params.path === null || params.path === undefined) {
+      throw new Error('Invalid path: must be a non-empty string');
+    }
+
+    try {
+      this.logger.debug(`Uploading to path: ${params.path}`);
+
+      const body = typeof params.data === 'string' ? params.data : JSON.stringify(params.data);
+
+      const input: PutObjectCommandInput = {
+        Bucket: this.bucketName,
+        Key: params.path,
+        Body: body,
+        ContentType: 'application/json',
+        Metadata: params.metadata ?? {},
+      };
+
+      const command = new PutObjectCommand(input);
+      const response = await this.s3.send(command);
+
+      const etag = response.ETag ?? 'unknown';
+      this.logger.log(`✅ File uploaded to R2: ${params.path} (ETag: ${etag})`);
+
+      return etag;
+    } catch (error) {
+      const message = this.extractErrorMessage(error);
+      this.logger.error(`❌ Failed to upload to path: ${message}`);
+      throw new Error(`R2 upload failed: ${message}`);
+    }
+  }
+
+  /**
    * Health check for R2 connection
    *
    * Attempts a simple operation to verify R2 connectivity.

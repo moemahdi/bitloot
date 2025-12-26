@@ -21,16 +21,7 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { toast } from 'sonner';
 
-// Initialize SDK configuration
-const apiConfig = new Configuration({
-    basePath: process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000',
-    accessToken: (): string => {
-        if (typeof window !== 'undefined') {
-            return localStorage.getItem('accessToken') ?? '';
-        }
-        return '';
-    },
-});
+import { apiConfig } from '@/lib/api-config';
 
 const ordersClient = new OrdersApi(apiConfig);
 const fulfillmentClient = new FulfillmentApi(apiConfig);

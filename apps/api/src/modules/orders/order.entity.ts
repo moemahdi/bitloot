@@ -13,6 +13,7 @@ import { OrderItem } from './order-item.entity';
 import { Payment } from '../payments/payment.entity';
 import { Key } from './key.entity';
 import { User } from '../../database/entities/user.entity';
+import type { ProductSourceType } from '../catalog/entities/product.entity';
 
 /**
  * OrderStatus — Comprehensive order lifecycle states
@@ -38,6 +39,7 @@ export type OrderStatus =
 @Entity('orders')
 @Index(['userId', 'createdAt']) // For user order lookups sorted by date
 @Index(['status', 'createdAt']) // For status filtering
+@Index(['sourceType']) // For filtering by source type
 export class Order {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
@@ -56,6 +58,19 @@ export class Order {
   @ManyToOne(() => User, { onDelete: 'SET NULL' })
   @JoinColumn({ name: 'userId' })
   user?: User;
+
+  /**
+   * Source type for fulfillment routing
+   * - 'custom': Manual fulfillment (keys already uploaded to R2)
+   * - 'kinguin': Automatic fulfillment via Kinguin API
+   * Derived from product sourceType at order creation time
+   */
+  @Column({
+    type: 'enum',
+    enum: ['custom', 'kinguin'],
+    default: 'custom',
+  })
+  sourceType!: ProductSourceType;
 
   /**
    * Status field — updated via Payment status machine
@@ -89,7 +104,7 @@ export class Order {
   @OneToMany(() => OrderItem, (i) => i.order, { cascade: true })
   items!: OrderItem[];
 
-  @OneToMany(() => Payment, (p) => p.order, { lazy: true })
+  @OneToMany(() => Payment, (p) => p.order)
   payments!: Payment[];
 
   /**
@@ -98,7 +113,7 @@ export class Order {
    * Each order item can have multiple keys (bundle purchases)
    * Cascade delete ensures keys are removed if order is deleted
    */
-  @OneToMany(() => Key, (k) => k.orderItem, { lazy: true })
+  @OneToMany(() => Key, (k) => k.orderItem)
   keys!: Key[];
 
   @CreateDateColumn() createdAt!: Date;

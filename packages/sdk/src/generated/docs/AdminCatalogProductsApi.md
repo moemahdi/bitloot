@@ -79,6 +79,7 @@ example().catch(console.error);
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
 | **201** |  |  -  |
+| **403** | Feature disabled |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
@@ -225,7 +226,7 @@ example().catch(console.error);
 
 ## adminProductsControllerListAll
 
-> Array&lt;AdminProductResponseDto&gt; adminProductsControllerListAll(search, platform, region, published)
+> Array&lt;AdminProductResponseDto&gt; adminProductsControllerListAll(search, platform, region, published, source)
 
 List all products (admin - no pagination limit)
 
@@ -255,6 +256,8 @@ async function example() {
     region: region_example,
     // string
     published: published_example,
+    // string
+    source: source_example,
   } satisfies AdminProductsControllerListAllRequest;
 
   try {
@@ -278,6 +281,7 @@ example().catch(console.error);
 | **platform** | `string` |  | [Defaults to `undefined`] |
 | **region** | `string` |  | [Defaults to `undefined`] |
 | **published** | `string` |  | [Defaults to `undefined`] |
+| **source** | `string` |  | [Defaults to `undefined`] |
 
 ### Return type
 

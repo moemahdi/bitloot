@@ -484,6 +484,8 @@ export class CatalogService {
     price: string;
     currency?: string;
     isPublished?: boolean;
+    sourceType?: 'custom' | 'kinguin';
+    kinguinOfferId?: string;
   }): Promise<Product> {
     const product = this.productRepo.create({
       title: data.title,
@@ -498,7 +500,9 @@ export class CatalogService {
       price: data.price,
       currency: data.currency ?? 'USD',
       isPublished: data.isPublished ?? false,
-      isCustom: true,
+      isCustom: data.sourceType !== 'kinguin',
+      sourceType: data.sourceType ?? 'custom',
+      kinguinOfferId: data.kinguinOfferId,
       slug: this.slugify(data.title, data.title),
       externalId: `custom-${Date.now()}`,
     });
@@ -523,6 +527,8 @@ export class CatalogService {
       cost: string;
       price: string;
       currency: string;
+      sourceType: 'custom' | 'kinguin';
+      kinguinOfferId: string;
     }>,
   ): Promise<Product> {
     const product = await this.productRepo.findOne({ where: { id } });
@@ -542,6 +548,11 @@ export class CatalogService {
     if (typeof data.cost === 'string') product.cost = data.cost;
     if (typeof data.price === 'string') product.price = data.price;
     if (typeof data.currency === 'string') product.currency = data.currency;
+    if (typeof data.sourceType === 'string') {
+      product.sourceType = data.sourceType;
+      product.isCustom = data.sourceType !== 'kinguin';
+    }
+    if (typeof data.kinguinOfferId === 'string') product.kinguinOfferId = data.kinguinOfferId;
 
     return this.productRepo.save(product);
   }
@@ -595,6 +606,7 @@ export class CatalogService {
     platform?: string,
     region?: string,
     published?: boolean,
+    source?: string,
   ): Promise<Product[]> {
     let query = this.productRepo.createQueryBuilder('product');
 
@@ -619,6 +631,11 @@ export class CatalogService {
     // Optional published filter
     if (typeof published === 'boolean') {
       query = query.andWhere('product.isPublished = :published', { published });
+    }
+
+    // Optional source filter
+    if (typeof source === 'string' && source.length > 0) {
+      query = query.andWhere('product.sourceType = :source', { source });
     }
 
     return query.orderBy('product.createdAt', 'DESC').getMany();

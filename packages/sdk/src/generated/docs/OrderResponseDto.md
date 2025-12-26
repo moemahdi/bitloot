@@ -10,6 +10,8 @@ Name | Type
 `email` | string
 `userId` | string
 `status` | string
+`sourceType` | string
+`kinguinReservationId` | string
 `total` | string
 `items` | [Array&lt;OrderItemResponseDto&gt;](OrderItemResponseDto.md)
 `createdAt` | Date
@@ -26,6 +28,8 @@ const example = {
   "email": null,
   "userId": null,
   "status": null,
+  "sourceType": custom,
+  "kinguinReservationId": null,
   "total": null,
   "items": null,
   "createdAt": null,

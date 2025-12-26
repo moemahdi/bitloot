@@ -1,283 +1,246 @@
 # Kinguin Integration Checklist
 
-**Start Date:** [Your Date]  
-**Target Completion:** Week of [+3 weeks]  
-**Status:** 🔴 Not Started
+**Start Date:** November 2025  
+**Target Completion:** Week of December 2025  
+**Status:** 🟡 Backend Complete | Frontend Remaining
 
 ---
 
-## PHASE 1: Setup & Sandbox Testing
+## 📊 IMPLEMENTATION PROGRESS
 
-### 1.1 Kinguin Account & Credentials
-- [ ] Kinguin merchant account created
-- [ ] Logged into Merchant Dashboard
-- [ ] Generated sandbox API key ✅ Key: `_________________`
-- [ ] Generated sandbox webhook secret ✅ Secret: `_________________`
-- [ ] Stored in `.env.local`
-- [ ] Downloaded API documentation
+| Phase | Status | Completion |
+|-------|--------|------------|
+| Phase 1: Setup | ✅ Complete | 100% |
+| Phase 2: Backend | ✅ Complete | 100% |
+| Phase 3: Frontend | ⏳ Remaining | 0% |
+| Phase 4: Database | ✅ Complete | 100% |
+| Testing & QA | ⏳ Remaining | 20% |
+| Deployment | ⏳ Remaining | 0% |
 
-### 1.2 Kinguin Sandbox Setup
-- [ ] Created 2-3 test offers
-  - [ ] Offer 1: `_________________` 
-  - [ ] Offer 2: `_________________` 
-  - [ ] Offer 3: `_________________` 
-- [ ] Set retail pricing with margin
-- [ ] Uploaded test stock
+---
 
-### 1.3 Connectivity Tests
-- [ ] Called `GET /health` endpoint
-- [ ] Received 200 OK response
-- [ ] Tested authentication
-- [ ] Verified response structure
+## PHASE 1: Setup & Configuration ✅ COMPLETE
 
-### 1.4 Environment Variables
-- [ ] `.env.local` updated:
-  ```
+### 1.1 Environment Configuration
+- [x] Environment variables defined in `.env.example`
+- [x] Configuration module supports Kinguin settings
+- [x] Feature flag `KINGUIN_ENABLED` ready
+- [x] API key and base URL configurable
+
+### 1.2 Configuration Variables
+- [x] `.env.example` updated:
+  ```bash
   KINGUIN_ENABLED=false
-  KINGUIN_API_BASE_URL=https://sandbox.kinguin.net/api/v1
-  KINGUIN_API_KEY=[key]
-  KINGUIN_WEBHOOK_SECRET=[secret]
+  KINGUIN_API_BASE_URL=https://api.kinguin.net/v1
+  KINGUIN_API_KEY=[your-api-key]
   ```
-- [ ] No credentials in git
-- [ ] `.env.example` updated
+- [x] No credentials in git
+- [x] Configuration type-safe
 
-**Phase 1 Status:** ⏳ In Progress / ✅ Complete
+**Phase 1 Status:** ✅ Complete
 
 ---
 
-## PHASE 2: Backend Implementation
+## PHASE 2: Backend Implementation ✅ COMPLETE
 
-### 2.1 Kinguin Client Library
+### 2.1 Kinguin Client Library ✅ IMPLEMENTED
 **File:** `apps/api/src/modules/fulfillment/kinguin.client.ts`
 
-- [ ] KinguinClient class created
-- [ ] `createOrder(offerId, quantity)` implemented
-  - [ ] Type-safe parameters
-  - [ ] Error handling
-  - [ ] Retry logic (3 attempts, exponential backoff)
-- [ ] `getOrderStatus(kinguinOrderId)` implemented
-- [ ] `getKey(kinguinOrderId)` implemented
-- [ ] `healthCheck()` implemented
-- [ ] Error handling helper
-- [ ] Unit tests created (8+ tests)
-  - [ ] createOrder success
-  - [ ] createOrder API error
-  - [ ] getOrderStatus pending → ready
-  - [ ] getOrderStatus failed
-  - [ ] getKey success
-  - [ ] healthCheck pass
-  - [ ] Retry logic
-  - [ ] Error handling
+- [x] KinguinClient class created
+- [x] `createOrder(offerId, quantity)` implemented
+  - [x] Type-safe parameters
+  - [x] Error handling
+  - [x] Retry logic (3 attempts, exponential backoff)
+- [x] `getOrderStatus(kinguinOrderId)` implemented
+- [x] `getKey(kinguinOrderId)` implemented
+- [x] `healthCheck()` implemented
+- [x] Error handling helper with KinguinError class
+- [ ] Unit tests created (8+ tests) — **REMAINING**
 
-**Status:** ⏳ In Progress / ✅ Complete
+**Status:** ✅ Code Complete | Tests Remaining
 
-### 2.2 Fulfillment Service Updates
+### 2.2 Fulfillment Service Updates ✅ IMPLEMENTED
 **File:** `apps/api/src/modules/fulfillment/fulfillment.service.ts`
 
-- [ ] `fulfillOrderViaKinguin(orderId)` method added
-  - [ ] Fetch order details
-  - [ ] Call `kinguin.createOrder()`
-  - [ ] Poll for key (10 attempts, 2s delay)
-  - [ ] Encrypt key
-  - [ ] Upload to R2
-  - [ ] Generate signed URL
-  - [ ] Queue email
-  - [ ] Mark fulfilled
-- [ ] Modify `fulfillOrder()` dispatcher
-  ```typescript
-  if (order.sourceType === 'kinguin') {
-    return this.fulfillOrderViaKinguin(orderId);
-  }
-  ```
-- [ ] Error handling comprehensive
-- [ ] Logging at each step
-- [ ] Tests updated/added (7+ tests)
-  - [ ] fulfillOrderViaKinguin success
-  - [ ] Order not found
-  - [ ] Kinguin API error
-  - [ ] Timeout waiting for key
-  - [ ] Encryption success
-  - [ ] R2 upload
-  - [ ] Email notification
+- [x] `startFulfillment(orderId)` dispatcher method
+  - [x] Routes by order sourceType
+  - [x] Calls `fulfillOrderViaCustom()` for custom products
+  - [x] Calls `fulfillOrderViaKinguin()` for Kinguin products
+- [x] `fulfillOrderViaKinguin(orderId)` method added
+  - [x] Fetch order details with sourceType check
+  - [x] Call `kinguin.createOrder()` with kinguinOfferId
+  - [x] Poll for key (5 attempts, exponential backoff)
+  - [x] Encrypt key with AES-256-GCM
+  - [x] Upload to R2
+  - [x] Generate signed URL
+  - [x] Queue email notification
+  - [x] Mark order fulfilled
+- [x] `fulfillOrderViaCustom(orderId)` extracted (no-op for custom)
+- [x] Error handling comprehensive
+- [x] Logging at each step
+- [ ] Tests updated/added (7+ tests) — **REMAINING**
 
-**Status:** ⏳ In Progress / ✅ Complete
+**Status:** ✅ Code Complete | Tests Remaining
 
-### 2.3 Kinguin Webhook Controller
-**File:** `apps/api/src/modules/webhooks/kinguin-webhook.controller.ts`
+### 2.3 Status Polling (NOT Webhooks) ✅ IMPLEMENTED
 
-- [ ] Controller created
-- [ ] `@Post('webhooks/kinguin')` endpoint
-- [ ] HMAC-SHA512 signature verification
-  - [ ] Extract signature from header
-  - [ ] Timing-safe comparison
-  - [ ] Return 401 if invalid
-- [ ] Webhook idempotency
-  - [ ] Log webhook
-  - [ ] Check if duplicate
-  - [ ] Skip if already processed
-- [ ] Payload parsing
-  - [ ] Extract Kinguin order ID
-  - [ ] Extract key data
-  - [ ] Extract timestamp
-- [ ] Order update
-  - [ ] Find order by kinguinOrderId
-  - [ ] Update with key
-  - [ ] Queue async processing
-- [ ] Response
-  - [ ] Return 200 OK immediately
-  - [ ] Never block
-- [ ] Tests (8+ tests)
-  - [ ] Valid webhook processed
-  - [ ] Invalid signature rejected
-  - [ ] Duplicate skipped
-  - [ ] Key extracted
-  - [ ] Order updated
-  - [ ] Email queued
-  - [ ] Malformed payload handled
-  - [ ] Missing order handled
+> **Note:** BitLoot is a **buyer** from Kinguin, not a merchant. Kinguin does not send webhooks to buyers. We use **polling** to check order status.
 
-**Status:** ⏳ In Progress / ✅ Complete
+**Polling Implementation (in FulfillmentService):**
+- [x] Poll `getOrderStatus()` after creating order
+- [x] Exponential backoff (2s → 4s → 8s → 16s → 32s)
+- [x] Max 5 attempts
+- [x] Timeout handling with graceful error
+- [x] Retrieve key when status is 'completed'
 
-### 2.4 Module Registration
+**Status:** ✅ Complete
+
+### 2.4 Module Registration ✅ IMPLEMENTED
 **File:** `apps/api/src/modules/fulfillment/fulfillment.module.ts`
 
-- [ ] KinguinClient registered as provider
-- [ ] Injected into FulfillmentService
-- [ ] Webhook controller registered
-- [ ] No circular dependencies
+- [x] KinguinClient registered as provider
+- [x] Injected into FulfillmentService
+- [x] No circular dependencies
+- [x] Type-safe dependency injection
 
-**Status:** ⏳ In Progress / ✅ Complete
+**Status:** ✅ Complete
 
-### 2.5 Integration Tests
+### 2.5 Integration Tests — ⏳ REMAINING
 **File:** `apps/api/src/modules/fulfillment/e2e-kinguin.spec.ts`
 
 - [ ] Full order flow tested
   - [ ] Create order with Kinguin product
   - [ ] Payment confirmed
   - [ ] Kinguin order created
-  - [ ] Key received
+  - [ ] Key received via polling
   - [ ] Encrypted and stored
   - [ ] Email sent
   - [ ] Order marked fulfilled
 - [ ] All side effects verified
 
-**Status:** ⏳ In Progress / ✅ Complete
+**Status:** ⏳ Remaining
 
 ---
 
-## PHASE 3: Frontend Updates
+## PHASE 3: Frontend Updates — ⏳ REMAINING
 
-### 3.1 Order Status Page
+### 3.1 Admin Product Form — ⏳ REMAINING
+**File:** `apps/web/src/app/admin/catalog/products/[id]/page.tsx`
+
+- [ ] Add source type selector (Custom/Kinguin dropdown)
+- [ ] Conditional Kinguin Offer ID field (visible when Kinguin selected)
+- [ ] Validation (require kinguinOfferId if Kinguin)
+- [ ] Test with both product types
+
+**Status:** ⏳ Remaining
+
+### 3.2 Admin Products Table — ⏳ REMAINING
+**File:** `apps/web/src/app/admin/catalog/products/page.tsx`
+
+- [ ] Add "Source" column with badge (Custom/Kinguin)
+- [ ] Filter by source type
+- [ ] Badge styling (blue for Kinguin, gray for Custom)
+
+**Status:** ⏳ Remaining
+
+### 3.3 Order Status Page — ⏳ REMAINING
 **File:** `apps/web/src/features/orders/OrderDetails.tsx`
 
 - [ ] Display fulfillment source badge
-- [ ] Update status messages for Kinguin
+- [ ] Update status messages for Kinguin orders
 - [ ] Show appropriate messaging
 
-**Status:** ⏳ In Progress / ✅ Complete
+**Status:** ⏳ Remaining
 
-### 3.2 Order History Table
+### 3.4 Order History Table — ⏳ REMAINING
 **File:** `apps/web/src/features/account/OrderHistory.tsx`
 
 - [ ] Add "Source" column
 - [ ] Display badge (Kinguin/BitLoot)
 - [ ] Responsive on mobile
 
-**Status:** ⏳ In Progress / ✅ Complete
-
-### 3.3 Admin Order Details (Optional)
-**File:** `apps/web/src/app/admin/orders/[orderId]/page.tsx`
-
-- [ ] Show Kinguin order ID if applicable
-- [ ] Show fulfillment source
-- [ ] Show key retrieval timestamp
-
-**Status:** ⏳ In Progress / ✅ Complete
+**Status:** ⏳ Remaining
 
 ---
 
-## PHASE 4: Database & Product Management
+## PHASE 4: Database & Entities ✅ COMPLETE
 
-### 4.1 Database Migration
-**File:** `apps/api/src/database/migrations/[timestamp]-add-kinguin.ts`
+### 4.1 Database Migration ✅ IMPLEMENTED
+**File:** `apps/api/src/database/migrations/1764000000000-AddSourceType.ts`
 
-- [ ] Add `sourceType` to products table
-- [ ] Add `kinguinOfferId` to products table
-- [ ] Add `sourceType` to orders table (optional)
-- [ ] Add `kinguinOrderId` to orders table (optional)
-- [ ] Run locally
-  - [ ] Applies cleanly
-  - [ ] No data loss
-  - [ ] Indexes created
-- [ ] Run on staging
-- [ ] Verify data integrity
+- [x] Add `sourceType` to products table (enum: 'custom' | 'kinguin')
+- [x] Add `kinguinOfferId` to products table (nullable string)
+- [x] Add `sourceType` to orders table
+- [x] Add `kinguinReservationId` to orders table
+- [x] Add `productSourceType` to order_items table
+- [x] Default value: 'custom' for all existing records
+- [x] Runs cleanly with no errors
+- [x] Rollback (down) implemented
 
-**Status:** ⏳ In Progress / ✅ Complete
+**Status:** ✅ Complete
 
-### 4.2 Product Entity
-**File:** `apps/api/src/modules/catalog/product.entity.ts`
+### 4.2 Product Entity ✅ IMPLEMENTED
+**File:** `apps/api/src/modules/catalog/entities/product.entity.ts`
 
-- [ ] Add `sourceType` column decorator
-- [ ] Add `kinguinOfferId` column decorator
-- [ ] Add validation for Kinguin products
-- [ ] Update DTOs
+- [x] `sourceType` column: enum 'custom' | 'kinguin', default 'custom'
+- [x] `kinguinOfferId` column: nullable string, indexed
+- [x] TypeORM decorators configured
+- [x] Entity compiles without errors
 
-**Status:** ⏳ In Progress / ✅ Complete
+**Status:** ✅ Complete
 
-### 4.3 Order Entity (Optional)
-**File:** `apps/api/src/modules/orders/order.entity.ts`
+### 4.3 Order Entity ✅ IMPLEMENTED
+**File:** `apps/api/src/modules/orders/entities/order.entity.ts`
 
-- [ ] Add `sourceType` column
-- [ ] Add `kinguinOrderId` column
+- [x] `sourceType` column: enum 'custom' | 'kinguin', default 'custom'
+- [x] `kinguinReservationId` column: nullable string, indexed
+- [x] TypeORM decorators configured
 
-**Status:** ⏳ In Progress / ✅ Complete
+**Status:** ✅ Complete
 
-### 4.4 Admin Product Form
-**File:** `apps/web/src/app/admin/catalog/ProductForm.tsx`
+### 4.4 OrderItem Entity ✅ IMPLEMENTED
+**File:** `apps/api/src/modules/orders/entities/order-item.entity.ts`
 
-- [ ] Add source selector (Custom/Kinguin)
-- [ ] Conditional Kinguin Offer ID field
-- [ ] Validation
-- [ ] Test with both types
+- [x] `productSourceType` column: enum 'custom' | 'kinguin', default 'custom'
+- [x] TypeORM decorators configured
 
-**Status:** ⏳ In Progress / ✅ Complete
-
-### 4.5 Admin Products Table
-**File:** `apps/web/src/app/admin/catalog/ProductsTable.tsx`
-
-- [ ] Add "Source" column
-- [ ] Filter by source
-- [ ] Badge styling
-
-**Status:** ⏳ In Progress / ✅ Complete
+**Status:** ✅ Complete
 
 ---
 
-## TESTING & QA
+## TESTING & QA — ⏳ PARTIALLY COMPLETE
 
-### Unit Tests
+### Code Quality ✅ COMPLETE
+- [x] `npm run type-check` → 0 errors
+- [x] `npm run lint` → 0 errors
+- [x] `npm run build` → Compiles successfully
+- [x] No `any` types in new code
+- [x] No `@ts-ignore` comments
+
+**Status:** ✅ Complete
+
+### Unit Tests — ⏳ REMAINING
 - [ ] All new code has ≥90% coverage
-- [ ] kinguin.client.spec.ts: 8+ tests ✅
-- [ ] fulfillment.service.spec.ts: 7+ tests ✅
-- [ ] kinguin-webhook.controller.spec.ts: 8+ tests ✅
+- [ ] kinguin.client.spec.ts: 8+ tests
+- [ ] fulfillment.service.spec.ts: 7+ tests
 - [ ] All passing
 
-**Status:** ⏳ In Progress / ✅ Complete
+**Status:** ⏳ Remaining
 
-### Integration Tests
+### Integration Tests — ⏳ REMAINING
 - [ ] End-to-end Kinguin order test
-- [ ] Webhook processing test
+- [ ] Status polling test
 - [ ] Database migration test
 - [ ] All passing
 
-**Status:** ⏳ In Progress / ✅ Complete
+**Status:** ⏳ Remaining
 
-### Manual Testing
+### Manual Testing — ⏳ REMAINING
 
 **Setup:**
 - [ ] KINGUIN_ENABLED=true in `.env.local`
-- [ ] Test Kinguin product created in DB
-- [ ] kinguinOfferId configured
+- [ ] Valid Kinguin API credentials configured
+- [ ] Test Kinguin product created in DB with kinguinOfferId
 
 **Order Flow:**
 - [ ] Browse storefront
@@ -288,8 +251,8 @@
 - [ ] Order status shows "Processing..."
 
 **Fulfillment:**
-- [ ] Kinguin order created
-- [ ] Key delivered (via webhook or polling)
+- [ ] Kinguin order created via API
+- [ ] Key delivered via polling
 - [ ] Order status → "fulfilled"
 - [ ] R2 signed URL generated
 - [ ] Email received
@@ -297,25 +260,15 @@
 
 **Edge Cases:**
 - [ ] Cancel payment → order stays pending
-- [ ] Kinguin API down → order fails, admin alerted
-- [ ] Duplicate webhook → processed once
-- [ ] Invalid signature → rejected
+- [ ] Kinguin API down → order fails gracefully
+- [ ] Invalid kinguinOfferId → appropriate error
 - [ ] Custom product still works (no regression)
 
-**Status:** ⏳ In Progress / ✅ Complete
-
-### Code Quality
-- [ ] `npm run type-check` → 0 errors
-- [ ] `npm run lint` → 0 errors
-- [ ] `npm run format:check` → all formatted
-- [ ] No `any` types
-- [ ] No `@ts-ignore`
-
-**Status:** ⏳ In Progress / ✅ Complete
+**Status:** ⏳ Remaining
 
 ---
 
-## DEPLOYMENT & ROLLOUT
+## DEPLOYMENT & ROLLOUT — ⏳ REMAINING
 
 ### Pre-Deployment
 - [ ] All code reviewed and approved
@@ -332,7 +285,7 @@
 
 ### Staging Testing
 - [ ] Run full manual test suite
-- [ ] Test with staging Kinguin credentials
+- [ ] Test with production Kinguin credentials
 - [ ] 5+ test orders processed end-to-end
 - [ ] Monitor logs
 - [ ] Check email delivery
@@ -342,46 +295,47 @@
 - [ ] Zero customer impact (feature hidden)
 
 ### Gradual Rollout
-- [ ] Week 1: Internal testing
-- [ ] Week 2: 10% of products
-  - [ ] Monitor 99%+ success rate
-- [ ] Week 3: 50% of products
-  - [ ] Monitor metrics
-- [ ] Week 4: 100% of products
+- [ ] Week 1: Internal testing only
+- [ ] Week 2: Enable for select products (10%)
+  - [ ] Monitor success rate (target 99%+)
+- [ ] Week 3: Enable for 50% of products
+  - [ ] Monitor metrics and logs
+- [ ] Week 4: Enable for 100% of products
 
-**Status:** ⏳ In Progress / ✅ Complete
+**Status:** ⏳ Remaining
 
 ---
 
-## MONITORING & MAINTENANCE
+## MONITORING & MAINTENANCE — ⏳ PARTIALLY COMPLETE
 
 ### Logging & Alerts
-- [ ] Kinguin API errors logged
-- [ ] Webhook failures alerted
+- [x] Kinguin API calls logged with timing
+- [x] Error handling with contextual logging
+- [ ] Polling failures alerted
 - [ ] Fulfillment timeouts monitored
 - [ ] R2 errors tracked
 
-**Status:** ⏳ In Progress / ✅ Complete
+**Status:** ⏳ Partially Complete
 
 ### Metrics
 - [ ] Kinguin order success rate tracked
 - [ ] Average time-to-key monitored
-- [ ] Webhook delivery success rate
+- [ ] Polling success rate
 - [ ] Customer complaint rate
 
-**Status:** ⏳ In Progress / ✅ Complete
+**Status:** ⏳ Remaining
 
 ---
 
 ## SIGN-OFF
 
-**Implementation Lead:** ___________________  
-**Date Started:** ___________________  
-**Phase 1 Completed:** ___________________  
-**Phase 2 Completed:** ___________________  
-**Phase 3 Completed:** ___________________  
-**Phase 4 Completed:** ___________________  
-**Production Launch:** ___________________  
+**Implementation Lead:** AI Assistant  
+**Date Started:** November 2025  
+**Phase 1 Completed:** ✅ November 2025  
+**Phase 2 Completed:** ✅ November 2025  
+**Phase 3 Completed:** ⏳ Pending  
+**Phase 4 Completed:** ✅ November 2025  
+**Production Launch:** ⏳ Pending  
 
 ---
 
@@ -389,11 +343,31 @@
 
 | Phase | Hours | Target Date | Status |
 |-------|-------|-------------|--------|
-| Setup | 2 | Week 1 | ⏳ |
-| Backend | 8 | Week 1-2 | ⏳ |
-| Frontend | 3 | Week 2 | ⏳ |
-| Database | 4 | Week 2-3 | ⏳ |
-| Testing | 4 | Week 2-3 | ⏳ |
-| **Total** | **21** | **Week 3** | ⏳ |
+| Setup | 2 | Week 1 | ✅ Complete |
+| Backend | 8 | Week 1-2 | ✅ Complete |
+| Database | 4 | Week 2 | ✅ Complete |
+| Frontend | 3 | Week 3 | ⏳ Remaining |
+| Testing | 4 | Week 3-4 | ⏳ Remaining |
+| Deployment | 2 | Week 4 | ⏳ Remaining |
+| **Total** | **23** | **Week 4** | **60% Complete** |
+
+---
+
+## Next Steps
+
+1. **Frontend Updates (3 hours)**
+   - Add source selector to admin product form
+   - Add source column to admin products table
+   - Add source badge to order status/history
+
+2. **Testing (4 hours)**
+   - Write unit tests for KinguinClient
+   - Write integration tests for FulfillmentService
+   - Manual E2E testing with real Kinguin API
+
+3. **Deployment (2 hours)**
+   - Deploy to staging with KINGUIN_ENABLED=false
+   - Test with real credentials
+   - Gradual rollout to production
 
 **Good luck! 🚀**

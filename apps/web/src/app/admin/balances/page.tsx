@@ -13,11 +13,9 @@ import { Button } from '@/design-system/primitives/button';
 import { Badge } from '@/design-system/primitives/badge';
 import { Alert, AlertDescription, AlertTitle } from '@/design-system/primitives/alert';
 import { AlertCircle, RefreshCw, Loader, DollarSign } from 'lucide-react';
-import { AdminOperationsApi, Configuration } from '@bitloot/sdk';
+import { AdminOperationsApi } from '@bitloot/sdk';
+import { apiConfig } from '@/lib/api-config';
 
-const apiConfig = new Configuration({
-  basePath: process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000',
-});
 const adminOpsApi = new AdminOperationsApi(apiConfig);
 
 interface BalanceInfo {

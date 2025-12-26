@@ -8,7 +8,8 @@ import {
   type ReactNode,
 } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { authClient, UsersApi, Configuration } from '@bitloot/sdk';
+import { authClient, UsersApi } from '@bitloot/sdk';
+import { apiConfig } from '@/lib/api-config';
 
 export interface User {
   id: string;
@@ -151,11 +152,7 @@ export function AuthProvider({ children }: { children: ReactNode }): React.React
 
           if (payload !== null && typeof payload === 'object' && 'sub' in payload) {
             // Fetch fresh user profile
-            const config = new Configuration({
-              basePath: process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000',
-              accessToken: accessToken,
-            });
-            const usersApi = new UsersApi(config);
+            const usersApi = new UsersApi(apiConfig);
             const profile = await usersApi.usersControllerGetProfile();
 
             const user: User = {

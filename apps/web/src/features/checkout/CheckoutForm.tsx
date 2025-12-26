@@ -29,10 +29,7 @@ const checkoutSchema = z.object({
 
 type CheckoutFormData = z.infer<typeof checkoutSchema>;
 
-// Initialize SDK clients with base URL
-const apiConfig = new Configuration({
-  basePath: process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000',
-});
+import { apiConfig } from '@/lib/api-config';
 
 const ordersClient = new OrdersApi(apiConfig);
 const paymentsClient = new PaymentsApi(apiConfig);

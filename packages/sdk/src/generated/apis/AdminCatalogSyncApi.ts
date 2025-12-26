@@ -29,6 +29,45 @@ export interface AdminSyncControllerTriggerSyncRequest {
 export class AdminCatalogSyncApi extends runtime.BaseAPI {
 
     /**
+     * Verify if Kinguin API is properly configured and accessible
+     * Check Kinguin integration status
+     */
+    async adminSyncControllerGetConfigStatusRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<object>> {
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("JWT-auth", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/admin/catalog/sync/config`;
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse<any>(response);
+    }
+
+    /**
+     * Verify if Kinguin API is properly configured and accessible
+     * Check Kinguin integration status
+     */
+    async adminSyncControllerGetConfigStatus(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<object> {
+        const response = await this.adminSyncControllerGetConfigStatusRaw(initOverrides);
+        return await response.value();
+    }
+
+    /**
      * Get detailed status of a specific Kinguin sync job by ID
      * Check sync job status
      */

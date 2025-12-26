@@ -1,10 +1,8 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { AdminApi, Configuration } from '@bitloot/sdk';
+import { AdminApi } from '@bitloot/sdk';
+import { apiConfig } from '@/lib/api-config';
 import type { TableState } from './useAdminTableState';
 
-const apiConfig = new Configuration({
-  basePath: process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000',
-});
 const adminApi = new AdminApi(apiConfig);
 
 export interface WebhookLog {

@@ -21,16 +21,7 @@ import { OrderHistoryCard } from '@/components/dashboard/OrderHistoryCard';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AnimatedGridPattern } from '@/components/animations/FloatingParticles';
 
-// Initialize SDK configuration
-const apiConfig = new Configuration({
-    basePath: process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000',
-    accessToken: () => {
-        if (typeof window !== 'undefined') {
-            return localStorage.getItem('accessToken') ?? '';
-        }
-        return '';
-    },
-});
+import { apiConfig } from '@/lib/api-config';
 
 const usersClient = new UsersApi(apiConfig);
 

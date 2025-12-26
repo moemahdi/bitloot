@@ -30,6 +30,13 @@ export class OrderItemResponseDto {
   @ApiProperty()
   productId!: string;
 
+  @ApiProperty({
+    description: 'Fulfillment source for this item',
+    enum: ['custom', 'kinguin'],
+    example: 'custom',
+  })
+  sourceType!: 'custom' | 'kinguin';
+
   @ApiProperty({ nullable: true })
   signedUrl?: string | null;
 }
@@ -46,6 +53,19 @@ export class OrderResponseDto {
 
   @ApiProperty()
   status!: string;
+
+  @ApiProperty({
+    description: 'Overall order fulfillment source',
+    enum: ['custom', 'kinguin'],
+    example: 'custom',
+  })
+  sourceType!: 'custom' | 'kinguin';
+
+  @ApiProperty({
+    description: 'Kinguin reservation ID (present when sourceType is kinguin)',
+    required: false,
+  })
+  kinguinReservationId?: string;
 
   @ApiProperty()
   total!: string;

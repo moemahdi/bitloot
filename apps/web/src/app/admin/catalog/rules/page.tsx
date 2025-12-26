@@ -80,9 +80,7 @@ interface AdminPricingRulesListResponseDto {
   limit: number;
 }
 
-const apiConfig = new Configuration({
-  basePath: process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000',
-});
+import { apiConfig } from '@/lib/api-config';
 
 export default function AdminPricingRulesPage(): React.ReactNode {
   // State management

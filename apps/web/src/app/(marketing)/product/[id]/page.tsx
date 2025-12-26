@@ -2,7 +2,8 @@
 
 import { useParams } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
-import { CatalogApi, Configuration } from '@bitloot/sdk';
+import { CatalogApi } from '@bitloot/sdk';
+import { apiConfig } from '@/lib/api-config';
 import type { ProductResponseDto } from '@bitloot/sdk';
 import Image from 'next/image';
 import { Button } from '@/design-system/primitives/button';
@@ -17,9 +18,6 @@ export default function ProductPage(): React.ReactElement {
   const id = params.id as string;
 
   // Initialize SDK client
-  const apiConfig = new Configuration({
-    basePath: process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000',
-  });
   const catalogClient = new CatalogApi(apiConfig);
 
   const { data: product, isLoading, isError } = useQuery<ProductResponseDto>({

@@ -71,6 +71,14 @@ export class CatalogProcessor extends WorkerHost {
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
       this.logger.error(`❌ Job ${job.id} failed: ${errorMsg}`);
+      
+      // Check if this is a configuration error that shouldn't be retried
+      if (this.isNonRetryableError(error)) {
+        this.logger.error(`🚫 Non-retryable error detected. Failing job permanently: ${errorMsg}`);
+        // Don't throw - this prevents BullMQ from retrying
+        return;
+      }
+      
       throw error; // BullMQ will retry based on strategy
     }
   }
@@ -211,5 +219,31 @@ export class CatalogProcessor extends WorkerHost {
       this.logger.error(`❌ Batch reprice failed: ${errorMsg}`);
       throw new Error(`Batch reprice failed: ${errorMsg}`);
     }
+  }
+
+  /**
+   * Check if error is a configuration error that shouldn't be retried
+   * Returns true for HTTP 401, 403, 404, and configuration errors
+   */
+  private isNonRetryableError(error: unknown): boolean {
+    if (error instanceof Error) {
+      const errorMessage = error.message.toLowerCase();
+      
+      // Kinguin configuration errors
+      if (errorMessage.includes('kinguin integration not configured') ||
+          errorMessage.includes('kinguin api key') ||
+          errorMessage.includes('api key is not configured')) {
+        return true;
+      }
+      
+      // HTTP errors that indicate auth/access issues
+      if (errorMessage.includes('status code 401') || // Unauthorized
+          errorMessage.includes('status code 403') || // Forbidden
+          errorMessage.includes('status code 404')) { // Not Found (bad endpoint/key)
+        return true;
+      }
+    }
+    
+    return false;
   }
 }

@@ -8,7 +8,15 @@ import {
   MinLength,
   MaxLength,
   IsUUID,
+  IsIn,
 } from 'class-validator';
+
+/**
+ * Product source type for fulfillment routing
+ * - 'custom': Manual fulfillment (admin uploads keys to R2)
+ * - 'kinguin': Automatic fulfillment via Kinguin API
+ */
+export type ProductSourceType = 'custom' | 'kinguin';
 
 /**
  * Admin Product DTOs
@@ -18,6 +26,26 @@ import {
  */
 
 export class CreateProductDto {
+  @ApiProperty({
+    description: 'Product fulfillment source',
+    enum: ['custom', 'kinguin'],
+    default: 'custom',
+    example: 'custom',
+  })
+  @IsOptional()
+  @IsIn(['custom', 'kinguin'])
+  sourceType?: ProductSourceType;
+
+  @ApiProperty({
+    description: 'Kinguin offer ID (required when sourceType is kinguin)',
+    required: false,
+    example: '5c9b5e6b-89f6-4b3d-8f4e-abcdef123456',
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(255)
+  kinguinOfferId?: string;
+
   @ApiProperty({ description: 'Product title' })
   @IsString()
   @MinLength(3)
@@ -89,6 +117,26 @@ export class CreateProductDto {
 }
 
 export class UpdateProductDto {
+  @ApiProperty({
+    description: 'Product fulfillment source',
+    enum: ['custom', 'kinguin'],
+    required: false,
+    example: 'custom',
+  })
+  @IsOptional()
+  @IsIn(['custom', 'kinguin'])
+  sourceType?: ProductSourceType;
+
+  @ApiProperty({
+    description: 'Kinguin offer ID (required when sourceType is kinguin)',
+    required: false,
+    example: '5c9b5e6b-89f6-4b3d-8f4e-abcdef123456',
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(255)
+  kinguinOfferId?: string;
+
   @ApiProperty({ description: 'Product title', required: false })
   @IsOptional()
   @IsString()
@@ -174,6 +222,20 @@ export class AdminProductResponseDto {
 
   @ApiProperty({ required: false })
   externalId?: string;
+
+  @ApiProperty({
+    description: 'Product fulfillment source',
+    enum: ['custom', 'kinguin'],
+    example: 'custom',
+  })
+  sourceType!: 'custom' | 'kinguin';
+
+  @ApiProperty({
+    description: 'Kinguin offer ID (present when sourceType is kinguin)',
+    required: false,
+    example: '5c9b5e6b-89f6-4b3d-8f4e-abcdef123456',
+  })
+  kinguinOfferId?: string;
 
   @ApiProperty()
   slug!: string;

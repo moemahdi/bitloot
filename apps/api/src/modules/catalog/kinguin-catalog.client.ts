@@ -40,7 +40,7 @@ export class KinguinCatalogClient {
 
   constructor() {
     this.baseUrl = process.env.KINGUIN_BASE_URL ?? 'https://api.kinguin.net';
-    this.apiKey = process.env.KINGUIN_API_KEY!;
+    this.apiKey = process.env.KINGUIN_API_KEY ?? '';
 
     this.client = axios.create({
       baseURL: this.baseUrl,
@@ -53,16 +53,43 @@ export class KinguinCatalogClient {
   }
 
   /**
+   * Check if Kinguin integration is properly configured
+   */
+  isConfigured(): boolean {
+    return !!this.apiKey && this.apiKey !== '' && this.apiKey !== 'your-kinguin-api-key';
+  }
+
+  /**
+   * Get configuration status message
+   */
+  getConfigurationStatus(): string {
+    if (!this.apiKey || this.apiKey === '') {
+      return 'Kinguin API key is not configured. Please set KINGUIN_API_KEY environment variable.';
+    }
+    if (this.apiKey === 'your-kinguin-api-key') {
+      return 'Kinguin API key is still set to placeholder value. Please set a valid KINGUIN_API_KEY.';
+    }
+    return 'Kinguin integration is configured.';
+  }
+
+  /**
    * Fetch a single page of offers from Kinguin
    * @param page Page number (1-indexed)
    * @param pageSize Items per page (default 100)
    * @returns Paginated offers
    */
   async fetchPage(page: number = 1, pageSize: number = 100): Promise<KinguinPaginatedResponse> {
+    // Check configuration before making API calls
+    if (!this.isConfigured()) {
+      throw new Error(`Kinguin integration not configured: ${this.getConfigurationStatus()}`);
+    }
+
     try {
       this.logger.debug(`Fetching Kinguin offers page ${page} (size: ${pageSize})`);
+      this.logger.debug(`API URL: ${this.baseUrl}/v1/offers`);
+      this.logger.debug(`API Key configured: ${!!this.apiKey} (length: ${this.apiKey?.length || 0})`);
 
-      const response = await this.client.get<KinguinPaginatedResponse>('/v2/offers', {
+      const response = await this.client.get<KinguinPaginatedResponse>('/v1/offers', {
         params: {
           page,
           size: Math.min(pageSize, 100), // Enforce max 100 per page
@@ -75,6 +102,43 @@ export class KinguinCatalogClient {
 
       return response.data;
     } catch (error) {
+      // Enhanced error logging
+      if (error instanceof Error && 'response' in error) {
+        const axiosError = error as any;
+        this.logger.error(
+          `Kinguin API request failed:`,
+          {
+            status: axiosError.response?.status,
+            statusText: axiosError.response?.statusText,
+            data: axiosError.response?.data,
+            url: axiosError.config?.url,
+            method: axiosError.config?.method,
+            headers: {
+              authorization: axiosError.config?.headers?.authorization ? '[HIDDEN]' : 'missing',
+            }
+          }
+        );
+        
+        if (axiosError.response?.status === 404) {
+          throw new Error(
+            `Kinguin API endpoint not found (404). Please verify:\n` +
+            `- API Key is valid and approved by Kinguin\n` +
+            `- Base URL is correct: ${this.baseUrl}\n` +
+            `- You have access to the offers endpoint\n` +
+            `Contact api@kinguin.io if you need API access`
+          );
+        }
+        
+        if (axiosError.response?.status === 401) {
+          throw new Error(
+            `Kinguin API authentication failed (401). Please verify:\n` +
+            `- API Key is correct: ${this.apiKey.substring(0, 8)}...\n` +
+            `- Token has not expired\n` +
+            `- Account has proper permissions`
+          );
+        }
+      }
+      
       this.logger.error(
         `Failed to fetch Kinguin offers page ${page}: ${error instanceof Error ? error.message : String(error)}`,
       );

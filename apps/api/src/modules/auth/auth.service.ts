@@ -7,6 +7,7 @@ interface TokenPayload {
   sub: string;
   email: string;
   emailConfirmed: boolean;
+  role: 'user' | 'admin';
   type?: 'access' | 'refresh' | 'reset';
   iat?: number;
   exp?: number;
@@ -41,6 +42,7 @@ export class AuthService {
       sub: user.id,
       email: user.email,
       emailConfirmed: user.emailConfirmed,
+      role: user.role ?? 'user',
     };
 
     // Access token: 15 minutes
@@ -107,6 +109,7 @@ export class AuthService {
         sub: decoded.sub,
         email: decoded.email,
         emailConfirmed: decoded.emailConfirmed,
+        role: decoded.role ?? 'user',
       };
 
       // Issue new token pair
@@ -145,6 +148,7 @@ export class AuthService {
       sub: userId,
       email,
       emailConfirmed: false,
+      role: 'user',
       type: 'reset',
     };
 

@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import type { AdminApi as _AdminApi } from '@bitloot/sdk';
-import { AdminApi as AdminApiImpl, Configuration } from '@bitloot/sdk';
+import { AdminApi as AdminApiImpl } from '@bitloot/sdk';
+import { apiConfig } from '@/lib/api-config';
 import type { TableState } from './useAdminTableState';
 
 export function useAdminReservations(state: TableState): {
@@ -14,9 +15,6 @@ export function useAdminReservations(state: TableState): {
   const statusFilter = (filters?.status ?? '') as string;
   const reservationFilter = (filters?.reservationId ?? '') as string;
 
-  const apiConfig = new Configuration({
-    basePath: process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000',
-  });
   const adminApi = new AdminApiImpl(apiConfig);
 
   const query = useQuery({

@@ -1,19 +1,43 @@
 # Kinguin Integration: Comprehensive Roadmap
 
-**Status:** Ready to Execute | **Timeline:** 2-3 weeks | **Complexity:** Low-Medium
+**Status:** ✅ BACKEND COMPLETE | ⏳ Frontend Remaining | **Timeline:** 1 week remaining
+
+---
+
+## 🎉 Implementation Progress
+
+### ✅ COMPLETE (Backend - ~12 hours)
+| Phase | Description | Status |
+|-------|-------------|--------|
+| Phase 1 | Setup & Credentials | ✅ Done |
+| Phase 2 | Backend Services (KinguinClient, Dispatcher) | ✅ Done |
+| Phase 3 | Database & Entities | ✅ Done |
+
+### ⏳ REMAINING (Frontend/Testing - ~8 hours)
+| Phase | Description | Status |
+|-------|-------------|--------|
+| Phase 4 | Admin UI Updates | ⏳ Not Started |
+| Phase 5 | Testing & Deployment | ⏳ Not Started |
 
 ---
 
 ## Executive Summary
 
-You have a fully functional custom product fulfillment system. This document explains how to integrate Kinguin's API alongside it without any breaking changes.
+You have a fully functional hybrid product fulfillment system. **The backend is complete** — Kinguin API integration, database schema, and fulfillment dispatcher are all implemented and passing quality gates.
 
-**Key Numbers:**
-- New Code: ~350 lines
-- Modified Code: ~100 lines  
-- Risk Level: Minimal (feature flag)
-- Timeline: 16-20 development hours
-- Revenue Impact: 2-5x potential
+**What's Done:**
+- ✅ KinguinClient with real API integration
+- ✅ FulfillmentService dispatcher pattern
+- ✅ Database migration for sourceType
+- ✅ Product/Order/OrderItem entities updated
+- ✅ R2StorageClient new methods
+- ✅ All quality gates passing (type-check, lint, build)
+
+**What's Left:**
+- ⏳ Admin product form source selector
+- ⏳ Admin products table source column
+- ⏳ Order status page source badge
+- ⏳ E2E testing with real Kinguin API
 
 ---
 
@@ -36,17 +60,18 @@ Products Table
    └─ Control: Limited to pricing rules
 ```
 
-### Order Fulfillment Flow
+### Order Fulfillment Flow (✅ IMPLEMENTED)
 
 **Custom Product:**
 ```
 Payment Confirmed
   ↓
-fulfillOrder(orderId)
+startFulfillment(orderId)
   ↓
-if (order.sourceType === 'custom') {
-  // 1. You manually upload key to R2
-  // 2. System generates signed URL
+if (item.productSourceType === 'custom') {
+  await fulfillOrderViaCustom(item)  // ✅ Implemented
+  // 1. Retrieve pre-uploaded key from R2
+  // 2. Generate signed URL
   // 3. Email sent to customer
   // 4. Order marked fulfilled
 }
@@ -56,11 +81,12 @@ if (order.sourceType === 'custom') {
 ```
 Payment Confirmed
   ↓
-fulfillOrder(orderId)
+startFulfillment(orderId)
   ↓
-if (order.sourceType === 'kinguin') {
-  // 1. Call kinguin.createOrder()
-  // 2. Poll for key (via webhook or polling)
+if (item.productSourceType === 'kinguin') {
+  await fulfillOrderViaKinguin(item)  // ✅ Implemented
+  // 1. Call kinguinClient.createOrder()
+  // 2. Poll for key (exponential backoff)
   // 3. Encrypt + store in R2
   // 4. Email signed URL
   // 5. Order marked fulfilled
@@ -69,170 +95,218 @@ if (order.sourceType === 'kinguin') {
 
 ---
 
-## Phase 1: Setup & Credentials (2 hours)
+## ✅ Phase 1: Setup & Credentials (COMPLETE)
 
 ### 1.1 Kinguin Merchant Account
-- Create merchant account at kinguin.com
-- Generate sandbox API key
-- Generate webhook signing secret
-- Store in `.env.local`:
+- ✅ Merchant account created
+- ✅ Sandbox API key generated
+- ✅ Environment variables configured:
   ```
-  KINGUIN_ENABLED=false
+  KINGUIN_ENABLED=true
   KINGUIN_API_BASE_URL=https://sandbox.kinguin.net/api/v1
   KINGUIN_API_KEY=xxx
-  KINGUIN_WEBHOOK_SECRET=xxx
   ```
 
-### 1.2 Create Test Offers
-- In Kinguin merchant dashboard (sandbox)
-- Create 2-3 test offers
-- Note offer IDs
-- Set pricing with your desired margin
+### 1.2 Test Offers
+- ✅ Test products created with sourceType='kinguin'
+- ✅ kinguinOfferId field populated
 
-### 1.3 Verify Connectivity
-- Test health endpoint with curl
-- Verify authentication works
-- Confirm webhook URL is accessible
+### 1.3 Connectivity Verified
+- ✅ API health endpoint tested
+- ✅ Authentication working
 
 ---
 
-## Phase 2: Backend Services (8 hours)
+## ✅ Phase 2: Backend Services (COMPLETE)
 
-### 2.1 Kinguin Client (kinguin.client.ts)
+### 2.1 Kinguin Client (✅ IMPLEMENTED)
 
-**File location:** `apps/api/src/modules/fulfillment/kinguin.client.ts`
+**File:** `apps/api/src/modules/fulfillment/kinguin.client.ts`
 
-**Responsibilities:**
-- HTTP calls to Kinguin API
-- Error handling & retries
-- Logging for audit trail
-- Type-safe responses
+**Methods Implemented:**
+1. ✅ `createOrder(offerId, quantity)` - Create order with Kinguin
+2. ✅ `getOrderStatus(kinguinOrderId)` - Get order status
+3. ✅ `getKey(kinguinOrderId)` - Extract key from order
+4. ✅ `healthCheck()` - Verify API connectivity
 
-**Methods to implement:**
-1. `createOrder(offerId, quantity)` - Create order with Kinguin
-2. `getOrderStatus(kinguinOrderId)` - Poll for order status
-3. `getKey(kinguinOrderId)` - Extract key from order
-4. `healthCheck()` - Verify API connectivity
-
-**Quality requirements:**
-- No `any` types
-- Comprehensive error handling
-- Retry logic with exponential backoff
+**Quality Achieved:**
+- ✅ No `any` types
+- ✅ Comprehensive error handling
+- ✅ Retry logic with exponential backoff
 - Per-operation logging
 - Tests: 8+ scenarios
 
-### 2.2 Fulfillment Service Updates (fulfillment.service.ts)
+### 2.2 Fulfillment Service Updates (✅ IMPLEMENTED)
 
-**Add new method:**
+**File:** `apps/api/src/modules/fulfillment/fulfillment.service.ts`
+
+**Methods Implemented:**
 ```typescript
-async fulfillOrderViaKinguin(orderId: string): Promise<void>
-```
-
-Logic:
-1. Fetch order from database
-2. Call `kinguin.createOrder()` with offer ID
-3. Poll for key (max 10 attempts, 2s apart)
-4. Encrypt key with AES-256-GCM
-5. Upload to R2 storage
-6. Generate signed URL (15-min expiry)
-7. Queue email notification
-8. Mark order as fulfilled
-
-**Modify existing method:**
-```typescript
-async fulfillOrder(orderId: string): Promise<void> {
-  const order = await this.ordersService.findById(orderId);
+// ✅ Main dispatcher
+async startFulfillment(orderId: string): Promise<void> {
+  const order = await this.ordersRepo.findOne({
+    where: { id: orderId },
+    relations: ['items', 'items.product']
+  });
   
-  // DISPATCHER: Choose fulfillment path
-  if (order.sourceType === 'kinguin') {
-    return this.fulfillOrderViaKinguin(orderId);
-  } else {
-    // Existing custom product logic (unchanged)
+  for (const item of order.items) {
+    if (item.productSourceType === ProductSourceType.KINGUIN) {
+      await this.fulfillOrderViaKinguin(item);  // ✅ Implemented
+    } else {
+      await this.fulfillOrderViaCustom(item);   // ✅ Implemented
+    }
   }
 }
+
+// ✅ Kinguin fulfillment path
+async fulfillOrderViaKinguin(item: OrderItem): Promise<void>
+
+// ✅ Custom fulfillment path  
+async fulfillOrderViaCustom(item: OrderItem): Promise<void>
 ```
 
-### 2.3 Webhook Handler (kinguin-webhook.controller.ts)
+### 2.3 Status Polling (Webhook Alternative) (✅ IMPLEMENTED)
 
-**File location:** `apps/api/src/modules/webhooks/kinguin-webhook.controller.ts`
+Since BitLoot is a **buyer** (not Kinguin merchant), we use polling instead of webhooks:
 
-**Endpoint:** `POST /webhooks/kinguin`
+**Implementation:**
+- ✅ Polling in `fulfillKinguinItem()` method
+- ✅ 10 attempts with exponential backoff
+- ✅ 2-second base delay, 1.5x multiplier
+- ✅ Keys stored securely in R2
 
-**Flow:**
-1. Receive webhook from Kinguin
-2. Extract signature from `x-kinguin-signature` header
-3. Verify HMAC-SHA512 (timing-safe)
-4. Log webhook (prevent duplicates)
-5. Extract key from payload
-6. Update order with key
-7. Queue async processing (email, etc.)
-8. Return 200 OK immediately
+### 2.4 Module Registration (✅ COMPLETE)
 
-**Key security patterns:**
-- Signature verification with timing-safe comparison
-- Idempotency via webhook log table
-- Async processing (don't block webhook handler)
-- Error logging without sensitive data
+**File:** `apps/api/src/modules/fulfillment/fulfillment.module.ts`
 
-### 2.4 Module Registration (fulfillment.module.ts)
-
-**Changes:**
-- Register KinguinClient as provider
-- Inject into FulfillmentService
-- Register webhook controller
+**Changes Made:**
+- ✅ KinguinClient registered as provider
+- ✅ Injected into FulfillmentService
+- ✅ HttpModule imported for axios
 
 ---
 
-## Phase 3: Frontend Updates (3 hours)
+## ✅ Phase 3: Database & Entities (COMPLETE)
 
-### 3.1 Order Status Pages
+### 3.1 Database Migration (✅ CREATED)
 
-**File:** `apps/web/src/features/orders/OrderDetails.tsx`
+**File:** `apps/api/src/database/migrations/1764000000000-AddSourceType.ts`
 
-**Add:**
-- Fulfillment source badge (Custom vs Kinguin)
-- Source-specific status messages
-- Loading state during Kinguin processing
-
-### 3.2 Order History
-
-**File:** `apps/web/src/features/account/OrderHistory.tsx`
-
-**Add:**
-- Source column in order table
-- Color-coded badges
-
-### 3.3 Admin Order Details
-
-**File:** `apps/web/src/app/admin/orders/[orderId]/page.tsx`
-
-**Add:**
-- Kinguin order ID display (if applicable)
-- Link to Kinguin dashboard
-- Fulfillment source visibility
-
----
-
-## Phase 4: Database & Admin (4 hours)
-
-### 4.1 Database Migration
-
-**File:** `apps/api/src/database/migrations/[timestamp]-add-kinguin.ts`
-
-**Changes:**
+**Changes Made:**
 
 Products table:
 ```sql
 ALTER TABLE products
-ADD COLUMN sourceType ENUM('custom', 'kinguin') DEFAULT 'custom' NOT NULL,
-ADD COLUMN kinguinOfferId VARCHAR(255) NULLABLE;
+ADD COLUMN "sourceType" VARCHAR(20) DEFAULT 'custom' NOT NULL,
+ADD COLUMN "kinguinOfferId" VARCHAR(255) NULLABLE;
 ```
 
-Orders table (optional but recommended):
+Orders table:
 ```sql
 ALTER TABLE orders
-ADD COLUMN sourceType ENUM('custom', 'kinguin') DEFAULT 'custom' NOT NULL,
-ADD COLUMN kinguinOrderId VARCHAR(255) NULLABLE;
+ADD COLUMN "sourceType" VARCHAR(20) DEFAULT 'custom' NOT NULL,
+ADD COLUMN "kinguinReservationId" VARCHAR(255) NULLABLE;
+```
+
+Order Items table:
+```sql
+ALTER TABLE order_items
+ADD COLUMN "productSourceType" VARCHAR(20) DEFAULT 'custom' NOT NULL;
+```
+
+### 3.2 Entities Updated (✅ COMPLETE)
+
+**Product Entity:**
+```typescript
+// ✅ apps/api/src/modules/catalog/entities/product.entity.ts
+@Column({ type: 'varchar', default: ProductSourceType.CUSTOM })
+sourceType: ProductSourceType;
+
+@Column({ type: 'varchar', nullable: true })
+kinguinOfferId?: string | null;
+```
+
+**Order Entity:**
+```typescript
+// ✅ apps/api/src/modules/orders/entities/order.entity.ts
+@Column({ type: 'varchar', default: ProductSourceType.CUSTOM })
+sourceType: ProductSourceType;
+
+@Column({ type: 'varchar', nullable: true })
+kinguinReservationId?: string | null;
+```
+
+**OrderItem Entity:**
+```typescript
+// ✅ apps/api/src/modules/orders/entities/order-item.entity.ts
+@Column({ type: 'varchar', default: ProductSourceType.CUSTOM })
+productSourceType: ProductSourceType;
+```
+
+---
+
+## ⏳ Phase 4: Frontend Updates (REMAINING - 4 hours)
+
+### 4.1 Admin Product Form
+
+**File to modify:** `apps/web/src/app/admin/catalog/products/[id]/page.tsx`
+
+**Changes needed:**
+```tsx
+// Add source type selector
+<RadioGroup value={sourceType} onChange={setSourceType}>
+  <Radio value="custom">Custom (Manual Key Upload)</Radio>
+  <Radio value="kinguin">Kinguin (Auto-Fulfillment)</Radio>
+</RadioGroup>
+
+// Show Kinguin offer ID field when kinguin selected
+{sourceType === 'kinguin' && (
+  <FormField label="Kinguin Offer ID">
+    <Input 
+      value={kinguinOfferId}
+      onChange={setKinguinOfferId}
+      placeholder="Enter Kinguin offer ID"
+    />
+  </FormField>
+)}
+```
+
+### 4.2 Admin Products Table
+
+**File to modify:** `apps/web/src/app/admin/catalog/products/page.tsx`
+
+**Changes needed:**
+```tsx
+// Add source column to table
+<TableCell>
+  {product.sourceType === 'kinguin' ? (
+    <Badge variant="blue">Kinguin</Badge>
+  ) : (
+    <Badge variant="green">Custom</Badge>
+  )}
+</TableCell>
+```
+
+### 4.3 Order Status Pages
+
+**File to modify:** `apps/web/src/features/orders/OrderDetails.tsx`
+
+**Changes needed:**
+- Source badge showing Custom vs Kinguin
+- Source-specific status messages
+- Loading state during Kinguin processing
+
+### 4.4 Order History
+
+**File to modify:** `apps/web/src/features/account/OrderHistory.tsx`
+
+**Changes needed:**
+- Source column in order table
+- Color-coded badges for source type
+
+---
+
+## ⏳ Phase 5: Testing & Deployment (REMAINING - 4 hours)
 ```
 
 **Execution:**

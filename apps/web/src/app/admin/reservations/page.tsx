@@ -2,40 +2,25 @@
 
 import React, { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useRouter } from "next/navigation";
-import { AdminApi, Configuration } from "@bitloot/sdk";
+import { AdminApi } from "@bitloot/sdk";
+import { apiConfig } from '@/lib/api-config';
 import { convertToCSV, downloadCSV } from "@/utils/csv-export";
 import { useAutoRefresh } from "@/hooks/useAutoRefresh";
+import { useAdminGuard } from '@/features/admin/hooks/useAdminGuard';
 import { Download, RefreshCw } from 'lucide-react';
 
-// Initialize SDK client with base URL
-const adminApiConfig = new Configuration({
-  basePath: process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000',
-});
-
-const adminApi = new AdminApi(adminApiConfig);
+const adminApi = new AdminApi(apiConfig);
 
 const LIMIT = 20;
 
 export default function AdminReservationsPage(): React.ReactElement {
-  const router = useRouter();
+  const { isLoading: guardLoading, isAdmin } = useAdminGuard();
 
   // UI state
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(LIMIT);
   const [reservationFilter, setReservationFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
-  const [isAuthorized, setIsAuthorized] = useState(false);
-
-  // Guarded route: check token in localStorage
-  useEffect(() => {
-    const token = localStorage.getItem("jwt_token");
-    if (token === null || token === "") {
-      void router.push("/login");
-    } else {
-      setIsAuthorized(true);
-    }
-  }, [router]);
 
   const query = useQuery({
     queryKey: [
@@ -55,7 +40,7 @@ export default function AdminReservationsPage(): React.ReactElement {
       });
       return response;
     },
-    enabled: isAuthorized,
+    enabled: !guardLoading && isAdmin,
     staleTime: 30_000,
   });
 

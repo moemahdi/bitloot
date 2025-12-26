@@ -9,6 +9,7 @@ import { AdminPricingController } from './admin-pricing.controller';
 import { AdminRepriceController } from './admin-reprice.controller';
 import { AdminSyncController } from './admin-sync.controller';
 import { KinguinCatalogClient } from './kinguin-catalog.client';
+import { AdminOpsModule } from '../admin/admin-ops.module';
 
 import { Product } from './entities/product.entity';
 import { ProductOffer } from './entities/product-offer.entity';
@@ -19,6 +20,7 @@ import { DynamicPricingRule } from './entities/dynamic-pricing-rule.entity';
   imports: [
     TypeOrmModule.forFeature([Product, ProductOffer, ProductCategory, DynamicPricingRule]),
     BullModule.registerQueue({ name: 'catalog' }),
+    AdminOpsModule,
   ],
   providers: [CatalogService, KinguinCatalogClient],
   controllers: [

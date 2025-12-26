@@ -19,15 +19,7 @@ import {
     TableRow,
 } from '@/design-system/primitives/table';
 
-const apiConfig = new Configuration({
-    basePath: process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000',
-    accessToken: (): string => {
-        if (typeof window !== 'undefined') {
-            return localStorage.getItem('accessToken') ?? '';
-        }
-        return '';
-    },
-});
+import { apiConfig } from '@/lib/api-config';
 
 const ordersApi = new OrdersApi(apiConfig);
 const adminApi = new AdminApi(apiConfig);
@@ -157,6 +149,7 @@ export default function AdminOrderDetailPage(): React.ReactElement | null {
                             <TableRow>
                                 <TableHead>Item ID</TableHead>
                                 <TableHead>Product ID</TableHead>
+                                <TableHead>Source</TableHead>
                                 <TableHead>Key Status</TableHead>
                             </TableRow>
                         </TableHeader>
@@ -165,6 +158,18 @@ export default function AdminOrderDetailPage(): React.ReactElement | null {
                                 <TableRow key={item.id}>
                                     <TableCell className="font-mono text-xs">{item.id}</TableCell>
                                     <TableCell className="font-mono text-xs">{item.productId}</TableCell>
+                                    <TableCell>
+                                        <Badge
+                                            variant={item.sourceType === 'custom' ? 'default' : 'outline'}
+                                            className={
+                                                item.sourceType === 'custom'
+                                                    ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300 border-purple-300 dark:border-purple-700'
+                                                    : 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 border-blue-300 dark:border-blue-700'
+                                            }
+                                        >
+                                            {item.sourceType === 'custom' ? 'Custom' : 'Kinguin'}
+                                        </Badge>
+                                    </TableCell>
                                     <TableCell>
                                         {item.signedUrl !== null && item.signedUrl !== undefined ? (
                                             <Badge variant="default">Delivered</Badge>

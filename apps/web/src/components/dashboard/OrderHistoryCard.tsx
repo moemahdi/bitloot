@@ -2,7 +2,7 @@
 
 import { motion } from 'framer-motion';
 import Link from 'next/link';
-import { Calendar, CreditCard, ExternalLink, Package } from 'lucide-react';
+import { Calendar, CreditCard, ExternalLink, Package, Store, Crown } from 'lucide-react';
 import { Card } from '@/design-system/primitives/card';
 import { Badge } from '@/design-system/primitives/badge';
 import { GlowButton } from '@/design-system/primitives/glow-button';
@@ -28,6 +28,10 @@ export function OrderHistoryCard({ order, index }: OrderHistoryCardProps): React
                 ? 'secondary'
                 : 'destructive';
 
+    // Source type badge styling
+    const sourceType = order.sourceType ?? 'custom';
+    const isKinguin = sourceType === 'kinguin';
+
     return (
         <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -51,20 +55,42 @@ export function OrderHistoryCard({ order, index }: OrderHistoryCardProps): React
                                 {order.id.slice(0, 8)}...{order.id.slice(-4)}
                             </p>
                         </div>
-                        <Badge
-                            variant={statusVariant}
-                            className={`
+                        <div className="flex flex-col items-end gap-2">
+                            <Badge
+                                variant={statusVariant}
+                                className={`
                 ${statusColor === 'green'
-                                    ? 'bg-green-success/20 text-green-success border-green-success/30 shadow-[0_0_8px_rgba(57,255,20,0.2)]'
-                                    : statusColor === 'orange'
-                                        ? 'bg-orange-500/20 text-orange-500 border-orange-500/30'
-                                        : 'bg-red-500/20 text-red-500 border-red-500/30'
-                                }
+                                        ? 'bg-green-success/20 text-green-success border-green-success/30 shadow-[0_0_8px_rgba(57,255,20,0.2)]'
+                                        : statusColor === 'orange'
+                                            ? 'bg-orange-500/20 text-orange-500 border-orange-500/30'
+                                            : 'bg-red-500/20 text-red-500 border-red-500/30'
+                                    }
                 uppercase tracking-wider font-bold
               `}
-                        >
-                            {order.status}
-                        </Badge>
+                            >
+                                {order.status}
+                            </Badge>
+                            {/* Source Type Badge */}
+                            <Badge
+                                variant="outline"
+                                className={`text-xs ${isKinguin
+                                        ? 'border-orange-500/30 text-orange-400 bg-orange-500/5'
+                                        : 'border-cyan-glow/30 text-cyan-glow bg-cyan-glow/5'
+                                    }`}
+                            >
+                                {isKinguin ? (
+                                    <>
+                                        <Crown className="mr-1 h-3 w-3" />
+                                        Kinguin
+                                    </>
+                                ) : (
+                                    <>
+                                        <Store className="mr-1 h-3 w-3" />
+                                        Custom
+                                    </>
+                                )}
+                            </Badge>
+                        </div>
                     </div>
 
                     {/* Divider */}

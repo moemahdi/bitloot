@@ -20,12 +20,9 @@ import {
 } from '@/design-system/primitives/card';
 import { Button } from '@/design-system/primitives/button';
 import { Skeleton } from '@/design-system/primitives/skeleton';
+import { apiConfig } from '@/lib/api-config';
 
 // Initialize SDK client
-const apiConfig = new Configuration({
-  basePath: 'http://localhost:4000',
-});
-
 const ordersClient = new OrdersApi(apiConfig);
 
 export default function OrderSuccessPage(): React.ReactElement {

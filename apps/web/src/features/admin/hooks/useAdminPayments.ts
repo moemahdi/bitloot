@@ -1,8 +1,11 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import { AdminApi, Configuration, type AdminControllerGetPayments200Response } from '@bitloot/sdk';
+import { AdminApi, type AdminControllerGetPayments200Response } from '@bitloot/sdk';
+import { apiConfig } from '@/lib/api-config';
 import type { TableState } from './useAdminTableState';
+
+const adminApi = new AdminApi(apiConfig);
 
 export interface Payment {
   id: string;
@@ -26,11 +29,6 @@ interface PaymentsResponse {
 }
 
 export function useAdminPayments(state: TableState): PaymentsResponse {
-  const apiConfig = new Configuration({
-    basePath: process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000',
-  });
-  const adminApi = new AdminApi(apiConfig);
-
   const { page, limit, filters } = state;
   const statusFilter = (filters?.status ?? '') as string;
   const providerFilter = (filters?.provider ?? '') as string;

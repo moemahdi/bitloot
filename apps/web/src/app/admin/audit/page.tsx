@@ -23,17 +23,8 @@ import {
 } from '@/design-system/primitives/select';
 import { Download, RefreshCw, FileJson } from 'lucide-react';
 import type { PaginatedAuditLogsDto } from '@bitloot/sdk';
-import { AuditLogsApi, Configuration } from '@bitloot/sdk';
-
-const apiConfig = new Configuration({
-  basePath: process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000',
-  accessToken: (): string => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('accessToken') ?? '';
-    }
-    return '';
-  },
-});
+import { AuditLogsApi } from '@bitloot/sdk';
+import { apiConfig } from '@/lib/api-config';
 
 const auditLogsApi = new AuditLogsApi(apiConfig);
 

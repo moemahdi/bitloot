@@ -6,11 +6,14 @@ import {
   OneToMany,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
+  Index,
 } from 'typeorm';
 import { Order } from './order.entity';
 import { Key } from './key.entity';
+import type { ProductSourceType } from '../catalog/entities/product.entity';
 
 @Entity('order_items')
+@Index(['productSourceType'])
 export class OrderItem {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
@@ -20,6 +23,19 @@ export class OrderItem {
 
   @Column({ type: 'varchar', length: 100 })
   productId!: string; // e.g., "demo-product"
+
+  /**
+   * Captured from product at time of order creation
+   * Used for fulfillment routing:
+   * - 'custom': Retrieve pre-uploaded key from R2
+   * - 'kinguin': Purchase from Kinguin API
+   */
+  @Column({
+    type: 'enum',
+    enum: ['custom', 'kinguin'],
+    default: 'custom',
+  })
+  productSourceType!: ProductSourceType;
 
   @Column({ type: 'text', nullable: true })
   signedUrl!: string | null;

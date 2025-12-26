@@ -45,6 +45,7 @@ export interface AdminProductsControllerListAllRequest {
     platform: string;
     region: string;
     published: string;
+    source: string;
 }
 
 export interface AdminProductsControllerPublishRequest {
@@ -233,6 +234,13 @@ export class AdminCatalogProductsApi extends runtime.BaseAPI {
             );
         }
 
+        if (requestParameters['source'] == null) {
+            throw new runtime.RequiredError(
+                'source',
+                'Required parameter "source" was null or undefined when calling adminProductsControllerListAll().'
+            );
+        }
+
         const queryParameters: any = {};
 
         if (requestParameters['search'] != null) {
@@ -249,6 +257,10 @@ export class AdminCatalogProductsApi extends runtime.BaseAPI {
 
         if (requestParameters['published'] != null) {
             queryParameters['published'] = requestParameters['published'];
+        }
+
+        if (requestParameters['source'] != null) {
+            queryParameters['source'] = requestParameters['source'];
         }
 
         const headerParameters: runtime.HTTPHeaders = {};

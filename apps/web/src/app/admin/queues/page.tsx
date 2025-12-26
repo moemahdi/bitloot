@@ -28,7 +28,8 @@ import {
   AlertTriangle,
   Clock,
 } from 'lucide-react';
-import { Configuration, AdminOperationsApi } from '@bitloot/sdk';
+import { AdminOperationsApi } from '@bitloot/sdk';
+import { apiConfig } from '@/lib/api-config';
 
 interface QueueStats {
   name: string;
@@ -38,9 +39,6 @@ interface QueueStats {
   failed: number;
 }
 
-const apiConfig = new Configuration({
-  basePath: process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000',
-});
 const adminOpsApi = new AdminOperationsApi(apiConfig);
 
 /**

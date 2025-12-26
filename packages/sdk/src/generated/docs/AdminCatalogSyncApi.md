@@ -4,9 +4,75 @@ All URIs are relative to *http://localhost*
 
 | Method | HTTP request | Description |
 |------------- | ------------- | -------------|
+| [**adminSyncControllerGetConfigStatus**](AdminCatalogSyncApi.md#adminsynccontrollergetconfigstatus) | **GET** /admin/catalog/sync/config | Check Kinguin integration status |
 | [**adminSyncControllerGetSyncStatus**](AdminCatalogSyncApi.md#adminsynccontrollergetsyncstatus) | **GET** /admin/catalog/sync/status | Check sync job status |
 | [**adminSyncControllerTriggerSync**](AdminCatalogSyncApi.md#adminsynccontrollertriggersync) | **POST** /admin/catalog/sync | Trigger Kinguin catalog sync |
 
+
+
+## adminSyncControllerGetConfigStatus
+
+> object adminSyncControllerGetConfigStatus()
+
+Check Kinguin integration status
+
+Verify if Kinguin API is properly configured and accessible
+
+### Example
+
+```ts
+import {
+  Configuration,
+  AdminCatalogSyncApi,
+} from '';
+import type { AdminSyncControllerGetConfigStatusRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const config = new Configuration({ 
+    // Configure HTTP bearer authorization: JWT-auth
+    accessToken: "YOUR BEARER TOKEN",
+  });
+  const api = new AdminCatalogSyncApi(config);
+
+  try {
+    const data = await api.adminSyncControllerGetConfigStatus();
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+This endpoint does not need any parameter.
+
+### Return type
+
+**object**
+
+### Authorization
+
+[JWT-auth](../README.md#JWT-auth)
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Configuration status |  -  |
+| **401** | Unauthorized |  -  |
+| **403** | Forbidden - Admin only |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
 
 ## adminSyncControllerGetSyncStatus
@@ -76,6 +142,7 @@ example().catch(console.error);
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
 | **200** | Job status retrieved |  -  |
+| **400** | No job ID provided or invalid |  -  |
 | **401** | Unauthorized |  -  |
 | **403** | Forbidden - Admin only |  -  |
 | **404** | Job not found |  -  |

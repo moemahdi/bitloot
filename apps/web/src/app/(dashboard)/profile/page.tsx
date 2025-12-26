@@ -8,7 +8,8 @@ import { useQuery } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Configuration, UsersApi, type OrderResponseDto } from '@bitloot/sdk';
+import { UsersApi, type OrderResponseDto } from '@bitloot/sdk';
+import { apiConfig } from '@/lib/api-config';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/design-system/primitives/card';
 import { Button } from '@/design-system/primitives/button';
 import { Input } from '@/design-system/primitives/input';
@@ -36,17 +37,6 @@ const passwordSchema = z
   });
 
 type PasswordFormValues = z.infer<typeof passwordSchema>;
-
-// Initialize SDK configuration
-const apiConfig = new Configuration({
-  basePath: process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000',
-  accessToken: (): string => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('accessToken') ?? '';
-    }
-    return '';
-  },
-});
 
 const usersClient = new UsersApi(apiConfig);
 

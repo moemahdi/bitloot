@@ -2,7 +2,8 @@
 
 import { useState } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { Configuration, AdminCatalogProductsApi, AdminCatalogSyncApi, AdminCatalogPricingApi } from '@bitloot/sdk';
+import { AdminCatalogProductsApi, AdminCatalogSyncApi, AdminCatalogPricingApi } from '@bitloot/sdk';
+import { apiConfig } from '@/lib/api-config';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/design-system/primitives/tabs';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/design-system/primitives/card';
 import { Button } from '@/design-system/primitives/button';
@@ -19,17 +20,6 @@ import {
 import { Loader2, RefreshCw, CheckCircle } from 'lucide-react';
 import { useAdminGuard } from '@/features/admin/hooks/useAdminGuard';
 import { Alert, AlertDescription, AlertTitle } from '@/design-system/primitives/alert';
-
-// Initialize SDK configuration
-const apiConfig = new Configuration({
-    basePath: process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000',
-    accessToken: (): string => {
-        if (typeof window !== 'undefined') {
-            return localStorage.getItem('accessToken') ?? '';
-        }
-        return '';
-    },
-});
 
 const productsApi = new AdminCatalogProductsApi(apiConfig);
 const syncApi = new AdminCatalogSyncApi(apiConfig);
@@ -53,6 +43,7 @@ export default function AdminCatalogPage(): React.ReactElement | null {
                 platform: '',
                 region: '',
                 published: '',
+                source: '',
             });
         },
         enabled: isAdmin,

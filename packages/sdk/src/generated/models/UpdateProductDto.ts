@@ -20,6 +20,18 @@ import { mapValues } from '../runtime';
  */
 export interface UpdateProductDto {
     /**
+     * Product fulfillment source
+     * @type {string}
+     * @memberof UpdateProductDto
+     */
+    sourceType?: UpdateProductDtoSourceTypeEnum;
+    /**
+     * Kinguin offer ID (required when sourceType is kinguin)
+     * @type {string}
+     * @memberof UpdateProductDto
+     */
+    kinguinOfferId?: string;
+    /**
      * Product title
      * @type {string}
      * @memberof UpdateProductDto
@@ -87,6 +99,17 @@ export interface UpdateProductDto {
     currency?: string;
 }
 
+
+/**
+ * @export
+ */
+export const UpdateProductDtoSourceTypeEnum = {
+    Custom: 'custom',
+    Kinguin: 'kinguin'
+} as const;
+export type UpdateProductDtoSourceTypeEnum = typeof UpdateProductDtoSourceTypeEnum[keyof typeof UpdateProductDtoSourceTypeEnum];
+
+
 /**
  * Check if a given object implements the UpdateProductDto interface.
  */
@@ -104,6 +127,8 @@ export function UpdateProductDtoFromJSONTyped(json: any, ignoreDiscriminator: bo
     }
     return {
         
+        'sourceType': json['sourceType'] == null ? undefined : json['sourceType'],
+        'kinguinOfferId': json['kinguinOfferId'] == null ? undefined : json['kinguinOfferId'],
         'title': json['title'] == null ? undefined : json['title'],
         'subtitle': json['subtitle'] == null ? undefined : json['subtitle'],
         'description': json['description'] == null ? undefined : json['description'],
@@ -129,6 +154,8 @@ export function UpdateProductDtoToJSONTyped(value?: UpdateProductDto | null, ign
 
     return {
         
+        'sourceType': value['sourceType'],
+        'kinguinOfferId': value['kinguinOfferId'],
         'title': value['title'],
         'subtitle': value['subtitle'],
         'description': value['description'],

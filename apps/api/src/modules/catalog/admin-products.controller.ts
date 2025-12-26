@@ -11,6 +11,7 @@ import {
   HttpException,
   HttpStatus,
   NotFoundException,
+  ForbiddenException,
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
@@ -21,6 +22,7 @@ import {
 import { JwtAuthGuard } from '../../modules/auth/guards/jwt-auth.guard';
 import { AdminGuard } from '../../common/guards/admin.guard';
 import { CatalogService } from './catalog.service';
+import { AdminOpsService } from '../admin/admin-ops.service';
 import {
   CreateProductDto,
   UpdateProductDto,
@@ -33,7 +35,10 @@ import { Product } from './entities/product.entity';
 @UseGuards(JwtAuthGuard, AdminGuard)
 @ApiBearerAuth('JWT-auth')
 export class AdminProductsController {
-  constructor(private readonly catalogService: CatalogService) { }
+  constructor(
+    private readonly catalogService: CatalogService,
+    private readonly adminOpsService: AdminOpsService,
+  ) { }
 
   /**
    * Convert Product entity to response DTO
@@ -51,6 +56,8 @@ export class AdminProductsController {
     return {
       id: product.id,
       externalId: product.externalId ?? undefined,
+      sourceType: product.sourceType ?? 'custom',
+      kinguinOfferId: product.kinguinOfferId ?? undefined,
       slug: product.slug,
       title: product.title,
       name: product.title,
@@ -84,6 +91,7 @@ export class AdminProductsController {
     @Query('platform') platform?: string,
     @Query('region') region?: string,
     @Query('published') published?: string,
+    @Query('source') source?: string,
   ): Promise<AdminProductResponseDto[]> {
     try {
       const publishedBool =
@@ -93,6 +101,7 @@ export class AdminProductsController {
         platform,
         region,
         publishedBool,
+        source,
       );
       return products.map((p: Product) => this.toResponseDto(p));
     } catch (error) {
@@ -126,8 +135,17 @@ export class AdminProductsController {
   @Post()
   @ApiOperation({ summary: 'Create custom product' })
   @ApiResponse({ status: 201, type: AdminProductResponseDto })
+  @ApiResponse({ status: 403, description: 'Feature disabled' })
   async create(@Body() dto: CreateProductDto): Promise<AdminProductResponseDto> {
     try {
+      // Check feature flags based on source type
+      if (dto.sourceType === 'kinguin' && !this.adminOpsService.isEnabled('kinguin_enabled')) {
+        throw new ForbiddenException('Kinguin integration is currently disabled');
+      }
+      if (dto.sourceType === 'custom' && !this.adminOpsService.isEnabled('custom_products_enabled')) {
+        throw new ForbiddenException('Custom products feature is currently disabled');
+      }
+
       const product = await this.catalogService.createCustomProduct({
         title: dto.title,
         subtitle: dto.subtitle,
@@ -141,9 +159,12 @@ export class AdminProductsController {
         price: dto.price,
         currency: dto.currency,
         isPublished: dto.isPublished,
+        sourceType: dto.sourceType,
+        kinguinOfferId: dto.kinguinOfferId,
       });
       return this.toResponseDto(product);
     } catch (error) {
+      if (error instanceof ForbiddenException) throw error;
       throw new HttpException(
         `Failed to create product: ${error instanceof Error ? error.message : 'Unknown error'}`,
         HttpStatus.INTERNAL_SERVER_ERROR,
@@ -172,6 +193,8 @@ export class AdminProductsController {
         cost: dto.cost,
         price: dto.price,
         currency: dto.currency,
+        sourceType: dto.sourceType,
+        kinguinOfferId: dto.kinguinOfferId,
       });
       return this.toResponseDto(product);
     } catch (error) {

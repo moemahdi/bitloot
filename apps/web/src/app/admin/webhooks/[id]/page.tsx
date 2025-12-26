@@ -12,15 +12,7 @@ import Link from 'next/link';
 import { useAdminGuard } from '@/features/admin/hooks/useAdminGuard';
 import { toast } from 'sonner';
 
-const apiConfig = new Configuration({
-    basePath: process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000',
-    accessToken: (): string => {
-        if (typeof window !== 'undefined') {
-            return localStorage.getItem('accessToken') ?? '';
-        }
-        return '';
-    },
-});
+import { apiConfig } from '@/lib/api-config';
 
 const adminApi = new AdminApi(apiConfig);
 

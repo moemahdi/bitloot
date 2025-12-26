@@ -1,7 +1,7 @@
 # 🚀 Kinguin Integration: Start Here
 
-**Date:** December 23, 2025  
-**Status:** Ready to Begin  
+**Date:** January 2025  
+**Status:** ✅ **BACKEND COMPLETE** — Frontend & Testing Remain  
 **Confidence:** 🟢 High
 
 ---
@@ -10,43 +10,55 @@
 
 > "I'm not able to add Kinguin API to my project, but I already built a system for adding custom products that I configure and deliver manually. What are the next steps?"
 
+## ✅ COMPLETED (Previous Session)
+
+**All backend infrastructure is now implemented:**
+
+| Component | Status | Details |
+|-----------|--------|---------|
+| Database Migration | ✅ DONE | `1764000000000-AddSourceType.ts` created |
+| Product Entity | ✅ DONE | `sourceType`, `kinguinOfferId` fields added |
+| Order Entity | ✅ DONE | `sourceType`, `kinguinReservationId` fields added |
+| OrderItem Entity | ✅ DONE | `productSourceType` field added |
+| KinguinClient | ✅ DONE | `createOrder()`, `getOrderStatus()`, `getKey()` implemented |
+| FulfillmentService | ✅ DONE | Dispatcher pattern with `fulfillOrderViaCustom()` and `fulfillOrderViaKinguin()` |
+| R2StorageClient | ✅ DONE | New methods for key storage added |
+| Quality Gates | ✅ PASS | Type-check, lint, build all passing |
+
 ## What I've Created For You
 
 Four comprehensive documents + this guide:
 
 | Document | Read Time | Purpose | Start With |
 |----------|-----------|---------|-----------|
-| **QUICK_START_KINGUIN.md** | 10 min | Copy-paste code, 6 immediate steps | ✅ YES |
-| **CUSTOM_PRODUCTS_NEXT_STEPS.md** | 30 min | Full architecture, phases 1-5, deep dive | If you want details |
-| **KINGUIN_INTEGRATION_CHECKLIST.md** | 5 min | Checkbox todo list to track progress | Print this |
-| **VISUAL_ARCHITECTURE.md** | 15 min | Diagrams, data flows, visual comparison | If you learn visually |
+| **01_QUICK_START.md** | 10 min | Copy-paste code, 6 immediate steps | Backend Done ✅ |
+| **02_COMPREHENSIVE_GUIDE.md** | 30 min | Full architecture, phases 1-5, deep dive | Reference |
+| **03_CHECKLIST.md** | 5 min | Checkbox todo list to track progress | Track progress |
+| **04_VISUAL_GUIDE.md** | 15 min | Diagrams, data flows, visual comparison | Visual learners |
 
 ---
 
-## The Bottom Line (2 minutes)
+## The Bottom Line
 
 ### What You Have ✅
 - Custom products work perfectly
 - Manual key fulfillment via R2 (encrypted, secure)
 - Payment pipeline complete (NOWPayments)
 - Admin dashboard functional
+- **NEW:** Kinguin API client + dispatcher (backend complete)
+- **NEW:** Database schema ready for sourceType
 
-### What You Need 🔑
-- Kinguin API integration (350 lines of new code)
-- Automated fulfillment when Kinguin delivers
-- Ability to sell Kinguin's 50k products
+### What You Need 🔑 (Remaining Work)
+- Frontend updates (source badges, admin form)
+- Admin UI for product source management
+- Testing (unit tests, integration tests, manual testing)
+- Deployment (migration run, staging, production)
 
-### How to Add It (No Breaking Changes)
-1. **Keep everything you built** (works forever)
-2. **Add Kinguin as a second fulfillment method** (optional per product)
-3. **Feature flag** lets you test before launch
-4. **Can rollback instantly** if needed
-
-### Timeline
-- **Week 1:** Setup credentials, implement client
-- **Week 2:** Webhook handling, database changes
-- **Week 3:** Admin UI, testing, deployment
-- **Total:** 16-20 hours of coding, 2-3 weeks wall-time
+### Timeline Update
+- **Week 1:** ~~Setup credentials, implement client~~ ✅ DONE
+- **Week 2:** Frontend updates, admin UI, testing
+- **Week 3:** Deployment, monitoring
+- **Remaining:** ~8-10 hours of coding, 1-2 weeks wall-time
 
 ### Risk Level
 🟢 **Minimal** – Feature flag isolates Kinguin code completely. Custom products have dedicated code path that never changes.
@@ -92,48 +104,58 @@ All this already works. You're not building fulfillment from scratch. You're jus
 
 ---
 
-## Your Next Steps (This Week)
+## Your Next Steps (Remaining Work)
 
-### TODAY (30 minutes)
+### ✅ COMPLETED (Previous Session)
 ```
-☐ Read this document (you're doing it!)
-☐ Read QUICK_START_KINGUIN.md (10 min)
-☐ Bookmark all 5 documents
-☐ Open Kinguin merchant dashboard
-```
-
-### TOMORROW (1 hour)
-```
-☐ Create Kinguin sandbox account
-☐ Generate API key
-☐ Generate webhook secret
-☐ Test health endpoint with curl
-☐ Add credentials to .env.local
+✅ Database migration created (1764000000000-AddSourceType.ts)
+✅ Product entity updated (sourceType, kinguinOfferId)
+✅ Order entity updated (sourceType, kinguinReservationId)
+✅ OrderItem entity updated (productSourceType)
+✅ KinguinClient implemented (createOrder, getOrderStatus, getKey)
+✅ FulfillmentService dispatcher (fulfillOrderViaCustom, fulfillOrderViaKinguin)
+✅ R2StorageClient new methods
+✅ Fulfillment module updated with Product entity
+✅ All quality gates pass (type-check, lint, build)
 ```
 
-### THIS WEEK (6-8 hours)
+### 🔜 PHASE 1: Frontend Updates (3-4 hours)
 ```
-☐ Create 3 test Kinguin products in sandbox
-☐ Implement kinguin.client.ts (code in QUICK_START_KINGUIN.md)
-☐ Implement kinguin-webhook.controller.ts
-☐ Update fulfillment.service.ts dispatcher
-☐ Run manual end-to-end test
+☐ Order Status Page: Add source badge (Kinguin/Custom)
+☐ Order History: Add source column with badges
+☐ Admin Order Details: Show Kinguin order ID if applicable
 ```
 
-### NEXT WEEK (4-6 hours)
+### 🔜 PHASE 2: Admin UI Updates (4-5 hours)
 ```
-☐ Database migration for sourceType
-☐ Admin product form updates
-☐ Order detail page badges
-☐ Full test suite run
-☐ Staging deployment
+☐ Admin Product Form: Add source type selector (radio buttons)
+☐ Admin Product Form: Add Kinguin Offer ID field (conditional)
+☐ Admin Products Table: Add source column with badges
+☐ Admin Products Table: Add filter by source dropdown
+```
+
+### 🔜 PHASE 3: Testing (4-6 hours)
+```
+☐ Unit tests for KinguinClient (8+ tests)
+☐ Integration tests for full order flow
+☐ Manual end-to-end testing with real Kinguin sandbox
+☐ Regression testing for custom products
+```
+
+### 🔜 PHASE 4: Deployment (2-3 hours)
+```
+☐ Run database migration on staging
+☐ Deploy with KINGUIN_ENABLED=false
+☐ Test internal with KINGUIN_ENABLED=true
+☐ Gradual rollout (10% → 50% → 100%)
+☐ Monitor success rate (target: 99%+)
 ```
 
 ---
 
 ## Document Quick Reference
 
-### I want to start immediately → **QUICK_START_KINGUIN.md**
+### I want to start immediately → **01_QUICK_START.md**
 - 6 concrete steps
 - Copy-paste code snippets
 - 30-min setup, 6-hour implementation

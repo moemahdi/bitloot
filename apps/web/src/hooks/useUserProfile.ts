@@ -5,19 +5,11 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Configuration, UsersApi } from '@bitloot/sdk';
 import type { UpdatePasswordDto, UserResponseDto } from '@bitloot/sdk';
 
-// Initialize SDK client with configuration
+import { apiConfig } from '@/lib/api-config';
+
+// Initialize SDK client with shared configuration
 const getApiClient = (): UsersApi => {
-  const config = new Configuration({
-    basePath: process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000',
-    accessToken: () => {
-      // Get token from localStorage if available
-      if (typeof window !== 'undefined') {
-        return Promise.resolve(localStorage.getItem('accessToken') ?? '');
-      }
-      return Promise.resolve('');
-    },
-  });
-  return new UsersApi(config);
+  return new UsersApi(apiConfig);
 };
 
 export type UserProfile = UserResponseDto;

@@ -20,6 +20,18 @@ import { mapValues } from '../runtime';
  */
 export interface CreateProductDto {
     /**
+     * Product fulfillment source
+     * @type {string}
+     * @memberof CreateProductDto
+     */
+    sourceType: CreateProductDtoSourceTypeEnum;
+    /**
+     * Kinguin offer ID (required when sourceType is kinguin)
+     * @type {string}
+     * @memberof CreateProductDto
+     */
+    kinguinOfferId?: string;
+    /**
      * Product title
      * @type {string}
      * @memberof CreateProductDto
@@ -93,10 +105,22 @@ export interface CreateProductDto {
     isPublished: boolean;
 }
 
+
+/**
+ * @export
+ */
+export const CreateProductDtoSourceTypeEnum = {
+    Custom: 'custom',
+    Kinguin: 'kinguin'
+} as const;
+export type CreateProductDtoSourceTypeEnum = typeof CreateProductDtoSourceTypeEnum[keyof typeof CreateProductDtoSourceTypeEnum];
+
+
 /**
  * Check if a given object implements the CreateProductDto interface.
  */
 export function instanceOfCreateProductDto(value: object): value is CreateProductDto {
+    if (!('sourceType' in value) || value['sourceType'] === undefined) return false;
     if (!('title' in value) || value['title'] === undefined) return false;
     if (!('cost' in value) || value['cost'] === undefined) return false;
     if (!('price' in value) || value['price'] === undefined) return false;
@@ -115,6 +139,8 @@ export function CreateProductDtoFromJSONTyped(json: any, ignoreDiscriminator: bo
     }
     return {
         
+        'sourceType': json['sourceType'],
+        'kinguinOfferId': json['kinguinOfferId'] == null ? undefined : json['kinguinOfferId'],
         'title': json['title'],
         'subtitle': json['subtitle'] == null ? undefined : json['subtitle'],
         'description': json['description'] == null ? undefined : json['description'],
@@ -141,6 +167,8 @@ export function CreateProductDtoToJSONTyped(value?: CreateProductDto | null, ign
 
     return {
         
+        'sourceType': value['sourceType'],
+        'kinguinOfferId': value['kinguinOfferId'],
         'title': value['title'],
         'subtitle': value['subtitle'],
         'description': value['description'],

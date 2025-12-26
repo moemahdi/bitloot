@@ -302,11 +302,14 @@ export class OrdersService {
       email: order.email,
       userId: order.userId,
       status: order.status,
+      sourceType: order.sourceType ?? 'custom',
+      kinguinReservationId: order.kinguinReservationId,
       total: order.totalCrypto,
       items: items.map(
         (item): OrderItemResponseDto => ({
           id: item.id,
           productId: item.productId,
+          sourceType: item.productSourceType ?? 'custom',
           signedUrl: item.signedUrl,
         }),
       ),

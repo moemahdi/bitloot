@@ -8,6 +8,8 @@ Name | Type
 ------------ | -------------
 `id` | string
 `externalId` | string
+`sourceType` | string
+`kinguinOfferId` | string
 `slug` | string
 `title` | string
 `name` | string
@@ -36,6 +38,8 @@ import type { AdminProductResponseDto } from ''
 const example = {
   "id": null,
   "externalId": null,
+  "sourceType": custom,
+  "kinguinOfferId": 5c9b5e6b-89f6-4b3d-8f4e-abcdef123456,
   "slug": null,
   "title": null,
   "name": null,

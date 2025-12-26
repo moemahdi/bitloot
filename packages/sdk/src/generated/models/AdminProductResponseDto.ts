@@ -32,6 +32,18 @@ export interface AdminProductResponseDto {
      */
     externalId?: string;
     /**
+     * Product fulfillment source
+     * @type {string}
+     * @memberof AdminProductResponseDto
+     */
+    sourceType: AdminProductResponseDtoSourceTypeEnum;
+    /**
+     * Kinguin offer ID (present when sourceType is kinguin)
+     * @type {string}
+     * @memberof AdminProductResponseDto
+     */
+    kinguinOfferId?: string;
+    /**
      * 
      * @type {string}
      * @memberof AdminProductResponseDto
@@ -141,11 +153,23 @@ export interface AdminProductResponseDto {
     deletedAt?: Date;
 }
 
+
+/**
+ * @export
+ */
+export const AdminProductResponseDtoSourceTypeEnum = {
+    Custom: 'custom',
+    Kinguin: 'kinguin'
+} as const;
+export type AdminProductResponseDtoSourceTypeEnum = typeof AdminProductResponseDtoSourceTypeEnum[keyof typeof AdminProductResponseDtoSourceTypeEnum];
+
+
 /**
  * Check if a given object implements the AdminProductResponseDto interface.
  */
 export function instanceOfAdminProductResponseDto(value: object): value is AdminProductResponseDto {
     if (!('id' in value) || value['id'] === undefined) return false;
+    if (!('sourceType' in value) || value['sourceType'] === undefined) return false;
     if (!('slug' in value) || value['slug'] === undefined) return false;
     if (!('title' in value) || value['title'] === undefined) return false;
     if (!('name' in value) || value['name'] === undefined) return false;
@@ -171,6 +195,8 @@ export function AdminProductResponseDtoFromJSONTyped(json: any, ignoreDiscrimina
         
         'id': json['id'],
         'externalId': json['externalId'] == null ? undefined : json['externalId'],
+        'sourceType': json['sourceType'],
+        'kinguinOfferId': json['kinguinOfferId'] == null ? undefined : json['kinguinOfferId'],
         'slug': json['slug'],
         'title': json['title'],
         'name': json['name'],
@@ -205,6 +231,8 @@ export function AdminProductResponseDtoToJSONTyped(value?: AdminProductResponseD
         
         'id': value['id'],
         'externalId': value['externalId'],
+        'sourceType': value['sourceType'],
+        'kinguinOfferId': value['kinguinOfferId'],
         'slug': value['slug'],
         'title': value['title'],
         'name': value['name'],

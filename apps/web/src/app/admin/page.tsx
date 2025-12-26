@@ -59,16 +59,7 @@ import { AnimatedGridPattern } from '@/components/animations/FloatingParticles';
 import { cn } from '@/design-system/utils/utils';
 import { useState, useCallback, useMemo } from 'react';
 
-// Initialize SDK configuration
-const apiConfig = new Configuration({
-  basePath: process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000',
-  accessToken: (): string => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('accessToken') ?? '';
-    }
-    return '';
-  },
-});
+import { apiConfig } from '@/lib/api-config';
 
 const adminClient = new AdminApi(apiConfig);
 

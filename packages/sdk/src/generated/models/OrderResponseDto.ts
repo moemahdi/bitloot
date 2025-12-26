@@ -52,6 +52,18 @@ export interface OrderResponseDto {
      */
     status: string;
     /**
+     * Overall order fulfillment source
+     * @type {string}
+     * @memberof OrderResponseDto
+     */
+    sourceType: OrderResponseDtoSourceTypeEnum;
+    /**
+     * Kinguin reservation ID (present when sourceType is kinguin)
+     * @type {string}
+     * @memberof OrderResponseDto
+     */
+    kinguinReservationId?: string;
+    /**
      * 
      * @type {string}
      * @memberof OrderResponseDto
@@ -77,6 +89,17 @@ export interface OrderResponseDto {
     updatedAt: Date;
 }
 
+
+/**
+ * @export
+ */
+export const OrderResponseDtoSourceTypeEnum = {
+    Custom: 'custom',
+    Kinguin: 'kinguin'
+} as const;
+export type OrderResponseDtoSourceTypeEnum = typeof OrderResponseDtoSourceTypeEnum[keyof typeof OrderResponseDtoSourceTypeEnum];
+
+
 /**
  * Check if a given object implements the OrderResponseDto interface.
  */
@@ -84,6 +107,7 @@ export function instanceOfOrderResponseDto(value: object): value is OrderRespons
     if (!('id' in value) || value['id'] === undefined) return false;
     if (!('email' in value) || value['email'] === undefined) return false;
     if (!('status' in value) || value['status'] === undefined) return false;
+    if (!('sourceType' in value) || value['sourceType'] === undefined) return false;
     if (!('total' in value) || value['total'] === undefined) return false;
     if (!('items' in value) || value['items'] === undefined) return false;
     if (!('createdAt' in value) || value['createdAt'] === undefined) return false;
@@ -105,6 +129,8 @@ export function OrderResponseDtoFromJSONTyped(json: any, ignoreDiscriminator: bo
         'email': json['email'],
         'userId': json['userId'] == null ? undefined : json['userId'],
         'status': json['status'],
+        'sourceType': json['sourceType'],
+        'kinguinReservationId': json['kinguinReservationId'] == null ? undefined : json['kinguinReservationId'],
         'total': json['total'],
         'items': ((json['items'] as Array<any>).map(OrderItemResponseDtoFromJSON)),
         'createdAt': (new Date(json['createdAt'])),
@@ -127,6 +153,8 @@ export function OrderResponseDtoToJSONTyped(value?: OrderResponseDto | null, ign
         'email': value['email'],
         'userId': value['userId'],
         'status': value['status'],
+        'sourceType': value['sourceType'],
+        'kinguinReservationId': value['kinguinReservationId'],
         'total': value['total'],
         'items': ((value['items'] as Array<any>).map(OrderItemResponseDtoToJSON)),
         'createdAt': value['createdAt'].toISOString(),

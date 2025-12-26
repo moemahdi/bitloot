@@ -37,6 +37,14 @@ export class AdminOpsService {
       'maintenance_mode',
       { enabled: false, description: 'Enable maintenance mode (disables checkout)' },
     ],
+    [
+      'kinguin_enabled',
+      { enabled: true, description: 'Enable Kinguin API integration for product fulfillment' },
+    ],
+    [
+      'custom_products_enabled',
+      { enabled: true, description: 'Enable custom product creation and management' },
+    ],
   ]);
 
   constructor(
@@ -64,6 +72,15 @@ export class AdminOpsService {
     const flag = this.featureFlags.get(name);
     if (flag === undefined) return null;
     return flag;
+  }
+
+  /**
+   * Check if a feature flag is enabled (convenience method)
+   * Returns false if flag doesn't exist
+   */
+  isEnabled(name: string): boolean {
+    const flag = this.featureFlags.get(name);
+    return flag?.enabled ?? false;
   }
 
   /**

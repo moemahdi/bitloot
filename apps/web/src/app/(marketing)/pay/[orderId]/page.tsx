@@ -4,11 +4,9 @@ import { useSearchParams, useRouter, useParams } from 'next/navigation';
 import { useMutation } from '@tanstack/react-query';
 import { useState } from 'react';
 import { Configuration } from '@bitloot/sdk';
+import { apiConfig } from '@/lib/api-config';
 
 // Initialize SDK configuration for consistent API calls
-const apiConfig = new Configuration({
-  basePath: process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000',
-});
 
 export default function PayPage(): React.ReactElement {
   const router = useRouter();

@@ -8,6 +8,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { Order } from '../orders/order.entity';
 import { OrderItem } from '../orders/order-item.entity';
 import { Key } from '../orders/key.entity';
+import { Product } from '../catalog/entities/product.entity';
 import { FulfillmentService } from './fulfillment.service';
 import { KinguinClient } from './kinguin.client';
 import { MockKinguinClient } from './kinguin.mock';
@@ -18,6 +19,7 @@ import { EmailsModule } from '../emails/emails.module';
 import { MetricsModule } from '../metrics/metrics.module';
 import { OrdersService } from '../orders/orders.service';
 import { CatalogModule } from '../catalog/catalog.module';
+import { AdminOpsModule } from '../admin/admin-ops.module';
 import { FulfillmentController } from './fulfillment.controller';
 import { FulfillmentGateway } from './fulfillment.gateway';
 
@@ -33,7 +35,7 @@ import { FulfillmentGateway } from './fulfillment.gateway';
  * 6. Track deliveries
  *
  * Dependencies:
- * - TypeORM: Order, OrderItem repository access
+ * - TypeORM: Order, OrderItem, Key, Product repository access
  * - BullMQ: Async job queuing for fulfillment
  * - Axios: HTTP client for Kinguin API
  *
@@ -44,8 +46,8 @@ import { FulfillmentGateway } from './fulfillment.gateway';
  */
 @Module({
   imports: [
-    // Database access
-    TypeOrmModule.forFeature([Order, OrderItem, Key]),
+    // Database access (includes Product for looking up kinguinOfferId)
+    TypeOrmModule.forFeature([Order, OrderItem, Key, Product]),
 
     // BullMQ queue for async job processing
     BullModule.registerQueue({
@@ -63,6 +65,9 @@ import { FulfillmentGateway } from './fulfillment.gateway';
 
     // Catalog module (provides CatalogService for OrdersService)
     CatalogModule,
+
+    // Admin ops module (provides AdminOpsService for feature flags)
+    AdminOpsModule,
 
     // JWT module for WebSocket authentication
     JwtModule.register({
