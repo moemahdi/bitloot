@@ -46,6 +46,7 @@ export function AuthProvider({ children }: { children: ReactNode }): React.React
 
   const queryClient = useQueryClient();
   const refreshTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isRefreshingRef = useRef<boolean>(false);
 
   // Helper functions for cookie management
   const getCookie = useCallback((name: string): string | null => {
@@ -208,8 +209,14 @@ export function AuthProvider({ children }: { children: ReactNode }): React.React
       const now = Date.now();
       const timeUntilExpiry = expTime - now;
 
-      // Refresh 1 minute before expiry
-      const refreshTime = Math.max(timeUntilExpiry - 60 * 1000, 0);
+      // Refresh 1 minute before expiry, but minimum 5 seconds to prevent rapid loops
+      const refreshTime = Math.max(timeUntilExpiry - 60 * 1000, 5000);
+
+      // If token is already expired or about to expire in less than 5 seconds, 
+      // don't schedule - let the API call fail and trigger a logout
+      if (timeUntilExpiry < 5000) {
+        return;
+      }
 
       if (refreshTimeoutRef.current !== null) {
         clearTimeout(refreshTimeoutRef.current);
@@ -217,6 +224,12 @@ export function AuthProvider({ children }: { children: ReactNode }): React.React
 
       refreshTimeoutRef.current = setTimeout(() => {
         void (async () => {
+          // Prevent concurrent refresh attempts
+          if (isRefreshingRef.current) {
+            return;
+          }
+          isRefreshingRef.current = true;
+
           try {
             // Use SDK to refresh token
             const result = await authClient.refreshToken(state.refreshToken ?? '');
@@ -230,11 +243,14 @@ export function AuthProvider({ children }: { children: ReactNode }): React.React
               refreshToken: result.refreshToken,
             }));
 
-            scheduleRefresh();
+            // Note: Don't call scheduleRefresh() here - the effect will re-run
+            // due to state change and reschedule automatically
           } catch (error) {
             console.error('Token refresh failed:', error);
             // Logout on refresh failure
             logout();
+          } finally {
+            isRefreshingRef.current = false;
           }
         })();
       }, refreshTime);
@@ -283,6 +299,12 @@ export function AuthProvider({ children }: { children: ReactNode }): React.React
       throw new Error('No refresh token available');
     }
 
+    // Prevent concurrent refresh attempts
+    if (isRefreshingRef.current) {
+      return;
+    }
+    isRefreshingRef.current = true;
+
     try {
       // Use SDK to refresh token
       const result = await authClient.refreshToken(state.refreshToken);
@@ -299,6 +321,8 @@ export function AuthProvider({ children }: { children: ReactNode }): React.React
       console.error('Token refresh error:', error);
       logout();
       throw error;
+    } finally {
+      isRefreshingRef.current = false;
     }
   }, [state.refreshToken, setCookie, logout]);
 
