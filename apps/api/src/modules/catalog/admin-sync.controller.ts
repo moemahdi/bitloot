@@ -96,20 +96,14 @@ export class AdminSyncController {
 
   /**
    * POST /admin/catalog/sync
-   * Trigger a Kinguin catalog synchronization job
+   * Trigger a sync of already-imported Kinguin products (updates existing products only)
    */
   @Post()
   @HttpCode(HttpStatus.ACCEPTED)
   @ApiOperation({
-    summary: 'Trigger Kinguin catalog sync',
+    summary: 'Sync imported Kinguin products',
     description:
-      'Enqueues a BullMQ job to fetch latest products from Kinguin API and update local database',
-  })
-  @ApiQuery({
-    name: 'fullSync',
-    required: false,
-    type: Boolean,
-    description: 'If true, performs full sync. Otherwise, incremental sync',
+      'Updates all previously-imported Kinguin products with latest data from Kinguin API. Does NOT import new products.',
   })
   @ApiResponse({
     status: 202,
@@ -118,9 +112,7 @@ export class AdminSyncController {
   })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Forbidden - Admin only' })
-  async triggerSync(
-    @Query('fullSync') fullSync?: string,
-  ): Promise<SyncJobResponseDto> {
+  async triggerSync(): Promise<SyncJobResponseDto> {
     // Check if Kinguin integration is configured
     if (!this.kinguinClient.isConfigured()) {
       throw new BadRequestException(
@@ -128,16 +120,10 @@ export class AdminSyncController {
       );
     }
 
-    const isFullSync =
-      fullSync !== null &&
-      fullSync !== undefined &&
-      fullSync !== '' &&
-      (fullSync === 'true' || fullSync === '1');
-
     const job = await this.catalogQueue.add(
-      'catalog.sync.full', // Use the correct job name that the processor expects
+      'catalog.sync.imported', // Sync only already-imported products
       {
-        fullSync: isFullSync,
+        batchSize: 50,
         triggeredAt: new Date().toISOString(),
       },
       {
@@ -152,9 +138,7 @@ export class AdminSyncController {
     return {
       jobId: job.id ?? 'unknown',
       status: 'enqueued',
-      message: isFullSync
-        ? 'Full catalog sync job enqueued'
-        : 'Incremental catalog sync job enqueued',
+      message: 'Sync job enqueued - will update all imported Kinguin products',
     };
   }
 

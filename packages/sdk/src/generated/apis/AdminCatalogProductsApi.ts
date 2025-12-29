@@ -17,6 +17,10 @@ import * as runtime from '../runtime';
 import type {
   AdminProductResponseDto,
   AdminProductsListResponseDto,
+  BulkDeleteProductsDto,
+  BulkDeleteResponseDto,
+  BulkRepriceProductsDto,
+  BulkRepriceResponseDto,
   CreateProductDto,
   UpdateProductDto,
 } from '../models/index';
@@ -25,11 +29,27 @@ import {
     AdminProductResponseDtoToJSON,
     AdminProductsListResponseDtoFromJSON,
     AdminProductsListResponseDtoToJSON,
+    BulkDeleteProductsDtoFromJSON,
+    BulkDeleteProductsDtoToJSON,
+    BulkDeleteResponseDtoFromJSON,
+    BulkDeleteResponseDtoToJSON,
+    BulkRepriceProductsDtoFromJSON,
+    BulkRepriceProductsDtoToJSON,
+    BulkRepriceResponseDtoFromJSON,
+    BulkRepriceResponseDtoToJSON,
     CreateProductDtoFromJSON,
     CreateProductDtoToJSON,
     UpdateProductDtoFromJSON,
     UpdateProductDtoToJSON,
 } from '../models/index';
+
+export interface AdminProductsControllerBulkDeleteRequest {
+    bulkDeleteProductsDto: BulkDeleteProductsDto;
+}
+
+export interface AdminProductsControllerBulkRepriceRequest {
+    bulkRepriceProductsDto: BulkRepriceProductsDto;
+}
 
 export interface AdminProductsControllerCreateRequest {
     createProductDto: CreateProductDto;
@@ -57,6 +77,10 @@ export interface AdminProductsControllerPublishRequest {
     id: string;
 }
 
+export interface AdminProductsControllerRepriceRequest {
+    id: string;
+}
+
 export interface AdminProductsControllerUnpublishRequest {
     id: string;
 }
@@ -70,6 +94,100 @@ export interface AdminProductsControllerUpdateRequest {
  * 
  */
 export class AdminCatalogProductsApi extends runtime.BaseAPI {
+
+    /**
+     * Bulk delete products
+     */
+    async adminProductsControllerBulkDeleteRaw(requestParameters: AdminProductsControllerBulkDeleteRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<BulkDeleteResponseDto>> {
+        if (requestParameters['bulkDeleteProductsDto'] == null) {
+            throw new runtime.RequiredError(
+                'bulkDeleteProductsDto',
+                'Required parameter "bulkDeleteProductsDto" was null or undefined when calling adminProductsControllerBulkDelete().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("JWT-auth", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/admin/catalog/products/bulk-delete`;
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+            body: BulkDeleteProductsDtoToJSON(requestParameters['bulkDeleteProductsDto']),
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => BulkDeleteResponseDtoFromJSON(jsonValue));
+    }
+
+    /**
+     * Bulk delete products
+     */
+    async adminProductsControllerBulkDelete(requestParameters: AdminProductsControllerBulkDeleteRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<BulkDeleteResponseDto> {
+        const response = await this.adminProductsControllerBulkDeleteRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Bulk reprice products based on current pricing rules
+     */
+    async adminProductsControllerBulkRepriceRaw(requestParameters: AdminProductsControllerBulkRepriceRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<BulkRepriceResponseDto>> {
+        if (requestParameters['bulkRepriceProductsDto'] == null) {
+            throw new runtime.RequiredError(
+                'bulkRepriceProductsDto',
+                'Required parameter "bulkRepriceProductsDto" was null or undefined when calling adminProductsControllerBulkReprice().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("JWT-auth", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/admin/catalog/products/bulk-reprice`;
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+            body: BulkRepriceProductsDtoToJSON(requestParameters['bulkRepriceProductsDto']),
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => BulkRepriceResponseDtoFromJSON(jsonValue));
+    }
+
+    /**
+     * Bulk reprice products based on current pricing rules
+     */
+    async adminProductsControllerBulkReprice(requestParameters: AdminProductsControllerBulkRepriceRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<BulkRepriceResponseDto> {
+        const response = await this.adminProductsControllerBulkRepriceRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
 
     /**
      * Create custom product
@@ -314,6 +432,51 @@ export class AdminCatalogProductsApi extends runtime.BaseAPI {
      */
     async adminProductsControllerPublish(requestParameters: AdminProductsControllerPublishRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<AdminProductResponseDto> {
         const response = await this.adminProductsControllerPublishRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Reprice a single product based on current pricing rules
+     */
+    async adminProductsControllerRepriceRaw(requestParameters: AdminProductsControllerRepriceRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<AdminProductResponseDto>> {
+        if (requestParameters['id'] == null) {
+            throw new runtime.RequiredError(
+                'id',
+                'Required parameter "id" was null or undefined when calling adminProductsControllerReprice().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("JWT-auth", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/admin/catalog/products/{id}/reprice`;
+        urlPath = urlPath.replace(`{${"id"}}`, encodeURIComponent(String(requestParameters['id'])));
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'PATCH',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => AdminProductResponseDtoFromJSON(jsonValue));
+    }
+
+    /**
+     * Reprice a single product based on current pricing rules
+     */
+    async adminProductsControllerReprice(requestParameters: AdminProductsControllerRepriceRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<AdminProductResponseDto> {
+        const response = await this.adminProductsControllerRepriceRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

@@ -23,6 +23,10 @@ import { CreateEmailBounces1735604400000 } from './migrations/1735604400000-Crea
 import { RefactorProductPrice1763647677731 } from './migrations/1763647677731-RefactorProductPrice';
 import { AddEncryptionKeyToKey1763652000000 } from './migrations/1763652000000-AddEncryptionKeyToKey';
 import { EnsureAdminUser1763653000000 } from './migrations/1763653000000-EnsureAdminUser';
+import { AddSourceType1764000000000 } from './migrations/1764000000000-AddSourceType';
+import { ExpandProductColumnLengths1764200000000 } from './migrations/1764200000000-ExpandProductColumnLengths';
+import { AddKinguinProductFields1764300000000 } from './migrations/1764300000000-AddKinguinProductFields';
+import { MakePricingRuleProductIdNullable1764400000000 } from './migrations/1764400000000-MakePricingRuleProductIdNullable';
 
 dotenv.config({ path: path.resolve(__dirname, '../../../../.env') });
 
@@ -42,6 +46,10 @@ export default new DataSource({
     RefactorProductPrice1763647677731,
     AddEncryptionKeyToKey1763652000000,
     EnsureAdminUser1763653000000,
+    AddSourceType1764000000000,
+    ExpandProductColumnLengths1764200000000,
+    AddKinguinProductFields1764300000000,
+    MakePricingRuleProductIdNullable1764400000000,
   ],
   logging: true,
   synchronize: false,

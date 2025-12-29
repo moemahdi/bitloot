@@ -87,8 +87,8 @@ export default function AdminCatalogPage(): React.ReactElement | null {
 
     // Sync Mutation
     const syncMutation = useMutation({
-        mutationFn: async (fullSync: boolean) => {
-            return await syncApi.adminSyncControllerTriggerSync({ fullSync });
+        mutationFn: async () => {
+            return await syncApi.adminSyncControllerTriggerSync();
         },
         onSuccess: () => {
             setIsSyncing(true);
@@ -298,24 +298,16 @@ export default function AdminCatalogPage(): React.ReactElement | null {
                     <Card>
                         <CardHeader>
                             <CardTitle>Kinguin Catalog Sync</CardTitle>
-                            <CardDescription>Synchronize local product catalog with Kinguin API.</CardDescription>
+                            <CardDescription>Synchronize imported Kinguin products with latest prices and stock.</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-6">
                             <div className="flex items-center gap-4">
                                 <Button
-                                    onClick={() => syncMutation.mutate(false)}
+                                    onClick={() => syncMutation.mutate()}
                                     disabled={syncMutation.isPending || isSyncing}
                                 >
                                     {syncMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
-                                    Trigger Delta Sync
-                                </Button>
-                                <Button
-                                    variant="secondary"
-                                    onClick={() => syncMutation.mutate(true)}
-                                    disabled={syncMutation.isPending || isSyncing}
-                                >
-                                    {syncMutation.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
-                                    Trigger Full Sync
+                                    Sync Imported Products
                                 </Button>
                             </div>
 

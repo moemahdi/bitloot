@@ -8,6 +8,11 @@ const nextConfig = {
         hostname: 'static.kinguin.net',
         pathname: '/**',
       },
+      {
+        protocol: 'https',
+        hostname: 'img.youtube.com',
+        pathname: '/**',
+      },
     ],
   },
   typescript: {

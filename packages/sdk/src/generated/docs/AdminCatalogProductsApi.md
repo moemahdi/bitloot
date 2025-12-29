@@ -4,14 +4,155 @@ All URIs are relative to *http://localhost*
 
 | Method | HTTP request | Description |
 |------------- | ------------- | -------------|
+| [**adminProductsControllerBulkDelete**](AdminCatalogProductsApi.md#adminproductscontrollerbulkdelete) | **POST** /admin/catalog/products/bulk-delete | Bulk delete products |
+| [**adminProductsControllerBulkReprice**](AdminCatalogProductsApi.md#adminproductscontrollerbulkreprice) | **POST** /admin/catalog/products/bulk-reprice | Bulk reprice products based on current pricing rules |
 | [**adminProductsControllerCreate**](AdminCatalogProductsApi.md#adminproductscontrollercreate) | **POST** /admin/catalog/products | Create custom product |
 | [**adminProductsControllerDelete**](AdminCatalogProductsApi.md#adminproductscontrollerdelete) | **DELETE** /admin/catalog/products/{id} | Delete product |
 | [**adminProductsControllerGetById**](AdminCatalogProductsApi.md#adminproductscontrollergetbyid) | **GET** /admin/catalog/products/{id} | Get product by ID (admin) |
 | [**adminProductsControllerListAll**](AdminCatalogProductsApi.md#adminproductscontrollerlistall) | **GET** /admin/catalog/products | List products with pagination (admin) |
 | [**adminProductsControllerPublish**](AdminCatalogProductsApi.md#adminproductscontrollerpublish) | **PATCH** /admin/catalog/products/{id}/publish | Publish product (set isPublished&#x3D;true) |
+| [**adminProductsControllerReprice**](AdminCatalogProductsApi.md#adminproductscontrollerreprice) | **PATCH** /admin/catalog/products/{id}/reprice | Reprice a single product based on current pricing rules |
 | [**adminProductsControllerUnpublish**](AdminCatalogProductsApi.md#adminproductscontrollerunpublish) | **PATCH** /admin/catalog/products/{id}/unpublish | Unpublish product (set isPublished&#x3D;false) |
 | [**adminProductsControllerUpdate**](AdminCatalogProductsApi.md#adminproductscontrollerupdate) | **PATCH** /admin/catalog/products/{id} | Update product details |
 
+
+
+## adminProductsControllerBulkDelete
+
+> BulkDeleteResponseDto adminProductsControllerBulkDelete(bulkDeleteProductsDto)
+
+Bulk delete products
+
+### Example
+
+```ts
+import {
+  Configuration,
+  AdminCatalogProductsApi,
+} from '';
+import type { AdminProductsControllerBulkDeleteRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const config = new Configuration({ 
+    // Configure HTTP bearer authorization: JWT-auth
+    accessToken: "YOUR BEARER TOKEN",
+  });
+  const api = new AdminCatalogProductsApi(config);
+
+  const body = {
+    // BulkDeleteProductsDto
+    bulkDeleteProductsDto: ...,
+  } satisfies AdminProductsControllerBulkDeleteRequest;
+
+  try {
+    const data = await api.adminProductsControllerBulkDelete(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **bulkDeleteProductsDto** | [BulkDeleteProductsDto](BulkDeleteProductsDto.md) |  | |
+
+### Return type
+
+[**BulkDeleteResponseDto**](BulkDeleteResponseDto.md)
+
+### Authorization
+
+[JWT-auth](../README.md#JWT-auth)
+
+### HTTP request headers
+
+- **Content-Type**: `application/json`
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Products deleted |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## adminProductsControllerBulkReprice
+
+> BulkRepriceResponseDto adminProductsControllerBulkReprice(bulkRepriceProductsDto)
+
+Bulk reprice products based on current pricing rules
+
+### Example
+
+```ts
+import {
+  Configuration,
+  AdminCatalogProductsApi,
+} from '';
+import type { AdminProductsControllerBulkRepriceRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const config = new Configuration({ 
+    // Configure HTTP bearer authorization: JWT-auth
+    accessToken: "YOUR BEARER TOKEN",
+  });
+  const api = new AdminCatalogProductsApi(config);
+
+  const body = {
+    // BulkRepriceProductsDto
+    bulkRepriceProductsDto: ...,
+  } satisfies AdminProductsControllerBulkRepriceRequest;
+
+  try {
+    const data = await api.adminProductsControllerBulkReprice(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **bulkRepriceProductsDto** | [BulkRepriceProductsDto](BulkRepriceProductsDto.md) |  | |
+
+### Return type
+
+[**BulkRepriceResponseDto**](BulkRepriceResponseDto.md)
+
+### Authorization
+
+[JWT-auth](../README.md#JWT-auth)
+
+### HTTP request headers
+
+- **Content-Type**: `application/json`
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Products repriced |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
 
 ## adminProductsControllerCreate
@@ -341,6 +482,76 @@ async function example() {
 
   try {
     const data = await api.adminProductsControllerPublish(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **id** | `string` |  | [Defaults to `undefined`] |
+
+### Return type
+
+[**AdminProductResponseDto**](AdminProductResponseDto.md)
+
+### Authorization
+
+[JWT-auth](../README.md#JWT-auth)
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** |  |  -  |
+| **404** | Product not found |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## adminProductsControllerReprice
+
+> AdminProductResponseDto adminProductsControllerReprice(id)
+
+Reprice a single product based on current pricing rules
+
+### Example
+
+```ts
+import {
+  Configuration,
+  AdminCatalogProductsApi,
+} from '';
+import type { AdminProductsControllerRepriceRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const config = new Configuration({ 
+    // Configure HTTP bearer authorization: JWT-auth
+    accessToken: "YOUR BEARER TOKEN",
+  });
+  const api = new AdminCatalogProductsApi(config);
+
+  const body = {
+    // string
+    id: id_example,
+  } satisfies AdminProductsControllerRepriceRequest;
+
+  try {
+    const data = await api.adminProductsControllerReprice(body);
     console.log(data);
   } catch (error) {
     console.error(error);

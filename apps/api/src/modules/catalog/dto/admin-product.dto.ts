@@ -9,6 +9,8 @@ import {
   MaxLength,
   IsUUID,
   IsIn,
+  IsArray,
+  ArrayMinSize,
 } from 'class-validator';
 
 /**
@@ -216,12 +218,56 @@ export class ProductPriceDto {
   currency!: string;
 }
 
+/**
+ * Video object from Kinguin API
+ */
+export class KinguinVideoDto {
+  @ApiProperty({ description: 'YouTube video ID', example: 'dQw4w9WgXcQ' })
+  video_id!: string;
+}
+
+/**
+ * Screenshot object from Kinguin API
+ */
+export class KinguinScreenshotDto {
+  @ApiProperty({ description: 'Full-size screenshot URL' })
+  url!: string;
+
+  @ApiProperty({ description: 'Thumbnail URL' })
+  thumbnail!: string;
+}
+
+/**
+ * System requirement object from Kinguin API
+ */
+export class KinguinSystemRequirementDto {
+  @ApiProperty({ description: 'System name', example: 'Windows' })
+  system!: string;
+
+  @ApiProperty({ description: 'List of requirements', type: [String] })
+  requirement!: string[];
+}
+
 export class AdminProductResponseDto {
   @ApiProperty()
   id!: string;
 
   @ApiProperty({ required: false })
   externalId?: string;
+
+  @ApiProperty({
+    description: 'Kinguin numeric ID',
+    required: false,
+    example: 20443,
+  })
+  kinguinId?: number;
+
+  @ApiProperty({
+    description: 'Kinguin product ID string',
+    required: false,
+    example: '5c9b5e6b-89f6-4b3d-8f4e-abcdef123456',
+  })
+  kinguinProductId?: string;
 
   @ApiProperty({
     description: 'Product fulfillment source',
@@ -246,6 +292,13 @@ export class AdminProductResponseDto {
   @ApiProperty()
   name!: string;
 
+  @ApiProperty({
+    description: 'Original product name from Kinguin',
+    required: false,
+    example: 'Counter-Strike: Source',
+  })
+  originalName?: string;
+
   @ApiProperty({ required: false })
   subtitle?: string;
 
@@ -266,6 +319,179 @@ export class AdminProductResponseDto {
 
   @ApiProperty({ required: false })
   category?: string;
+
+  // ============================================
+  // KINGUIN API EXTENDED FIELDS
+  // ============================================
+
+  @ApiProperty({
+    description: 'Game developers',
+    type: [String],
+    required: false,
+    example: ['Valve'],
+  })
+  developers?: string[];
+
+  @ApiProperty({
+    description: 'Game publishers',
+    type: [String],
+    required: false,
+    example: ['Valve'],
+  })
+  publishers?: string[];
+
+  @ApiProperty({
+    description: 'Game genres',
+    type: [String],
+    required: false,
+    example: ['Action', 'FPS'],
+  })
+  genres?: string[];
+
+  @ApiProperty({
+    description: 'Release date (YYYY-MM-DD)',
+    required: false,
+    example: '2004-11-01',
+  })
+  releaseDate?: string;
+
+  @ApiProperty({
+    description: 'Quantity of cheapest offers',
+    required: false,
+    example: 100,
+  })
+  qty?: number;
+
+  @ApiProperty({
+    description: 'Quantity of text serials',
+    required: false,
+    example: 50,
+  })
+  textQty?: number;
+
+  @ApiProperty({
+    description: 'Number of offers',
+    required: false,
+    example: 5,
+  })
+  offersCount?: number;
+
+  @ApiProperty({
+    description: 'Total quantity from all offers',
+    required: false,
+    example: 200,
+  })
+  totalQty?: number;
+
+  @ApiProperty({
+    description: 'Is this a pre-order product',
+    example: false,
+  })
+  isPreorder!: boolean;
+
+  @ApiProperty({
+    description: 'Metacritic score (0-100)',
+    required: false,
+    example: 88,
+  })
+  metacriticScore?: number;
+
+  @ApiProperty({
+    description: 'Regional limitations description',
+    required: false,
+    example: 'Region free',
+  })
+  regionalLimitations?: string;
+
+  @ApiProperty({
+    description: 'Excluded country codes (ISO 2-letter)',
+    type: [String],
+    required: false,
+    example: ['DE', 'AT'],
+  })
+  countryLimitation?: string[];
+
+  @ApiProperty({
+    description: 'Kinguin region ID',
+    required: false,
+    example: 1,
+  })
+  regionId?: number;
+
+  @ApiProperty({
+    description: 'Activation details / instructions',
+    required: false,
+  })
+  activationDetails?: string;
+
+  @ApiProperty({
+    description: 'YouTube video IDs',
+    type: [KinguinVideoDto],
+    required: false,
+  })
+  videos?: KinguinVideoDto[];
+
+  @ApiProperty({
+    description: 'Supported languages',
+    type: [String],
+    required: false,
+    example: ['English', 'German', 'French'],
+  })
+  languages?: string[];
+
+  @ApiProperty({
+    description: 'System requirements by OS',
+    type: [KinguinSystemRequirementDto],
+    required: false,
+  })
+  systemRequirements?: KinguinSystemRequirementDto[];
+
+  @ApiProperty({
+    description: 'Product tags',
+    type: [String],
+    required: false,
+    example: ['base', 'dlc'],
+  })
+  tags?: string[];
+
+  @ApiProperty({
+    description: 'Cheapest offer seller names',
+    type: [String],
+    required: false,
+    example: ['BestSeller', 'TopGames'],
+  })
+  merchantName?: string[];
+
+  @ApiProperty({
+    description: 'Steam app ID',
+    required: false,
+    example: '730',
+  })
+  steam?: string;
+
+  @ApiProperty({
+    description: 'Product screenshots',
+    type: [KinguinScreenshotDto],
+    required: false,
+  })
+  screenshots?: KinguinScreenshotDto[];
+
+  @ApiProperty({
+    description: 'Cover thumbnail URL',
+    required: false,
+  })
+  coverThumbnailUrl?: string;
+
+  @ApiProperty({
+    description: 'Cheapest offer IDs',
+    type: [String],
+    required: false,
+  })
+  cheapestOfferId?: string[];
+
+  // ============================================
+  // END KINGUIN API EXTENDED FIELDS
+  // ============================================
 
   @ApiProperty({
     description: 'Cover image URL for product display',
@@ -396,4 +622,60 @@ export class AdminSyncStatusDto {
 
   @ApiProperty({ description: 'Errors encountered', required: false })
   errors?: string[];
+}
+
+/**
+ * DTO for bulk delete request
+ */
+export class BulkDeleteProductsDto {
+  @ApiProperty({
+    description: 'Array of product IDs to delete',
+    example: ['uuid-1', 'uuid-2', 'uuid-3'],
+    type: [String],
+  })
+  @IsArray()
+  @IsUUID('4', { each: true })
+  @ArrayMinSize(1)
+  ids!: string[];
+}
+
+/**
+ * DTO for bulk delete response
+ */
+export class BulkDeleteResponseDto {
+  @ApiProperty({ description: 'Number of products successfully deleted' })
+  deleted!: number;
+
+  @ApiProperty({
+    description: 'IDs of products that were not found',
+    type: [String],
+    required: false,
+  })
+  notFound?: string[];
+}
+
+/**
+ * DTO for bulk reprice request
+ */
+export class BulkRepriceProductsDto {
+  @ApiProperty({
+    description: 'Array of product IDs to reprice',
+    example: ['uuid-1', 'uuid-2', 'uuid-3'],
+    type: [String],
+  })
+  @IsArray()
+  @IsUUID('4', { each: true })
+  @ArrayMinSize(1)
+  ids!: string[];
+}
+
+/**
+ * DTO for bulk reprice response
+ */
+export class BulkRepriceResponseDto {
+  @ApiProperty({ description: 'Number of products successfully repriced' })
+  success!: number;
+
+  @ApiProperty({ description: 'Number of products that failed to reprice' })
+  failed!: number;
 }

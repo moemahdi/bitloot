@@ -22,6 +22,21 @@ Name | Type
 `imageUrl` | string
 `createdAt` | Date
 `updatedAt` | Date
+`developers` | Array&lt;string&gt;
+`publishers` | Array&lt;string&gt;
+`genres` | Array&lt;string&gt;
+`releaseDate` | string
+`metacriticScore` | number
+`regionalLimitations` | string
+`activationDetails` | string
+`videos` | [Array&lt;VideoDto&gt;](VideoDto.md)
+`languages` | Array&lt;string&gt;
+`systemRequirements` | [Array&lt;SystemRequirementDto&gt;](SystemRequirementDto.md)
+`tags` | Array&lt;string&gt;
+`steam` | string
+`screenshots` | [Array&lt;ScreenshotDto&gt;](ScreenshotDto.md)
+`isPreorder` | boolean
+`rating` | number
 
 ## Example
 
@@ -46,6 +61,21 @@ const example = {
   "imageUrl": https://cdn.bitloot.io/products/cyberpunk-2077-cover.jpg,
   "createdAt": 2024-01-15T10:30Z,
   "updatedAt": 2024-01-20T15:45Z,
+  "developers": ["CD Projekt Red"],
+  "publishers": ["CD Projekt"],
+  "genres": ["Action","RPG","Open World"],
+  "releaseDate": 2020-12-10,
+  "metacriticScore": 86,
+  "regionalLimitations": Region free,
+  "activationDetails": Download and install the game client, log in to your account, enter the key,
+  "videos": null,
+  "languages": ["English","German","French","Spanish"],
+  "systemRequirements": null,
+  "tags": ["base","action","open-world"],
+  "steam": 1091500,
+  "screenshots": null,
+  "isPreorder": false,
+  "rating": 4.5,
 } satisfies ProductResponseDto
 
 console.log(example)

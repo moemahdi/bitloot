@@ -8,6 +8,7 @@ import { AdminProductsController } from './admin-products.controller';
 import { AdminPricingController } from './admin-pricing.controller';
 import { AdminRepriceController } from './admin-reprice.controller';
 import { AdminSyncController } from './admin-sync.controller';
+import { AdminKinguinController } from './admin-kinguin.controller';
 import { KinguinCatalogClient } from './kinguin-catalog.client';
 import { KinguinWebhooksController } from './kinguin-webhooks.controller';
 import { AdminOpsModule } from '../admin/admin-ops.module';
@@ -32,6 +33,7 @@ import { DynamicPricingRule } from './entities/dynamic-pricing-rule.entity';
     AdminPricingController,
     AdminRepriceController,
     AdminSyncController,
+    AdminKinguinController,
     KinguinWebhooksController,
   ],
   exports: [CatalogService, KinguinCatalogClient],

@@ -1,4 +1,5 @@
 apis/AdminApi.ts
+apis/AdminCatalogKinguinApi.ts
 apis/AdminCatalogPricingApi.ts
 apis/AdminCatalogProductsApi.ts
 apis/AdminCatalogRepricingApi.ts
@@ -18,6 +19,7 @@ apis/UsersApi.ts
 apis/WebhooksApi.ts
 apis/index.ts
 docs/AdminApi.md
+docs/AdminCatalogKinguinApi.md
 docs/AdminCatalogPricingApi.md
 docs/AdminCatalogProductsApi.md
 docs/AdminCatalogRepricingApi.md
@@ -60,6 +62,10 @@ docs/AuditLogResponseDto.md
 docs/AuditLogsApi.md
 docs/AuthResponseDto.md
 docs/AuthenticationApi.md
+docs/BulkDeleteProductsDto.md
+docs/BulkDeleteResponseDto.md
+docs/BulkRepriceProductsDto.md
+docs/BulkRepriceResponseDto.md
 docs/CatalogApi.md
 docs/CreateAuditLogDto.md
 docs/CreateOrderDto.md
@@ -83,6 +89,12 @@ docs/IpnResponseDto.md
 docs/KinguinApi.md
 docs/KinguinControllerGetStatus200Response.md
 docs/KinguinControllerHandleWebhook200Response.md
+docs/KinguinImportResponseDto.md
+docs/KinguinProductResultDto.md
+docs/KinguinScreenshotDto.md
+docs/KinguinSearchResponseDto.md
+docs/KinguinSystemRequirementDto.md
+docs/KinguinVideoDto.md
 docs/MetricsApi.md
 docs/NowpaymentsIpnRequestDto.md
 docs/NowpaymentsIpnResponseDto.md
@@ -101,10 +113,12 @@ docs/RequestOtpDto.md
 docs/ResetPasswordDto.md
 docs/ResetPasswordResponseDto.md
 docs/RevealedKeyDto.md
+docs/ScreenshotDto.md
 docs/SyncConfigStatusDto.md
 docs/SyncJobResponseDto.md
 docs/SyncJobStatusResponseDto.md
 docs/SyncJobStatusResponseDtoResult.md
+docs/SystemRequirementDto.md
 docs/UnsubscribeEmailDto.md
 docs/UnsubscribeResponseDto.md
 docs/UpdatePasswordDto.md
@@ -113,6 +127,7 @@ docs/UpdateProductDto.md
 docs/UserResponseDto.md
 docs/UsersApi.md
 docs/VerifyOtpDto.md
+docs/VideoDto.md
 docs/WebhookPayloadDto.md
 docs/WebhooksApi.md
 index.ts
@@ -151,6 +166,10 @@ models/AdminProductsListResponseDto.ts
 models/AuditAdminDto.ts
 models/AuditLogResponseDto.ts
 models/AuthResponseDto.ts
+models/BulkDeleteProductsDto.ts
+models/BulkDeleteResponseDto.ts
+models/BulkRepriceProductsDto.ts
+models/BulkRepriceResponseDto.ts
 models/CreateAuditLogDto.ts
 models/CreateOrderDto.ts
 models/CreatePaymentDto.ts
@@ -169,6 +188,12 @@ models/IpnRequestDto.ts
 models/IpnResponseDto.ts
 models/KinguinControllerGetStatus200Response.ts
 models/KinguinControllerHandleWebhook200Response.ts
+models/KinguinImportResponseDto.ts
+models/KinguinProductResultDto.ts
+models/KinguinScreenshotDto.ts
+models/KinguinSearchResponseDto.ts
+models/KinguinSystemRequirementDto.ts
+models/KinguinVideoDto.ts
 models/NowpaymentsIpnRequestDto.ts
 models/NowpaymentsIpnResponseDto.ts
 models/OrderItemResponseDto.ts
@@ -184,10 +209,12 @@ models/RequestOtpDto.ts
 models/ResetPasswordDto.ts
 models/ResetPasswordResponseDto.ts
 models/RevealedKeyDto.ts
+models/ScreenshotDto.ts
 models/SyncConfigStatusDto.ts
 models/SyncJobResponseDto.ts
 models/SyncJobStatusResponseDto.ts
 models/SyncJobStatusResponseDtoResult.ts
+models/SystemRequirementDto.ts
 models/UnsubscribeEmailDto.ts
 models/UnsubscribeResponseDto.ts
 models/UpdatePasswordDto.ts
@@ -195,6 +222,7 @@ models/UpdatePricingRuleDto.ts
 models/UpdateProductDto.ts
 models/UserResponseDto.ts
 models/VerifyOtpDto.ts
+models/VideoDto.ts
 models/WebhookPayloadDto.ts
 models/index.ts
 runtime.ts

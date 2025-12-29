@@ -48,8 +48,15 @@ export class CatalogService {
     // Kinguin prices are in EUR (NOT cents - already full euro amounts)
     const priceEur = kinguinProduct.price.toFixed(8);
 
-    // Extract cover image URL from Kinguin images object
+    // Extract cover image URLs from Kinguin images object
     const coverImageUrl = kinguinProduct.images?.cover?.url ?? kinguinProduct.images?.cover?.thumbnail;
+    const coverThumbnailUrl = kinguinProduct.images?.cover?.thumbnail ?? coverImageUrl;
+
+    // Extract screenshots array
+    const screenshots = kinguinProduct.images?.screenshots?.map(s => ({
+      url: s.url,
+      thumbnail: s.thumbnail ?? s.url,
+    })) ?? undefined;
 
     // Map Kinguin regionId to readable region (common values)
     const regionMap: Record<number, string> = {
@@ -70,51 +77,145 @@ export class CatalogService {
     const cheapestOffer = kinguinProduct.cheapestOfferId?.[0] ?? kinguinProduct.offers?.[0]?.offerId;
 
     if (product === null) {
-      // Create new product from Kinguin data with all available fields
+      // Create new product from Kinguin data with ALL available fields
       product = this.productRepo.create({
+        // Core identifiers
         externalId,
+        kinguinId: kinguinProduct.kinguinId,
+        kinguinProductId: kinguinProduct.productId,
         slug: this.slugify(kinguinProduct.name, externalId),
+        
+        // Basic product info
         title: kinguinProduct.name,
+        originalName: kinguinProduct.originalName,
         subtitle: kinguinProduct.originalName,
         description: kinguinProduct.description,
+        
+        // Categorization
         platform: kinguinProduct.platform,
         region,
-        category: kinguinProduct.genres?.[0] ?? 'Games', // Use first genre as category
+        category: kinguinProduct.genres?.[0] ?? 'Games',
         ageRating: kinguinProduct.ageRating,
         drm: kinguinProduct.steam !== undefined ? 'Steam' : kinguinProduct.activationDetails,
-        cost: priceEur,
-        currency: 'EUR', // Kinguin API returns EUR prices
-        price: priceEur,
-        isPublished: false,
-        isCustom: false,
-        // ✅ FIX: Set sourceType to 'kinguin' for Kinguin products
-        sourceType: 'kinguin',
-        // ✅ FIX: Store the cheapest offer ID for fulfillment
-        kinguinOfferId: cheapestOffer,
-        // Rating from Metacritic (scaled to 0-5)
+        
+        // Product metadata
+        developers: kinguinProduct.developers,
+        publishers: kinguinProduct.publishers,
+        genres: kinguinProduct.genres,
+        releaseDate: kinguinProduct.releaseDate,
+        tags: kinguinProduct.tags,
+        
+        // Inventory/stock info
+        qty: kinguinProduct.qty,
+        textQty: kinguinProduct.textQty,
+        offersCount: kinguinProduct.offersCount,
+        totalQty: kinguinProduct.totalQty,
+        isPreorder: kinguinProduct.isPreorder ?? false,
+        
+        // Ratings
+        metacriticScore: kinguinProduct.metacriticScore,
         rating: kinguinProduct.metacriticScore !== undefined
           ? Math.min(5, kinguinProduct.metacriticScore / 20)
           : undefined,
-        // Cover image URL for display
+        
+        // Regional restrictions
+        regionalLimitations: kinguinProduct.regionalLimitations,
+        countryLimitation: kinguinProduct.countryLimitation,
+        regionId: kinguinProduct.regionId,
+        
+        // Activation and fulfillment
+        activationDetails: kinguinProduct.activationDetails,
+        merchantName: kinguinProduct.merchantName,
+        cheapestOfferId: kinguinProduct.cheapestOfferId,
+        kinguinOfferId: cheapestOffer,
+        
+        // Media
         coverImageUrl,
+        coverThumbnailUrl,
+        screenshots,
+        videos: kinguinProduct.videos,
+        
+        // Technical info
+        languages: kinguinProduct.languages,
+        systemRequirements: kinguinProduct.systemRequirements,
+        steam: kinguinProduct.steam,
+        
+        // Pricing
+        cost: priceEur,
+        currency: 'EUR',
+        price: priceEur,
+        
+        // Status
+        isPublished: false,
+        isCustom: false,
+        sourceType: 'kinguin',
       });
     } else {
       // Update existing product with latest Kinguin data
+      
       // Update cost if Kinguin cost changed (lower cost = better deal)
       if (parseFloat(priceEur) < parseFloat(product.cost)) {
         product.cost = priceEur;
       }
 
       // Always update these fields to keep in sync with Kinguin
+      // Core fields
+      if (kinguinProduct.kinguinId !== undefined) product.kinguinId = kinguinProduct.kinguinId;
+      if (kinguinProduct.productId !== undefined) product.kinguinProductId = kinguinProduct.productId;
+      
+      // Basic info
+      if (kinguinProduct.originalName !== undefined) product.originalName = kinguinProduct.originalName;
       if (kinguinProduct.description !== undefined) product.description = kinguinProduct.description;
+      
+      // Categorization
       if (kinguinProduct.platform !== undefined) product.platform = kinguinProduct.platform;
       if (region !== undefined) product.region = region;
       if (kinguinProduct.genres?.[0] !== undefined) product.category = kinguinProduct.genres[0];
       if (kinguinProduct.ageRating !== undefined) product.ageRating = kinguinProduct.ageRating;
-      if (coverImageUrl !== undefined) product.coverImageUrl = coverImageUrl;
+      
+      // Metadata
+      if (kinguinProduct.developers !== undefined) product.developers = kinguinProduct.developers;
+      if (kinguinProduct.publishers !== undefined) product.publishers = kinguinProduct.publishers;
+      if (kinguinProduct.genres !== undefined) product.genres = kinguinProduct.genres;
+      if (kinguinProduct.releaseDate !== undefined) product.releaseDate = kinguinProduct.releaseDate;
+      if (kinguinProduct.tags !== undefined) product.tags = kinguinProduct.tags;
+      
+      // Inventory
+      if (kinguinProduct.qty !== undefined) product.qty = kinguinProduct.qty;
+      if (kinguinProduct.textQty !== undefined) product.textQty = kinguinProduct.textQty;
+      if (kinguinProduct.offersCount !== undefined) product.offersCount = kinguinProduct.offersCount;
+      if (kinguinProduct.totalQty !== undefined) product.totalQty = kinguinProduct.totalQty;
+      if (kinguinProduct.isPreorder !== undefined) product.isPreorder = kinguinProduct.isPreorder;
+      
+      // Ratings
+      if (kinguinProduct.metacriticScore !== undefined) {
+        product.metacriticScore = kinguinProduct.metacriticScore;
+        product.rating = Math.min(5, kinguinProduct.metacriticScore / 20);
+      }
+      
+      // Regional restrictions
+      if (kinguinProduct.regionalLimitations !== undefined) product.regionalLimitations = kinguinProduct.regionalLimitations;
+      if (kinguinProduct.countryLimitation !== undefined) product.countryLimitation = kinguinProduct.countryLimitation;
+      if (kinguinProduct.regionId !== undefined) product.regionId = kinguinProduct.regionId;
+      
+      // Activation and fulfillment
+      if (kinguinProduct.activationDetails !== undefined) product.activationDetails = kinguinProduct.activationDetails;
+      if (kinguinProduct.merchantName !== undefined) product.merchantName = kinguinProduct.merchantName;
+      if (kinguinProduct.cheapestOfferId !== undefined) product.cheapestOfferId = kinguinProduct.cheapestOfferId;
       if (cheapestOffer !== undefined) product.kinguinOfferId = cheapestOffer;
+      
+      // Media
+      if (coverImageUrl !== undefined) product.coverImageUrl = coverImageUrl;
+      if (coverThumbnailUrl !== undefined) product.coverThumbnailUrl = coverThumbnailUrl;
+      if (screenshots !== undefined) product.screenshots = screenshots;
+      if (kinguinProduct.videos !== undefined) product.videos = kinguinProduct.videos;
+      
+      // Technical info
+      if (kinguinProduct.languages !== undefined) product.languages = kinguinProduct.languages;
+      if (kinguinProduct.systemRequirements !== undefined) product.systemRequirements = kinguinProduct.systemRequirements;
+      if (kinguinProduct.steam !== undefined) product.steam = kinguinProduct.steam;
 
-      // ✅ FIX: Ensure sourceType is 'kinguin' (fix existing products synced before this fix)
+      // Ensure sourceType is 'kinguin' (fix existing products synced before this fix)
       product.sourceType = 'kinguin';
       product.isCustom = false;
     }
@@ -210,8 +311,7 @@ export class CatalogService {
 
   /**
    * Get pricing rule for product (product-specific or global default)
-   * Implements hierarchy: Product Rule → Global Default
-   * Note: Category-level rules require adding a 'category' column to DynamicPricingRule entity
+   * Implements hierarchy: Product Rule → Global Rule → Hardcoded Default
    */
   private async getPricingRule(productId: string): Promise<PricingRuleData> {
     // Step 1: Try to find product-specific rule (highest priority)
@@ -230,10 +330,23 @@ export class CatalogService {
       };
     }
 
-    // Step 2: Try to find global default rule (productId is for a non-existent product or null equivalent)
-    // Since we can't query for null productId directly, we'll look for rules with a special marker
-    // For now, skip global rules from DB and use hardcoded fallback
-    // TODO: Add a 'isGlobal' boolean column to DynamicPricingRule entity for proper global rules
+    // Step 2: Try to find global rule (productId IS NULL)
+    const globalRule = await this.pricingRuleRepo
+      .createQueryBuilder('rule')
+      .where('rule.productId IS NULL')
+      .andWhere('rule.isActive = :isActive', { isActive: true })
+      .orderBy('rule.priority', 'DESC')
+      .getOne();
+
+    if (globalRule !== null) {
+      return {
+        rule_type: globalRule.rule_type,
+        marginPercent: globalRule.marginPercent,
+        fixedMarkupMinor: globalRule.fixedMarkupMinor,
+        floorMinor: globalRule.floorMinor,
+        capMinor: globalRule.capMinor,
+      };
+    }
 
     // Step 3: Fallback to hardcoded default (8% margin)
     return {
@@ -393,7 +506,7 @@ export class CatalogService {
   /**
    * Reprice a product based on current pricing rules
    */
-  async repriceProduct(productId: string): Promise<void> {
+  async repriceProduct(productId: string): Promise<Product> {
     const product = await this.productRepo.findOne({ where: { id: productId } });
 
     if (product === null) {
@@ -404,7 +517,26 @@ export class CatalogService {
     const newPrice = await this.calculatePrice(product, product.cost);
     product.price = newPrice;
 
-    await this.productRepo.save(product);
+    return this.productRepo.save(product);
+  }
+
+  /**
+   * Reprice multiple products based on current pricing rules
+   */
+  async repriceProducts(productIds: string[]): Promise<{ success: number; failed: number }> {
+    let success = 0;
+    let failed = 0;
+
+    for (const productId of productIds) {
+      try {
+        await this.repriceProduct(productId);
+        success++;
+      } catch {
+        failed++;
+      }
+    }
+
+    return { success, failed };
   }
 
   /**
@@ -465,9 +597,10 @@ export class CatalogService {
 
   /**
    * Create new pricing rule (admin only)
+   * If productId is undefined, creates a global rule that applies to all products
    */
   async createPricingRule(data: {
-    productId: string;
+    productId?: string;
     ruleType: 'margin_percent' | 'fixed_markup' | 'floor_cap' | 'dynamic_adjust';
     marginPercent?: string;
     fixedMarkupMinor?: number;
@@ -476,17 +609,19 @@ export class CatalogService {
     priority?: number;
     isActive?: boolean;
   }): Promise<DynamicPricingRule> {
-    // Verify product exists
-    const product = await this.productRepo.findOne({
-      where: { id: data.productId },
-    });
+    // If productId provided, verify product exists
+    if (typeof data.productId === 'string') {
+      const product = await this.productRepo.findOne({
+        where: { id: data.productId },
+      });
 
-    if (product === null) {
-      throw new NotFoundException(`Product not found: ${data.productId}`);
+      if (product === null) {
+        throw new NotFoundException(`Product not found: ${data.productId}`);
+      }
     }
 
     const rule = this.pricingRuleRepo.create({
-      productId: data.productId,
+      productId: data.productId ?? null,
       rule_type: data.ruleType,
       marginPercent: data.marginPercent,
       fixedMarkupMinor: data.fixedMarkupMinor,
@@ -658,6 +793,31 @@ export class CatalogService {
   }
 
   /**
+   * Delete multiple products (admin only - bulk hard delete)
+   * @param ids - Array of product IDs to delete
+   * @returns Number of products actually deleted
+   */
+  async deleteProducts(ids: string[]): Promise<{ deleted: number; notFound: string[] }> {
+    if (ids.length === 0) {
+      return { deleted: 0, notFound: [] };
+    }
+
+    // Find all products that exist
+    const products = await this.productRepo.find({
+      where: ids.map((id) => ({ id })),
+    });
+
+    const foundIds = new Set(products.map((p) => p.id));
+    const notFound = ids.filter((id) => !foundIds.has(id));
+
+    if (products.length > 0) {
+      await this.productRepo.remove(products);
+    }
+
+    return { deleted: products.length, notFound };
+  }
+
+  /**
    * Publish product (set isPublished = true)
    */
   async publishProduct(id: string): Promise<Product> {
@@ -758,6 +918,37 @@ export class CatalogService {
   async findByExternalId(externalId: string): Promise<Product | null> {
     return this.productRepo.findOne({
       where: { externalId },
+    });
+  }
+
+  /**
+   * Check which Kinguin product IDs are already imported
+   * Returns a Set of externalIds that exist in the catalog
+   */
+  async getImportedKinguinIds(externalIds: string[]): Promise<Set<string>> {
+    if (externalIds.length === 0) {
+      return new Set();
+    }
+
+    const products = await this.productRepo
+      .createQueryBuilder('product')
+      .select('product.externalId')
+      .where('product.externalId IN (:...ids)', { ids: externalIds })
+      .getMany();
+
+    return new Set(products.map((p) => p.externalId).filter((id): id is string => id !== null));
+  }
+
+  /**
+   * Get all imported Kinguin products for syncing
+   * Returns products with sourceType='kinguin' that have an externalId
+   */
+  async getImportedKinguinProducts(): Promise<Product[]> {
+    return this.productRepo.find({
+      where: {
+        sourceType: 'kinguin',
+      },
+      select: ['id', 'externalId', 'title', 'sourceType'],
     });
   }
 

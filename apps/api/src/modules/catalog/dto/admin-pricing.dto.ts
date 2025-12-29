@@ -17,9 +17,14 @@ import {
  */
 
 export class CreatePricingRuleDto {
-  @ApiProperty({ description: 'Product ID (UUID)', format: 'uuid' })
+  @ApiProperty({
+    description: 'Product ID (UUID). Leave empty for global rule that applies to all products.',
+    format: 'uuid',
+    required: false,
+  })
+  @IsOptional()
   @IsUUID()
-  productId!: string;
+  productId?: string;
 
   @ApiProperty({
     description: 'Rule type',
@@ -150,8 +155,8 @@ export class AdminPricingRuleResponseDto {
   @ApiProperty()
   id!: string;
 
-  @ApiProperty()
-  productId!: string;
+  @ApiProperty({ nullable: true, description: 'Product ID. Null for global rules.' })
+  productId?: string | null;
 
   @ApiProperty()
   ruleType!: string;

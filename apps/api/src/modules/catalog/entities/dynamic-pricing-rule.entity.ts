@@ -17,8 +17,8 @@ export class DynamicPricingRule {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 
-  @Column({ type: 'uuid' })
-  productId!: string;
+  @Column({ type: 'uuid', nullable: true })
+  productId?: string | null;
 
   @Column({
     type: 'enum',
@@ -50,10 +50,11 @@ export class DynamicPricingRule {
   @UpdateDateColumn()
   updatedAt!: Date;
 
-  // Relations
+  // Relations - optional for global rules (productId = null)
   @ManyToOne(() => Product, (product) => product.pricingRules, {
     onDelete: 'CASCADE',
+    nullable: true,
   })
   @JoinColumn({ name: 'productId' })
-  product!: Product;
+  product?: Product | null;
 }

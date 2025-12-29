@@ -270,6 +270,56 @@ export class KinguinCatalogClient {
   }
 
   /**
+   * Search products by name
+   * Uses GET /v1/products with name parameter
+   * @param query Search query (minimum 3 characters)
+   * @param options Optional filters (platform, genre, limit)
+   * @returns Search results with products and total count
+   */
+  async searchProducts(
+    query: string,
+    options?: {
+      platform?: string;
+      genre?: string;
+      limit?: number;
+      page?: number;
+    },
+  ): Promise<KinguinPaginatedResponse> {
+    if (!this.isConfigured()) {
+      throw new Error(`Kinguin integration not configured: ${this.getConfigurationStatus()}`);
+    }
+
+    if (query.length < 3) {
+      throw new Error('Search query must be at least 3 characters');
+    }
+
+    try {
+      this.logger.debug(`Searching Kinguin products for: "${query}"`);
+
+      const response = await this.client.get<KinguinPaginatedResponse>('/v1/products', {
+        params: {
+          name: query,
+          page: options?.page ?? 1,
+          limit: Math.min(options?.limit ?? 25, 100),
+          ...(options?.platform !== undefined && options.platform !== '' ? { platform: options.platform } : {}),
+          ...(options?.genre !== undefined && options.genre !== '' ? { genre: options.genre } : {}),
+        },
+      });
+
+      this.logger.debug(
+        `Search for "${query}" returned ${response.data.results?.length ?? 0} products (total: ${response.data.item_count})`,
+      );
+
+      return response.data;
+    } catch (error: unknown) {
+      this.logger.error(
+        `Failed to search Kinguin products for "${query}": ${error instanceof Error ? error.message : String(error)}`,
+      );
+      throw error;
+    }
+  }
+
+  /**
    * Get a single product by Kinguin ID
    * Uses GET /v1/products/{kinguinId}
    * @param kinguinId Kinguin product ID (numeric)

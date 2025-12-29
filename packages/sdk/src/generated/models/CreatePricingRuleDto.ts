@@ -20,11 +20,11 @@ import { mapValues } from '../runtime';
  */
 export interface CreatePricingRuleDto {
     /**
-     * Product ID (UUID)
+     * Product ID (UUID). Leave empty for global rule that applies to all products.
      * @type {string}
      * @memberof CreatePricingRuleDto
      */
-    productId: string;
+    productId?: string;
     /**
      * Rule type
      * @type {string}
@@ -86,7 +86,6 @@ export type CreatePricingRuleDtoRuleTypeEnum = typeof CreatePricingRuleDtoRuleTy
  * Check if a given object implements the CreatePricingRuleDto interface.
  */
 export function instanceOfCreatePricingRuleDto(value: object): value is CreatePricingRuleDto {
-    if (!('productId' in value) || value['productId'] === undefined) return false;
     if (!('ruleType' in value) || value['ruleType'] === undefined) return false;
     if (!('priority' in value) || value['priority'] === undefined) return false;
     if (!('isActive' in value) || value['isActive'] === undefined) return false;
@@ -103,7 +102,7 @@ export function CreatePricingRuleDtoFromJSONTyped(json: any, ignoreDiscriminator
     }
     return {
         
-        'productId': json['productId'],
+        'productId': json['productId'] == null ? undefined : json['productId'],
         'ruleType': json['ruleType'],
         'marginPercent': json['marginPercent'] == null ? undefined : json['marginPercent'],
         'fixedMarkupMinor': json['fixedMarkupMinor'] == null ? undefined : json['fixedMarkupMinor'],

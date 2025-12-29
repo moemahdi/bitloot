@@ -13,6 +13,28 @@
  */
 
 import { mapValues } from '../runtime';
+import type { KinguinSystemRequirementDto } from './KinguinSystemRequirementDto';
+import {
+    KinguinSystemRequirementDtoFromJSON,
+    KinguinSystemRequirementDtoFromJSONTyped,
+    KinguinSystemRequirementDtoToJSON,
+    KinguinSystemRequirementDtoToJSONTyped,
+} from './KinguinSystemRequirementDto';
+import type { KinguinScreenshotDto } from './KinguinScreenshotDto';
+import {
+    KinguinScreenshotDtoFromJSON,
+    KinguinScreenshotDtoFromJSONTyped,
+    KinguinScreenshotDtoToJSON,
+    KinguinScreenshotDtoToJSONTyped,
+} from './KinguinScreenshotDto';
+import type { KinguinVideoDto } from './KinguinVideoDto';
+import {
+    KinguinVideoDtoFromJSON,
+    KinguinVideoDtoFromJSONTyped,
+    KinguinVideoDtoToJSON,
+    KinguinVideoDtoToJSONTyped,
+} from './KinguinVideoDto';
+
 /**
  * 
  * @export
@@ -31,6 +53,18 @@ export interface AdminProductResponseDto {
      * @memberof AdminProductResponseDto
      */
     externalId?: string;
+    /**
+     * Kinguin numeric ID
+     * @type {number}
+     * @memberof AdminProductResponseDto
+     */
+    kinguinId?: number;
+    /**
+     * Kinguin product ID string
+     * @type {string}
+     * @memberof AdminProductResponseDto
+     */
+    kinguinProductId?: string;
     /**
      * Product fulfillment source
      * @type {string}
@@ -61,6 +95,12 @@ export interface AdminProductResponseDto {
      * @memberof AdminProductResponseDto
      */
     name: string;
+    /**
+     * Original product name from Kinguin
+     * @type {string}
+     * @memberof AdminProductResponseDto
+     */
+    originalName?: string;
     /**
      * 
      * @type {string}
@@ -103,6 +143,144 @@ export interface AdminProductResponseDto {
      * @memberof AdminProductResponseDto
      */
     category?: string;
+    /**
+     * Game developers
+     * @type {Array<string>}
+     * @memberof AdminProductResponseDto
+     */
+    developers?: Array<string>;
+    /**
+     * Game publishers
+     * @type {Array<string>}
+     * @memberof AdminProductResponseDto
+     */
+    publishers?: Array<string>;
+    /**
+     * Game genres
+     * @type {Array<string>}
+     * @memberof AdminProductResponseDto
+     */
+    genres?: Array<string>;
+    /**
+     * Release date (YYYY-MM-DD)
+     * @type {string}
+     * @memberof AdminProductResponseDto
+     */
+    releaseDate?: string;
+    /**
+     * Quantity of cheapest offers
+     * @type {number}
+     * @memberof AdminProductResponseDto
+     */
+    qty?: number;
+    /**
+     * Quantity of text serials
+     * @type {number}
+     * @memberof AdminProductResponseDto
+     */
+    textQty?: number;
+    /**
+     * Number of offers
+     * @type {number}
+     * @memberof AdminProductResponseDto
+     */
+    offersCount?: number;
+    /**
+     * Total quantity from all offers
+     * @type {number}
+     * @memberof AdminProductResponseDto
+     */
+    totalQty?: number;
+    /**
+     * Is this a pre-order product
+     * @type {boolean}
+     * @memberof AdminProductResponseDto
+     */
+    isPreorder: boolean;
+    /**
+     * Metacritic score (0-100)
+     * @type {number}
+     * @memberof AdminProductResponseDto
+     */
+    metacriticScore?: number;
+    /**
+     * Regional limitations description
+     * @type {string}
+     * @memberof AdminProductResponseDto
+     */
+    regionalLimitations?: string;
+    /**
+     * Excluded country codes (ISO 2-letter)
+     * @type {Array<string>}
+     * @memberof AdminProductResponseDto
+     */
+    countryLimitation?: Array<string>;
+    /**
+     * Kinguin region ID
+     * @type {number}
+     * @memberof AdminProductResponseDto
+     */
+    regionId?: number;
+    /**
+     * Activation details / instructions
+     * @type {string}
+     * @memberof AdminProductResponseDto
+     */
+    activationDetails?: string;
+    /**
+     * YouTube video IDs
+     * @type {Array<KinguinVideoDto>}
+     * @memberof AdminProductResponseDto
+     */
+    videos?: Array<KinguinVideoDto>;
+    /**
+     * Supported languages
+     * @type {Array<string>}
+     * @memberof AdminProductResponseDto
+     */
+    languages?: Array<string>;
+    /**
+     * System requirements by OS
+     * @type {Array<KinguinSystemRequirementDto>}
+     * @memberof AdminProductResponseDto
+     */
+    systemRequirements?: Array<KinguinSystemRequirementDto>;
+    /**
+     * Product tags
+     * @type {Array<string>}
+     * @memberof AdminProductResponseDto
+     */
+    tags?: Array<string>;
+    /**
+     * Cheapest offer seller names
+     * @type {Array<string>}
+     * @memberof AdminProductResponseDto
+     */
+    merchantName?: Array<string>;
+    /**
+     * Steam app ID
+     * @type {string}
+     * @memberof AdminProductResponseDto
+     */
+    steam?: string;
+    /**
+     * Product screenshots
+     * @type {Array<KinguinScreenshotDto>}
+     * @memberof AdminProductResponseDto
+     */
+    screenshots?: Array<KinguinScreenshotDto>;
+    /**
+     * Cover thumbnail URL
+     * @type {string}
+     * @memberof AdminProductResponseDto
+     */
+    coverThumbnailUrl?: string;
+    /**
+     * Cheapest offer IDs
+     * @type {Array<string>}
+     * @memberof AdminProductResponseDto
+     */
+    cheapestOfferId?: Array<string>;
     /**
      * Cover image URL for product display
      * @type {string}
@@ -185,6 +363,7 @@ export function instanceOfAdminProductResponseDto(value: object): value is Admin
     if (!('slug' in value) || value['slug'] === undefined) return false;
     if (!('title' in value) || value['title'] === undefined) return false;
     if (!('name' in value) || value['name'] === undefined) return false;
+    if (!('isPreorder' in value) || value['isPreorder'] === undefined) return false;
     if (!('cost' in value) || value['cost'] === undefined) return false;
     if (!('price' in value) || value['price'] === undefined) return false;
     if (!('currency' in value) || value['currency'] === undefined) return false;
@@ -207,11 +386,14 @@ export function AdminProductResponseDtoFromJSONTyped(json: any, ignoreDiscrimina
         
         'id': json['id'],
         'externalId': json['externalId'] == null ? undefined : json['externalId'],
+        'kinguinId': json['kinguinId'] == null ? undefined : json['kinguinId'],
+        'kinguinProductId': json['kinguinProductId'] == null ? undefined : json['kinguinProductId'],
         'sourceType': json['sourceType'],
         'kinguinOfferId': json['kinguinOfferId'] == null ? undefined : json['kinguinOfferId'],
         'slug': json['slug'],
         'title': json['title'],
         'name': json['name'],
+        'originalName': json['originalName'] == null ? undefined : json['originalName'],
         'subtitle': json['subtitle'] == null ? undefined : json['subtitle'],
         'description': json['description'] == null ? undefined : json['description'],
         'platform': json['platform'] == null ? undefined : json['platform'],
@@ -219,6 +401,29 @@ export function AdminProductResponseDtoFromJSONTyped(json: any, ignoreDiscrimina
         'drm': json['drm'] == null ? undefined : json['drm'],
         'ageRating': json['ageRating'] == null ? undefined : json['ageRating'],
         'category': json['category'] == null ? undefined : json['category'],
+        'developers': json['developers'] == null ? undefined : json['developers'],
+        'publishers': json['publishers'] == null ? undefined : json['publishers'],
+        'genres': json['genres'] == null ? undefined : json['genres'],
+        'releaseDate': json['releaseDate'] == null ? undefined : json['releaseDate'],
+        'qty': json['qty'] == null ? undefined : json['qty'],
+        'textQty': json['textQty'] == null ? undefined : json['textQty'],
+        'offersCount': json['offersCount'] == null ? undefined : json['offersCount'],
+        'totalQty': json['totalQty'] == null ? undefined : json['totalQty'],
+        'isPreorder': json['isPreorder'],
+        'metacriticScore': json['metacriticScore'] == null ? undefined : json['metacriticScore'],
+        'regionalLimitations': json['regionalLimitations'] == null ? undefined : json['regionalLimitations'],
+        'countryLimitation': json['countryLimitation'] == null ? undefined : json['countryLimitation'],
+        'regionId': json['regionId'] == null ? undefined : json['regionId'],
+        'activationDetails': json['activationDetails'] == null ? undefined : json['activationDetails'],
+        'videos': json['videos'] == null ? undefined : ((json['videos'] as Array<any>).map(KinguinVideoDtoFromJSON)),
+        'languages': json['languages'] == null ? undefined : json['languages'],
+        'systemRequirements': json['systemRequirements'] == null ? undefined : ((json['systemRequirements'] as Array<any>).map(KinguinSystemRequirementDtoFromJSON)),
+        'tags': json['tags'] == null ? undefined : json['tags'],
+        'merchantName': json['merchantName'] == null ? undefined : json['merchantName'],
+        'steam': json['steam'] == null ? undefined : json['steam'],
+        'screenshots': json['screenshots'] == null ? undefined : ((json['screenshots'] as Array<any>).map(KinguinScreenshotDtoFromJSON)),
+        'coverThumbnailUrl': json['coverThumbnailUrl'] == null ? undefined : json['coverThumbnailUrl'],
+        'cheapestOfferId': json['cheapestOfferId'] == null ? undefined : json['cheapestOfferId'],
         'coverImageUrl': json['coverImageUrl'] == null ? undefined : json['coverImageUrl'],
         'rating': json['rating'] == null ? undefined : json['rating'],
         'cost': json['cost'],
@@ -245,11 +450,14 @@ export function AdminProductResponseDtoToJSONTyped(value?: AdminProductResponseD
         
         'id': value['id'],
         'externalId': value['externalId'],
+        'kinguinId': value['kinguinId'],
+        'kinguinProductId': value['kinguinProductId'],
         'sourceType': value['sourceType'],
         'kinguinOfferId': value['kinguinOfferId'],
         'slug': value['slug'],
         'title': value['title'],
         'name': value['name'],
+        'originalName': value['originalName'],
         'subtitle': value['subtitle'],
         'description': value['description'],
         'platform': value['platform'],
@@ -257,6 +465,29 @@ export function AdminProductResponseDtoToJSONTyped(value?: AdminProductResponseD
         'drm': value['drm'],
         'ageRating': value['ageRating'],
         'category': value['category'],
+        'developers': value['developers'],
+        'publishers': value['publishers'],
+        'genres': value['genres'],
+        'releaseDate': value['releaseDate'],
+        'qty': value['qty'],
+        'textQty': value['textQty'],
+        'offersCount': value['offersCount'],
+        'totalQty': value['totalQty'],
+        'isPreorder': value['isPreorder'],
+        'metacriticScore': value['metacriticScore'],
+        'regionalLimitations': value['regionalLimitations'],
+        'countryLimitation': value['countryLimitation'],
+        'regionId': value['regionId'],
+        'activationDetails': value['activationDetails'],
+        'videos': value['videos'] == null ? undefined : ((value['videos'] as Array<any>).map(KinguinVideoDtoToJSON)),
+        'languages': value['languages'],
+        'systemRequirements': value['systemRequirements'] == null ? undefined : ((value['systemRequirements'] as Array<any>).map(KinguinSystemRequirementDtoToJSON)),
+        'tags': value['tags'],
+        'merchantName': value['merchantName'],
+        'steam': value['steam'],
+        'screenshots': value['screenshots'] == null ? undefined : ((value['screenshots'] as Array<any>).map(KinguinScreenshotDtoToJSON)),
+        'coverThumbnailUrl': value['coverThumbnailUrl'],
+        'cheapestOfferId': value['cheapestOfferId'],
         'coverImageUrl': value['coverImageUrl'],
         'rating': value['rating'],
         'cost': value['cost'],

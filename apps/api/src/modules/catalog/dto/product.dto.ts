@@ -1,6 +1,36 @@
 import { ApiProperty } from '@nestjs/swagger';
 
 /**
+ * Video object from Kinguin API
+ */
+export class VideoDto {
+  @ApiProperty({ description: 'YouTube video ID', example: 'dQw4w9WgXcQ' })
+  video_id!: string;
+}
+
+/**
+ * Screenshot object from Kinguin API
+ */
+export class ScreenshotDto {
+  @ApiProperty({ description: 'Full-size screenshot URL' })
+  url!: string;
+
+  @ApiProperty({ description: 'Thumbnail URL' })
+  thumbnail!: string;
+}
+
+/**
+ * System requirement object from Kinguin API
+ */
+export class SystemRequirementDto {
+  @ApiProperty({ description: 'System name', example: 'Windows' })
+  system!: string;
+
+  @ApiProperty({ description: 'List of requirements', type: [String] })
+  requirement!: string[];
+}
+
+/**
  * Public-facing product response DTO for catalog API
  * Used by storefront (customer-facing) endpoints
  */
@@ -108,6 +138,120 @@ export class ProductResponseDto {
     example: '2024-01-20T15:45:00Z',
   })
   updatedAt!: Date;
+
+  // ============================================
+  // KINGUIN EXTENDED FIELDS
+  // ============================================
+
+  @ApiProperty({
+    description: 'Game developers',
+    type: [String],
+    required: false,
+    example: ['CD Projekt Red'],
+  })
+  developers?: string[];
+
+  @ApiProperty({
+    description: 'Game publishers',
+    type: [String],
+    required: false,
+    example: ['CD Projekt'],
+  })
+  publishers?: string[];
+
+  @ApiProperty({
+    description: 'Game genres',
+    type: [String],
+    required: false,
+    example: ['Action', 'RPG', 'Open World'],
+  })
+  genres?: string[];
+
+  @ApiProperty({
+    description: 'Release date (YYYY-MM-DD)',
+    required: false,
+    example: '2020-12-10',
+  })
+  releaseDate?: string;
+
+  @ApiProperty({
+    description: 'Metacritic score (0-100)',
+    required: false,
+    example: 86,
+  })
+  metacriticScore?: number;
+
+  @ApiProperty({
+    description: 'Regional limitations description',
+    required: false,
+    example: 'Region free',
+  })
+  regionalLimitations?: string;
+
+  @ApiProperty({
+    description: 'Activation details / instructions',
+    required: false,
+    example: 'Download and install the game client, log in to your account, enter the key',
+  })
+  activationDetails?: string;
+
+  @ApiProperty({
+    description: 'YouTube video trailers',
+    type: [VideoDto],
+    required: false,
+  })
+  videos?: VideoDto[];
+
+  @ApiProperty({
+    description: 'Supported languages',
+    type: [String],
+    required: false,
+    example: ['English', 'German', 'French', 'Spanish'],
+  })
+  languages?: string[];
+
+  @ApiProperty({
+    description: 'System requirements by OS',
+    type: [SystemRequirementDto],
+    required: false,
+  })
+  systemRequirements?: SystemRequirementDto[];
+
+  @ApiProperty({
+    description: 'Product tags',
+    type: [String],
+    required: false,
+    example: ['base', 'action', 'open-world'],
+  })
+  tags?: string[];
+
+  @ApiProperty({
+    description: 'Steam app ID',
+    required: false,
+    example: '1091500',
+  })
+  steam?: string;
+
+  @ApiProperty({
+    description: 'Product screenshots',
+    type: [ScreenshotDto],
+    required: false,
+  })
+  screenshots?: ScreenshotDto[];
+
+  @ApiProperty({
+    description: 'Is this a pre-order product',
+    required: false,
+    example: false,
+  })
+  isPreorder?: boolean;
+
+  @ApiProperty({
+    description: 'Product rating (0-5 scale)',
+    required: false,
+    example: 4.5,
+  })
+  rating?: number;
 }
 
 /**

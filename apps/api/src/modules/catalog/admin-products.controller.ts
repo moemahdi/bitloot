@@ -29,6 +29,10 @@ import {
   UpdateProductDto,
   AdminProductResponseDto,
   AdminProductsListResponseDto,
+  BulkDeleteProductsDto,
+  BulkDeleteResponseDto,
+  BulkRepriceProductsDto,
+  BulkRepriceResponseDto,
 } from './dto/admin-product.dto';
 import { Product } from './entities/product.entity';
 
@@ -56,28 +60,80 @@ export class AdminProductsController {
 
   private toResponseDto(product: Product): AdminProductResponseDto {
     return {
+      // Core identifiers
       id: product.id,
       externalId: product.externalId ?? undefined,
       sourceType: product.sourceType ?? 'custom',
       kinguinOfferId: product.kinguinOfferId ?? undefined,
       slug: product.slug,
+      
+      // Basic product info
       title: product.title,
       name: product.title,
+      originalName: product.originalName ?? undefined,
       subtitle: product.subtitle ?? undefined,
       description: product.description ?? undefined,
+      
+      // Categorization
       platform: product.platform ?? undefined,
       region: product.region ?? undefined,
       drm: product.drm ?? undefined,
       ageRating: product.ageRating ?? undefined,
       category: product.category ?? undefined,
-      coverImageUrl: product.coverImageUrl ?? undefined,
+      
+      // Kinguin identifiers
+      kinguinId: product.kinguinId ?? undefined,
+      kinguinProductId: product.kinguinProductId ?? undefined,
+      
+      // Product metadata
+      developers: product.developers ?? undefined,
+      publishers: product.publishers ?? undefined,
+      genres: product.genres ?? undefined,
+      releaseDate: product.releaseDate ?? undefined,
+      tags: product.tags ?? undefined,
+      
+      // Inventory/stock info
+      qty: product.qty ?? undefined,
+      textQty: product.textQty ?? undefined,
+      offersCount: product.offersCount ?? undefined,
+      totalQty: product.totalQty ?? undefined,
+      isPreorder: product.isPreorder ?? false,
+      
+      // Ratings and reviews
+      metacriticScore: product.metacriticScore ?? undefined,
       rating: product.rating ?? undefined,
+      
+      // Regional restrictions
+      regionalLimitations: product.regionalLimitations ?? undefined,
+      countryLimitation: product.countryLimitation ?? undefined,
+      regionId: product.regionId ?? undefined,
+      
+      // Activation and fulfillment
+      activationDetails: product.activationDetails ?? undefined,
+      merchantName: product.merchantName ?? undefined,
+      cheapestOfferId: product.cheapestOfferId ?? undefined,
+      
+      // Media
+      coverImageUrl: product.coverImageUrl ?? undefined,
+      coverThumbnailUrl: product.coverThumbnailUrl ?? undefined,
+      screenshots: product.screenshots ?? undefined,
+      videos: product.videos ?? undefined,
+      
+      // Technical info
+      languages: product.languages ?? undefined,
+      systemRequirements: product.systemRequirements ?? undefined,
+      steam: product.steam ?? undefined,
 
+      // Pricing
       cost: product.cost,
       price: product.price,
       currency: product.currency,
+      
+      // Status
       isPublished: product.isPublished,
       isCustom: product.isCustom,
+      
+      // Timestamps
       createdAt: product.createdAt,
       updatedAt: product.updatedAt,
     };
@@ -251,6 +307,21 @@ export class AdminProductsController {
     }
   }
 
+  @Post('bulk-delete')
+  @ApiOperation({ summary: 'Bulk delete products' })
+  @ApiResponse({ status: 200, type: BulkDeleteResponseDto, description: 'Products deleted' })
+  async bulkDelete(@Body() dto: BulkDeleteProductsDto): Promise<BulkDeleteResponseDto> {
+    try {
+      const result = await this.catalogService.deleteProducts(dto.ids);
+      return result;
+    } catch (error) {
+      throw new HttpException(
+        `Failed to bulk delete products: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
   @Patch(':id/publish')
   @ApiOperation({ summary: 'Publish product (set isPublished=true)' })
   @ApiResponse({ status: 200, type: AdminProductResponseDto })
@@ -280,6 +351,38 @@ export class AdminProductsController {
       if (error instanceof NotFoundException) throw error;
       throw new HttpException(
         `Failed to unpublish product: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Patch(':id/reprice')
+  @ApiOperation({ summary: 'Reprice a single product based on current pricing rules' })
+  @ApiResponse({ status: 200, type: AdminProductResponseDto })
+  @ApiResponse({ status: 404, description: 'Product not found' })
+  async reprice(@Param('id') id: string): Promise<AdminProductResponseDto> {
+    try {
+      const product = await this.catalogService.repriceProduct(id);
+      return this.toResponseDto(product);
+    } catch (error) {
+      if (error instanceof NotFoundException) throw error;
+      throw new HttpException(
+        `Failed to reprice product: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Post('bulk-reprice')
+  @ApiOperation({ summary: 'Bulk reprice products based on current pricing rules' })
+  @ApiResponse({ status: 200, type: BulkRepriceResponseDto, description: 'Products repriced' })
+  async bulkReprice(@Body() dto: BulkRepriceProductsDto): Promise<BulkRepriceResponseDto> {
+    try {
+      const result = await this.catalogService.repriceProducts(dto.ids);
+      return result;
+    } catch (error) {
+      throw new HttpException(
+        `Failed to bulk reprice products: ${error instanceof Error ? error.message : 'Unknown error'}`,
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }

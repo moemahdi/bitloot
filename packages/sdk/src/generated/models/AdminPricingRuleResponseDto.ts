@@ -26,11 +26,11 @@ export interface AdminPricingRuleResponseDto {
      */
     id: string;
     /**
-     * 
-     * @type {string}
+     * Product ID. Null for global rules.
+     * @type {object}
      * @memberof AdminPricingRuleResponseDto
      */
-    productId: string;
+    productId: object | null;
     /**
      * 
      * @type {string}

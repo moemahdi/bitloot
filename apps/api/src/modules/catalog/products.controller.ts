@@ -5,11 +5,29 @@ import { Product } from './entities/product.entity';
 import { ProductResponseDto, ProductListResponseDto } from './dto/product.dto';
 
 /**
+ * Parse JSON array field safely (handles JSONB columns that may be null, empty, or arrays)
+ */
+function parseJsonArray<T>(value: unknown): T[] | undefined {
+  if (value === null || value === undefined) return undefined;
+  if (Array.isArray(value)) return value as T[];
+  if (typeof value === 'string') {
+    try {
+      const parsed: unknown = JSON.parse(value);
+      if (Array.isArray(parsed)) return parsed as T[];
+    } catch {
+      return undefined;
+    }
+  }
+  return undefined;
+}
+
+/**
  * Map Product entity to ProductResponseDto for API response
- * Ensures consistent field naming (entity uses coverImageUrl, DTO uses imageUrl)
+ * Includes all Kinguin extended fields for rich product display
  */
 function toProductResponseDto(product: Product): ProductResponseDto {
   return {
+    // Basic fields
     id: product.id,
     slug: product.slug,
     title: product.title,
@@ -26,6 +44,25 @@ function toProductResponseDto(product: Product): ProductResponseDto {
     imageUrl: product.coverImageUrl, // Map coverImageUrl → imageUrl
     createdAt: product.createdAt,
     updatedAt: product.updatedAt,
+
+    // Kinguin extended fields
+    developers: parseJsonArray<string>(product.developers),
+    publishers: parseJsonArray<string>(product.publishers),
+    genres: parseJsonArray<string>(product.genres),
+    releaseDate: product.releaseDate ?? undefined,
+    metacriticScore: product.metacriticScore ?? undefined,
+    regionalLimitations: product.regionalLimitations ?? undefined,
+    activationDetails: product.activationDetails ?? undefined,
+    videos: parseJsonArray<{ video_id: string }>(product.videos),
+    languages: parseJsonArray<string>(product.languages),
+    systemRequirements: parseJsonArray<{ system: string; requirement: string[] }>(
+      product.systemRequirements,
+    ),
+    tags: parseJsonArray<string>(product.tags),
+    steam: product.steam ?? undefined,
+    screenshots: parseJsonArray<{ url: string; thumbnail: string }>(product.screenshots),
+    isPreorder: product.isPreorder ?? undefined,
+    rating: product.rating ?? undefined,
   };
 }
 

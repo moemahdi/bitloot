@@ -24,6 +24,7 @@ import {
   RefreshCw,
   Zap,
   Loader2,
+  Crown,
 } from 'lucide-react';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
@@ -37,6 +38,7 @@ const ADMIN_TABS = [
   { href: '/admin/reservations', label: 'Reservations', icon: BookOpen },
   { href: '/admin/catalog', label: 'Catalog', icon: ShoppingBag },
   { href: '/admin/catalog/products', label: 'Products', icon: Boxes },
+  { href: '/admin/catalog/import', label: 'Import', icon: Crown },
   { href: '/admin/catalog/rules', label: 'Pricing', icon: Settings },
   { href: '/admin/catalog/sync', label: 'Sync', icon: RefreshCw },
   { href: '/admin/flags', label: 'Flags', icon: ToggleLeft },

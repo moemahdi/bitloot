@@ -17,6 +17,29 @@ import { DynamicPricingRule } from './dynamic-pricing-rule.entity';
  */
 export type ProductSourceType = 'custom' | 'kinguin';
 
+/**
+ * Video object from Kinguin API
+ */
+export interface KinguinVideo {
+  video_id: string;
+}
+
+/**
+ * Screenshot object from Kinguin API
+ */
+export interface KinguinScreenshot {
+  url: string;
+  thumbnail: string;
+}
+
+/**
+ * System requirement object from Kinguin API
+ */
+export interface KinguinSystemRequirement {
+  system: string;
+  requirement: string[];
+}
+
 @Entity('products')
 @Index(['isPublished', 'price', 'createdAt'])
 @Index(['platform', 'region', 'isPublished'])
@@ -30,11 +53,23 @@ export class Product {
   @Column({ type: 'varchar', length: 100, nullable: true })
   externalId?: string;
 
+  /** Kinguin kinguinId (integer ID) */
+  @Column({ type: 'int', nullable: true })
+  kinguinId?: number;
+
+  /** Kinguin productId (string ID) */
+  @Column({ type: 'varchar', length: 100, nullable: true })
+  kinguinProductId?: string;
+
   @Column({ type: 'text', unique: true })
   slug!: string;
 
   @Column({ type: 'text' })
   title!: string;
+
+  /** Original name from Kinguin */
+  @Column({ type: 'text', nullable: true })
+  originalName?: string;
 
   @Column({ type: 'text', nullable: true })
   subtitle?: string;
@@ -45,17 +80,117 @@ export class Product {
   @Column({ type: 'varchar', length: 50, nullable: true })
   platform?: string;
 
-  @Column({ type: 'varchar', length: 50, nullable: true })
+  @Column({ type: 'varchar', length: 100, nullable: true })
   region?: string;
 
-  @Column({ type: 'varchar', length: 50, nullable: true })
+  @Column({ type: 'text', nullable: true })
   drm?: string;
 
-  @Column({ type: 'varchar', length: 10, nullable: true })
+  @Column({ type: 'varchar', length: 20, nullable: true })
   ageRating?: string;
 
   @Column({ type: 'varchar', length: 50, nullable: true })
   category?: string;
+
+  // ============================================
+  // KINGUIN API EXTENDED FIELDS
+  // ============================================
+
+  /** Array of developer names */
+  @Column('simple-array', { nullable: true })
+  developers?: string[];
+
+  /** Array of publisher names */
+  @Column('simple-array', { nullable: true })
+  publishers?: string[];
+
+  /** Array of genre names */
+  @Column('simple-array', { nullable: true })
+  genres?: string[];
+
+  /** Release date (YYYY-MM-DD format) */
+  @Column({ type: 'varchar', length: 20, nullable: true })
+  releaseDate?: string;
+
+  /** Total cheapest offers quantity */
+  @Column({ type: 'int', nullable: true })
+  qty?: number;
+
+  /** Quantity of text serials */
+  @Column({ type: 'int', nullable: true })
+  textQty?: number;
+
+  /** Total number of offers */
+  @Column({ type: 'int', nullable: true })
+  offersCount?: number;
+
+  /** Total quantity from all offers */
+  @Column({ type: 'int', nullable: true })
+  totalQty?: number;
+
+  /** Is this a pre-order product */
+  @Column({ type: 'boolean', default: false })
+  isPreorder!: boolean;
+
+  /** Metacritic score (0-100) */
+  @Column({ type: 'int', nullable: true })
+  metacriticScore?: number;
+
+  /** Region name (e.g., "Region free", "Europe") */
+  @Column({ type: 'varchar', length: 100, nullable: true })
+  regionalLimitations?: string;
+
+  /** List of excluded country codes (ISO 2-letter) */
+  @Column('simple-array', { nullable: true })
+  countryLimitation?: string[];
+
+  /** Kinguin region ID */
+  @Column({ type: 'int', nullable: true })
+  regionId?: number;
+
+  /** Activation details / instructions */
+  @Column({ type: 'text', nullable: true })
+  activationDetails?: string;
+
+  /** Array of video objects with video_id (YouTube) */
+  @Column('jsonb', { nullable: true })
+  videos?: KinguinVideo[];
+
+  /** Array of supported languages */
+  @Column('simple-array', { nullable: true })
+  languages?: string[];
+
+  /** System requirements by OS */
+  @Column('jsonb', { nullable: true })
+  systemRequirements?: KinguinSystemRequirement[];
+
+  /** Product tags (e.g., "base", "dlc") */
+  @Column('simple-array', { nullable: true })
+  tags?: string[];
+
+  /** Array of cheapest offer seller names */
+  @Column('simple-array', { nullable: true })
+  merchantName?: string[];
+
+  /** Steam app ID */
+  @Column({ type: 'varchar', length: 50, nullable: true })
+  steam?: string;
+
+  /** Product screenshots */
+  @Column('jsonb', { nullable: true })
+  screenshots?: KinguinScreenshot[];
+
+  /** Cover image thumbnail URL */
+  @Column({ type: 'text', nullable: true })
+  coverThumbnailUrl?: string;
+
+  /** Cheapest offer IDs */
+  @Column('simple-array', { nullable: true })
+  cheapestOfferId?: string[];
+
+  // ============================================
+  // END KINGUIN API EXTENDED FIELDS
+  // ============================================
 
   /**
    * Source type for fulfillment routing

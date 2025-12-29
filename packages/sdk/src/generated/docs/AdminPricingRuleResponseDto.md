@@ -7,7 +7,7 @@
 Name | Type
 ------------ | -------------
 `id` | string
-`productId` | string
+`productId` | object
 `ruleType` | string
 `marginPercent` | string
 `fixedMarkupMinor` | number

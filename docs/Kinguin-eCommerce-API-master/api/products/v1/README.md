@@ -549,3 +549,108 @@ curl -X GET \
   "Fighting"
 ]
 ```
+
+
+ Here are **all the parameters/fields** you can grab from the Kinguin Products API:
+
+---
+
+## Complete Kinguin Product Object Fields
+
+### Product Identification
+| Field | Type | Description |
+|-------|------|-------------|
+| `kinguinId` | int | Kinguin's internal product ID |
+| `productId` | string | MongoDB-style product ID |
+| `name` | string | Full product name (includes platform) |
+| `originalName` | string | Clean product name (without platform suffix) |
+
+### Pricing & Stock
+| Field | Type | Description |
+|-------|------|-------------|
+| `price` | float | Cheapest offer price (EUR) |
+| `qty` | int | Total quantity from cheapest offers |
+| `textQty` | int | Quantity of text-based keys (instant delivery) |
+| `totalQty` | int | Total quantity across ALL offers |
+| `offersCount` | int | Number of sellers/offers |
+| `cheapestOfferId` | string[] | Array of cheapest offer IDs |
+
+### Pre-order Status
+| Field | Type | Description |
+|-------|------|-------------|
+| `isPreorder` | bool | Whether product is pre-order |
+| `releaseDate` | string | Release date (YYYY-MM-DD) |
+
+### Region & Restrictions
+| Field | Type | Description |
+|-------|------|-------------|
+| `regionId` | int | Region ID (3 = Region Free) |
+| `regionalLimitations` | string | Region name ("REGION FREE", "United States", etc.) |
+| `countryLimitation` | string[] | Array of excluded country codes |
+
+### Categorization
+| Field | Type | Description |
+|-------|------|-------------|
+| `platform` | string | Platform (Steam, Xbox One, PS5, etc.) |
+| `genres` | string[] | Array of genres (Action, Racing, etc.) |
+| `tags` | string[] | Tags: `base`, `dlc`, `software`, `prepaid`, `indie valley` |
+| `developers` | string[] | Array of developer names |
+| `publishers` | string[] | Array of publisher names |
+
+### Content & Details
+| Field | Type | Description |
+|-------|------|-------------|
+| `description` | string | Full HTML product description |
+| `activationDetails` | string | How to redeem/activate the key |
+| `languages` | string[] | Supported languages |
+| `ageRating` | string | Age rating (PEGI 3, ESRB M, etc.) |
+| `metacriticScore` | float | Metacritic score (0-100) |
+| `steam` | string | Steam App ID (if applicable) |
+
+### Media
+| Field | Type | Description |
+|-------|------|-------------|
+| `images.cover.url` | string | Full-size cover image URL |
+| `images.cover.thumbnail` | string | Cover thumbnail URL |
+| `images.screenshots[].url` | string | Screenshot full URL |
+| `images.screenshots[].thumbnail` | string | Screenshot thumbnail URL |
+| `videos[].video_id` | string | YouTube video ID |
+| `videos[].video_url` | string | YouTube video URL |
+
+### System Requirements (PC games)
+| Field | Type | Description |
+|-------|------|-------------|
+| `systemRequirements[].system` | string | OS (Windows, Mac, Linux) |
+| `systemRequirements[].requirement` | string[] | Array of requirement strings |
+
+### Offers Array (Each Seller)
+| Field | Type | Description |
+|-------|------|-------------|
+| `offers[].offerId` | string | Unique offer ID (use this to order) |
+| `offers[].name` | string | Offer name |
+| `offers[].price` | float | Price in EUR |
+| `offers[].qty` | int | Total quantity |
+| `offers[].availableQty` | int | Physical available quantity |
+| `offers[].textQty` | int | Total text key quantity |
+| `offers[].availableTextQty` | int | Available text keys |
+| `offers[].merchantName` | string | Seller name |
+| `offers[].isPreorder` | bool | Pre-order flag |
+| `offers[].releaseDate` | string | Release date |
+| `offers[].wholesale.enabled` | bool | Wholesale pricing available |
+| `offers[].wholesale.tiers[].level` | int | Tier level (1=10+, 2=50+, 3=100+, 4=500+) |
+| `offers[].wholesale.tiers[].price` | float | Tier price |
+
+### Metadata
+| Field | Type | Description |
+|-------|------|-------------|
+| `merchantName` | string[] | Array of cheapest offer seller names |
+| `updatedAt` | string | Last update timestamp (ISO 8601) |
+
+---
+
+## Search Response Wrapper
+When searching products, you get:
+| Field | Type | Description |
+|-------|------|-------------|
+| `results` | object[] | Array of Product Objects |
+| `item_count` | int | Total matching products |

@@ -32,10 +32,6 @@ export interface AdminSyncControllerGetSyncStatusRequest {
     jobId: string;
 }
 
-export interface AdminSyncControllerTriggerSyncRequest {
-    fullSync?: boolean;
-}
-
 /**
  * 
  */
@@ -131,15 +127,11 @@ export class AdminCatalogSyncApi extends runtime.BaseAPI {
     }
 
     /**
-     * Enqueues a BullMQ job to fetch latest products from Kinguin API and update local database
-     * Trigger Kinguin catalog sync
+     * Updates all previously-imported Kinguin products with latest data from Kinguin API. Does NOT import new products.
+     * Sync imported Kinguin products
      */
-    async adminSyncControllerTriggerSyncRaw(requestParameters: AdminSyncControllerTriggerSyncRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<SyncJobResponseDto>> {
+    async adminSyncControllerTriggerSyncRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<SyncJobResponseDto>> {
         const queryParameters: any = {};
-
-        if (requestParameters['fullSync'] != null) {
-            queryParameters['fullSync'] = requestParameters['fullSync'];
-        }
 
         const headerParameters: runtime.HTTPHeaders = {};
 
@@ -165,11 +157,11 @@ export class AdminCatalogSyncApi extends runtime.BaseAPI {
     }
 
     /**
-     * Enqueues a BullMQ job to fetch latest products from Kinguin API and update local database
-     * Trigger Kinguin catalog sync
+     * Updates all previously-imported Kinguin products with latest data from Kinguin API. Does NOT import new products.
+     * Sync imported Kinguin products
      */
-    async adminSyncControllerTriggerSync(requestParameters: AdminSyncControllerTriggerSyncRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<SyncJobResponseDto> {
-        const response = await this.adminSyncControllerTriggerSyncRaw(requestParameters, initOverrides);
+    async adminSyncControllerTriggerSync(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<SyncJobResponseDto> {
+        const response = await this.adminSyncControllerTriggerSyncRaw(initOverrides);
         return await response.value();
     }
 

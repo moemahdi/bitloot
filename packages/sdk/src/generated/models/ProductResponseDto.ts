@@ -13,6 +13,28 @@
  */
 
 import { mapValues } from '../runtime';
+import type { SystemRequirementDto } from './SystemRequirementDto';
+import {
+    SystemRequirementDtoFromJSON,
+    SystemRequirementDtoFromJSONTyped,
+    SystemRequirementDtoToJSON,
+    SystemRequirementDtoToJSONTyped,
+} from './SystemRequirementDto';
+import type { VideoDto } from './VideoDto';
+import {
+    VideoDtoFromJSON,
+    VideoDtoFromJSONTyped,
+    VideoDtoToJSON,
+    VideoDtoToJSONTyped,
+} from './VideoDto';
+import type { ScreenshotDto } from './ScreenshotDto';
+import {
+    ScreenshotDtoFromJSON,
+    ScreenshotDtoFromJSONTyped,
+    ScreenshotDtoToJSON,
+    ScreenshotDtoToJSONTyped,
+} from './ScreenshotDto';
+
 /**
  * 
  * @export
@@ -115,6 +137,96 @@ export interface ProductResponseDto {
      * @memberof ProductResponseDto
      */
     updatedAt: Date;
+    /**
+     * Game developers
+     * @type {Array<string>}
+     * @memberof ProductResponseDto
+     */
+    developers?: Array<string>;
+    /**
+     * Game publishers
+     * @type {Array<string>}
+     * @memberof ProductResponseDto
+     */
+    publishers?: Array<string>;
+    /**
+     * Game genres
+     * @type {Array<string>}
+     * @memberof ProductResponseDto
+     */
+    genres?: Array<string>;
+    /**
+     * Release date (YYYY-MM-DD)
+     * @type {string}
+     * @memberof ProductResponseDto
+     */
+    releaseDate?: string;
+    /**
+     * Metacritic score (0-100)
+     * @type {number}
+     * @memberof ProductResponseDto
+     */
+    metacriticScore?: number;
+    /**
+     * Regional limitations description
+     * @type {string}
+     * @memberof ProductResponseDto
+     */
+    regionalLimitations?: string;
+    /**
+     * Activation details / instructions
+     * @type {string}
+     * @memberof ProductResponseDto
+     */
+    activationDetails?: string;
+    /**
+     * YouTube video trailers
+     * @type {Array<VideoDto>}
+     * @memberof ProductResponseDto
+     */
+    videos?: Array<VideoDto>;
+    /**
+     * Supported languages
+     * @type {Array<string>}
+     * @memberof ProductResponseDto
+     */
+    languages?: Array<string>;
+    /**
+     * System requirements by OS
+     * @type {Array<SystemRequirementDto>}
+     * @memberof ProductResponseDto
+     */
+    systemRequirements?: Array<SystemRequirementDto>;
+    /**
+     * Product tags
+     * @type {Array<string>}
+     * @memberof ProductResponseDto
+     */
+    tags?: Array<string>;
+    /**
+     * Steam app ID
+     * @type {string}
+     * @memberof ProductResponseDto
+     */
+    steam?: string;
+    /**
+     * Product screenshots
+     * @type {Array<ScreenshotDto>}
+     * @memberof ProductResponseDto
+     */
+    screenshots?: Array<ScreenshotDto>;
+    /**
+     * Is this a pre-order product
+     * @type {boolean}
+     * @memberof ProductResponseDto
+     */
+    isPreorder?: boolean;
+    /**
+     * Product rating (0-5 scale)
+     * @type {number}
+     * @memberof ProductResponseDto
+     */
+    rating?: number;
 }
 
 /**
@@ -158,6 +270,21 @@ export function ProductResponseDtoFromJSONTyped(json: any, ignoreDiscriminator: 
         'imageUrl': json['imageUrl'] == null ? undefined : json['imageUrl'],
         'createdAt': (new Date(json['createdAt'])),
         'updatedAt': (new Date(json['updatedAt'])),
+        'developers': json['developers'] == null ? undefined : json['developers'],
+        'publishers': json['publishers'] == null ? undefined : json['publishers'],
+        'genres': json['genres'] == null ? undefined : json['genres'],
+        'releaseDate': json['releaseDate'] == null ? undefined : json['releaseDate'],
+        'metacriticScore': json['metacriticScore'] == null ? undefined : json['metacriticScore'],
+        'regionalLimitations': json['regionalLimitations'] == null ? undefined : json['regionalLimitations'],
+        'activationDetails': json['activationDetails'] == null ? undefined : json['activationDetails'],
+        'videos': json['videos'] == null ? undefined : ((json['videos'] as Array<any>).map(VideoDtoFromJSON)),
+        'languages': json['languages'] == null ? undefined : json['languages'],
+        'systemRequirements': json['systemRequirements'] == null ? undefined : ((json['systemRequirements'] as Array<any>).map(SystemRequirementDtoFromJSON)),
+        'tags': json['tags'] == null ? undefined : json['tags'],
+        'steam': json['steam'] == null ? undefined : json['steam'],
+        'screenshots': json['screenshots'] == null ? undefined : ((json['screenshots'] as Array<any>).map(ScreenshotDtoFromJSON)),
+        'isPreorder': json['isPreorder'] == null ? undefined : json['isPreorder'],
+        'rating': json['rating'] == null ? undefined : json['rating'],
     };
 }
 
@@ -188,6 +315,21 @@ export function ProductResponseDtoToJSONTyped(value?: ProductResponseDto | null,
         'imageUrl': value['imageUrl'],
         'createdAt': value['createdAt'].toISOString(),
         'updatedAt': value['updatedAt'].toISOString(),
+        'developers': value['developers'],
+        'publishers': value['publishers'],
+        'genres': value['genres'],
+        'releaseDate': value['releaseDate'],
+        'metacriticScore': value['metacriticScore'],
+        'regionalLimitations': value['regionalLimitations'],
+        'activationDetails': value['activationDetails'],
+        'videos': value['videos'] == null ? undefined : ((value['videos'] as Array<any>).map(VideoDtoToJSON)),
+        'languages': value['languages'],
+        'systemRequirements': value['systemRequirements'] == null ? undefined : ((value['systemRequirements'] as Array<any>).map(SystemRequirementDtoToJSON)),
+        'tags': value['tags'],
+        'steam': value['steam'],
+        'screenshots': value['screenshots'] == null ? undefined : ((value['screenshots'] as Array<any>).map(ScreenshotDtoToJSON)),
+        'isPreorder': value['isPreorder'],
+        'rating': value['rating'],
     };
 }
 

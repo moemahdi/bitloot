@@ -6,7 +6,7 @@ All URIs are relative to *http://localhost*
 |------------- | ------------- | -------------|
 | [**adminSyncControllerGetConfigStatus**](AdminCatalogSyncApi.md#adminsynccontrollergetconfigstatus) | **GET** /admin/catalog/sync/config | Check Kinguin integration status |
 | [**adminSyncControllerGetSyncStatus**](AdminCatalogSyncApi.md#adminsynccontrollergetsyncstatus) | **GET** /admin/catalog/sync/status | Check sync job status |
-| [**adminSyncControllerTriggerSync**](AdminCatalogSyncApi.md#adminsynccontrollertriggersync) | **POST** /admin/catalog/sync | Trigger Kinguin catalog sync |
+| [**adminSyncControllerTriggerSync**](AdminCatalogSyncApi.md#adminsynccontrollertriggersync) | **POST** /admin/catalog/sync | Sync imported Kinguin products |
 
 
 
@@ -152,11 +152,11 @@ example().catch(console.error);
 
 ## adminSyncControllerTriggerSync
 
-> SyncJobResponseDto adminSyncControllerTriggerSync(fullSync)
+> SyncJobResponseDto adminSyncControllerTriggerSync()
 
-Trigger Kinguin catalog sync
+Sync imported Kinguin products
 
-Enqueues a BullMQ job to fetch latest products from Kinguin API and update local database
+Updates all previously-imported Kinguin products with latest data from Kinguin API. Does NOT import new products.
 
 ### Example
 
@@ -175,13 +175,8 @@ async function example() {
   });
   const api = new AdminCatalogSyncApi(config);
 
-  const body = {
-    // boolean | If true, performs full sync. Otherwise, incremental sync (optional)
-    fullSync: true,
-  } satisfies AdminSyncControllerTriggerSyncRequest;
-
   try {
-    const data = await api.adminSyncControllerTriggerSync(body);
+    const data = await api.adminSyncControllerTriggerSync();
     console.log(data);
   } catch (error) {
     console.error(error);
@@ -194,10 +189,7 @@ example().catch(console.error);
 
 ### Parameters
 
-
-| Name | Type | Description  | Notes |
-|------------- | ------------- | ------------- | -------------|
-| **fullSync** | `boolean` | If true, performs full sync. Otherwise, incremental sync | [Optional] [Defaults to `undefined`] |
+This endpoint does not need any parameter.
 
 ### Return type
 

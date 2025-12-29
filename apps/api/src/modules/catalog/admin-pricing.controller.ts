@@ -62,33 +62,57 @@ export class AdminPricingController {
   @Get()
   @ApiOperation({ summary: 'List all pricing rules (admin only)' })
   @ApiResponse({ status: 200, type: AdminPricingRulesListResponseDto })
-  listAll(
+  async listAll(
     @Query('productId') productId?: string,
     @Query('ruleType')
     ruleType?: 'margin_percent' | 'fixed_markup' | 'floor_cap' | 'dynamic_adjust',
     @Query('isActive') isActive?: string,
     @Query('page') page: string = '1',
     @Query('limit') limit: string = '20',
-  ): AdminPricingRulesListResponseDto {
+  ): Promise<AdminPricingRulesListResponseDto> {
     try {
       const pageNum = Math.max(1, Number.parseInt(page, 10) ?? 1);
       const limitNum = Math.min(100, Math.max(1, Number.parseInt(limit, 10) ?? 20));
 
       // Parse isActive filter
-      let _isActiveBool: boolean | undefined;
+      let isActiveBool: boolean | undefined;
       if (isActive === 'true') {
-        _isActiveBool = true;
+        isActiveBool = true;
       } else if (isActive === 'false') {
-        _isActiveBool = false;
+        isActiveBool = false;
       }
 
-      // TODO: Implement database query with filters
-      // For now, returning empty list structure
-      const rules: DynamicPricingRule[] = [];
-      const total = 0;
+      // Fetch all rules from database
+      const allRules = await this.catalogService.listPricingRules();
+
+      // Apply filters
+      let filteredRules = allRules;
+
+      // Filter by productId (handle 'all' as no filter, empty/undefined for global rules)
+      if (typeof productId === 'string' && productId.length > 0 && productId !== 'all') {
+        // Filter for specific product OR global rules (null productId)
+        filteredRules = filteredRules.filter(
+          (r) => r.productId === productId || r.productId === null,
+        );
+      }
+
+      // Filter by rule type (handle 'all' as no filter)
+      if (typeof ruleType === 'string' && ruleType.length > 0 && (ruleType as string) !== 'all') {
+        filteredRules = filteredRules.filter((r) => r.rule_type === ruleType);
+      }
+
+      // Filter by active status
+      if (typeof isActiveBool === 'boolean') {
+        filteredRules = filteredRules.filter((r) => r.isActive === isActiveBool);
+      }
+
+      // Calculate pagination
+      const total = filteredRules.length;
+      const startIndex = (pageNum - 1) * limitNum;
+      const paginatedRules = filteredRules.slice(startIndex, startIndex + limitNum);
 
       return {
-        data: rules.map((r) => this.toResponseDto(r)),
+        data: paginatedRules.map((r) => this.toResponseDto(r)),
         total,
         page: pageNum,
         limit: limitNum,
