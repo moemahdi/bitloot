@@ -5,6 +5,7 @@ import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { motion } from 'framer-motion';
 import { useQuery } from '@tanstack/react-query';
+import { catalogClient } from '@bitloot/sdk';
 import { GlowButton } from '@/design-system/primitives/glow-button';
 import { Input } from '@/design-system/primitives/input';
 import {
@@ -25,7 +26,6 @@ import {
   Award,
   Crown,
 } from 'lucide-react';
-import type { Product } from '@/features/catalog/components/ProductCard';
 import { FloatingParticles, AnimatedGridPattern } from '@/components/animations/FloatingParticles';
 import { StatCard } from '@/components/StatCard';
 import { LivePurchaseFeed, TrustSection } from '@/components/SocialProof';
@@ -41,14 +41,14 @@ const ProductGrid = dynamic(
 
 // Category tabs configuration
 const CATEGORY_TABS = [
-  { id: 'trending', label: 'Trending', icon: TrendingUp },
-  { id: 'best-sellers', label: 'Best Sellers', icon: Award },
-  { id: 'new', label: 'New', icon: Sparkles },
-  { id: 'games', label: 'Games', icon: Gamepad2 },
-  { id: 'software', label: 'Software', icon: MonitorPlay },
-  { id: 'gift-cards', label: 'Gift Cards', icon: Gift },
-  { id: 'social', label: 'Social Media', icon: UserCircle },
-  { id: 'premium', label: 'Premium', icon: Crown }  
+  { id: 'trending', label: 'Trending', icon: TrendingUp, category: undefined, sort: 'trending' },
+  { id: 'best-sellers', label: 'Best Sellers', icon: Award, category: undefined, sort: 'sales' },
+  { id: 'new', label: 'New', icon: Sparkles, category: undefined, sort: 'newest' },
+  { id: 'games', label: 'Games', icon: Gamepad2, category: 'games', sort: undefined },
+  { id: 'software', label: 'Software', icon: MonitorPlay, category: 'software', sort: undefined },
+  { id: 'gift-cards', label: 'Gift Cards', icon: Gift, category: 'gift-cards', sort: undefined },
+  { id: 'social', label: 'Social Media', icon: UserCircle, category: 'social-media', sort: undefined },
+  { id: 'premium', label: 'Premium', icon: Crown, category: 'premium', sort: undefined },
 ] as const;
 
 type CategoryId = (typeof CATEGORY_TABS)[number]['id'];
@@ -56,390 +56,55 @@ type CategoryId = (typeof CATEGORY_TABS)[number]['id'];
 export default function HomePage(): React.ReactElement {
   const [activeCategory, setActiveCategory] = useState<CategoryId>('trending');
 
-  // Fetch featured products - using placeholder data for now
-  const { isLoading } = useQuery({
-    queryKey: ['featured-products', activeCategory],
-    queryFn: async () => {
-      // Placeholder: Return mock featured products
-      // TODO: Replace with real API call based on activeCategory
-      return Promise.resolve([]);
-    },
-    enabled: false,
-  });
-
-  // Mock products data by category
-  const productsByCategory: Record<CategoryId, Product[]> = {
-    trending: [
-      {
-        id: '1',
-        slug: 'cyberpunk-2077',
-        name: 'Cyberpunk 2077',
-        description: 'Open-world action-adventure set in Night City',
-        price: '29.99',
-        image: '/placeholder-product.jpg',
-        platform: 'Steam',
-        currency: 'EUR',
-        discount: 15,
-      },
-      {
-        id: '2',
-        slug: 'elden-ring',
-        name: 'Elden Ring',
-        description: 'Action RPG in vast fantastical world',
-        price: '49.99',
-        image: '/placeholder-product.jpg',
-        platform: 'Steam',
-        currency: 'EUR',
-        discount: 0,
-      },
-      {
-        id: '3',
-        slug: 'red-dead-redemption-2',
-        name: 'Red Dead Redemption 2',
-        description: 'Epic tale of life in America at the dawn of the modern age',
-        price: '39.99',
-        image: '/placeholder-product.jpg',
-        platform: 'Epic Games',
-        currency: 'EUR',
-        discount: 25,
-      },
-      {
-        id: '4',
-        slug: 'hogwarts-legacy',
-        name: 'Hogwarts Legacy',
-        description: 'Immersive open-world action RPG set in wizarding world',
-        price: '59.99',
-        image: '/placeholder-product.jpg',
-        platform: 'Steam',
-        currency: 'EUR',
-        discount: 0,
-      },
-    ],
-    'best-sellers': [
-      {
-        id: '5',
-        slug: 'gta-v-premium-edition',
-        name: 'GTA V Premium Edition',
-        description: 'Experience the blockbuster Grand Theft Auto V',
-        price: '19.99',
-        image: '/placeholder-product.jpg',
-        platform: 'Rockstar',
-        currency: 'EUR',
-        discount: 40,
-      },
-      {
-        id: '6',
-        slug: 'minecraft-java-edition',
-        name: 'Minecraft Java Edition',
-        description: 'Build, explore, and survive in infinite worlds',
-        price: '26.95',
-        image: '/placeholder-product.jpg',
-        platform: 'Mojang',
-        currency: 'EUR',
-        discount: 0,
-      },
-      {
-        id: '7',
-        slug: 'fifa-24',
-        name: 'FIFA 24',
-        description: 'The world game with HyperMotion technology',
-        price: '69.99',
-        image: '/placeholder-product.jpg',
-        platform: 'EA',
-        currency: 'EUR',
-        discount: 10,
-      },
-      {
-        id: '8',
-        slug: 'call-of-duty-mw3',
-        name: 'Call of Duty: MW3',
-        description: 'The ultimate warfare experience',
-        price: '69.99',
-        image: '/placeholder-product.jpg',
-        platform: 'Battle.net',
-        currency: 'EUR',
-        discount: 0,
-      },
-    ],
-    new: [
-      {
-        id: '9',
-        slug: 'black-myth-wukong',
-        name: 'Black Myth: Wukong',
-        description: 'Action RPG rooted in Chinese mythology',
-        price: '59.99',
-        image: '/placeholder-product.jpg',
-        platform: 'Steam',
-        currency: 'EUR',
-        discount: 0,
-      },
-      {
-        id: '10',
-        slug: 'stalker-2',
-        name: 'S.T.A.L.K.E.R. 2',
-        description: 'Survive the Exclusion Zone',
-        price: '59.99',
-        image: '/placeholder-product.jpg',
-        platform: 'Steam',
-        currency: 'EUR',
-        discount: 0,
-      },
-      {
-        id: '11',
-        slug: 'dragon-age-the-veilguard',
-        name: 'Dragon Age: The Veilguard',
-        description: 'Epic dark fantasy RPG',
-        price: '69.99',
-        image: '/placeholder-product.jpg',
-        platform: 'EA',
-        currency: 'EUR',
-        discount: 5,
-      },
-      {
-        id: '12',
-        slug: 'indiana-jones-great-circle',
-        name: 'Indiana Jones',
-        description: 'The Great Circle adventure awaits',
-        price: '69.99',
-        image: '/placeholder-product.jpg',
-        platform: 'Steam',
-        currency: 'EUR',
-        discount: 0,
-      },
-    ],
-    games: [
-      {
-        id: '13',
-        slug: 'baldurs-gate-3',
-        name: 'Baldurs Gate 3',
-        description: 'Legendary RPG set in the Forgotten Realms',
-        price: '59.99',
-        image: '/placeholder-product.jpg',
-        platform: 'Steam',
-        currency: 'EUR',
-        discount: 0,
-      },
-      {
-        id: '14',
-        slug: 'starfield',
-        name: 'Starfield',
-        description: 'Explore the cosmos in Bethesdas epic',
-        price: '69.99',
-        image: '/placeholder-product.jpg',
-        platform: 'Steam',
-        currency: 'EUR',
-        discount: 30,
-      },
-      {
-        id: '15',
-        slug: 'the-witcher-3-wild-hunt',
-        name: 'The Witcher 3: Wild Hunt',
-        description: 'Award-winning open world adventure',
-        price: '29.99',
-        image: '/placeholder-product.jpg',
-        platform: 'GOG',
-        currency: 'EUR',
-        discount: 50,
-      },
-      {
-        id: '16',
-        slug: 'diablo-iv',
-        name: 'Diablo IV',
-        description: 'Endless demon slaying action',
-        price: '69.99',
-        image: '/placeholder-product.jpg',
-        platform: 'Battle.net',
-        currency: 'EUR',
-        discount: 20,
-      },
-    ],
-    software: [
-      {
-        id: '17',
-        slug: 'windows-11-pro',
-        name: 'Windows 11 Pro',
-        description: 'Latest Windows operating system',
-        price: '199.99',
-        image: '/placeholder-product.jpg',
-        platform: 'Microsoft',
-        currency: 'EUR',
-        discount: 60,
-      },
-      {
-        id: '18',
-        slug: 'microsoft-office-365',
-        name: 'Microsoft Office 365',
-        description: 'Complete productivity suite',
-        price: '99.99',
-        image: '/placeholder-product.jpg',
-        platform: 'Microsoft',
-        currency: 'EUR',
-        discount: 25,
-      },
-      {
-        id: '19',
-        slug: 'adobe-creative-cloud',
-        name: 'Adobe Creative Cloud',
-        description: 'All Adobe apps in one subscription',
-        price: '54.99',
-        image: '/placeholder-product.jpg',
-        platform: 'Adobe',
-        currency: 'EUR',
-        discount: 0,
-      },
-      {
-        id: '20',
-        slug: 'norton-360-deluxe',
-        name: 'Norton 360 Deluxe',
-        description: 'Complete device security',
-        price: '49.99',
-        image: '/placeholder-product.jpg',
-        platform: 'Norton',
-        currency: 'EUR',
-        discount: 40,
-      },
-    ],
-    'gift-cards': [
-      {
-        id: '21',
-        slug: 'steam-wallet-50',
-        name: 'Steam Wallet $50',
-        description: 'Add funds to your Steam account',
-        price: '50.00',
-        image: '/placeholder-product.jpg',
-        platform: 'Steam',
-        currency: 'EUR',
-        discount: 0,
-      },
-      {
-        id: '22',
-        slug: 'playstation-store-100',
-        name: 'PlayStation Store $100',
-        description: 'PSN credit for games and more',
-        price: '100.00',
-        image: '/placeholder-product.jpg',
-        platform: 'PlayStation',
-        currency: 'EUR',
-        discount: 0,
-      },
-      {
-        id: '23',
-        slug: 'xbox-game-pass-ultimate',
-        name: 'Xbox Game Pass Ultimate',
-        description: '3 months of unlimited gaming',
-        price: '44.99',
-        image: '/placeholder-product.jpg',
-        platform: 'Xbox',
-        currency: 'EUR',
-        discount: 10,
-      },
-      {
-        id: '24',
-        slug: 'nintendo-eshop-50',
-        name: 'Nintendo eShop $50',
-        description: 'Credit for Nintendo Switch games',
-        price: '50.00',
-        image: '/placeholder-product.jpg',
-        platform: 'Nintendo',
-        currency: 'EUR',
-        discount: 0,
-      },
-    ],
-    premium: [
-      {
-        id: '29',
-        slug: 'collectors-edition-bundle',
-        name: 'Collectors Edition Bundle',
-        description: 'Exclusive AAA game + DLC + Season Pass',
-        price: '149.99',
-        image: '/placeholder-product.jpg',
-        platform: 'Steam',
-        currency: 'EUR',
-        discount: 0,
-      },
-      {
-        id: '30',
-        slug: 'ultimate-gaming-package',
-        name: 'Ultimate Gaming Package',
-        description: 'Top 5 games of 2024 mega bundle',
-        price: '299.99',
-        image: '/placeholder-product.jpg',
-        platform: 'Multi-Platform',
-        currency: 'EUR',
-        discount: 35,
-      },
-      {
-        id: '31',
-        slug: 'lifetime-vpn-premium',
-        name: 'Lifetime VPN Premium',
-        description: 'Unlimited secure browsing forever',
-        price: '199.99',
-        image: '/placeholder-product.jpg',
-        platform: 'NordVPN',
-        currency: 'EUR',
-        discount: 50,
-      },
-      {
-        id: '32',
-        slug: 'creative-suite-lifetime',
-        name: 'Creative Suite Lifetime',
-        description: 'Professional design tools bundle',
-        price: '499.99',
-        image: '/placeholder-product.jpg',
-        platform: 'Adobe',
-        currency: 'EUR',
-        discount: 40,
-      },
-    ],
-    social: [
-      {
-        id: '25',
-        slug: 'netflix-premium-1-year',
-        name: 'Netflix Premium 1 Year',
-        description: '4K streaming subscription',
-        price: '199.99',
-        image: '/placeholder-product.jpg',
-        platform: 'Netflix',
-        currency: 'EUR',
-        discount: 15,
-      },
-      {
-        id: '26',
-        slug: 'spotify-premium-1-year',
-        name: 'Spotify Premium 1 Year',
-        description: 'Ad-free music streaming',
-        price: '99.99',
-        image: '/placeholder-product.jpg',
-        platform: 'Spotify',
-        currency: 'EUR',
-        discount: 20,
-      },
-      {
-        id: '27',
-        slug: 'disney-plus-bundle-1-year',
-        name: 'Disney+ Bundle 1 Year',
-        description: 'Disney+, Hulu, and ESPN+',
-        price: '139.99',
-        image: '/placeholder-product.jpg',
-        platform: 'Disney',
-        currency: 'EUR',
-        discount: 10,
-      },
-      {
-        id: '28',
-        slug: 'youtube-premium-1-year',
-        name: 'YouTube Premium 1 Year',
-        description: 'Ad-free videos and music',
-        price: '119.99',
-        image: '/placeholder-product.jpg',
-        platform: 'Google',
-        currency: 'EUR',
-        discount: 0,
-      },
-    ],
+  // Fetch featured products based on active category
+  const selectedTab = CATEGORY_TABS.find((tab) => tab.id === activeCategory);
+  
+  // Map sort values from CATEGORY_TABS to SDK enum
+  const getSdkSort = (sort?: string): 'newest' | 'price_asc' | 'price_desc' | 'rating' | undefined => {
+    switch (sort) {
+      case 'trending':
+        return 'newest';
+      case 'sales':
+        return 'price_desc';
+      case 'newest':
+        return 'newest';
+      default:
+        return undefined;
+    }
   };
 
-  const currentProducts = productsByCategory[activeCategory];
+  const { data: products = [], isLoading } = useQuery({
+    queryKey: ['featured-products', activeCategory],
+    queryFn: async () => {
+      try {
+        const response = await catalogClient.findAll({
+          category: selectedTab?.category,
+          limit: 12,
+          sort: getSdkSort(selectedTab?.sort),
+        });
+        // Transform SDK response to Product interface
+        return (response.data ?? []).map((product) => ({
+          id: product.id,
+          slug: product.slug,
+          name: product.title, // SDK uses 'title', interface uses 'name'
+          description: product.description ?? '',
+          price: product.price,
+          currency: 'USDT', // Default currency
+          image: product.imageUrl,
+          platform: product.platform,
+          discount: 0,
+          stock: 1,
+          isAvailable: true,
+        }));
+      } catch (err) {
+        console.error('Failed to fetch products:', err);
+        return [];
+      }
+    },
+  });
+
+  // Use real product data from SDK query
+  const currentProducts = products;
 
   return (
     <div className="min-h-screen bg-bg-primary">
