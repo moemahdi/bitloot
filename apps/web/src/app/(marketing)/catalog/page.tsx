@@ -4,12 +4,28 @@ import { Suspense, useState, useMemo, useEffect } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
-import { catalogClient, type FeaturedCategoryDto, type CategoryDto } from '@bitloot/sdk';
+import {
+  catalogClient,
+  CatalogGroupsApi,
+  Configuration,
+  type FeaturedCategoryDto,
+  type CategoryDto,
+  type ProductGroupResponseDto,
+} from '@bitloot/sdk';
 import type { ProductListResponseDto } from '@bitloot/sdk';
 import { useCatalogCategories } from '@/hooks/useCatalog';
 import { CatalogFilters } from '@/features/catalog/components/CatalogFilters';
 import { ProductGrid } from '@/features/catalog/components/ProductGrid';
+import { ProductGroupCard } from '@/features/catalog/components/ProductGroupCard';
+import { GroupVariantsModal } from '@/features/catalog/components/GroupVariantsModal';
 import { GlowButton } from '@/design-system/primitives/glow-button';
+
+// Create API client instance for groups
+const catalogGroupsApi = new CatalogGroupsApi(
+  new Configuration({
+    basePath: process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000',
+  })
+);
 import { Input } from '@/design-system/primitives/input';
 import { Skeleton } from '@/design-system/primitives/skeleton';
 import { Sheet, SheetContent, SheetTrigger } from '@/design-system/primitives/sheet';
@@ -97,6 +113,23 @@ function CatalogContent(): React.ReactElement {
   const [sortBy, setSortBy] = useState<string>('popular');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
+  // Product groups state
+  const [selectedGroup, setSelectedGroup] = useState<ProductGroupResponseDto | null>(null);
+  const [isGroupModalOpen, setIsGroupModalOpen] = useState(false);
+
+  // Fetch product groups
+  const { data: groupsData } = useQuery({
+    queryKey: ['product-groups'],
+    queryFn: () => catalogGroupsApi.groupsControllerListGroups(),
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+
+  // Handler for viewing group variants
+  const handleViewVariants = (group: ProductGroupResponseDto) => {
+    setSelectedGroup(group);
+    setIsGroupModalOpen(true);
+  };
+
   // Fetch dynamic categories from API
   const { data: categoriesData, isLoading: isCategoriesLoading } = useCatalogCategories();
 
@@ -107,7 +140,7 @@ function CatalogContent(): React.ReactElement {
       { id: 'all', label: 'All Products', icon: LayoutGrid },
     ];
 
-    if (!categoriesData) {
+    if (categoriesData === null || categoriesData === undefined) {
       // Return minimal fallback tabs while loading
       return [
         ...tabs,
@@ -147,27 +180,44 @@ function CatalogContent(): React.ReactElement {
   useEffect(() => {
     const urlPlatform = searchParams.get('platform');
     const urlCategory = searchParams.get('category');
-    
-    if (urlPlatform) {
+
+    if (
+      urlPlatform !== null &&
+      urlPlatform !== undefined &&
+      urlPlatform !== ''
+    ) {
       // Find tab with matching platform
-      const platformTab = categoryTabs.find((tab) => tab.platform === urlPlatform);
-      if (platformTab) {
+      const platformTab = categoryTabs.find(
+        (tab) => tab.platform === urlPlatform,
+      );
+      if (platformTab !== null && platformTab !== undefined) {
         setActiveCategory(platformTab.id);
         return;
       }
     }
-    
-    if (urlCategory) {
+
+    if (
+      urlCategory !== null &&
+      urlCategory !== undefined &&
+      urlCategory !== ''
+    ) {
       // Find tab with matching category
-      const categoryTab = categoryTabs.find((tab) => tab.category === urlCategory || tab.id === urlCategory);
-      if (categoryTab) {
+      const categoryTab = categoryTabs.find(
+        (tab) => tab.category === urlCategory || tab.id === urlCategory,
+      );
+      if (categoryTab !== null && categoryTab !== undefined) {
         setActiveCategory(categoryTab.id);
         return;
       }
     }
-    
+
     // Default to 'all' if no filter params
-    if (!urlPlatform && !urlCategory) {
+    if (
+      (urlPlatform === null ||
+        urlPlatform === undefined ||
+        urlPlatform === '') &&
+      (urlCategory === null || urlCategory === undefined || urlCategory === '')
+    ) {
       setActiveCategory('all');
     }
   }, [searchParams, categoryTabs]);
@@ -604,6 +654,41 @@ function CatalogContent(): React.ReactElement {
                   role="tabpanel"
                   id={`tabpanel-${activeCategory}`}
                 >
+                  {/* Product Groups Section */}
+                  {groupsData !== null &&
+                    groupsData !== undefined &&
+                    groupsData.length > 0 &&
+                    activeCategory === 'all' &&
+                    (searchQuery === null ||
+                      searchQuery === undefined ||
+                      searchQuery === '') && (
+                    <div className="mb-10">
+                      <div className="mb-6 flex items-center gap-3">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-purple-500/30 bg-purple-500/10">
+                          <Package className="h-5 w-5 text-purple-400" />
+                        </div>
+                        <div>
+                          <h2 className="text-xl font-bold text-white">Game Collections</h2>
+                          <p className="text-sm text-text-secondary">
+                            Browse all editions and platforms in one place
+                          </p>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                        {groupsData.map((group: ProductGroupResponseDto) => (
+                          <ProductGroupCard
+                            key={group.id}
+                            group={group}
+                            onViewVariants={handleViewVariants}
+                          />
+                        ))}
+                      </div>
+                      <div className="mt-8 border-t border-border-subtle pt-8">
+                        <h2 className="mb-6 text-xl font-bold text-white">Individual Products</h2>
+                      </div>
+                    </div>
+                  )}
+
                   <ProductGrid products={products} />
 
                   {/* Pagination */}
@@ -672,6 +757,13 @@ function CatalogContent(): React.ReactElement {
           </div>
         </div>
       </section>
+
+      {/* Group Variants Modal */}
+      <GroupVariantsModal
+        group={selectedGroup}
+        open={isGroupModalOpen}
+        onOpenChange={setIsGroupModalOpen}
+      />
     </div>
   );
 }

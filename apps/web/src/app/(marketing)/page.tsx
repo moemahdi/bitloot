@@ -105,7 +105,7 @@ export default function HomePage(): React.ReactElement {
 
   // Build tabs from dynamic categories + featured collections
   const categoryTabs = useMemo<TabItem[]>(() => {
-    if (!categoriesData) {
+    if (categoriesData === null || categoriesData === undefined) {
       // Return minimal fallback tabs while loading
       return [
         { id: 'trending', label: 'Trending', icon: TrendingUp, sort: 'trending' },
@@ -190,7 +190,7 @@ export default function HomePage(): React.ReactElement {
         return [];
       }
     },
-    enabled: !!selectedTab, // Only run when we have a selected tab
+    enabled: selectedTab !== null && selectedTab !== undefined, // Only run when we have a selected tab
   });
 
   // Use real product data from SDK query

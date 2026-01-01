@@ -11,6 +11,7 @@ import { AuditLog } from './entities/audit-log.entity';
 import { EmailBounce } from './entities/email-bounce.entity';
 import { Product } from '../modules/catalog/entities/product.entity';
 import { ProductOffer } from '../modules/catalog/entities/product-offer.entity';
+import { ProductGroup } from '../modules/catalog/entities/product-group.entity';
 import { DynamicPricingRule } from '../modules/catalog/entities/dynamic-pricing-rule.entity';
 import { InitOrders1710000000000 } from './migrations/1710000000000-InitOrders';
 import { AddKeysReservation1720000000000 } from './migrations/1720000000000-add-keys-reservation';
@@ -27,13 +28,14 @@ import { AddSourceType1764000000000 } from './migrations/1764000000000-AddSource
 import { ExpandProductColumnLengths1764200000000 } from './migrations/1764200000000-ExpandProductColumnLengths';
 import { AddKinguinProductFields1764300000000 } from './migrations/1764300000000-AddKinguinProductFields';
 import { MakePricingRuleProductIdNullable1764400000000 } from './migrations/1764400000000-MakePricingRuleProductIdNullable';
+import { CreateProductGroups1765000000000 } from './migrations/1765000000000-CreateProductGroups';
 
 dotenv.config({ path: path.resolve(__dirname, '../../../../.env') });
 
 export default new DataSource({
   type: 'postgres',
   url: process.env.DATABASE_URL,
-  entities: [Order, OrderItem, Key, Payment, WebhookLog, User, AuditLog, EmailBounce, Product, ProductOffer, DynamicPricingRule],
+  entities: [Order, OrderItem, Key, Payment, WebhookLog, User, AuditLog, EmailBounce, Product, ProductOffer, ProductGroup, DynamicPricingRule],
   migrations: [
     InitOrders1710000000000,
     AddKeysReservation1720000000000,
@@ -50,6 +52,7 @@ export default new DataSource({
     ExpandProductColumnLengths1764200000000,
     AddKinguinProductFields1764300000000,
     MakePricingRuleProductIdNullable1764400000000,
+    CreateProductGroups1765000000000,
   ],
   logging: true,
   synchronize: false,

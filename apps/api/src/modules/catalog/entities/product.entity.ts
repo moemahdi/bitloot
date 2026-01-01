@@ -6,9 +6,12 @@ import {
   UpdateDateColumn,
   Index,
   OneToMany,
+  ManyToOne,
+  JoinColumn,
 } from 'typeorm';
 import { ProductOffer } from './product-offer.entity';
 import { DynamicPricingRule } from './dynamic-pricing-rule.entity';
+import { ProductGroup } from './product-group.entity';
 
 /**
  * Product source type for hybrid fulfillment model
@@ -253,6 +256,25 @@ export class Product {
 
   @UpdateDateColumn()
   updatedAt!: Date;
+
+  // ============================================
+  // PRODUCT GROUP (for variant grouping)
+  // ============================================
+
+  /**
+   * Optional group ID - when set, this product belongs to a group
+   * Groups allow showing multiple variants (platforms/editions/regions)
+   * as a single card in the catalog
+   */
+  @Column({ type: 'uuid', nullable: true })
+  groupId?: string;
+
+  @ManyToOne(() => ProductGroup, (group) => group.products, {
+    onDelete: 'SET NULL',
+    nullable: true,
+  })
+  @JoinColumn({ name: 'groupId' })
+  group?: ProductGroup;
 
   // Relations
   @OneToMany(() => ProductOffer, (offer) => offer.product, { cascade: true })

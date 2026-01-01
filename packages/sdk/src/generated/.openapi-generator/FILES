@@ -5,9 +5,11 @@ apis/AdminCatalogProductsApi.ts
 apis/AdminCatalogRepricingApi.ts
 apis/AdminCatalogSyncApi.ts
 apis/AdminOperationsApi.ts
+apis/AdminProductGroupsApi.ts
 apis/AuditLogsApi.ts
 apis/AuthenticationApi.ts
 apis/CatalogApi.ts
+apis/CatalogGroupsApi.ts
 apis/EmailsApi.ts
 apis/FulfillmentApi.ts
 apis/HealthApi.ts
@@ -55,8 +57,10 @@ docs/AdminOpsControllerGetSystemHealth200ResponseDatabase.md
 docs/AdminOpsControllerGetSystemHealth200ResponseQueues.md
 docs/AdminPricingRuleResponseDto.md
 docs/AdminPricingRulesListResponseDto.md
+docs/AdminProductGroupsApi.md
 docs/AdminProductResponseDto.md
 docs/AdminProductsListResponseDto.md
+docs/AssignProductsToGroupDto.md
 docs/AuditAdminDto.md
 docs/AuditLogResponseDto.md
 docs/AuditLogsApi.md
@@ -67,6 +71,7 @@ docs/BulkDeleteResponseDto.md
 docs/BulkRepriceProductsDto.md
 docs/BulkRepriceResponseDto.md
 docs/CatalogApi.md
+docs/CatalogGroupsApi.md
 docs/CategoriesResponseDto.md
 docs/CategoryDto.md
 docs/CreateAuditLogDto.md
@@ -74,6 +79,7 @@ docs/CreateOrderDto.md
 docs/CreatePaymentDto.md
 docs/CreatePricingRuleDto.md
 docs/CreateProductDto.md
+docs/CreateProductGroupDto.md
 docs/DashboardStatsDto.md
 docs/DashboardStatsDtoRevenueHistoryInner.md
 docs/DeliveryLinkDto.md
@@ -85,6 +91,7 @@ docs/ForgotPasswordResponseDto.md
 docs/FulfillmentApi.md
 docs/FulfillmentStatusDto.md
 docs/GenreFilterDto.md
+docs/GroupProductVariantDto.md
 docs/HealthApi.md
 docs/HealthCheckResultDto.md
 docs/IpnHandlerControllerAdminListWebhooks200Response.md
@@ -114,9 +121,13 @@ docs/PaymentsControllerAdminListPayments200Response.md
 docs/PaymentsControllerAdminListPayments200ResponseDataInner.md
 docs/PlatformFilterDto.md
 docs/PriceRangeDto.md
+docs/ProductGroupListResponseDto.md
+docs/ProductGroupResponseDto.md
+docs/ProductGroupWithProductsDto.md
 docs/ProductListResponseDto.md
 docs/ProductResponseDto.md
 docs/RegionFilterDto.md
+docs/RemoveProductsFromGroupDto.md
 docs/RequestOtpDto.md
 docs/ResetPasswordDto.md
 docs/ResetPasswordResponseDto.md
@@ -132,6 +143,7 @@ docs/UnsubscribeResponseDto.md
 docs/UpdatePasswordDto.md
 docs/UpdatePricingRuleDto.md
 docs/UpdateProductDto.md
+docs/UpdateProductGroupDto.md
 docs/UserResponseDto.md
 docs/UsersApi.md
 docs/VerifyOtpDto.md
@@ -171,6 +183,7 @@ models/AdminPricingRuleResponseDto.ts
 models/AdminPricingRulesListResponseDto.ts
 models/AdminProductResponseDto.ts
 models/AdminProductsListResponseDto.ts
+models/AssignProductsToGroupDto.ts
 models/AuditAdminDto.ts
 models/AuditLogResponseDto.ts
 models/AuthResponseDto.ts
@@ -185,6 +198,7 @@ models/CreateOrderDto.ts
 models/CreatePaymentDto.ts
 models/CreatePricingRuleDto.ts
 models/CreateProductDto.ts
+models/CreateProductGroupDto.ts
 models/DashboardStatsDto.ts
 models/DashboardStatsDtoRevenueHistoryInner.ts
 models/DeliveryLinkDto.ts
@@ -194,6 +208,7 @@ models/ForgotPasswordDto.ts
 models/ForgotPasswordResponseDto.ts
 models/FulfillmentStatusDto.ts
 models/GenreFilterDto.ts
+models/GroupProductVariantDto.ts
 models/HealthCheckResultDto.ts
 models/IpnHandlerControllerAdminListWebhooks200Response.ts
 models/IpnHandlerControllerAdminListWebhooks200ResponseDataInner.ts
@@ -218,9 +233,13 @@ models/PaymentsControllerAdminListPayments200Response.ts
 models/PaymentsControllerAdminListPayments200ResponseDataInner.ts
 models/PlatformFilterDto.ts
 models/PriceRangeDto.ts
+models/ProductGroupListResponseDto.ts
+models/ProductGroupResponseDto.ts
+models/ProductGroupWithProductsDto.ts
 models/ProductListResponseDto.ts
 models/ProductResponseDto.ts
 models/RegionFilterDto.ts
+models/RemoveProductsFromGroupDto.ts
 models/RequestOtpDto.ts
 models/ResetPasswordDto.ts
 models/ResetPasswordResponseDto.ts
@@ -236,6 +255,7 @@ models/UnsubscribeResponseDto.ts
 models/UpdatePasswordDto.ts
 models/UpdatePricingRuleDto.ts
 models/UpdateProductDto.ts
+models/UpdateProductGroupDto.ts
 models/UserResponseDto.ts
 models/VerifyOtpDto.ts
 models/VideoDto.ts
