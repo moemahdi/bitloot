@@ -26,6 +26,7 @@ import {
   Loader2,
   Crown,
   Layers,
+  Star,
 } from 'lucide-react';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
@@ -43,6 +44,7 @@ const ADMIN_TABS = [
   { href: '/admin/catalog/import', label: 'Import', icon: Crown },
   { href: '/admin/catalog/rules', label: 'Pricing', icon: Settings },
   { href: '/admin/catalog/sync', label: 'Sync', icon: RefreshCw },
+  { href: '/admin/reviews', label: 'Reviews', icon: Star },
   { href: '/admin/flags', label: 'Flags', icon: ToggleLeft },
   { href: '/admin/queues', label: 'Queues', icon: ListOrdered },
   { href: '/admin/balances', label: 'Balances', icon: Wallet },

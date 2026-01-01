@@ -125,7 +125,7 @@ function CatalogContent(): React.ReactElement {
   });
 
   // Handler for viewing group variants
-  const handleViewVariants = (group: ProductGroupResponseDto) => {
+  const handleViewVariants = (group: ProductGroupResponseDto): void => {
     setSelectedGroup(group);
     setIsGroupModalOpen(true);
   };

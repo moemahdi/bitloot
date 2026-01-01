@@ -1,8 +1,8 @@
 'use client';
 
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Image from 'next/image';
-import { useState } from 'react';
 import { Layers, ShoppingCart } from 'lucide-react';
 import type { ProductGroupResponseDto } from '@bitloot/sdk';
 import { Card, CardContent, CardFooter } from '@/design-system/primitives/card';
@@ -20,11 +20,11 @@ export function ProductGroupCard({
   group,
   onViewVariants,
   className,
-}: ProductGroupCardProps) {
+}: ProductGroupCardProps): React.ReactElement {
   const [isHovered, setIsHovered] = useState(false);
 
   // Format price for display
-  const formatPrice = (price: string) => {
+  const formatPrice = (price: string): string => {
     const num = parseFloat(price);
     return num.toFixed(2);
   };

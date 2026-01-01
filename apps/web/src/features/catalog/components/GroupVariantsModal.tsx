@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -46,7 +46,7 @@ export function GroupVariantsModal({
   group,
   open,
   onOpenChange,
-}: GroupVariantsModalProps) {
+}: GroupVariantsModalProps): React.ReactElement {
   const [platformFilter, setPlatformFilter] = useState<string>('all');
   const [regionFilter, setRegionFilter] = useState<string>('all');
   const [subtitleFilter, setSubtitleFilter] = useState<string>('all');
@@ -103,7 +103,7 @@ export function GroupVariantsModal({
   }, [groupDetails?.products, platformFilter, regionFilter, subtitleFilter]);
 
   // Reset filters when modal closes
-  const handleOpenChange = (newOpen: boolean) => {
+  const handleOpenChange = (newOpen: boolean): void => {
     if (!newOpen) {
       setPlatformFilter('all');
       setRegionFilter('all');
@@ -113,7 +113,7 @@ export function GroupVariantsModal({
   };
 
   // Format price for display
-  const formatPrice = (price: string) => {
+  const formatPrice = (price: string): string => {
     const num = parseFloat(price);
     return num.toFixed(2);
   };
@@ -124,7 +124,7 @@ export function GroupVariantsModal({
     regionFilter !== 'all' ||
     subtitleFilter !== 'all';
 
-  const clearFilters = () => {
+  const clearFilters = (): void => {
     setPlatformFilter('all');
     setRegionFilter('all');
     setSubtitleFilter('all');
@@ -294,7 +294,7 @@ function ProductVariantItem({
 }: {
   product: GroupProductVariantDto;
   formatPrice: (price: string) => string;
-}) {
+}): React.ReactElement {
   return (
     <Link
       href={`/product/${product.slug}`}

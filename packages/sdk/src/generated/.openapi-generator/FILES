@@ -6,6 +6,7 @@ apis/AdminCatalogRepricingApi.ts
 apis/AdminCatalogSyncApi.ts
 apis/AdminOperationsApi.ts
 apis/AdminProductGroupsApi.ts
+apis/AdminReviewsApi.ts
 apis/AuditLogsApi.ts
 apis/AuthenticationApi.ts
 apis/CatalogApi.ts
@@ -17,6 +18,7 @@ apis/KinguinApi.ts
 apis/MetricsApi.ts
 apis/OrdersApi.ts
 apis/PaymentsApi.ts
+apis/ReviewsApi.ts
 apis/UsersApi.ts
 apis/WebhooksApi.ts
 apis/index.ts
@@ -38,6 +40,7 @@ docs/AdminControllerGetReservations200ResponseDataInner.md
 docs/AdminControllerGetWebhookLog200Response.md
 docs/AdminControllerGetWebhookLogs200Response.md
 docs/AdminControllerGetWebhookLogs200ResponseDataInner.md
+docs/AdminCreateReviewDto.md
 docs/AdminOperationsApi.md
 docs/AdminOpsControllerCreateFeatureFlag201Response.md
 docs/AdminOpsControllerGetBalance200Response.md
@@ -60,6 +63,10 @@ docs/AdminPricingRulesListResponseDto.md
 docs/AdminProductGroupsApi.md
 docs/AdminProductResponseDto.md
 docs/AdminProductsListResponseDto.md
+docs/AdminReviewResponseDto.md
+docs/AdminReviewsApi.md
+docs/AdminReviewsControllerBulkApprove200Response.md
+docs/AdminUpdateReviewDto.md
 docs/AssignProductsToGroupDto.md
 docs/AuditAdminDto.md
 docs/AuditLogResponseDto.md
@@ -80,6 +87,7 @@ docs/CreatePaymentDto.md
 docs/CreatePricingRuleDto.md
 docs/CreateProductDto.md
 docs/CreateProductGroupDto.md
+docs/CreateReviewDto.md
 docs/DashboardStatsDto.md
 docs/DashboardStatsDtoRevenueHistoryInner.md
 docs/DeliveryLinkDto.md
@@ -108,13 +116,16 @@ docs/KinguinSearchResponseDto.md
 docs/KinguinSystemRequirementDto.md
 docs/KinguinVideoDto.md
 docs/MetricsApi.md
+docs/ModerateReviewDto.md
 docs/NowpaymentsIpnRequestDto.md
 docs/NowpaymentsIpnResponseDto.md
 docs/OrderItemResponseDto.md
 docs/OrderResponseDto.md
 docs/OrdersApi.md
 docs/OtpResponseDto.md
+docs/PaginatedAdminReviewsDto.md
 docs/PaginatedAuditLogsDto.md
+docs/PaginatedReviewsDto.md
 docs/PaymentResponseDto.md
 docs/PaymentsApi.md
 docs/PaymentsControllerAdminListPayments200Response.md
@@ -132,6 +143,10 @@ docs/RequestOtpDto.md
 docs/ResetPasswordDto.md
 docs/ResetPasswordResponseDto.md
 docs/RevealedKeyDto.md
+docs/ReviewResponseDto.md
+docs/ReviewStatsDto.md
+docs/ReviewsApi.md
+docs/ReviewsControllerCanReviewOrder200Response.md
 docs/ScreenshotDto.md
 docs/SyncConfigStatusDto.md
 docs/SyncJobResponseDto.md
@@ -144,6 +159,7 @@ docs/UpdatePasswordDto.md
 docs/UpdatePricingRuleDto.md
 docs/UpdateProductDto.md
 docs/UpdateProductGroupDto.md
+docs/UpdateReviewDto.md
 docs/UserResponseDto.md
 docs/UsersApi.md
 docs/VerifyOtpDto.md
@@ -163,6 +179,7 @@ models/AdminControllerGetReservations200ResponseDataInner.ts
 models/AdminControllerGetWebhookLog200Response.ts
 models/AdminControllerGetWebhookLogs200Response.ts
 models/AdminControllerGetWebhookLogs200ResponseDataInner.ts
+models/AdminCreateReviewDto.ts
 models/AdminOpsControllerCreateFeatureFlag201Response.ts
 models/AdminOpsControllerGetBalance200Response.ts
 models/AdminOpsControllerGetBalance200ResponseNowpayments.ts
@@ -183,6 +200,9 @@ models/AdminPricingRuleResponseDto.ts
 models/AdminPricingRulesListResponseDto.ts
 models/AdminProductResponseDto.ts
 models/AdminProductsListResponseDto.ts
+models/AdminReviewResponseDto.ts
+models/AdminReviewsControllerBulkApprove200Response.ts
+models/AdminUpdateReviewDto.ts
 models/AssignProductsToGroupDto.ts
 models/AuditAdminDto.ts
 models/AuditLogResponseDto.ts
@@ -199,6 +219,7 @@ models/CreatePaymentDto.ts
 models/CreatePricingRuleDto.ts
 models/CreateProductDto.ts
 models/CreateProductGroupDto.ts
+models/CreateReviewDto.ts
 models/DashboardStatsDto.ts
 models/DashboardStatsDtoRevenueHistoryInner.ts
 models/DeliveryLinkDto.ts
@@ -222,12 +243,15 @@ models/KinguinScreenshotDto.ts
 models/KinguinSearchResponseDto.ts
 models/KinguinSystemRequirementDto.ts
 models/KinguinVideoDto.ts
+models/ModerateReviewDto.ts
 models/NowpaymentsIpnRequestDto.ts
 models/NowpaymentsIpnResponseDto.ts
 models/OrderItemResponseDto.ts
 models/OrderResponseDto.ts
 models/OtpResponseDto.ts
+models/PaginatedAdminReviewsDto.ts
 models/PaginatedAuditLogsDto.ts
+models/PaginatedReviewsDto.ts
 models/PaymentResponseDto.ts
 models/PaymentsControllerAdminListPayments200Response.ts
 models/PaymentsControllerAdminListPayments200ResponseDataInner.ts
@@ -244,6 +268,9 @@ models/RequestOtpDto.ts
 models/ResetPasswordDto.ts
 models/ResetPasswordResponseDto.ts
 models/RevealedKeyDto.ts
+models/ReviewResponseDto.ts
+models/ReviewStatsDto.ts
+models/ReviewsControllerCanReviewOrder200Response.ts
 models/ScreenshotDto.ts
 models/SyncConfigStatusDto.ts
 models/SyncJobResponseDto.ts
@@ -256,6 +283,7 @@ models/UpdatePasswordDto.ts
 models/UpdatePricingRuleDto.ts
 models/UpdateProductDto.ts
 models/UpdateProductGroupDto.ts
+models/UpdateReviewDto.ts
 models/UserResponseDto.ts
 models/VerifyOtpDto.ts
 models/VideoDto.ts

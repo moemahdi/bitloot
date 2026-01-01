@@ -152,7 +152,7 @@ export class CreateProductGroups1765000000000 implements MigrationInterface {
       }),
     );
 
-    console.log('✅ Created product_groups table and added groupId to products');
+    // Migration complete: Created product_groups table and added groupId to products
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
@@ -171,6 +171,6 @@ export class CreateProductGroups1765000000000 implements MigrationInterface {
     // 4. Drop product_groups table (this also drops its indexes)
     await queryRunner.dropTable('product_groups');
 
-    console.log('✅ Dropped product_groups table and removed groupId from products');
+    // Migration complete: Dropped product_groups table and removed groupId from products
   }
 }

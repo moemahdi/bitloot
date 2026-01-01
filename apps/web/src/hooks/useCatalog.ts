@@ -53,7 +53,13 @@ export function useCatalogFilters(
  * Helper hook that combines categories and filters into a single query
  * Useful for pages that need both (like the catalog page)
  */
-export function useCatalogMetadata(enabled: boolean = true) {
+export function useCatalogMetadata(enabled: boolean = true): {
+  categories: ReturnType<typeof useCatalogCategories>;
+  filters: ReturnType<typeof useCatalogFilters>;
+  isLoading: boolean;
+  isError: boolean;
+  error: Error | null;
+} {
   const categoriesQuery = useCatalogCategories(enabled);
   const filtersQuery = useCatalogFilters(enabled);
 

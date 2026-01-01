@@ -128,7 +128,7 @@ export class CatalogController {
     const safeOffset = Number.isNaN(offset) ? 0 : offset;
     
     try {
-      console.log('[CatalogController] listProducts called with:', { q, platform, region, category, sort, limit: safeLimit, offset: safeOffset });
+      // Log: listProducts called with: q, platform, region, category, sort, limit, offset
       
       const result = await this.catalogService.listProducts(safeLimit, safeOffset, {
         q,
@@ -138,7 +138,7 @@ export class CatalogController {
         sort,
       });
       
-      console.log('[CatalogController] listProducts result:', { count: result.data.length, total: result.total });
+      // Log: listProducts result count and total
 
       // Map entities to DTOs
       const mappedData = result.data.map((product, index) => {
