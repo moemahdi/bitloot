@@ -1,13 +1,15 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
 import { motion } from 'framer-motion';
 import { useQuery } from '@tanstack/react-query';
-import { catalogClient } from '@bitloot/sdk';
+import { catalogClient, type FeaturedCategoryDto, type CategoryDto } from '@bitloot/sdk';
+import { useCatalogCategories } from '@/hooks/useCatalog';
 import { GlowButton } from '@/design-system/primitives/glow-button';
 import { Input } from '@/design-system/primitives/input';
+import { Skeleton } from '@/design-system/primitives/skeleton';
 import {
   Search,
   Zap,
@@ -25,12 +27,57 @@ import {
   UserCircle,
   Award,
   Crown,
+  Music,
+  Film,
+  BookOpen,
+  Package,
+  type LucideIcon,
 } from 'lucide-react';
 import { FloatingParticles, AnimatedGridPattern } from '@/components/animations/FloatingParticles';
 import { StatCard } from '@/components/StatCard';
 import { LivePurchaseFeed, TrustSection } from '@/components/SocialProof';
 import { PageLoadingSkeleton } from '@/components/skeletons/LoadingSkeletons';
 import { cn } from '@/design-system/utils/utils';
+
+// Icon mapping for dynamic categories (from genre/category names)
+const CATEGORY_ICONS: Record<string, LucideIcon> = {
+  // Featured/virtual categories
+  trending: TrendingUp,
+  'best-sellers': Award,
+  new: Sparkles,
+  premium: Crown,
+  // Platforms
+  steam: Gamepad2,
+  epic: Gamepad2,
+  uplay: Gamepad2,
+  origin: Gamepad2,
+  playstation: Gamepad2,
+  xbox: Gamepad2,
+  nintendo: Gamepad2,
+  // Categories/Genres
+  games: Gamepad2,
+  software: MonitorPlay,
+  'gift-cards': Gift,
+  'social-media': UserCircle,
+  action: Flame,
+  adventure: Star,
+  rpg: Shield,
+  sports: TrendingUp,
+  racing: Zap,
+  simulation: MonitorPlay,
+  strategy: CheckCircle2,
+  music: Music,
+  movies: Film,
+  education: BookOpen,
+  // Fallback
+  default: Package,
+};
+
+// Helper to get icon for a category
+function getCategoryIcon(slug: string): LucideIcon {
+  const normalizedSlug = slug.toLowerCase().replace(/\s+/g, '-');
+  return CATEGORY_ICONS[normalizedSlug] ?? Package;
+}
 
 const ProductGrid = dynamic(
   () => import('@/features/catalog/components/ProductGrid').then((mod) => mod.ProductGrid),
@@ -39,25 +86,65 @@ const ProductGrid = dynamic(
   }
 );
 
-// Category tabs configuration
-const CATEGORY_TABS = [
-  { id: 'trending', label: 'Trending', icon: TrendingUp, category: undefined, sort: 'trending' },
-  { id: 'best-sellers', label: 'Best Sellers', icon: Award, category: undefined, sort: 'sales' },
-  { id: 'new', label: 'New', icon: Sparkles, category: undefined, sort: 'newest' },
-  { id: 'games', label: 'Games', icon: Gamepad2, category: 'games', sort: undefined },
-  { id: 'software', label: 'Software', icon: MonitorPlay, category: 'software', sort: undefined },
-  { id: 'gift-cards', label: 'Gift Cards', icon: Gift, category: 'gift-cards', sort: undefined },
-  { id: 'social', label: 'Social Media', icon: UserCircle, category: 'social-media', sort: undefined },
-  { id: 'premium', label: 'Premium', icon: Crown, category: 'premium', sort: undefined },
-] as const;
-
-type CategoryId = (typeof CATEGORY_TABS)[number]['id'];
+// Tab item interface for both featured and category tabs
+interface TabItem {
+  id: string;
+  label: string;
+  icon: LucideIcon;
+  category?: string;
+  platform?: string;
+  sort?: string;
+  count?: number;
+}
 
 export default function HomePage(): React.ReactElement {
-  const [activeCategory, setActiveCategory] = useState<CategoryId>('trending');
+  const [activeCategory, setActiveCategory] = useState<string>('trending');
 
-  // Fetch featured products based on active category
-  const selectedTab = CATEGORY_TABS.find((tab) => tab.id === activeCategory);
+  // Fetch dynamic categories from API
+  const { data: categoriesData, isLoading: isCategoriesLoading } = useCatalogCategories();
+
+  // Build tabs from dynamic categories + featured collections
+  const categoryTabs = useMemo<TabItem[]>(() => {
+    if (!categoriesData) {
+      // Return minimal fallback tabs while loading
+      return [
+        { id: 'trending', label: 'Trending', icon: TrendingUp, sort: 'trending' },
+        { id: 'new', label: 'New', icon: Sparkles, sort: 'newest' },
+      ];
+    }
+
+    const tabs: TabItem[] = [];
+
+    // First add featured/virtual categories from API
+    categoriesData.featured.forEach((featured: FeaturedCategoryDto) => {
+      tabs.push({
+        id: featured.id,
+        label: featured.label,
+        icon: getCategoryIcon(featured.id),
+        sort: featured.sort ?? undefined,
+      });
+    });
+
+    // Then add top real categories (limit to 6 to not overflow)
+    const topCategories = categoriesData.categories.slice(0, 6);
+    topCategories.forEach((cat: CategoryDto) => {
+      // Use platform filter for platform-type categories, category filter for genres
+      // Use cat.label for the filter value (matches actual product data), cat.id for tab identification
+      const isPlatform = cat.type === 'platform';
+      tabs.push({
+        id: cat.id,
+        label: cat.label,
+        icon: getCategoryIcon(cat.id),
+        ...(isPlatform ? { platform: cat.label } : { category: cat.label }),
+        count: cat.count,
+      });
+    });
+
+    return tabs;
+  }, [categoriesData]);
+
+  // Get selected tab info
+  const selectedTab = categoryTabs.find((tab) => tab.id === activeCategory) ?? categoryTabs[0];
   
   // Map sort values from CATEGORY_TABS to SDK enum
   const getSdkSort = (sort?: string): 'newest' | 'price_asc' | 'price_desc' | 'rating' | undefined => {
@@ -74,11 +161,13 @@ export default function HomePage(): React.ReactElement {
   };
 
   const { data: products = [], isLoading } = useQuery({
-    queryKey: ['featured-products', activeCategory],
+    // Include both category and platform in queryKey for proper cache invalidation
+    queryKey: ['featured-products', activeCategory, selectedTab?.category, selectedTab?.platform, selectedTab?.sort],
     queryFn: async () => {
       try {
         const response = await catalogClient.findAll({
           category: selectedTab?.category,
+          platform: selectedTab?.platform,
           limit: 12,
           sort: getSdkSort(selectedTab?.sort),
         });
@@ -101,6 +190,7 @@ export default function HomePage(): React.ReactElement {
         return [];
       }
     },
+    enabled: !!selectedTab, // Only run when we have a selected tab
   });
 
   // Use real product data from SDK query
@@ -287,30 +377,47 @@ export default function HomePage(): React.ReactElement {
               role="tablist"
               aria-label="Product categories"
             >
-              {CATEGORY_TABS.map((tab) => {
-                const Icon = tab.icon;
-                const isActive = activeCategory === tab.id;
+              {isCategoriesLoading ? (
+                // Loading skeleton for tabs
+                <>
+                  {[1, 2, 3, 4, 5, 6].map((i) => (
+                    <Skeleton key={i} className="h-10 w-28 rounded-xl shrink-0" />
+                  ))}
+                </>
+              ) : (
+                categoryTabs.map((tab) => {
+                  const Icon = tab.icon;
+                  const isActive = activeCategory === tab.id;
 
-                return (
-                  <button
-                    key={tab.id}
-                    role="tab"
-                    aria-selected={isActive}
-                    aria-controls={`tabpanel-${tab.id}`}
-                    onClick={() => setActiveCategory(tab.id)}
-                    className={cn(
-                      'flex shrink-0 cursor-pointer items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium transition-all duration-300',
-                      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-glow/50 focus-visible:ring-offset-2 focus-visible:ring-offset-bg-secondary',
-                      isActive
-                        ? 'bg-cyan-glow/15 text-cyan-glow border border-cyan-glow/30 shadow-[0_0_20px_rgba(0,217,255,0.2)]'
-                        : 'glass text-text-muted border border-border-subtle hover:border-cyan-glow/30 hover:text-text-primary hover:bg-bg-tertiary/50'
-                    )}
-                  >
-                    <Icon className="h-4 w-4" />
-                    <span className="whitespace-nowrap">{tab.label}</span>
-                  </button>
-                );
-              })}
+                  return (
+                    <button
+                      key={tab.id}
+                      role="tab"
+                      aria-selected={isActive}
+                      aria-controls={`tabpanel-${tab.id}`}
+                      onClick={() => setActiveCategory(tab.id)}
+                      className={cn(
+                        'flex shrink-0 cursor-pointer items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium transition-all duration-300',
+                        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-glow/50 focus-visible:ring-offset-2 focus-visible:ring-offset-bg-secondary',
+                        isActive
+                          ? 'bg-cyan-glow/15 text-cyan-glow border border-cyan-glow/30 shadow-[0_0_20px_rgba(0,217,255,0.2)]'
+                          : 'glass text-text-muted border border-border-subtle hover:border-cyan-glow/30 hover:text-text-primary hover:bg-bg-tertiary/50'
+                      )}
+                    >
+                      <Icon className="h-4 w-4" />
+                      <span className="whitespace-nowrap">{tab.label}</span>
+                      {tab.count !== undefined && tab.count > 0 && (
+                        <span className={cn(
+                          'text-xs px-1.5 py-0.5 rounded-full',
+                          isActive ? 'bg-cyan-glow/20 text-cyan-glow' : 'bg-border-subtle text-text-muted'
+                        )}>
+                          {tab.count > 999 ? '999+' : tab.count}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })
+              )}
             </nav>
           </motion.div>
 

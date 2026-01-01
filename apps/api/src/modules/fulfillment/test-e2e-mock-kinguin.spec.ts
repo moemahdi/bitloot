@@ -100,7 +100,7 @@ async function createPayment(orderId: string): Promise<Payment> {
   const response = await axios.post(`${API_BASE}/payments/create`, {
     orderId,
     priceAmount: '10.00',
-    priceCurrency: 'USD',
+    priceCurrency: 'EUR',
     payCurrency: 'BTC',
   });
 

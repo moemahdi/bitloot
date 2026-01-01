@@ -23,7 +23,7 @@ import { IsString, IsNumber, IsUUID, IsNotEmpty, IsOptional } from 'class-valida
  *   "order_id": "550e8400-e29b-41d4-a716-446655440000",
  *   "payment_status": "finished",
  *   "price_amount": 100.00,
- *   "price_currency": "usd",
+ *   "price_currency": "eur",
  *   "pay_amount": 0.0025,
  *   "pay_currency": "btc",
  *   "received_amount": 0.0025,
@@ -98,14 +98,14 @@ export class NowpaymentsIpnRequestDto {
   payment_status!: 'waiting' | 'confirming' | 'finished' | 'failed' | 'underpaid';
 
   /**
-   * Expected USD price amount for the order
+   * Expected EUR price amount for the order
    * Used to verify payment amount matches
    *
    * @type {number}
    * @example 100.00
    */
   @ApiProperty({
-    description: 'Expected USD price amount',
+    description: 'Expected EUR price amount',
     example: 100.0,
     type: Number,
   })
@@ -114,14 +114,14 @@ export class NowpaymentsIpnRequestDto {
   price_amount!: number;
 
   /**
-   * Price currency (always USD in our system)
+   * Price currency (always EUR in our system)
    *
    * @type {string}
-   * @example "usd"
+   * @example "eur"
    */
   @ApiProperty({
     description: 'Price currency',
-    example: 'usd',
+    example: 'eur',
   })
   @IsString()
   @IsNotEmpty()

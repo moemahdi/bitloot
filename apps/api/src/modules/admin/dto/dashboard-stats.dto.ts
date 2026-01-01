@@ -1,7 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 
 export class DashboardStatsDto {
-    @ApiProperty({ description: 'Total revenue in USD (cents)', example: 125000 })
+    @ApiProperty({ description: 'Total revenue in EUR (cents)', example: 125000 })
     totalRevenue!: number;
 
     @ApiProperty({ description: 'Total number of orders', example: 150 })

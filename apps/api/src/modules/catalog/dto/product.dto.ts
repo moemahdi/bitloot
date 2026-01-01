@@ -110,7 +110,7 @@ export class ProductResponseDto {
 
   @ApiProperty({
     description: 'Currency code',
-    example: 'USD',
+    example: 'EUR',
   })
   currency!: string;
 

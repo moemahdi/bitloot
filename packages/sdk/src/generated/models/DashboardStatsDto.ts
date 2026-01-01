@@ -28,7 +28,7 @@ import {
  */
 export interface DashboardStatsDto {
     /**
-     * Total revenue in USD (cents)
+     * Total revenue in EUR (cents)
      * @type {number}
      * @memberof DashboardStatsDto
      */

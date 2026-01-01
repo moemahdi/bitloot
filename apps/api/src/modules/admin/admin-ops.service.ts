@@ -273,7 +273,7 @@ export class AdminOpsService {
       pending: string;
       locked: string;
     }>;
-    totalUSD: string;
+    totalEUR: string;
     lastSync: string;
   } {
     // In production, would aggregate real balances from payment providers
@@ -283,7 +283,7 @@ export class AdminOpsService {
         { currency: 'ETH', balance: '0.0000', pending: '0.0000', locked: '0.0000' },
         { currency: 'USDT', balance: '0.0000', pending: '0.0000', locked: '0.0000' },
       ],
-      totalUSD: '0.00',
+      totalEUR: '0.00',
       lastSync: new Date().toISOString(),
     };
   }

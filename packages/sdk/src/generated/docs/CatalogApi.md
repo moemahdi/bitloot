@@ -4,9 +4,129 @@ All URIs are relative to *http://localhost*
 
 | Method | HTTP request | Description |
 |------------- | ------------- | -------------|
+| [**catalogControllerGetCategories**](CatalogApi.md#catalogcontrollergetcategories) | **GET** /catalog/categories | Get dynamic categories with counts |
+| [**catalogControllerGetFilters**](CatalogApi.md#catalogcontrollergetfilters) | **GET** /catalog/filters | Get available filter options |
 | [**catalogControllerGetProduct**](CatalogApi.md#catalogcontrollergetproduct) | **GET** /catalog/products/{slug} | Get single product by slug |
 | [**catalogControllerListProducts**](CatalogApi.md#catalogcontrollerlistproducts) | **GET** /catalog/products | List products with filtering and pagination |
 
+
+
+## catalogControllerGetCategories
+
+> CategoriesResponseDto catalogControllerGetCategories()
+
+Get dynamic categories with counts
+
+Returns all available categories (genres, platforms, collections) dynamically aggregated from published products. Also includes featured/virtual categories for special sorts.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  CatalogApi,
+} from '';
+import type { CatalogControllerGetCategoriesRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new CatalogApi();
+
+  try {
+    const data = await api.catalogControllerGetCategories();
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+This endpoint does not need any parameter.
+
+### Return type
+
+[**CategoriesResponseDto**](CategoriesResponseDto.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Categories with product counts and featured collections |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## catalogControllerGetFilters
+
+> FiltersResponseDto catalogControllerGetFilters()
+
+Get available filter options
+
+Returns all available filter options (platforms, regions, genres) with counts, plus price range. Used for building dynamic filter UI.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  CatalogApi,
+} from '';
+import type { CatalogControllerGetFiltersRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new CatalogApi();
+
+  try {
+    const data = await api.catalogControllerGetFilters();
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+This endpoint does not need any parameter.
+
+### Return type
+
+[**FiltersResponseDto**](FiltersResponseDto.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Filter options with counts and price range |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
 
 ## catalogControllerGetProduct

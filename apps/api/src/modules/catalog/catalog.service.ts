@@ -243,7 +243,7 @@ export class CatalogService {
       costMinor: Math.round(parseFloat(data.cost) * 100), // Keep offer as minor for now or update offer entity too?
       // Wait, ProductOffer entity likely has costMinor too. I should check that.
       // For now, assuming ProductOffer still has costMinor.
-      currency: data.currency ?? 'USD',
+      currency: data.currency ?? 'EUR',
       isActive: true,
     });
 
@@ -416,23 +416,23 @@ export class CatalogService {
       );
     }
 
-    // Filter by platform
+    // Filter by platform (case-insensitive to match slugified IDs from frontend)
     if (typeof filters.platform === 'string' && filters.platform.length > 0) {
-      query = query.andWhere('product.platform = :platform', {
+      query = query.andWhere('LOWER(product.platform) = LOWER(:platform)', {
         platform: filters.platform,
       });
     }
 
-    // Filter by region
+    // Filter by region (case-insensitive to match slugified IDs from frontend)
     if (typeof filters.region === 'string' && filters.region.length > 0) {
-      query = query.andWhere('product.region = :region', {
+      query = query.andWhere('LOWER(product.region) = LOWER(:region)', {
         region: filters.region,
       });
     }
 
-    // Filter by category
+    // Filter by category (case-insensitive to match slugified IDs from frontend)
     if (typeof filters.category === 'string' && filters.category.length > 0) {
-      query = query.andWhere('product.category = :category', {
+      query = query.andWhere('LOWER(product.category) = LOWER(:category)', {
         category: filters.category,
       });
     }
@@ -720,7 +720,7 @@ export class CatalogService {
       category: data.category,
       cost: data.cost,
       price: data.price,
-      currency: data.currency ?? 'USD',
+      currency: data.currency ?? 'EUR',
       isPublished: data.isPublished ?? false,
       isCustom: data.sourceType !== 'kinguin',
       sourceType: data.sourceType ?? 'custom',
@@ -956,7 +956,7 @@ export class CatalogService {
    * Compute retail price for product based on cost and pricing rules
    * Used by webhook handler when Kinguin price changes
    */
-  async computePrice(productId: string, costUsd: number): Promise<number> {
+  async computePrice(productId: string, costEur: number): Promise<number> {
     const product = await this.productRepo.findOne({
       where: { id: productId },
     });
@@ -966,7 +966,258 @@ export class CatalogService {
     }
 
     // Use existing calculatePrice method with cost as string
-    const retailPrice = await this.calculatePrice(product, costUsd.toString());
+    const retailPrice = await this.calculatePrice(product, costEur.toString());
     return parseFloat(retailPrice);
+  }
+
+  // ============================================================
+  // DYNAMIC CATEGORIES & FILTERS
+  // ============================================================
+
+  /**
+   * Platform icon mapping for frontend display
+   * Returns the icon name to be used in the frontend (Lucide icons)
+   */
+  private getPlatformIcon(platform: string): string {
+    const iconMap: Record<string, string> = {
+      steam: 'Gamepad2',
+      xbox: 'Gamepad2',
+      playstation: 'Gamepad2',
+      'nintendo switch': 'Gamepad2',
+      origin: 'MonitorPlay',
+      uplay: 'MonitorPlay',
+      epic: 'MonitorPlay',
+      gog: 'MonitorPlay',
+      rockstar: 'MonitorPlay',
+      'battle.net': 'MonitorPlay',
+      microsoft: 'Monitor',
+      windows: 'Monitor',
+      mac: 'Apple',
+      other: 'Package',
+    };
+    return iconMap[platform.toLowerCase()] ?? 'Package';
+  }
+
+  /**
+   * Category type determination based on product data patterns
+   */
+  private getCategoryType(category: string): 'genre' | 'platform' | 'collection' | 'custom' {
+    // Platform categories
+    const platforms = ['steam', 'xbox', 'playstation', 'nintendo', 'origin', 'uplay', 'epic', 'gog'];
+    if (platforms.some((p) => category.toLowerCase().includes(p))) {
+      return 'platform';
+    }
+
+    // Collection/special categories (trending, new, etc.)
+    const collections = ['trending', 'new', 'best-sellers', 'featured', 'premium', 'deals'];
+    if (collections.some((c) => category.toLowerCase().includes(c))) {
+      return 'collection';
+    }
+
+    // Default to genre
+    return 'genre';
+  }
+
+  /**
+   * Get dynamic categories aggregated from published products
+   * Returns categories with product counts, featured collections, and metadata
+   */
+  async getCategories(): Promise<{
+    categories: Array<{
+      id: string;
+      label: string;
+      type: 'genre' | 'platform' | 'collection' | 'custom';
+      count: number;
+      icon: string;
+      sortOrder: number;
+    }>;
+    featured: Array<{
+      id: string;
+      label: string;
+      sort: string;
+      icon: string;
+    }>;
+    totalProducts: number;
+  }> {
+    // Get total published products
+    const totalProducts = await this.productRepo.count({
+      where: { isPublished: true },
+    });
+
+    // Aggregate categories from published products
+    // Categories are stored in the 'category' field (set from first genre during import)
+    const categoryAggregation = await this.productRepo
+      .createQueryBuilder('product')
+      .select('product.category', 'category')
+      .addSelect('COUNT(product.id)', 'count')
+      .where('product.isPublished = true')
+      .andWhere('product.category IS NOT NULL')
+      .andWhere("product.category != ''")
+      .groupBy('product.category')
+      .orderBy('count', 'DESC')
+      .getRawMany<{ category: string; count: string }>();
+
+    // Aggregate platforms from published products
+    const platformAggregation = await this.productRepo
+      .createQueryBuilder('product')
+      .select('product.platform', 'platform')
+      .addSelect('COUNT(product.id)', 'count')
+      .where('product.isPublished = true')
+      .andWhere('product.platform IS NOT NULL')
+      .andWhere("product.platform != ''")
+      .groupBy('product.platform')
+      .orderBy('count', 'DESC')
+      .getRawMany<{ platform: string; count: string }>();
+
+    // Build categories array
+    const categories: Array<{
+      id: string;
+      label: string;
+      type: 'genre' | 'platform' | 'collection' | 'custom';
+      count: number;
+      icon: string;
+      sortOrder: number;
+    }> = [];
+
+    // Add platform-based categories first (most important for gaming)
+    let sortOrder = 0;
+    for (const item of platformAggregation) {
+      categories.push({
+        id: item.platform.toLowerCase().replace(/\s+/g, '-'),
+        label: item.platform,
+        type: 'platform',
+        count: parseInt(item.count, 10),
+        icon: this.getPlatformIcon(item.platform),
+        sortOrder: sortOrder++,
+      });
+    }
+
+    // Add genre-based categories
+    for (const item of categoryAggregation) {
+      // Skip if already added as platform
+      const id = item.category.toLowerCase().replace(/\s+/g, '-');
+      if (categories.some((c) => c.id === id)) {
+        continue;
+      }
+
+      categories.push({
+        id,
+        label: item.category,
+        type: this.getCategoryType(item.category),
+        count: parseInt(item.count, 10),
+        icon: 'Tag',
+        sortOrder: sortOrder++,
+      });
+    }
+
+    // Featured collections (virtual categories based on sorting)
+    const featured = [
+      { id: 'trending', label: 'Trending', sort: 'trending', icon: 'TrendingUp' },
+      { id: 'best-sellers', label: 'Best Sellers', sort: 'sales', icon: 'Award' },
+      { id: 'new', label: 'New Releases', sort: 'newest', icon: 'Sparkles' },
+      { id: 'deals', label: 'Deals', sort: 'discount', icon: 'Percent' },
+    ];
+
+    return {
+      categories,
+      featured,
+      totalProducts,
+    };
+  }
+
+  /**
+   * Get dynamic filters aggregated from published products
+   * Returns platforms, regions, genres with counts and price range
+   */
+  async getFilters(): Promise<{
+    platforms: Array<{ id: string; label: string; count: number }>;
+    regions: Array<{ id: string; label: string; count: number }>;
+    genres: Array<{ id: string; label: string; count: number }>;
+    priceRange: { min: number; max: number; currency: string };
+  }> {
+    // Aggregate platforms
+    const platformAggregation = await this.productRepo
+      .createQueryBuilder('product')
+      .select('product.platform', 'platform')
+      .addSelect('COUNT(product.id)', 'count')
+      .where('product.isPublished = true')
+      .andWhere('product.platform IS NOT NULL')
+      .andWhere("product.platform != ''")
+      .groupBy('product.platform')
+      .orderBy('count', 'DESC')
+      .getRawMany<{ platform: string; count: string }>();
+
+    // Aggregate regions
+    const regionAggregation = await this.productRepo
+      .createQueryBuilder('product')
+      .select('product.region', 'region')
+      .addSelect('COUNT(product.id)', 'count')
+      .where('product.isPublished = true')
+      .andWhere('product.region IS NOT NULL')
+      .andWhere("product.region != ''")
+      .groupBy('product.region')
+      .orderBy('count', 'DESC')
+      .getRawMany<{ region: string; count: string }>();
+
+    // Aggregate genres from JSON array column
+    // Note: genres is stored as JSON array, we need to unnest it
+    const genreAggregation = await this.dataSource
+      .createQueryBuilder()
+      .select('genre', 'genre')
+      .addSelect('COUNT(*)', 'count')
+      .from((subQuery) => {
+        return subQuery
+          .select('jsonb_array_elements_text(product.genres::jsonb)', 'genre')
+          .from(Product, 'product')
+          .where('product.isPublished = true')
+          .andWhere('product.genres IS NOT NULL')
+          .andWhere("product.genres != '[]'");
+      }, 'genres_unnested')
+      .groupBy('genre')
+      .orderBy('count', 'DESC')
+      .limit(30) // Limit to top 30 genres
+      .getRawMany<{ genre: string; count: string }>();
+
+    // Get price range (min and max from published products)
+    const priceStats = await this.productRepo
+      .createQueryBuilder('product')
+      .select('MIN(CAST(product.price AS DECIMAL))', 'minPrice')
+      .addSelect('MAX(CAST(product.price AS DECIMAL))', 'maxPrice')
+      .where('product.isPublished = true')
+      .andWhere('product.price IS NOT NULL')
+      .andWhere("product.price != ''")
+      .getRawOne<{ minPrice: string | null; maxPrice: string | null }>();
+
+    // Build response
+    const platforms = platformAggregation.map((item) => ({
+      id: item.platform.toLowerCase().replace(/\s+/g, '-'),
+      label: item.platform,
+      count: parseInt(item.count, 10),
+    }));
+
+    const regions = regionAggregation.map((item) => ({
+      id: item.region.toLowerCase().replace(/\s+/g, '-'),
+      label: item.region,
+      count: parseInt(item.count, 10),
+    }));
+
+    const genres = genreAggregation.map((item) => ({
+      id: item.genre.toLowerCase().replace(/\s+/g, '-'),
+      label: item.genre,
+      count: parseInt(item.count, 10),
+    }));
+
+    const priceRange = {
+      min: priceStats?.minPrice != null ? parseFloat(priceStats.minPrice) : 0,
+      max: priceStats?.maxPrice != null ? parseFloat(priceStats.maxPrice) : 100,
+      currency: 'EUR',
+    };
+
+    return {
+      platforms,
+      regions,
+      genres,
+      priceRange,
+    };
   }
 }

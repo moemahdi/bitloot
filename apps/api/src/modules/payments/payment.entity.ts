@@ -78,14 +78,14 @@ export class Payment {
   rawPayload?: Record<string, string | number | boolean | null>;
 
   /**
-   * Price amount in USD (or configured currency)
+   * Price amount in EUR (or configured currency)
    * Stored in payment record for audit trail
    */
   @Column('decimal', { precision: 20, scale: 8, nullable: true })
   priceAmount?: string;
 
   /**
-   * Currency for price (e.g., 'usd')
+   * Currency for price (e.g., 'eur')
    */
   @Column('varchar', { nullable: true })
   priceCurrency?: string;

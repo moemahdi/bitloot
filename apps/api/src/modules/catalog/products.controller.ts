@@ -3,6 +3,7 @@ import { ApiOperation, ApiResponse, ApiTags, ApiQuery } from '@nestjs/swagger';
 import { CatalogService } from './catalog.service';
 import { Product } from './entities/product.entity';
 import { ProductResponseDto, ProductListResponseDto } from './dto/product.dto';
+import { CategoriesResponseDto, FiltersResponseDto } from './dto/category-filters.dto';
 
 /**
  * Parse JSON array field safely (handles JSONB columns that may be null, empty, or arrays)
@@ -71,6 +72,36 @@ function toProductResponseDto(product: Product): ProductResponseDto {
 export class CatalogController {
   constructor(private readonly catalogService: CatalogService) {}
 
+  @Get('categories')
+  @ApiOperation({
+    summary: 'Get dynamic categories with counts',
+    description:
+      'Returns all available categories (genres, platforms, collections) dynamically aggregated from published products. Also includes featured/virtual categories for special sorts.',
+  })
+  @ApiResponse({
+    status: 200,
+    type: CategoriesResponseDto,
+    description: 'Categories with product counts and featured collections',
+  })
+  async getCategories(): Promise<CategoriesResponseDto> {
+    return this.catalogService.getCategories();
+  }
+
+  @Get('filters')
+  @ApiOperation({
+    summary: 'Get available filter options',
+    description:
+      'Returns all available filter options (platforms, regions, genres) with counts, plus price range. Used for building dynamic filter UI.',
+  })
+  @ApiResponse({
+    status: 200,
+    type: FiltersResponseDto,
+    description: 'Filter options with counts and price range',
+  })
+  async getFilters(): Promise<FiltersResponseDto> {
+    return this.catalogService.getFilters();
+  }
+
   @Get('products')
   @ApiOperation({ summary: 'List products with filtering and pagination' })
   @ApiQuery({ name: 'q', required: false, description: 'Search query (full-text)' })
@@ -87,25 +118,49 @@ export class CatalogController {
     @Query('region') region?: string,
     @Query('category') category?: string,
     @Query('sort') sort?: 'newest' | 'price_asc' | 'price_desc' | 'rating',
-    @Query('limit') limit: number = 24,
-    @Query('offset') offset: number = 0,
+    @Query('limit') limitParam?: string,
+    @Query('offset') offsetParam?: string,
   ): Promise<ProductListResponseDto> {
-    const result = await this.catalogService.listProducts(limit, offset, {
-      q,
-      platform,
-      region,
-      category,
-      sort,
-    });
+    // Ensure limit and offset are valid numbers with defaults
+    const limit = limitParam !== undefined && limitParam !== '' ? parseInt(limitParam, 10) : 24;
+    const offset = offsetParam !== undefined && offsetParam !== '' ? parseInt(offsetParam, 10) : 0;
+    const safeLimit = Number.isNaN(limit) ? 24 : limit;
+    const safeOffset = Number.isNaN(offset) ? 0 : offset;
+    
+    try {
+      console.log('[CatalogController] listProducts called with:', { q, platform, region, category, sort, limit: safeLimit, offset: safeOffset });
+      
+      const result = await this.catalogService.listProducts(safeLimit, safeOffset, {
+        q,
+        platform,
+        region,
+        category,
+        sort,
+      });
+      
+      console.log('[CatalogController] listProducts result:', { count: result.data.length, total: result.total });
 
-    // Map entities to DTOs
-    return {
-      data: result.data.map(toProductResponseDto),
-      total: result.total,
-      limit: result.limit,
-      offset: result.offset,
-      pages: result.pages,
-    };
+      // Map entities to DTOs
+      const mappedData = result.data.map((product, index) => {
+        try {
+          return toProductResponseDto(product);
+        } catch (err) {
+          console.error(`[CatalogController] Error mapping product ${index} (${product.id}):`, err);
+          throw err;
+        }
+      });
+
+      return {
+        data: mappedData,
+        total: result.total,
+        limit: result.limit,
+        offset: result.offset,
+        pages: result.pages,
+      };
+    } catch (error) {
+      console.error('[CatalogController] listProducts error:', error);
+      throw error;
+    }
   }
 
   @Get('products/:slug')

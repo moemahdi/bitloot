@@ -28,7 +28,7 @@ describe('PaymentsController - IPN Integration', () => {
         orderId: '550e8400-e29b-41d4-a716-446655440000',
         email: 'customer@example.com',
         priceAmount: '49.99',
-        priceCurrency: 'usd',
+        priceCurrency: 'eur',
       };
 
       const expectedResponse = {

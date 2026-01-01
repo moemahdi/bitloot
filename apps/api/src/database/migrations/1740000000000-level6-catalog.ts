@@ -19,7 +19,7 @@ export class Level6Catalog1740000000000 implements MigrationInterface {
         "is_custom" boolean NOT NULL DEFAULT false,
         "is_published" boolean NOT NULL DEFAULT false,
         "cost_minor" bigint NOT NULL DEFAULT 0,
-        "currency" char(3) NOT NULL DEFAULT 'USD',
+        "currency" char(3) NOT NULL DEFAULT 'EUR',
         "price_minor" bigint NOT NULL DEFAULT 0,
         "price_version" int NOT NULL DEFAULT 0,
         "rating" numeric(3,2),

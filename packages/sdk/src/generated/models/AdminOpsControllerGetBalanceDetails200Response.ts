@@ -38,7 +38,7 @@ export interface AdminOpsControllerGetBalanceDetails200Response {
      * @type {string}
      * @memberof AdminOpsControllerGetBalanceDetails200Response
      */
-    totalUSD?: string;
+    totalEUR?: string;
     /**
      * 
      * @type {string}
@@ -65,7 +65,7 @@ export function AdminOpsControllerGetBalanceDetails200ResponseFromJSONTyped(json
     return {
         
         'accounts': json['accounts'] == null ? undefined : ((json['accounts'] as Array<any>).map(AdminOpsControllerGetBalanceDetails200ResponseAccountsInnerFromJSON)),
-        'totalUSD': json['totalUSD'] == null ? undefined : json['totalUSD'],
+        'totalEUR': json['totalEUR'] == null ? undefined : json['totalEUR'],
         'lastSync': json['lastSync'] == null ? undefined : json['lastSync'],
     };
 }
@@ -82,7 +82,7 @@ export function AdminOpsControllerGetBalanceDetails200ResponseToJSONTyped(value?
     return {
         
         'accounts': value['accounts'] == null ? undefined : ((value['accounts'] as Array<any>).map(AdminOpsControllerGetBalanceDetails200ResponseAccountsInnerToJSON)),
-        'totalUSD': value['totalUSD'],
+        'totalEUR': value['totalEUR'],
         'lastSync': value['lastSync'],
     };
 }

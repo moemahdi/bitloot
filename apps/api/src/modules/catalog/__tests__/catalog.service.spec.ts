@@ -88,7 +88,7 @@ describe('CatalogService Integration', () => {
       // Product exists with custom pricing rule
       const existingProduct = {
         id: 'prod-1',
-        price_minor: 5000, // $50 custom price
+        price_minor: 5000, // €50 custom price
         price_version: 2,
       };
 

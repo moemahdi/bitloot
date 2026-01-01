@@ -77,7 +77,7 @@ export class IpnHandlerController {
    *   "order_id": "550e8400-e29b-41d4-a716-446655440000",
    *   "payment_status": "finished",
    *   "price_amount": 100.00,
-   *   "price_currency": "usd",
+   *   "price_currency": "eur",
    *   "pay_amount": 0.0025,
    *   "pay_currency": "btc",
    *   "received_amount": 0.0025,

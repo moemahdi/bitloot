@@ -56,7 +56,7 @@ const example = {
   "ageRating": M - Mature 17+,
   "category": Games,
   "price": 59.99000000,
-  "currency": USD,
+  "currency": EUR,
   "isPublished": true,
   "imageUrl": https://cdn.bitloot.io/products/cyberpunk-2077-cover.jpg,
   "createdAt": 2024-01-15T10:30Z,

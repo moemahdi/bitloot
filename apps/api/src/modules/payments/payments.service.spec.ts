@@ -65,7 +65,7 @@ describe('PaymentsService', () => {
         orderId: '550e8400-e29b-41d4-a716-446655440000',
         email: 'customer@example.com',
         priceAmount: '49.99',
-        priceCurrency: 'usd',
+        priceCurrency: 'eur',
         payCurrency: 'btc',
       };
 
@@ -75,7 +75,7 @@ describe('PaymentsService', () => {
         status_url: 'https://nowpayments.io/status/123456',
         pay_address: 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh',
         price_amount: 49.99,
-        price_currency: 'usd',
+        price_currency: 'eur',
         pay_currency: 'btc',
         order_id: '550e8400-e29b-41d4-a716-446655440000',
         status: 'waiting',
@@ -108,7 +108,7 @@ describe('PaymentsService', () => {
         orderId: '550e8400-e29b-41d4-a716-446655440000',
         email: 'customer@example.com',
         priceAmount: '49.99',
-        priceCurrency: 'usd',
+        priceCurrency: 'eur',
       };
 
       const apiError = new Error('API error');

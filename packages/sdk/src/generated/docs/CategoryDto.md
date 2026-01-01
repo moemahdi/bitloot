@@ -1,30 +1,32 @@
 
-# CreatePaymentDto
+# CategoryDto
 
 
 ## Properties
 
 Name | Type
 ------------ | -------------
-`orderId` | string
-`email` | string
-`priceAmount` | string
-`priceCurrency` | string
-`payCurrency` | string
+`id` | string
+`label` | string
+`type` | string
+`count` | number
+`icon` | string
+`sortOrder` | number
 
 ## Example
 
 ```typescript
-import type { CreatePaymentDto } from ''
+import type { CategoryDto } from ''
 
 // TODO: Update the object below with actual values
 const example = {
-  "orderId": 550e8400-e29b-41d4-a716-446655440000,
-  "email": customer@example.com,
-  "priceAmount": 49.99,
-  "priceCurrency": eur,
-  "payCurrency": btc,
-} satisfies CreatePaymentDto
+  "id": action,
+  "label": Action,
+  "type": genre,
+  "count": 150,
+  "icon": gamepad-2,
+  "sortOrder": 1,
+} satisfies CategoryDto
 
 console.log(example)
 
@@ -33,7 +35,7 @@ const exampleJSON: string = JSON.stringify(example)
 console.log(exampleJSON)
 
 // Parse the JSON string back to an object
-const exampleParsed = JSON.parse(exampleJSON) as CreatePaymentDto
+const exampleParsed = JSON.parse(exampleJSON) as CategoryDto
 console.log(exampleParsed)
 ```
 

@@ -15,10 +15,16 @@
 
 import * as runtime from '../runtime';
 import type {
+  CategoriesResponseDto,
+  FiltersResponseDto,
   ProductListResponseDto,
   ProductResponseDto,
 } from '../models/index';
 import {
+    CategoriesResponseDtoFromJSON,
+    CategoriesResponseDtoToJSON,
+    FiltersResponseDtoFromJSON,
+    FiltersResponseDtoToJSON,
     ProductListResponseDtoFromJSON,
     ProductListResponseDtoToJSON,
     ProductResponseDtoFromJSON,
@@ -43,6 +49,68 @@ export interface CatalogControllerListProductsRequest {
  * 
  */
 export class CatalogApi extends runtime.BaseAPI {
+
+    /**
+     * Returns all available categories (genres, platforms, collections) dynamically aggregated from published products. Also includes featured/virtual categories for special sorts.
+     * Get dynamic categories with counts
+     */
+    async catalogControllerGetCategoriesRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<CategoriesResponseDto>> {
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/catalog/categories`;
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => CategoriesResponseDtoFromJSON(jsonValue));
+    }
+
+    /**
+     * Returns all available categories (genres, platforms, collections) dynamically aggregated from published products. Also includes featured/virtual categories for special sorts.
+     * Get dynamic categories with counts
+     */
+    async catalogControllerGetCategories(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<CategoriesResponseDto> {
+        const response = await this.catalogControllerGetCategoriesRaw(initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Returns all available filter options (platforms, regions, genres) with counts, plus price range. Used for building dynamic filter UI.
+     * Get available filter options
+     */
+    async catalogControllerGetFiltersRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<FiltersResponseDto>> {
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/catalog/filters`;
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => FiltersResponseDtoFromJSON(jsonValue));
+    }
+
+    /**
+     * Returns all available filter options (platforms, regions, genres) with counts, plus price range. Used for building dynamic filter UI.
+     * Get available filter options
+     */
+    async catalogControllerGetFilters(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<FiltersResponseDto> {
+        const response = await this.catalogControllerGetFiltersRaw(initOverrides);
+        return await response.value();
+    }
 
     /**
      * Get single product by slug

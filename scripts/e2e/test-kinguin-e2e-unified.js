@@ -167,7 +167,7 @@ async function testCreatePayment(orderId, email) {
       orderId,
       email,
       priceAmount: 9.99,
-      priceCurrency: 'USD',
+      priceCurrency: 'EUR',
       payCurrency: 'BTC',
     });
 
@@ -209,7 +209,7 @@ async function testSendIPNWebhook(orderId, paymentId) {
       order_id: orderId,
       payment_status: 'finished',
       price_amount: 9.99,
-      price_currency: 'USD',
+      price_currency: 'EUR',
       pay_amount: 0.00025,
       pay_currency: 'BTC',
       received_amount: 0.00025,

@@ -7,7 +7,7 @@
 Name | Type
 ------------ | -------------
 `accounts` | [Array&lt;AdminOpsControllerGetBalanceDetails200ResponseAccountsInner&gt;](AdminOpsControllerGetBalanceDetails200ResponseAccountsInner.md)
-`totalUSD` | string
+`totalEUR` | string
 `lastSync` | string
 
 ## Example
@@ -18,7 +18,7 @@ import type { AdminOpsControllerGetBalanceDetails200Response } from ''
 // TODO: Update the object below with actual values
 const example = {
   "accounts": null,
-  "totalUSD": null,
+  "totalEUR": null,
   "lastSync": null,
 } satisfies AdminOpsControllerGetBalanceDetails200Response
 

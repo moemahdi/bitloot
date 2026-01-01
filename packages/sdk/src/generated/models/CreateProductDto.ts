@@ -92,7 +92,7 @@ export interface CreateProductDto {
      */
     price: string;
     /**
-     * Currency code (USD, EUR, GBP)
+     * Currency code (EUR)
      * @type {string}
      * @memberof CreateProductDto
      */

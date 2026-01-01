@@ -1,15 +1,17 @@
 'use client';
 
-import { Suspense, useState } from 'react';
+import { Suspense, useState, useMemo, useEffect } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
-import { catalogClient } from '@bitloot/sdk';
+import { catalogClient, type FeaturedCategoryDto, type CategoryDto } from '@bitloot/sdk';
 import type { ProductListResponseDto } from '@bitloot/sdk';
+import { useCatalogCategories } from '@/hooks/useCatalog';
 import { CatalogFilters } from '@/features/catalog/components/CatalogFilters';
 import { ProductGrid } from '@/features/catalog/components/ProductGrid';
 import { GlowButton } from '@/design-system/primitives/glow-button';
 import { Input } from '@/design-system/primitives/input';
+import { Skeleton } from '@/design-system/primitives/skeleton';
 import { Sheet, SheetContent, SheetTrigger } from '@/design-system/primitives/sheet';
 import {
   Filter,
@@ -30,48 +32,168 @@ import {
   Zap,
   RefreshCw,
   AlertCircle,
+  Music,
+  Film,
+  BookOpen,
+  type LucideIcon,
 } from 'lucide-react';
 import type { Product } from '@/features/catalog/components/ProductCard';
 import { cn } from '@/design-system/utils/utils';
 import { FloatingParticles, AnimatedGridPattern } from '@/components/animations/FloatingParticles';
 
-// Category tabs configuration - matching home page
-const CATEGORY_TABS = [
-  { id: 'all', label: 'All Products', icon: LayoutGrid },
-  { id: 'trending', label: 'Trending', icon: TrendingUp },
-  { id: 'best-sellers', label: 'Best Sellers', icon: Award },
-  { id: 'new', label: 'New', icon: Sparkles },
-  { id: 'games', label: 'Games', icon: Gamepad2 },
-  { id: 'software', label: 'Software', icon: MonitorPlay },
-  { id: 'gift-cards', label: 'Gift Cards', icon: Gift },
-  { id: 'social', label: 'Social Media', icon: UserCircle },
-  { id: 'premium', label: 'Premium', icon: Crown },
-] as const;
+// Icon mapping for categories (slugs to Lucide icons)
+const CATEGORY_ICONS: Record<string, LucideIcon> = {
+  all: LayoutGrid,
+  trending: TrendingUp,
+  'best-sellers': Award,
+  bestsellers: Award,
+  new: Sparkles,
+  newest: Sparkles,
+  premium: Crown,
+  steam: Gamepad2,
+  games: Gamepad2,
+  software: MonitorPlay,
+  'gift-cards': Gift,
+  giftcards: Gift,
+  social: UserCircle,
+  'social-media': UserCircle,
+  music: Music,
+  movies: Film,
+  education: BookOpen,
+  default: Package,
+};
 
-type CategoryId = (typeof CATEGORY_TABS)[number]['id'];
+// Helper to get icon for a category slug
+function getCategoryIcon(slug: string): LucideIcon {
+  const normalizedSlug = slug.toLowerCase().replace(/\s+/g, '-');
+  return CATEGORY_ICONS[normalizedSlug] ?? Package;
+}
+
+// Tab item interface for dynamic tabs
+interface TabItem {
+  id: string;
+  label: string;
+  icon: LucideIcon;
+  category?: string;
+  platform?: string;
+  sort?: string;
+  count?: number;
+}
 
 // Sort options
 const SORT_OPTIONS = [
   { value: 'popular', label: 'Most Popular' },
   { value: 'newest', label: 'Newest First' },
-  { value: 'price-asc', label: 'Price: Low to High' },
-  { value: 'price-desc', label: 'Price: High to Low' },
-  { value: 'discount', label: 'Biggest Discount' },
+  { value: 'price_asc', label: 'Price: Low to High' },
+  { value: 'price_desc', label: 'Price: High to Low' },
+  { value: 'rating', label: 'Highest Rated' },
 ] as const;
 
 function CatalogContent(): React.ReactElement {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [activeCategory, setActiveCategory] = useState<CategoryId>('all');
+  const [activeCategory, setActiveCategory] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<string>('popular');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
-  // Extract query params
+  // Fetch dynamic categories from API
+  const { data: categoriesData, isLoading: isCategoriesLoading } = useCatalogCategories();
+
+  // Build tabs from dynamic categories
+  const categoryTabs = useMemo<TabItem[]>(() => {
+    // Always include "All Products" as first tab
+    const tabs: TabItem[] = [
+      { id: 'all', label: 'All Products', icon: LayoutGrid },
+    ];
+
+    if (!categoriesData) {
+      // Return minimal fallback tabs while loading
+      return [
+        ...tabs,
+        { id: 'trending', label: 'Trending', icon: TrendingUp, sort: 'trending' },
+        { id: 'new', label: 'New', icon: Sparkles, sort: 'newest' },
+        { id: 'games', label: 'Games', icon: Gamepad2, category: 'games' },
+      ];
+    }
+
+    // Add featured/virtual categories from API
+    categoriesData.featured.forEach((featured: FeaturedCategoryDto) => {
+      tabs.push({
+        id: featured.id,
+        label: featured.label,
+        icon: getCategoryIcon(featured.id),
+        sort: featured.sort ?? undefined,
+      });
+    });
+
+    // Add real categories from API
+    categoriesData.categories.forEach((cat: CategoryDto) => {
+      // Use platform filter for platform-type categories, category filter for genres
+      const isPlatform = cat.type === 'platform';
+      tabs.push({
+        id: cat.id,
+        label: cat.label,
+        icon: getCategoryIcon(cat.id),
+        ...(isPlatform ? { platform: cat.label } : { category: cat.label }),
+        count: cat.count,
+      });
+    });
+
+    return tabs;
+  }, [categoriesData]);
+
+  // Sync activeCategory from URL params on mount and when URL changes
+  useEffect(() => {
+    const urlPlatform = searchParams.get('platform');
+    const urlCategory = searchParams.get('category');
+    
+    if (urlPlatform) {
+      // Find tab with matching platform
+      const platformTab = categoryTabs.find((tab) => tab.platform === urlPlatform);
+      if (platformTab) {
+        setActiveCategory(platformTab.id);
+        return;
+      }
+    }
+    
+    if (urlCategory) {
+      // Find tab with matching category
+      const categoryTab = categoryTabs.find((tab) => tab.category === urlCategory || tab.id === urlCategory);
+      if (categoryTab) {
+        setActiveCategory(categoryTab.id);
+        return;
+      }
+    }
+    
+    // Default to 'all' if no filter params
+    if (!urlPlatform && !urlCategory) {
+      setActiveCategory('all');
+    }
+  }, [searchParams, categoryTabs]);
+
+  // Get selected tab info
+  const selectedTab = categoryTabs.find((tab) => tab.id === activeCategory) ?? categoryTabs[0];
+
+  // Map sort values from featured tabs to SDK enum
+  const getSdkSort = (sort?: string): 'newest' | 'price_asc' | 'price_desc' | 'rating' | undefined => {
+    switch (sort) {
+      case 'trending':
+        return 'newest';
+      case 'sales':
+        return 'price_desc';
+      case 'newest':
+        return 'newest';
+      case 'discount':
+        return 'price_desc';
+      default:
+        return undefined;
+    }
+  };
+
+  // Extract query params - but use state for category/platform (tabs don't update URL)
   const pageParam = searchParams.get('page');
   const page = pageParam !== null && pageParam !== undefined ? Number(pageParam) : 1;
-  const category = searchParams.get('category') ?? undefined;
-  const platform = searchParams.get('platform') ?? undefined;
   const minPriceParam = searchParams.get('minPrice');
   const minPrice =
     minPriceParam !== null && minPriceParam !== undefined ? Number(minPriceParam) : undefined;
@@ -80,6 +202,10 @@ function CatalogContent(): React.ReactElement {
     maxPriceParam !== null && maxPriceParam !== undefined ? Number(maxPriceParam) : undefined;
   const search = searchParams.get('search') ?? undefined;
 
+  // Get category/platform from active tab state (not URL) - tabs don't change URL
+  const category = selectedTab?.category;
+  const platform = selectedTab?.platform;
+
   const {
     data,
     isLoading,
@@ -87,17 +213,20 @@ function CatalogContent(): React.ReactElement {
     refetch,
     isFetching,
   } = useQuery<ProductListResponseDto>({
-    queryKey: ['products', { page, category, platform, minPrice, maxPrice, search, activeCategory }],
+    // Include activeCategory for cache invalidation when tab changes
+    queryKey: ['products', { page, activeCategory, category, platform, minPrice, maxPrice, search }],
     queryFn: async () => {
       try {
+        // Category/platform come from active tab state, other params from URL
         const result = await catalogClient.findAll({
           page,
           limit: 12,
-          category: activeCategory !== 'all' ? activeCategory : category,
-          platform,
+          category: category,
+          platform: platform,
           minPrice,
           maxPrice,
           search,
+          sort: getSdkSort(selectedTab?.sort),
         });
         return result;
       } catch (error) {
@@ -135,17 +264,9 @@ function CatalogContent(): React.ReactElement {
     router.push(`/catalog?${params.toString()}`);
   };
 
-  // Handle category change
-  const handleCategoryChange = (categoryId: CategoryId): void => {
+  // Handle category change - just update state, don't change URL
+  const handleCategoryChange = (categoryId: string): void => {
     setActiveCategory(categoryId);
-    const params = new URLSearchParams(searchParams.toString());
-    if (categoryId !== 'all') {
-      params.set('category', categoryId);
-    } else {
-      params.delete('category');
-    }
-    params.set('page', '1');
-    router.push(`/catalog?${params.toString()}`);
   };
 
   // Handle pagination
@@ -232,30 +353,44 @@ function CatalogContent(): React.ReactElement {
               role="tablist"
               aria-label="Product categories"
             >
-              {CATEGORY_TABS.map((tab) => {
-                const Icon = tab.icon;
-                const isActive = activeCategory === tab.id;
+              {isCategoriesLoading ? (
+                // Loading skeleton
+                <>
+                  {[1, 2, 3, 4, 5].map((i) => (
+                    <Skeleton key={i} className="h-10 w-28 shrink-0 rounded-xl" />
+                  ))}
+                </>
+              ) : (
+                categoryTabs.map((tab) => {
+                  const Icon = tab.icon;
+                  const isActive = activeCategory === tab.id;
 
-                return (
-                  <button
-                    key={tab.id}
-                    role="tab"
-                    aria-selected={isActive}
-                    aria-controls={`tabpanel-${tab.id}`}
-                    onClick={() => handleCategoryChange(tab.id)}
-                    className={cn(
-                      'flex shrink-0 cursor-pointer items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium transition-all duration-300',
-                      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-glow/50 focus-visible:ring-offset-2 focus-visible:ring-offset-bg-primary',
-                      isActive
-                        ? 'border border-cyan-glow/30 bg-cyan-glow/15 text-cyan-glow shadow-[0_0_20px_rgba(0,217,255,0.2)]'
-                        : 'glass border border-border-subtle text-text-muted hover:border-cyan-glow/30 hover:bg-bg-tertiary/50 hover:text-text-primary'
-                    )}
-                  >
-                    <Icon className="h-4 w-4" />
-                    <span className="whitespace-nowrap">{tab.label}</span>
-                  </button>
-                );
-              })}
+                  return (
+                    <button
+                      key={tab.id}
+                      role="tab"
+                      aria-selected={isActive}
+                      aria-controls={`tabpanel-${tab.id}`}
+                      onClick={() => handleCategoryChange(tab.id)}
+                      className={cn(
+                        'flex shrink-0 cursor-pointer items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium transition-all duration-300',
+                        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-glow/50 focus-visible:ring-offset-2 focus-visible:ring-offset-bg-primary',
+                        isActive
+                          ? 'border border-cyan-glow/30 bg-cyan-glow/15 text-cyan-glow shadow-[0_0_20px_rgba(0,217,255,0.2)]'
+                          : 'glass border border-border-subtle text-text-muted hover:border-cyan-glow/30 hover:bg-bg-tertiary/50 hover:text-text-primary'
+                      )}
+                    >
+                      <Icon className="h-4 w-4" />
+                      <span className="whitespace-nowrap">{tab.label}</span>
+                      {tab.count !== undefined && tab.count > 0 && (
+                        <span className="ml-1 rounded-full bg-bg-tertiary px-1.5 py-0.5 text-xs text-text-muted">
+                          {tab.count}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })
+              )}
             </nav>
           </motion.div>
         </div>

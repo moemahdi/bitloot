@@ -110,7 +110,7 @@ describe('HMAC Verification Utility', () => {
         pay_amount: 0.0015,
         pay_currency: 'btc',
         price_amount: 49.99,
-        price_currency: 'usd',
+        price_currency: 'eur',
         created_at: '2025-11-08T10:00:00Z',
       });
 

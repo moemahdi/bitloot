@@ -134,7 +134,7 @@ export class NowPaymentsClient {
    * ```typescript
    * const invoice = await client.createInvoice({
    *   price_amount: 49.99,
-   *   price_currency: 'usd',
+   *   price_currency: 'eur',
    *   order_id: 'order-123',
    *   ipn_callback_url: 'https://example.com/api/payments/ipn',
    * });
@@ -287,7 +287,7 @@ export class NowPaymentsClient {
    * Gets the estimated rate to convert between two currencies.
    * Useful for showing real-time pricing to customers.
    *
-   * @param fromCurrency - Source currency code (e.g., 'usd')
+   * @param fromCurrency - Source currency code (e.g., 'eur')
    * @param toCurrency - Target currency code (e.g., 'btc')
    * @param amount - Amount in source currency
    * @returns Estimated rate and converted amount

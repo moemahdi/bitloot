@@ -12,7 +12,7 @@ describe('PricingService', () => {
    */
   describe('computePrice', () => {
     it('should apply margin percentage to cost', () => {
-      const costMinor = 1000; // $10.00
+      const costMinor = 1000; // €10.00
       const rule = {
         margin_pct: 8,
         floor_minor: null,
@@ -24,10 +24,10 @@ describe('PricingService', () => {
     });
 
     it('should enforce floor minimum', () => {
-      const costMinor = 100; // $1.00
+      const costMinor = 100; // €1.00
       const rule = {
         margin_pct: 8,
-        floor_minor: 500, // $5.00 minimum
+        floor_minor: 500, // €5.00 minimum
         cap_minor: null,
       };
       const price = Math.max(rule.floor_minor, Math.ceil(costMinor * (1 + rule.margin_pct / 100)));
@@ -35,11 +35,11 @@ describe('PricingService', () => {
     });
 
     it('should enforce cap maximum', () => {
-      const costMinor = 10000; // $100.00
+      const costMinor = 10000; // €100.00
       const rule = {
         margin_pct: 50,
         floor_minor: null,
-        cap_minor: 15000, // $150.00 maximum
+        cap_minor: 15000, // €150.00 maximum
       };
       // Computed: 10000 * 1.5 = 15000, capped at 15000
       const price = Math.min(rule.cap_minor, Math.ceil(costMinor * (1 + rule.margin_pct / 100)));
@@ -47,11 +47,11 @@ describe('PricingService', () => {
     });
 
     it('should apply floor and cap together', () => {
-      const costMinor = 2000; // $20.00
+      const costMinor = 2000; // €20.00
       const rule = {
         margin_pct: 10,
-        floor_minor: 1500, // $15.00
-        cap_minor: 3000, // $30.00
+        floor_minor: 1500, // €15.00
+        cap_minor: 3000, // €30.00
       };
       // Computed: 2000 * 1.1 = 2200, between floor(1500) and cap(3000)
       const price = Math.max(
@@ -96,7 +96,7 @@ describe('PricingService', () => {
     });
 
     it('should round up fractional cents', () => {
-      const costMinor = 333; // $3.33
+      const costMinor = 333; // €3.33
       const rule = {
         margin_pct: 8,
         floor_minor: null,

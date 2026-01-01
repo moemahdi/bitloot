@@ -44,7 +44,7 @@ export interface NowpaymentsIpnRequestDto {
      */
     paymentStatus: NowpaymentsIpnRequestDtoPaymentStatusEnum;
     /**
-     * Expected USD price amount
+     * Expected EUR price amount
      * @type {number}
      * @memberof NowpaymentsIpnRequestDto
      */

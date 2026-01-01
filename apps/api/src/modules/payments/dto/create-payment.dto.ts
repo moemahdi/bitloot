@@ -34,7 +34,7 @@ export class CreatePaymentDto {
 
   @ApiProperty({
     description: 'Price currency (fiat)',
-    example: 'usd',
+    example: 'eur',
   })
   @IsString()
   @IsNotEmpty()

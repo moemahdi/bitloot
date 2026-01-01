@@ -231,14 +231,14 @@ export class AdminOpsController {
             },
           },
         },
-        totalUSD: { type: 'string' },
+        totalEUR: { type: 'string' },
         lastSync: { type: 'string' },
       },
     },
   })
   getBalanceDetails(): {
     accounts: Array<{ currency: string; balance: string; pending: string; locked: string }>;
-    totalUSD: string;
+    totalEUR: string;
     lastSync: string;
   } {
     return this.adminOpsService.getBalanceDetails();

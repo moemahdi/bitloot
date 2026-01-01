@@ -32,7 +32,7 @@ const example = {
   "orderId": 550e8400-e29b-41d4-a716-446655440000,
   "paymentStatus": finished,
   "priceAmount": 100,
-  "priceCurrency": usd,
+  "priceCurrency": eur,
   "payAmount": 0.0025,
   "payCurrency": btc,
   "receivedAmount": 0.0025,

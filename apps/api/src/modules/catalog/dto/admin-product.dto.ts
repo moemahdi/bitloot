@@ -106,7 +106,7 @@ export class CreateProductDto {
   @IsNumberString()
   price!: string;
 
-  @ApiProperty({ description: 'Currency code (USD, EUR, GBP)', default: 'USD' })
+  @ApiProperty({ description: 'Currency code (EUR)', default: 'EUR' })
   @IsOptional()
   @IsString()
   @MaxLength(3)

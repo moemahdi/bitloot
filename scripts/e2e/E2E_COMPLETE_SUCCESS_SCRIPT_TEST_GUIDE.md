@@ -242,7 +242,7 @@ Expected output: **All 3 runs show "🎉 TEST RESULT: ALL STEPS PASSED ✅"**
 │   "orderId": "550e8400-e29b-...",  ← Use ORDER ID          │
 │   "email": "test@example.com",                              │
 │   "priceAmount": "9.99",                                    │
-│   "priceCurrency": "USD",                                   │
+│   "priceCurrency": "EUR",                                   │
 │   "payCurrency": "BTC"                                      │
 │ }                                                           │
 │ Response: {                                                 │
@@ -269,7 +269,7 @@ Expected output: **All 3 runs show "🎉 TEST RESULT: ALL STEPS PASSED ✅"**
 │   "payment_id": "4810547636",  ← Must match Invoice ID     │
 │   "payment_status": "finished",  ← Payment confirmed!       │
 │   "price_amount": "9.99",                                   │
-│   "price_currency": "USD",                                  │
+│   "price_currency": "EUR",                                  │
 │   "pay_amount": "0.00025",                                  │
 │   "pay_currency": "BTC",                                    │
 │   "order_id": "550e8400-e29b-...",  ← Our order ID         │
@@ -863,7 +863,7 @@ Creates NOWPayments invoice for crypto payment.
 //   "orderId": "[from step 2]",
 //   "email": "[test email]",
 //   "priceAmount": "9.99",
-//   "priceCurrency": "USD",
+//   "priceCurrency": "EUR",
 //   "payCurrency": "BTC"
 // }
 //

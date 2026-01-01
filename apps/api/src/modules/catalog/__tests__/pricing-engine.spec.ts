@@ -34,7 +34,7 @@ function computePrice(
 describe('Pricing Engine', () => {
   describe('computePrice', () => {
     it('should compute base price with margin percentage', () => {
-      // Cost: 1000 (10 USD), Margin: 20% = 1200 (12 USD)
+      // Cost: 1000 (10 EUR), Margin: 20% = 1200 (12 EUR)
       const result = computePrice(1000, 20);
       expect(result).toBe(1200);
     });
@@ -126,42 +126,42 @@ describe('Pricing Engine', () => {
   });
 
   describe('real-world scenarios', () => {
-    it('should compute price for $9.99 game with 20% margin', () => {
-      // Kinguin cost: 999 minor (9.99 USD)
-      // Margin: 20% = 1198.8 → ceil 1199 (11.99 USD)
+    it('should compute price for €9.99 game with 20% margin', () => {
+      // Kinguin cost: 999 minor (9.99 EUR)
+      // Margin: 20% = 1198.8 → ceil 1199 (11.99 EUR)
       const result = computePrice(999, 20);
       expect(result).toBe(1199);
     });
 
-    it('should compute price for $49.99 game with 8% margin and floor', () => {
-      // Cost: 4999 (49.99 USD), Margin: 8% = 5398.92 → 5399
-      // Floor: 2999 (29.99 USD) - has no effect
+    it('should compute price for €49.99 game with 8% margin and floor', () => {
+      // Cost: 4999 (49.99 EUR), Margin: 8% = 5398.92 → 5399
+      // Floor: 2999 (29.99 EUR) - has no effect
       const result = computePrice(4999, 8, 2999);
       expect(result).toBe(5399);
     });
 
     it('should compute price for expensive game with cap', () => {
-      // Cost: 50000 (500 USD), Margin: 50% = 75000 (750 USD)
-      // Cap: 5999 (59.99 USD) → 5999
+      // Cost: 50000 (500 EUR), Margin: 50% = 75000 (750 EUR)
+      // Cap: 5999 (59.99 EUR) → 5999
       const result = computePrice(50000, 50, undefined, 5999);
       expect(result).toBe(5999);
     });
 
     it('should apply bulk discount (negative margin)', () => {
-      // Cost: 10000 (100 USD), Margin: -5% (bulk) = 9500 (95 USD)
+      // Cost: 10000 (100 EUR), Margin: -5% (bulk) = 9500 (95 EUR)
       const result = computePrice(10000, -5);
       expect(result).toBe(9500);
     });
 
     it('should handle promotional override with floor', () => {
-      // Cost: 2000 (20 USD), Admin wants min price $9.99
-      // Margin: 0%, Floor: 999 (9.99 USD)
+      // Cost: 2000 (20 EUR), Admin wants min price €9.99
+      // Margin: 0%, Floor: 999 (9.99 EUR)
       const result = computePrice(2000, 0, 999);
       expect(result).toBe(2000); // Cost is above floor
     });
 
     it('should handle loss-leader pricing with floor', () => {
-      // Cost: 5000 (50 USD), Floor: 999 (9.99 USD min price)
+      // Cost: 5000 (50 EUR), Floor: 999 (9.99 EUR min price)
       const result = computePrice(5000, 0, 999);
       expect(result).toBe(5000);
     });
