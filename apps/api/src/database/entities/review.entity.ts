@@ -48,12 +48,12 @@ export class Review {
 
   // ============ RELATIONSHIPS ============
 
-  @Column('uuid')
-  orderId!: string;
+  @Column('uuid', { nullable: true })
+  orderId!: string | null;
 
-  @ManyToOne(() => Order, { onDelete: 'CASCADE' })
+  @ManyToOne(() => Order, { onDelete: 'CASCADE', nullable: true })
   @JoinColumn({ name: 'orderId' })
-  order!: Order;
+  order!: Order | null;
 
   @Column('uuid', { nullable: true })
   userId!: string | null;

@@ -38,6 +38,7 @@ import { StatCard } from '@/components/StatCard';
 import { LivePurchaseFeed, TrustSection } from '@/components/SocialProof';
 import { PageLoadingSkeleton } from '@/components/skeletons/LoadingSkeletons';
 import { cn } from '@/design-system/utils/utils';
+import { HomepageReviews } from '@/features/reviews';
 
 // Icon mapping for dynamic categories (from genre/category names)
 const CATEGORY_ICONS: Record<string, LucideIcon> = {
@@ -480,6 +481,31 @@ export default function HomePage(): React.ReactElement {
               <TrustSection />
             </motion.div>
           </div>
+        </div>
+      </section>
+
+      {/* Customer Reviews Section */}
+      <section
+        className="py-16 bg-bg-primary relative overflow-hidden"
+        aria-labelledby="reviews-heading"
+      >
+        {/* Decorative gradient orb */}
+        <div className="absolute top-0 left-0 w-[400px] h-[400px] bg-radial-purple opacity-10 blur-3xl pointer-events-none" />
+        <div className="absolute bottom-0 right-0 w-[300px] h-[300px] bg-radial-cyan opacity-10 blur-3xl pointer-events-none" />
+
+        <div className="container mx-auto px-4 relative z-10">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5 }}
+          >
+            <HomepageReviews
+              limit={6}
+              title="What Our Customers Say"
+              description="Join thousands of satisfied gamers who trust BitLoot for their gaming needs"
+            />
+          </motion.div>
         </div>
       </section>
 

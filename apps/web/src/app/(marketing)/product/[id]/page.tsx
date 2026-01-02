@@ -16,11 +16,12 @@ import {
   Share2, Heart, Check, Package, Play, Image as ImageIcon, 
   Cpu, HardDrive, AlertTriangle, Key, Clock, 
   RefreshCw, FileText, Wallet, Lock, BadgeCheck,
-  Volume2, Wifi, Settings, Gamepad2, Shield
+  Volume2, Wifi, Settings, Gamepad2, Shield, Star
 } from 'lucide-react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AddToCartButton } from '@/features/product/components/AddToCartButton';
+import { ProductReviews } from '@/features/reviews';
 import { useState, useCallback, useEffect } from 'react';
 
 // ========== Design Constants & Utilities ==========
@@ -837,6 +838,17 @@ export default function ProductPage(): React.ReactElement {
              {product.systemRequirements !== null && product.systemRequirements !== undefined && product.systemRequirements.length > 0 && (
               <SystemRequirementsSection requirements={product.systemRequirements} />
             )}
+
+            {/* Customer Reviews Section */}
+            <section className="space-y-4">
+              <h2 className="text-2xl font-bold text-white tracking-tight flex items-center gap-2">
+                <Star className="h-6 w-6 text-yellow-400" />
+                Customer Reviews
+              </h2>
+              <div className={`rounded-2xl ${GLASS_PANEL} p-6 lg:p-8`}>
+                <ProductReviews productId={product.id ?? ''} pageSize={5} />
+              </div>
+            </section>
 
             {/* Videos are now integrated into MediaGallery at the top */}
           </div>

@@ -31,6 +31,7 @@ import { AddKinguinProductFields1764300000000 } from './migrations/1764300000000
 import { MakePricingRuleProductIdNullable1764400000000 } from './migrations/1764400000000-MakePricingRuleProductIdNullable';
 import { CreateProductGroups1765000000000 } from './migrations/1765000000000-CreateProductGroups';
 import { CreateReviews1766000000000 } from './migrations/1766000000000-CreateReviews';
+import { MakeReviewOrderIdNullable1766000000001 } from './migrations/1766000000001-MakeReviewOrderIdNullable';
 
 dotenv.config({ path: path.resolve(__dirname, '../../../../.env') });
 
@@ -56,6 +57,7 @@ export default new DataSource({
     MakePricingRuleProductIdNullable1764400000000,
     CreateProductGroups1765000000000,
     CreateReviews1766000000000,
+    MakeReviewOrderIdNullable1766000000001,
   ],
   logging: true,
   synchronize: false,
