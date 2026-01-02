@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { HttpModule } from '@nestjs/axios';
+import { ThrottlerModule } from '@nestjs/throttler';
 
 import { HealthController } from './health/health.controller';
 import { Order } from './modules/orders/order.entity';
@@ -36,6 +37,22 @@ import { WatchlistModule } from './modules/watchlist/watchlist.module';
       envFilePath: 'C:/Users/beast/bitloot/.env',
     }),
     HttpModule,
+    // Rate limiting configuration
+    // Default: 100 requests per 60 seconds (configurable per-route)
+    ThrottlerModule.forRoot({
+      throttlers: [
+        {
+          name: 'default',
+          ttl: 60000, // 60 seconds window
+          limit: 100, // max 100 requests per window
+        },
+        {
+          name: 'strict',
+          ttl: 60000, // 60 seconds window
+          limit: 10,  // max 10 requests per window (for webhooks/IPN)
+        },
+      ],
+    }),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
       inject: [ConfigService],

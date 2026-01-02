@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, Logger } from '@nestjs/common';
 import { HttpModule } from '@nestjs/axios';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { BullModule } from '@nestjs/bullmq';
@@ -7,6 +7,7 @@ import { WebhookLog } from '../../database/entities/webhook-log.entity';
 import { KinguinService } from './kinguin.service';
 import { KinguinController } from './kinguin.controller';
 import { KinguinClient } from '../fulfillment/kinguin.client';
+import { MockKinguinClient } from '../fulfillment/kinguin.mock';
 import { OrdersModule } from '../orders/orders.module';
 import { MetricsModule } from '../metrics/metrics.module';
 
@@ -46,20 +47,28 @@ import { MetricsModule } from '../metrics/metrics.module';
     MetricsModule,
   ],
   providers: [
+    // Kinguin API client - uses real client when valid credentials exist
     {
       provide: KinguinClient,
       useFactory: () => {
-        const apiKey = process.env.KINGUIN_API_KEY;
-        const baseUrl = process.env.KINGUIN_BASE_URL;
+        const logger = new Logger('KinguinModule');
+        const apiKey = process.env.KINGUIN_API_KEY ?? '';
+        const baseUrl = process.env.KINGUIN_BASE_URL ?? 'https://gateway.kinguin.net/esa/api/v2';
 
-        if (apiKey === undefined || apiKey === '') {
-          throw new Error('KINGUIN_API_KEY environment variable is required');
+        // Check if credentials look like mock/test credentials
+        const isMockOrEmptyKey =
+          apiKey === '' ||
+          apiKey.includes('mock') ||
+          apiKey === 'dcdd1e2280b04bf60029b250cfbf4cec';
+
+        // Use mock client ONLY when credentials are missing/mock
+        // Real sandbox credentials should use real client even in dev mode
+        if (isMockOrEmptyKey) {
+          logger.log('🧪 Using MockKinguinClient (no valid credentials)');
+          return new MockKinguinClient() as unknown as KinguinClient;
         }
 
-        if (baseUrl === undefined || baseUrl === '') {
-          throw new Error('KINGUIN_BASE_URL environment variable is required');
-        }
-
+        logger.log(`✅ Using real KinguinClient (API key: ${apiKey.substring(0, 8)}...)`);
         return new KinguinClient(apiKey, baseUrl);
       },
     },

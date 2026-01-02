@@ -132,6 +132,8 @@ export class PaymentProcessorService extends WorkerHost {
         let npInvoice: NowPaymentsInvoice;
 
         try {
+          // Use /webhooks/nowpayments/ipn endpoint (has correct NOWPayments DTO format)
+          // This endpoint handles: payment_id, invoice_id, order_id, payment_status, etc.
           npInvoice = await this.npClient.createInvoice({
             price_amount: parseFloat(priceAmount),
             price_currency: priceCurrency,

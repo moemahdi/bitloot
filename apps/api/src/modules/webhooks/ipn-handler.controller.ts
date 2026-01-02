@@ -8,8 +8,12 @@ import {
   HttpStatus,
   Query,
   UseGuards,
+  UsePipes,
+  ValidationPipe,
+  Logger,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiHeader, ApiBearerAuth } from '@nestjs/swagger';
+import { ThrottlerGuard, Throttle, SkipThrottle } from '@nestjs/throttler';
 import { IpnHandlerService } from './ipn-handler.service';
 import { NowpaymentsIpnRequestDto, NowpaymentsIpnResponseDto } from './dto/nowpayments-ipn.dto';
 import { AdminGuard } from '../../common/guards/admin.guard';
@@ -23,6 +27,7 @@ import { AdminGuard } from '../../common/guards/admin.guard';
  * - Timing-safe comparison prevents timing attacks
  * - Idempotency is enforced via database unique constraints
  * - Always returns 200 OK to prevent NOWPayments retries (errors are logged but don't retry)
+ * - Rate limited: 30 requests per minute per IP to prevent abuse
  *
  * **Integration Flow:**
  * 1. NOWPayments sends IPN webhook to POST /webhooks/nowpayments/ipn
@@ -37,6 +42,7 @@ import { AdminGuard } from '../../common/guards/admin.guard';
  * @exports
  */
 @ApiTags('Webhooks')
+@UseGuards(ThrottlerGuard)
 @Controller('webhooks')
 export class IpnHandlerController {
   constructor(private readonly ipnHandlerService: IpnHandlerService) {}
@@ -90,15 +96,27 @@ export class IpnHandlerController {
    * @apiNote
    * This endpoint should be registered in NOWPayments dashboard as IPN webhook.
    * Webhook URL: https://bitloot.io/api/webhooks/nowpayments/ipn
+   *
+   * @ratelimit 30 requests per minute per IP
    */
   @Post('nowpayments/ipn')
+  @Throttle({ default: { ttl: 60000, limit: 30 } })
   @HttpCode(HttpStatus.OK)
+  // Bypass global forbidNonWhitelisted validation for IPN - HMAC signature is the real security
+  @UsePipes(
+    new ValidationPipe({
+      transform: true,
+      whitelist: false,
+      forbidNonWhitelisted: false,
+      transformOptions: { enableImplicitConversion: true },
+    }),
+  )
   @ApiOperation({
     summary: 'NOWPayments IPN Webhook Handler',
     description:
       'Receives instant payment notifications from NOWPayments. Verifies signature, ' +
       'deduplicates by payment ID, updates order status, and queues fulfillment if payment is complete. ' +
-      'Always returns 200 OK to prevent webhook retries.',
+      'Always returns 200 OK to prevent webhook retries. Rate limited: 30 requests/minute.',
   })
   @ApiHeader({
     name: 'X-NOWPAYMENTS-SIGNATURE',
@@ -122,9 +140,25 @@ export class IpnHandlerController {
   })
   async handleNowpaymentsIpn(
     @Body() payload: NowpaymentsIpnRequestDto,
-    @Headers('x-nowpayments-signature') signature: string,
+    @Headers('x-nowpayments-sig') signature: string | undefined,
+    @Headers() allHeaders: Record<string, string>,
   ): Promise<NowpaymentsIpnResponseDto> {
-    return this.ipnHandlerService.handleIpn(payload, signature);
+    // NOWPayments sends the signature as 'x-nowpayments-sig' (lowercase in HTTP/2)
+    // Try multiple possible header names for compatibility
+    const sig =
+      signature ??
+      allHeaders['x-nowpayments-sig'] ??
+      allHeaders['X-NOWPAYMENTS-SIG'] ??
+      allHeaders['x-nowpayments-signature'] ??
+      allHeaders['X-NOWPAYMENTS-SIGNATURE'] ??
+      '';
+
+    // Log headers for debugging (temporary)
+    const logger = new Logger('IpnController');
+    logger.log(`[IPN] Received headers: ${JSON.stringify(Object.keys(allHeaders))}`);
+    logger.log(`[IPN] Signature header value exists: ${!!sig}, length: ${sig?.length ?? 0}`);
+
+    return this.ipnHandlerService.handleIpn(payload, sig);
   }
 
   /**
@@ -142,6 +176,7 @@ export class IpnHandlerController {
    * Returns: Paginated list of webhook logs for audit trail
    */
   @Get('admin/list')
+  @SkipThrottle()
   @UseGuards(AdminGuard)
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({

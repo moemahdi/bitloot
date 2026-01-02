@@ -38,7 +38,6 @@ export interface IpnHandlerControllerAdminListWebhooksRequest {
 }
 
 export interface IpnHandlerControllerHandleNowpaymentsIpnRequest {
-    xNowpaymentsSignature: string;
     xNOWPAYMENTSSIGNATURE: string;
     nowpaymentsIpnRequestDto: NowpaymentsIpnRequestDto;
 }
@@ -158,17 +157,10 @@ export class WebhooksApi extends runtime.BaseAPI {
     }
 
     /**
-     * Receives instant payment notifications from NOWPayments. Verifies signature, deduplicates by payment ID, updates order status, and queues fulfillment if payment is complete. Always returns 200 OK to prevent webhook retries.
+     * Receives instant payment notifications from NOWPayments. Verifies signature, deduplicates by payment ID, updates order status, and queues fulfillment if payment is complete. Always returns 200 OK to prevent webhook retries. Rate limited: 30 requests/minute.
      * NOWPayments IPN Webhook Handler
      */
     async ipnHandlerControllerHandleNowpaymentsIpnRaw(requestParameters: IpnHandlerControllerHandleNowpaymentsIpnRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<NowpaymentsIpnResponseDto>> {
-        if (requestParameters['xNowpaymentsSignature'] == null) {
-            throw new runtime.RequiredError(
-                'xNowpaymentsSignature',
-                'Required parameter "xNowpaymentsSignature" was null or undefined when calling ipnHandlerControllerHandleNowpaymentsIpn().'
-            );
-        }
-
         if (requestParameters['xNOWPAYMENTSSIGNATURE'] == null) {
             throw new runtime.RequiredError(
                 'xNOWPAYMENTSSIGNATURE',
@@ -189,10 +181,6 @@ export class WebhooksApi extends runtime.BaseAPI {
 
         headerParameters['Content-Type'] = 'application/json';
 
-        if (requestParameters['xNowpaymentsSignature'] != null) {
-            headerParameters['x-nowpayments-signature'] = String(requestParameters['xNowpaymentsSignature']);
-        }
-
         if (requestParameters['xNOWPAYMENTSSIGNATURE'] != null) {
             headerParameters['X-NOWPAYMENTS-SIGNATURE'] = String(requestParameters['xNOWPAYMENTSSIGNATURE']);
         }
@@ -212,7 +200,7 @@ export class WebhooksApi extends runtime.BaseAPI {
     }
 
     /**
-     * Receives instant payment notifications from NOWPayments. Verifies signature, deduplicates by payment ID, updates order status, and queues fulfillment if payment is complete. Always returns 200 OK to prevent webhook retries.
+     * Receives instant payment notifications from NOWPayments. Verifies signature, deduplicates by payment ID, updates order status, and queues fulfillment if payment is complete. Always returns 200 OK to prevent webhook retries. Rate limited: 30 requests/minute.
      * NOWPayments IPN Webhook Handler
      */
     async ipnHandlerControllerHandleNowpaymentsIpn(requestParameters: IpnHandlerControllerHandleNowpaymentsIpnRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<NowpaymentsIpnResponseDto> {

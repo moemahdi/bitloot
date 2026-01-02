@@ -38,6 +38,12 @@ export interface RevealedKeyDto {
      */
     plainKey: string;
     /**
+     * Content type of the key data (text/plain, image/jpeg, image/png, image/gif)
+     * @type {string}
+     * @memberof RevealedKeyDto
+     */
+    contentType: string;
+    /**
      * Key revelation timestamp (ISO8601)
      * @type {Date}
      * @memberof RevealedKeyDto
@@ -70,6 +76,7 @@ export function instanceOfRevealedKeyDto(value: object): value is RevealedKeyDto
     if (!('orderId' in value) || value['orderId'] === undefined) return false;
     if (!('itemId' in value) || value['itemId'] === undefined) return false;
     if (!('plainKey' in value) || value['plainKey'] === undefined) return false;
+    if (!('contentType' in value) || value['contentType'] === undefined) return false;
     if (!('revealedAt' in value) || value['revealedAt'] === undefined) return false;
     if (!('expiresAt' in value) || value['expiresAt'] === undefined) return false;
     if (!('downloadCount' in value) || value['downloadCount'] === undefined) return false;
@@ -90,6 +97,7 @@ export function RevealedKeyDtoFromJSONTyped(json: any, ignoreDiscriminator: bool
         'orderId': json['orderId'],
         'itemId': json['itemId'],
         'plainKey': json['plainKey'],
+        'contentType': json['contentType'],
         'revealedAt': (new Date(json['revealedAt'])),
         'expiresAt': (new Date(json['expiresAt'])),
         'downloadCount': json['downloadCount'],
@@ -111,6 +119,7 @@ export function RevealedKeyDtoToJSONTyped(value?: RevealedKeyDto | null, ignoreD
         'orderId': value['orderId'],
         'itemId': value['itemId'],
         'plainKey': value['plainKey'],
+        'contentType': value['contentType'],
         'revealedAt': value['revealedAt'].toISOString(),
         'expiresAt': value['expiresAt'].toISOString(),
         'downloadCount': value['downloadCount'],

@@ -5,4 +5,4 @@
  * Used for request/response validation and Swagger documentation.
  */
 
-export { WebhookPayloadDto } from './webhook.dto';
+export type { WebhookPayloadDto } from './webhook.dto';

@@ -9,6 +9,7 @@ Name | Type
 `orderId` | string
 `itemId` | string
 `plainKey` | string
+`contentType` | string
 `revealedAt` | Date
 `expiresAt` | Date
 `downloadCount` | number
@@ -24,6 +25,7 @@ const example = {
   "orderId": 550e8400-e29b-41d4-a716-446655440000,
   "itemId": 4f5d7890-1234-5678-9abc-def012345678,
   "plainKey": KEY-ABC123XYZ789,
+  "contentType": text/plain,
   "revealedAt": 2025-11-08T14:00Z,
   "expiresAt": 2025-11-08T14:15Z,
   "downloadCount": 1,

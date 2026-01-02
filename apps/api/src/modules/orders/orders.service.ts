@@ -24,17 +24,23 @@ export class OrdersService {
       throw new NotFoundException(`Product not found: ${dto.productId}`);
     }
 
+    // Determine source type from product (kinguin or custom)
+    const sourceType = product.sourceType ?? 'custom';
+    this.logger.log(`Creating order for product ${dto.productId} with sourceType: ${sourceType}`);
+
     const order = this.ordersRepo.create({
       email: dto.email,
       status: 'created',
       totalCrypto: product.price,
+      sourceType: sourceType,
     });
     const savedOrder = await this.ordersRepo.save(order);
 
-    // Create order item
+    // Create order item with product's source type
     const item = this.itemsRepo.create({
       order: savedOrder,
       productId: dto.productId,
+      productSourceType: sourceType,
       signedUrl: null,
     });
     const savedItem = await this.itemsRepo.save(item);
@@ -222,10 +228,17 @@ export class OrdersService {
    * Mark order as fulfilled (keys delivered)
    * Transition: paid → fulfilled (terminal)
    * Called after keys are generated and stored in R2
+   * Idempotent: If already fulfilled, returns success without error
    */
   async markFulfilled(orderId: string): Promise<Order> {
     const order = await this.ordersRepo.findOne({ where: { id: orderId }, relations: ['items'] });
     if (order === null) throw new NotFoundException(`Order ${orderId} not found`);
+
+    // Idempotent: already fulfilled is success
+    if (order.status === 'fulfilled') {
+      this.logger.debug(`Order ${orderId} is already fulfilled (idempotent success)`);
+      return order;
+    }
 
     if (order.status !== 'paid') {
       throw new BadRequestException(

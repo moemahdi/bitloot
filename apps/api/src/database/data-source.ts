@@ -34,6 +34,8 @@ import { CreateProductGroups1765000000000 } from './migrations/1765000000000-Cre
 import { CreateReviews1766000000000 } from './migrations/1766000000000-CreateReviews';
 import { MakeReviewOrderIdNullable1766000000001 } from './migrations/1766000000001-MakeReviewOrderIdNullable';
 import { CreateWatchlist1767000000000 } from './migrations/1767000000000-CreateWatchlist';
+import { UpdateWebhookIdempotencyConstraint1735827000000 } from './migrations/1735827000000-UpdateWebhookIdempotencyConstraint';
+import { AddContentTypeToKeys1735840000000 } from './migrations/1735840000000-AddContentTypeToKeys';
 
 dotenv.config({ path: path.resolve(__dirname, '../../../../.env') });
 
@@ -61,6 +63,8 @@ export default new DataSource({
     CreateReviews1766000000000,
     MakeReviewOrderIdNullable1766000000001,
     CreateWatchlist1767000000000,
+    UpdateWebhookIdempotencyConstraint1735827000000,
+    AddContentTypeToKeys1735840000000,
   ],
   logging: true,
   synchronize: false,

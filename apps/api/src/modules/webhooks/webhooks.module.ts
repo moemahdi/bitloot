@@ -7,6 +7,7 @@ import { Order } from '../orders/order.entity';
 import { MetricsModule } from '../metrics/metrics.module';
 import { EmailsModule } from '../emails/emails.module';
 import { ResendBounceController } from './resend-bounce.controller';
+import { FulfillmentQueue } from '../../jobs/queues';
 
 /**
  * Webhooks Module
@@ -26,6 +27,9 @@ import { ResendBounceController } from './resend-bounce.controller';
  * - IpnHandlerController: REST endpoint for NOWPayments webhooks
  * - ResendBounceController: REST endpoint for Resend bounce/complaint events
  *
+ * **Queue Integration:**
+ * - FulfillmentQueue: Triggers order fulfillment after payment confirmation
+ *
  * **Security Features:**
  * - HMAC-SHA512 signature verification
  * - Idempotency via unique constraints on WebhookLog
@@ -34,7 +38,12 @@ import { ResendBounceController } from './resend-bounce.controller';
  * - Bounce event handling with suppression list updates
  */
 @Module({
-  imports: [TypeOrmModule.forFeature([WebhookLog, Order]), MetricsModule, EmailsModule],
+  imports: [
+    TypeOrmModule.forFeature([WebhookLog, Order]),
+    MetricsModule,
+    EmailsModule,
+    FulfillmentQueue, // Enable IpnHandlerService to queue fulfillment jobs
+  ],
   controllers: [IpnHandlerController, ResendBounceController],
   providers: [IpnHandlerService],
   exports: [IpnHandlerService],

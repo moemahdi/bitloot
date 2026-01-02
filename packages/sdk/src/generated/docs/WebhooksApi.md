@@ -100,11 +100,11 @@ example().catch(console.error);
 
 ## ipnHandlerControllerHandleNowpaymentsIpn
 
-> NowpaymentsIpnResponseDto ipnHandlerControllerHandleNowpaymentsIpn(xNowpaymentsSignature, xNOWPAYMENTSSIGNATURE, nowpaymentsIpnRequestDto)
+> NowpaymentsIpnResponseDto ipnHandlerControllerHandleNowpaymentsIpn(xNOWPAYMENTSSIGNATURE, nowpaymentsIpnRequestDto)
 
 NOWPayments IPN Webhook Handler
 
-Receives instant payment notifications from NOWPayments. Verifies signature, deduplicates by payment ID, updates order status, and queues fulfillment if payment is complete. Always returns 200 OK to prevent webhook retries.
+Receives instant payment notifications from NOWPayments. Verifies signature, deduplicates by payment ID, updates order status, and queues fulfillment if payment is complete. Always returns 200 OK to prevent webhook retries. Rate limited: 30 requests/minute.
 
 ### Example
 
@@ -120,8 +120,6 @@ async function example() {
   const api = new WebhooksApi();
 
   const body = {
-    // string
-    xNowpaymentsSignature: xNowpaymentsSignature_example,
     // string | HMAC-SHA512 signature of request body (hex string)
     xNOWPAYMENTSSIGNATURE: xNOWPAYMENTSSIGNATURE_example,
     // NowpaymentsIpnRequestDto
@@ -145,7 +143,6 @@ example().catch(console.error);
 
 | Name | Type | Description  | Notes |
 |------------- | ------------- | ------------- | -------------|
-| **xNowpaymentsSignature** | `string` |  | [Defaults to `undefined`] |
 | **xNOWPAYMENTSSIGNATURE** | `string` | HMAC-SHA512 signature of request body (hex string) | [Defaults to `undefined`] |
 | **nowpaymentsIpnRequestDto** | [NowpaymentsIpnRequestDto](NowpaymentsIpnRequestDto.md) |  | |
 

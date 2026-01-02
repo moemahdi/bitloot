@@ -1,6 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
 import * as crypto from 'crypto';
 import {
   NowpaymentsIpnRequestDto,
@@ -10,6 +12,7 @@ import {
 import { WebhookLog } from '../../database/entities/webhook-log.entity';
 import { Order } from '../orders/order.entity';
 import { MetricsService } from '../metrics/metrics.service';
+import { QUEUE_NAMES } from '../../jobs/queues';
 
 /**
  * IPN Handler Service
@@ -38,6 +41,8 @@ export class IpnHandlerService {
     @InjectRepository(Order)
     private readonly orderRepo: Repository<Order>,
     private readonly metrics: MetricsService,
+    @InjectQueue(QUEUE_NAMES.FULFILLMENT)
+    private readonly fulfillmentQueue: Queue,
   ) {}
 
   /**
@@ -92,7 +97,7 @@ export class IpnHandlerService {
    * **Returns 200 OK regardless of outcome** to prevent NOWPayments retries
    *
    * @param payload - Webhook payload from NOWPayments
-   * @param signature - HMAC-SHA512 signature from X-NOWPAYMENTS-SIGNATURE header
+   * @param signature - HMAC-SHA512 signature from x-nowpayments-sig header
    * @returns Always 200 OK response
    */
   async handleIpn(
@@ -113,7 +118,8 @@ export class IpnHandlerService {
 
     try {
       // 2. Verify signature (timing-safe HMAC comparison)
-      const isValidSignature = this.verifySignature(JSON.stringify(payload), signature);
+      // NOWPayments requires the payload to be sorted alphabetically by key before computing HMAC
+      const isValidSignature = this.verifySignature(payload, signature);
       if (!isValidSignature) {
         // LOG INVALID SIGNATURE
         this.logStructured('warn', 'handleIpn:verify_failed', 'invalid_signature', {
@@ -143,7 +149,7 @@ export class IpnHandlerService {
       });
 
       // 3. Check idempotency (already processed?)
-      const existing = await this.checkIdempotency(payload.payment_id);
+      const existing = await this.checkIdempotency(String(payload.payment_id));
       if (existing?.processed === true) {
         // Track duplicate webhook metric
         this.metrics.incrementDuplicateWebhook('nowpayments', 'ipn');
@@ -267,10 +273,10 @@ export class IpnHandlerService {
    * @example
    * ```typescript
    * const payloadStr = JSON.stringify(payload);
-   * const isValid = this.verifySignature(payloadStr, signatureFromHeader);
+   * const isValid = this.verifySignature(payloadObject, signatureFromHeader);
    * ```
    */
-  private verifySignature(payload: string, signature: string): boolean {
+  private verifySignature(payload: Record<string, unknown>, signature: string): boolean {
     const secret = process.env.NOWPAYMENTS_IPN_SECRET;
     if (secret === undefined || secret === '') {
       this.logger.error('[IPN] NOWPAYMENTS_IPN_SECRET not configured');
@@ -278,9 +284,34 @@ export class IpnHandlerService {
       return false;
     }
 
+    // Check if signature is missing or empty
+    if (!signature || signature.length === 0) {
+      this.logger.error('[IPN] No signature provided in request headers');
+      this.metrics.incrementInvalidHmac('nowpayments');
+      return false;
+    }
+
     try {
-      // Calculate HMAC-SHA512 of payload
-      const hmac = crypto.createHmac('sha512', secret).update(payload).digest('hex');
+      // NOWPayments requires payload to be sorted alphabetically by keys (recursively)
+      // before computing HMAC - per their documentation
+      const sortedPayload = this.sortObject(payload);
+      const payloadString = JSON.stringify(sortedPayload);
+      
+      // Calculate HMAC-SHA512 of sorted payload
+      const hmac = crypto.createHmac('sha512', secret).update(payloadString).digest('hex');
+      
+      // Debug logging (temporary)
+      this.logger.debug(`[IPN] Sorted payload for verification: ${payloadString.substring(0, 100)}...`);
+
+      // Log for debugging (temporary)
+      this.logger.log(`[IPN] Expected signature length: ${hmac.length}, received: ${signature.length}`);
+      
+      // If lengths differ, signatures cannot match (timingSafeEqual will throw)
+      if (hmac.length !== signature.length) {
+        this.logger.warn(`[IPN] Signature length mismatch: expected ${hmac.length}, got ${signature.length}`);
+        this.metrics.incrementInvalidHmac('nowpayments');
+        return false;
+      }
 
       // Timing-safe comparison (prevents timing attacks)
       const isValid = crypto.timingSafeEqual(Buffer.from(hmac), Buffer.from(signature));
@@ -298,6 +329,25 @@ export class IpnHandlerService {
       this.metrics.incrementInvalidHmac('nowpayments');
       return false;
     }
+  }
+
+  /**
+   * Recursively sort object keys alphabetically.
+   * Required by NOWPayments for HMAC signature verification.
+   *
+   * @param obj - Object to sort
+   * @returns Sorted object with all nested objects also sorted
+   */
+  private sortObject(obj: Record<string, unknown>): Record<string, unknown> {
+    return Object.keys(obj)
+      .sort()
+      .reduce((result: Record<string, unknown>, key: string) => {
+        const value = obj[key];
+        result[key] = value && typeof value === 'object' && !Array.isArray(value)
+          ? this.sortObject(value as Record<string, unknown>)
+          : value;
+        return result;
+      }, {});
   }
 
   /**
@@ -350,13 +400,13 @@ export class IpnHandlerService {
   private async processPaymentStatus(
     payload: NowpaymentsIpnRequestDto,
   ): Promise<WebhookProcessingResult> {
-    // 1. Find order by invoice_id (stored in payment record)
+    // 1. Find order by order_id (the actual order UUID)
     const order = await this.orderRepo.findOne({
-      where: { id: payload.invoice_id },
+      where: { id: payload.order_id },
     });
 
     if (order === null) {
-      throw new Error(`Order not found: ${payload.invoice_id}`);
+      throw new Error(`Order not found: ${payload.order_id}`);
     }
 
     const previousStatus = order.status;
@@ -374,11 +424,18 @@ export class IpnHandlerService {
         // Payment complete - trigger fulfillment
         order.status = 'paid';
 
-        // Queue fulfillment (TODO: inject FulfillmentService)
-        // await this.fulfillmentQueue.add('fulfillOrder', {
-        //   orderId: order.id,
-        //   paymentId: payload.payment_id,
-        // });
+        // Queue fulfillment job to process order delivery
+        await this.fulfillmentQueue.add(
+          'reserve',
+          {
+            orderId: order.id,
+            paymentId: payload.payment_id,
+          },
+          {
+            attempts: 5,
+            backoff: { type: 'exponential', delay: 1000 },
+          },
+        );
         fulfillmentTriggered = true;
 
         this.logger.log(`[IPN] Payment finished for order ${order.id}, fulfillment queued`);
@@ -396,10 +453,11 @@ export class IpnHandlerService {
         break;
 
       default: {
-        const _exhaustiveCheck: never = payload.payment_status;
+        // Unknown status - log and continue (don't fail)
+        this.logger.warn(`[IPN] Unknown payment status: ${payload.payment_status}`);
         return {
           success: false,
-          message: `Unknown payment status: ${String(_exhaustiveCheck)}`,
+          message: `Unknown payment status: ${payload.payment_status}`,
           error: `Unknown payment status`,
         };
       }
@@ -439,7 +497,7 @@ export class IpnHandlerService {
     signature: string,
   ): Promise<WebhookLog> {
     const webhookLog = new WebhookLog();
-    webhookLog.externalId = payload.payment_id;
+    webhookLog.externalId = String(payload.payment_id);
     webhookLog.webhookType = 'nowpayments_ipn';
     webhookLog.payload = payload as unknown as Record<string, unknown>;
     webhookLog.signature = signature; // Note: In production, never log full signature

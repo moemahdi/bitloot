@@ -1,5 +1,4 @@
 import { Injectable, Logger, NotFoundException, BadRequestException, InternalServerErrorException } from '@nestjs/common';
-import * as crypto from 'crypto';
 import { KinguinClient, CreateOrderRequest, CreateOrderResponse, OrderStatusResponse } from '../fulfillment/kinguin.client';
 
 /**
@@ -203,22 +202,18 @@ export class KinguinService {
   }
 
   /**
-   * Validate Kinguin webhook authenticity
+   * Validate Kinguin webhook authenticity using eCommerce API pattern
    *
-   * Verifies webhook signature using HMAC to ensure it came from Kinguin
-   * Uses HMAC-SHA512 with shared secret in env KINGUIN_WEBHOOK_SECRET
+   * The eCommerce API uses simple X-Event-Secret header comparison,
+   * NOT HMAC signature verification like the Sales Manager API.
    *
-   * @param _payload Raw webhook payload
-   * @param _signature HMAC signature from X-KINGUIN-SIGNATURE header
-   * @returns true if signature is valid, false otherwise
+   * @param eventSecret X-Event-Secret header value from webhook request
+   * @returns true if secret matches, false otherwise
    *
-   * @example
-   * const isValid = this.kinguin.validateWebhook(payload, signature);
-   * if (!isValid) throw new UnauthorizedException('Invalid webhook signature');
-   *
+   * @see https://api.kinguin.net/doc/webhooks
    * @see KinguinController.handleWebhook for usage
    */
-  validateWebhook(_payload: string, _signature: string): boolean {
+  validateWebhookSecret(eventSecret: string): boolean {
     try {
       const secret = process.env.KINGUIN_WEBHOOK_SECRET ?? '';
       if (secret.length === 0) {
@@ -226,29 +221,18 @@ export class KinguinService {
         return false;
       }
 
-      if (typeof _signature !== 'string' || _signature.length === 0) {
-        this.logger.warn('[KINGUIN] ❌ Missing or invalid webhook signature');
+      if (typeof eventSecret !== 'string' || eventSecret.length === 0) {
+        this.logger.warn('[KINGUIN] ❌ Missing or invalid X-Event-Secret header');
         return false;
       }
 
-      const computed = crypto.createHmac('sha512', secret).update(_payload).digest('hex');
+      // eCommerce API uses simple string comparison for X-Event-Secret
+      const valid = eventSecret === secret;
 
-      this.logger.debug(`[KINGUIN] Signature verification:
-        Secret: ${secret.substring(0, 20)}...
-        Payload: ${_payload.substring(0, 50)}...
-        Computed: ${computed.substring(0, 32)}...
-        Provided: ${_signature.substring(0, 32)}...`);
-
-      // timingSafeEqual throws if buffer lengths differ; guard lengths first
-      if (computed.length !== _signature.length) {
-        this.logger.warn('[KINGUIN] ❌ Signature length mismatch');
-        return false;
-      }
-
-      const valid = crypto.timingSafeEqual(Buffer.from(computed), Buffer.from(_signature));
       if (!valid) {
-        this.logger.warn('[KINGUIN] ❌ Webhook signature verification failed');
+        this.logger.warn('[KINGUIN] ❌ X-Event-Secret verification failed');
       }
+
       return valid;
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);

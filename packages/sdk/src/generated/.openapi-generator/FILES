@@ -111,7 +111,6 @@ docs/IpnRequestDto.md
 docs/IpnResponseDto.md
 docs/KinguinApi.md
 docs/KinguinControllerGetStatus200Response.md
-docs/KinguinControllerHandleWebhook200Response.md
 docs/KinguinImportResponseDto.md
 docs/KinguinProductResultDto.md
 docs/KinguinScreenshotDto.md
@@ -120,7 +119,10 @@ docs/KinguinSystemRequirementDto.md
 docs/KinguinVideoDto.md
 docs/MetricsApi.md
 docs/ModerateReviewDto.md
+docs/NowPaymentsFeeDto.md
 docs/NowpaymentsIpnRequestDto.md
+docs/NowpaymentsIpnRequestDtoInvoiceId.md
+docs/NowpaymentsIpnRequestDtoPaymentId.md
 docs/NowpaymentsIpnResponseDto.md
 docs/OrderItemResponseDto.md
 docs/OrderResponseDto.md
@@ -172,7 +174,6 @@ docs/WatchlistApi.md
 docs/WatchlistControllerGetWatchlistCount200Response.md
 docs/WatchlistItemResponseDto.md
 docs/WatchlistProductDto.md
-docs/WebhookPayloadDto.md
 docs/WebhooksApi.md
 index.ts
 models/AddToWatchlistDto.ts
@@ -246,7 +247,6 @@ models/IpnHandlerControllerAdminListWebhooks200ResponseDataInner.ts
 models/IpnRequestDto.ts
 models/IpnResponseDto.ts
 models/KinguinControllerGetStatus200Response.ts
-models/KinguinControllerHandleWebhook200Response.ts
 models/KinguinImportResponseDto.ts
 models/KinguinProductResultDto.ts
 models/KinguinScreenshotDto.ts
@@ -254,7 +254,10 @@ models/KinguinSearchResponseDto.ts
 models/KinguinSystemRequirementDto.ts
 models/KinguinVideoDto.ts
 models/ModerateReviewDto.ts
+models/NowPaymentsFeeDto.ts
 models/NowpaymentsIpnRequestDto.ts
+models/NowpaymentsIpnRequestDtoInvoiceId.ts
+models/NowpaymentsIpnRequestDtoPaymentId.ts
 models/NowpaymentsIpnResponseDto.ts
 models/OrderItemResponseDto.ts
 models/OrderResponseDto.ts
@@ -301,6 +304,5 @@ models/VideoDto.ts
 models/WatchlistControllerGetWatchlistCount200Response.ts
 models/WatchlistItemResponseDto.ts
 models/WatchlistProductDto.ts
-models/WebhookPayloadDto.ts
 models/index.ts
 runtime.ts

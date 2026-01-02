@@ -1,13 +1,12 @@
 // @ts-nocheck
 // eslint.config.mjs
 // Root ESLint Configuration for BitLoot Monorepo
-// Coordinates workspace-specific configs for API and Web
+// Uses workspace-specific linting via package.json scripts instead of merging configs
 
-import apiConfig from './apps/api/eslint.config.mjs';
-import webConfig from './apps/web/eslint.config.mjs';
+import tseslint from 'typescript-eslint';
 
-export default [
-  // Global ignores - ignore at root level
+export default tseslint.config(
+  // Global ignores - applied to all files
   {
     ignores: [
       '**/node_modules',
@@ -38,12 +37,17 @@ export default [
       '**/test-setup.ts', // Exclude test setup from linting
       '**/vitest.config.ts', // Exclude vitest config from linting
       'apps/api/check-migrations.ts', // Standalone script not in tsconfig
+      // Build outputs
+      'build/**',
+      '*.min.js',
+      // Next.js
+      'out/**',
+      // Storybook
+      '.storybook/**',
+      'storybook-static/**',
+      // Cypress
+      'cypress/**',
+      'cypress.config.ts',
     ],
   },
-
-  // API workspace configs (spread the array)
-  ...apiConfig,
-
-  // Web workspace configs (spread the array)
-  ...webConfig,
-];
+);

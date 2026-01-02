@@ -141,30 +141,27 @@ export class DeliveryService {
    * Used internally to fetch encrypted key before decryption.
    *
    * @param orderId Order ID
-   * @returns Encrypted key object {encryptedKey, iv, authTag}
+   * @returns Encrypted key object {encryptedKey, iv, authTag, contentType}
    * @throws Error if key not found in R2
    */
-  getEncryptedKeyFromR2(orderId: string): EncryptedKeyData {
+  async getEncryptedKeyFromR2(orderId: string): Promise<EncryptedKeyData> {
     try {
       this.logger.debug(`[DELIVERY] Fetching encrypted key from R2: ${orderId}`);
 
-      // In MVP, mock the R2 retrieval
-      // In production, call: const buffer = await this.r2StorageClient.getKey(orderId);
-      // Then parse JSON and extract { encryptedKey, iv, authTag }
+      // Fetch encrypted key data from R2
+      const keyData = await this.r2StorageClient.getEncryptedKey(orderId);
 
-      // Mock data with correct base64 lengths:
-      // - IV: 12 bytes when decoded → "bW9jay1pdi0xMjM0"
-      // - Auth tag: 16 bytes when decoded → "bW9jay1hdXRoLXRhZy0xNg=="
-      // - Encrypted key: 32 bytes when decoded → "bW9jay1lbmNyeXB0ZWQta2V5LTMybW9jay1lbmNyeXA="
-      const mockEncryptedKey: EncryptedKeyData = {
-        encryptedKey: 'bW9jay1lbmNyeXB0ZWQta2V5LTMybW9jay1lbmNyeXA=',
-        iv: 'bW9jay1pdi0xMjM0',
-        authTag: 'bW9jay1hdXRoLXRhZy0xNg==',
-        algorithm: 'aes-256-gcm',
+      // Map field names: R2 JSON uses 'encryptionIv', but EncryptedKeyData uses 'iv'
+      const result: EncryptedKeyData = {
+        encryptedKey: keyData.encryptedKey,
+        iv: keyData.encryptionIv,
+        authTag: keyData.authTag,
+        algorithm: keyData.algorithm,
+        contentType: keyData.contentType,
       };
 
-      this.logger.debug(`[DELIVERY] Encrypted key retrieved from R2`);
-      return mockEncryptedKey;
+      this.logger.debug(`[DELIVERY] Encrypted key retrieved from R2 (type: ${result.contentType})`);
+      return result;
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       this.logger.error(`[DELIVERY] Failed to retrieve encrypted key: ${message}`);
@@ -229,7 +226,7 @@ export class DeliveryService {
       }
 
       // Step 3-4: Retrieve encrypted key and decryption key
-      const encryptedKeyData = this.getEncryptedKeyFromR2(orderId);
+      const encryptedKeyData = await this.getEncryptedKeyFromR2(orderId);
 
       // Fetch Key entity to get the decryption key
       const keyEntity = await this.keyRepo.findOne({ where: { orderItemId: itemId } });
@@ -269,13 +266,14 @@ export class DeliveryService {
       const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
 
       this.logger.log(
-        `✅ [DELIVERY] Key revealed for order ${orderId}, item ${itemId} from ${accessInfo.ipAddress}`,
+        `✅ [DELIVERY] Key revealed for order ${orderId}, item ${itemId} from ${accessInfo.ipAddress} (type: ${encryptedKeyData.contentType})`,
       );
 
       return {
         orderId,
         itemId,
         plainKey,
+        contentType: encryptedKeyData.contentType,
         revealedAt: new Date(),
         expiresAt,
         downloadCount: 1,
@@ -459,6 +457,14 @@ export interface EncryptedKeyData {
   iv: string; // base64
   authTag: string; // base64
   algorithm: string; // 'aes-256-gcm'
+  /**
+   * Content type of the key data.
+   * - 'text/plain' - Standard text key (default)
+   * - 'image/jpeg' - JPEG image (serial contains base64 image)
+   * - 'image/png' - PNG image (serial contains base64 image)
+   * - 'image/gif' - GIF image (serial contains base64 image)
+   */
+  contentType: string;
 }
 
 /**
@@ -468,6 +474,14 @@ export interface RevealedKeyResult {
   orderId: string;
   itemId: string;
   plainKey: string;
+  /**
+   * Content type of the key data.
+   * - 'text/plain' - Standard text key (default)
+   * - 'image/jpeg' - JPEG image (plainKey contains base64 image)
+   * - 'image/png' - PNG image (plainKey contains base64 image)
+   * - 'image/gif' - GIF image (plainKey contains base64 image)
+   */
+  contentType: string;
   revealedAt: Date;
   expiresAt: Date;
   downloadCount: number;

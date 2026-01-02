@@ -59,6 +59,16 @@ export class Key {
   encryptionKey?: string;
 
   /**
+   * Content type of the key data
+   * - text/plain: Standard text key/serial (default)
+   * - image/jpeg: JPEG image (base64 encoded)
+   * - image/png: PNG image (base64 encoded)
+   * - image/gif: GIF image (base64 encoded)
+   */
+  @Column('text', { nullable: true, default: 'text/plain' })
+  contentType?: string;
+
+  /**
    * Timestamp when customer revealed/viewed the key
    * Used for audit trail and access tracking
    * null = key not yet viewed

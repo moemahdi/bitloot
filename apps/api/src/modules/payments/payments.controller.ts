@@ -14,6 +14,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags, ApiBearerAuth } from '@nestjs/swagger';
+import { ThrottlerGuard, Throttle } from '@nestjs/throttler';
 import { type Request } from 'express';
 import {
   CreatePaymentDto,
@@ -27,6 +28,7 @@ import { AdminGuard } from '../../common/guards/admin.guard';
 
 @ApiTags('payments')
 @Controller('payments')
+@UseGuards(ThrottlerGuard) // Apply rate limiting to all endpoints
 export class PaymentsController {
   private readonly logger = new Logger(PaymentsController.name);
 
@@ -46,6 +48,9 @@ export class PaymentsController {
 
   /**
    * IPN webhook endpoint for NOWPayments payment status updates
+   *
+   * Rate limited: 30 requests per minute from any single IP
+   * (NOWPayments typically sends 1-3 callbacks per payment)
    *
    * Workflow:
    * 1) Extract HMAC signature from x-nowpayments-signature header
@@ -69,6 +74,7 @@ export class PaymentsController {
    */
   @Post('ipn')
   @HttpCode(200)
+  @Throttle({ default: { ttl: 60000, limit: 30 } }) // 30 requests per minute for webhooks
   @ApiOperation({
     summary: 'NOWPayments IPN webhook',
     description:

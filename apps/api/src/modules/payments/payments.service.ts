@@ -88,7 +88,7 @@ export class PaymentsService {
         pay_currency: dto.payCurrency ?? 'btc',
         order_id: dto.orderId,
         order_description: `BitLoot Order #${dto.orderId.substring(0, 8)}`,
-        ipn_callback_url: `${process.env.WEBHOOK_BASE_URL ?? 'http://localhost:4000'}/payments/ipn`,
+        ipn_callback_url: `${process.env.WEBHOOK_BASE_URL ?? 'http://localhost:4000'}/webhooks/nowpayments/ipn`,
         success_url: `${process.env.FRONTEND_URL ?? 'http://localhost:3000'}/orders/${dto.orderId}/success`,
         cancel_url: `${process.env.FRONTEND_URL ?? 'http://localhost:3000'}/orders/${dto.orderId}/cancel`,
       });

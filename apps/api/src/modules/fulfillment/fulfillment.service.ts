@@ -81,6 +81,23 @@ export class FulfillmentService {
       throw new BadRequestException(`Order not found: ${orderId}`);
     }
 
+    // Idempotency check: if already fulfilled, return success (handles duplicate jobs)
+    if (order.status === 'fulfilled') {
+      this.logger.debug(`[FULFILLMENT] Order ${orderId} is already fulfilled (idempotent success)`);
+      return {
+        orderId: order.id,
+        items: order.items.map((item) => ({
+          itemId: item.id,
+          productId: item.productId,
+          signedUrl: item.signedUrl ?? '',
+          encryptionKeySize: 256, // Already stored encrypted key
+          status: 'fulfilled' as const,
+        })),
+        status: 'fulfilled',
+        fulfilledAt: order.updatedAt,
+      };
+    }
+
     if (order.items === null || order.items === undefined || order.items.length === 0) {
       throw new BadRequestException(`Order has no items: ${orderId}`);
     }
@@ -362,7 +379,7 @@ export class FulfillmentService {
    * Start Kinguin reservation for an order (Phase 3: startReservation)
    * Saves reservation ID on the order for tracking
    * 
-   * Looks up the kinguinOfferId from the Product entity for each item
+   * Uses Kinguin v2 API with productId (offerId) and price from product.cost
    */
   async startReservation(orderId: string): Promise<{ reservationId: string; status: string }> {
     const order = await this.orderRepo.findOne({ where: { id: orderId }, relations: ['items'] });
@@ -373,7 +390,7 @@ export class FulfillmentService {
       throw new BadRequestException(`Order has no items: ${orderId}`);
     }
 
-    // Look up the product to get the kinguinOfferId
+    // Look up the product to get the kinguinOfferId and cost
     const firstItem = order.items[0];
     if (firstItem === undefined) {
       throw new BadRequestException(`Order has no items: ${orderId}`);
@@ -384,29 +401,51 @@ export class FulfillmentService {
       throw new BadRequestException(`Product not found: ${firstItem.productId}`);
     }
     
-    // Verify this is a Kinguin product with valid offer ID
+    // Verify this is a Kinguin product with valid product ID
     if (product.sourceType !== 'kinguin') {
       throw new BadRequestException(`Product ${product.id} is not a Kinguin product`);
     }
     
+    // Get the Kinguin productId (required for v2 API)
+    const kinguinProductId = product.kinguinProductId;
+    if (kinguinProductId === null || kinguinProductId === undefined || kinguinProductId === '') {
+      throw new BadRequestException(`Product ${product.id} has no Kinguin product ID configured`);
+    }
+    
+    // Get the Kinguin offerId (optional, for specifying exact offer)
     const offerId = product.kinguinOfferId;
-    if (offerId === null || offerId === undefined || offerId === '') {
-      throw new BadRequestException(`Product ${product.id} has no Kinguin offer ID configured`);
+    
+    // Get the cost price for the API call
+    const cost = parseFloat(product.cost);
+    if (isNaN(cost) || cost <= 0) {
+      throw new BadRequestException(`Product ${product.id} has invalid cost: ${product.cost}`);
     }
     
     const quantity = order.items.length;
 
     this.logger.debug(
-      `[FULFILLMENT] Starting reservation: order=${orderId}, offerId=${offerId}, qty=${quantity}`,
+      `[FULFILLMENT] Starting reservation: order=${orderId}, productId=${kinguinProductId}, offerId=${offerId ?? 'none'}, cost=${cost}, qty=${quantity}`,
     );
-    const reservation = await this.kinguinClient.createOrder({ offerId, quantity });
+    
+    // Use placeOrderV2 with correct field mapping:
+    // - productId: The Kinguin Product ID (e.g., "5c9b5eab2539a4e8f1721448")
+    // - offerId: Optional specific offer ID (e.g., "680e12531e0ffc008bd66f2e")
+    const kinguinOrder = await this.kinguinClient.placeOrderV2({
+      products: [{
+        productId: kinguinProductId, // Kinguin Product ID
+        qty: quantity,
+        price: cost,                 // Use the actual product cost from Kinguin
+        ...(offerId !== null && offerId !== undefined && offerId !== '' ? { offerId } : {}), // Optional: specific offer
+      }],
+      orderExternalId: orderId, // Link to our order for tracking
+    });
 
-    await this.ordersService.setReservationId(orderId, reservation.id);
+    await this.ordersService.setReservationId(orderId, kinguinOrder.orderId);
 
     this.logger.log(
-      `[FULFILLMENT] Reservation created: order=${orderId}, reservation=${reservation.id}`,
+      `[FULFILLMENT] Reservation created: order=${orderId}, reservation=${kinguinOrder.orderId}`,
     );
-    return { reservationId: reservation.id, status: reservation.status };
+    return { reservationId: kinguinOrder.orderId, status: kinguinOrder.status };
   }
 
   /**
@@ -431,6 +470,7 @@ export class FulfillmentService {
     }
 
     const plainKey = status.key;
+    const keyType = status.keyType ?? 'text/plain';
     const encryptionKey = generateEncryptionKey();
     // Removed: this.deliveryService.storeEncryptionKey(order.id, encryptionKey);
 
@@ -441,6 +481,7 @@ export class FulfillmentService {
       encryptedKey: encrypted.encryptedKey,
       encryptionIv: encrypted.iv,
       authTag: encrypted.authTag,
+      contentType: keyType,
     });
 
     const signedUrl = await this.r2StorageClient.generateSignedUrl({
@@ -455,6 +496,7 @@ export class FulfillmentService {
         orderItemId: item.id,
         storageRef,
         encryptionKey: encryptionKey.toString('base64'),
+        contentType: keyType,
       });
       await this.keyRepo.save(keyEntity);
     }

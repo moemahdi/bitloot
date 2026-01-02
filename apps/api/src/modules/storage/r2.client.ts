@@ -103,6 +103,7 @@ export class R2StorageClient {
    * @param params.encryptedKey Encrypted key data (base64 encoded)
    * @param params.encryptionIv Encryption IV (base64 encoded)
    * @param params.authTag Authentication tag for GCM (base64 encoded)
+   * @param params.contentType Content type of the key (text/plain, image/jpeg, etc.)
    * @param params.metadata Optional metadata (order email, timestamp, etc.)
    *
    * @returns S3 ETag (version identifier)
@@ -115,6 +116,7 @@ export class R2StorageClient {
    *   encryptedKey: 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==',
    *   encryptionIv: 'NzY1ZDQ4ZDEtYTFiYS00ZWY0LWJkYzctYTI0ZjYyMWJhYjEy',
    *   authTag: 'dGVzdC1hdXRoLXRhZw==',
+   *   contentType: 'text/plain',
    *   metadata: { email: 'user@example.com', timestamp: Date.now() },
    * });
    */
@@ -123,6 +125,7 @@ export class R2StorageClient {
     encryptedKey: string;
     encryptionIv: string;
     authTag: string;
+    contentType?: string;
     metadata?: Record<string, unknown>;
   }): Promise<string> {
     // Validate orderId
@@ -136,6 +139,7 @@ export class R2StorageClient {
       encryptionIv: params.encryptionIv,
       authTag: params.authTag,
       algorithm: 'aes-256-gcm',
+      contentType: params.contentType ?? 'text/plain',
       uploadedAt: new Date().toISOString(),
       ...params.metadata,
     };
@@ -532,6 +536,83 @@ export class R2StorageClient {
       const message = this.extractErrorMessage(error);
       this.logger.warn(`⚠️ R2 health check failed: ${message}`);
       return false;
+    }
+  }
+
+  /**
+   * Retrieve encrypted key data from R2
+   *
+   * Fetches the JSON file containing the encrypted key and parses it.
+   * Used by the delivery service to decrypt keys on-demand.
+   *
+   * @param orderId Order ID to fetch key for
+   * @returns Parsed encrypted key data object including content type
+   *
+   * @throws Error if key not found or fetch fails
+   *
+   * @example
+   * const keyData = await client.getEncryptedKey('550e8400-e29b-41d4-a716-446655440000');
+   * // { encryptedKey: '...', encryptionIv: '...', authTag: '...', algorithm: 'aes-256-gcm', contentType: 'text/plain' }
+   */
+  async getEncryptedKey(orderId: string): Promise<{
+    encryptedKey: string;
+    encryptionIv: string;
+    authTag: string;
+    algorithm: string;
+    contentType: string;
+  }> {
+    if (orderId === '' || orderId === null || orderId === undefined) {
+      throw new Error('Invalid orderId: must be a non-empty string');
+    }
+
+    const objectKey = `orders/${orderId}/key.json`;
+
+    try {
+      this.logger.debug(`Fetching encrypted key from R2: ${objectKey}`);
+
+      const command = new GetObjectCommand({
+        Bucket: this.bucketName,
+        Key: objectKey,
+      });
+
+      const response = await this.s3.send(command);
+
+      if (response.Body === null || response.Body === undefined) {
+        throw new Error(`Key file is empty: ${objectKey}`);
+      }
+
+      // Convert stream to string
+      const bodyContents = await response.Body.transformToString();
+      const keyData = JSON.parse(bodyContents) as {
+        encryptedKey?: string;
+        encryptionIv?: string;
+        authTag?: string;
+        algorithm?: string;
+        contentType?: string;
+      };
+
+      // Validate required fields
+      if (
+        keyData.encryptedKey === undefined ||
+        keyData.encryptionIv === undefined ||
+        keyData.authTag === undefined
+      ) {
+        throw new Error(`Invalid key data structure in ${objectKey}`);
+      }
+
+      this.logger.log(`✅ Encrypted key fetched from R2: ${objectKey}`);
+
+      return {
+        encryptedKey: keyData.encryptedKey,
+        encryptionIv: keyData.encryptionIv,
+        authTag: keyData.authTag,
+        algorithm: keyData.algorithm ?? 'aes-256-gcm',
+        contentType: keyData.contentType ?? 'text/plain',
+      };
+    } catch (error) {
+      const message = this.extractErrorMessage(error);
+      this.logger.error(`❌ Failed to fetch encrypted key from R2: ${message}`);
+      throw new Error(`R2 key fetch failed: ${message}`);
     }
   }
 

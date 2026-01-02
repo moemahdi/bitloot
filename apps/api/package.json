@@ -10,6 +10,8 @@
     "build": "nest build",
     "test": "vitest run",
     "test:watch": "vitest",
+    "lint": "eslint . --ext .ts",
+    "lint:fix": "eslint . --ext .ts --fix",
     "migration:run": "typeorm migration:run -d ./dist/database/data-source.js",
     "migration:revert": "typeorm migration:revert -d ./dist/database/data-source.js"
   },
@@ -22,6 +24,7 @@
     "@nestjs/passport": "^11.0.5",
     "@nestjs/platform-express": "^10.4.1",
     "@nestjs/swagger": "^7.4.0",
+    "@nestjs/throttler": "^6.5.0",
     "@nestjs/typeorm": "^10.0.2",
     "@nestjs/websockets": "^10.4.20",
     "bullmq": "^5.14.1",

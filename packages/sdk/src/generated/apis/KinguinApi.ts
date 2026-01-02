@@ -16,25 +16,19 @@
 import * as runtime from '../runtime';
 import type {
   KinguinControllerGetStatus200Response,
-  KinguinControllerHandleWebhook200Response,
-  WebhookPayloadDto,
 } from '../models/index';
 import {
     KinguinControllerGetStatus200ResponseFromJSON,
     KinguinControllerGetStatus200ResponseToJSON,
-    KinguinControllerHandleWebhook200ResponseFromJSON,
-    KinguinControllerHandleWebhook200ResponseToJSON,
-    WebhookPayloadDtoFromJSON,
-    WebhookPayloadDtoToJSON,
 } from '../models/index';
 
 export interface KinguinControllerGetStatusRequest {
-    reservationId: string;
+    orderId: string;
 }
 
 export interface KinguinControllerHandleWebhookRequest {
-    xKINGUINSIGNATURE: string;
-    webhookPayloadDto: WebhookPayloadDto;
+    xEventSecret: string;
+    xEventName: string;
 }
 
 /**
@@ -43,13 +37,13 @@ export interface KinguinControllerHandleWebhookRequest {
 export class KinguinApi extends runtime.BaseAPI {
 
     /**
-     * Query Kinguin order delivery status
+     * Query Kinguin order status
      */
     async kinguinControllerGetStatusRaw(requestParameters: KinguinControllerGetStatusRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<KinguinControllerGetStatus200Response>> {
-        if (requestParameters['reservationId'] == null) {
+        if (requestParameters['orderId'] == null) {
             throw new runtime.RequiredError(
-                'reservationId',
-                'Required parameter "reservationId" was null or undefined when calling kinguinControllerGetStatus().'
+                'orderId',
+                'Required parameter "orderId" was null or undefined when calling kinguinControllerGetStatus().'
             );
         }
 
@@ -58,8 +52,8 @@ export class KinguinApi extends runtime.BaseAPI {
         const headerParameters: runtime.HTTPHeaders = {};
 
 
-        let urlPath = `/kinguin/status/{reservationId}`;
-        urlPath = urlPath.replace(`{${"reservationId"}}`, encodeURIComponent(String(requestParameters['reservationId'])));
+        let urlPath = `/kinguin/status/{orderId}`;
+        urlPath = urlPath.replace(`{${"orderId"}}`, encodeURIComponent(String(requestParameters['orderId'])));
 
         const response = await this.request({
             path: urlPath,
@@ -72,7 +66,7 @@ export class KinguinApi extends runtime.BaseAPI {
     }
 
     /**
-     * Query Kinguin order delivery status
+     * Query Kinguin order status
      */
     async kinguinControllerGetStatus(requestParameters: KinguinControllerGetStatusRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<KinguinControllerGetStatus200Response> {
         const response = await this.kinguinControllerGetStatusRaw(requestParameters, initOverrides);
@@ -80,20 +74,20 @@ export class KinguinApi extends runtime.BaseAPI {
     }
 
     /**
-     * Webhook receiver for Kinguin order deliveries
+     * Webhook receiver for Kinguin eCommerce API events
      */
-    async kinguinControllerHandleWebhookRaw(requestParameters: KinguinControllerHandleWebhookRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<KinguinControllerHandleWebhook200Response>> {
-        if (requestParameters['xKINGUINSIGNATURE'] == null) {
+    async kinguinControllerHandleWebhookRaw(requestParameters: KinguinControllerHandleWebhookRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<void>> {
+        if (requestParameters['xEventSecret'] == null) {
             throw new runtime.RequiredError(
-                'xKINGUINSIGNATURE',
-                'Required parameter "xKINGUINSIGNATURE" was null or undefined when calling kinguinControllerHandleWebhook().'
+                'xEventSecret',
+                'Required parameter "xEventSecret" was null or undefined when calling kinguinControllerHandleWebhook().'
             );
         }
 
-        if (requestParameters['webhookPayloadDto'] == null) {
+        if (requestParameters['xEventName'] == null) {
             throw new runtime.RequiredError(
-                'webhookPayloadDto',
-                'Required parameter "webhookPayloadDto" was null or undefined when calling kinguinControllerHandleWebhook().'
+                'xEventName',
+                'Required parameter "xEventName" was null or undefined when calling kinguinControllerHandleWebhook().'
             );
         }
 
@@ -101,10 +95,12 @@ export class KinguinApi extends runtime.BaseAPI {
 
         const headerParameters: runtime.HTTPHeaders = {};
 
-        headerParameters['Content-Type'] = 'application/json';
+        if (requestParameters['xEventSecret'] != null) {
+            headerParameters['X-Event-Secret'] = String(requestParameters['xEventSecret']);
+        }
 
-        if (requestParameters['xKINGUINSIGNATURE'] != null) {
-            headerParameters['X-KINGUIN-SIGNATURE'] = String(requestParameters['xKINGUINSIGNATURE']);
+        if (requestParameters['xEventName'] != null) {
+            headerParameters['X-Event-Name'] = String(requestParameters['xEventName']);
         }
 
 
@@ -115,18 +111,16 @@ export class KinguinApi extends runtime.BaseAPI {
             method: 'POST',
             headers: headerParameters,
             query: queryParameters,
-            body: WebhookPayloadDtoToJSON(requestParameters['webhookPayloadDto']),
         }, initOverrides);
 
-        return new runtime.JSONApiResponse(response, (jsonValue) => KinguinControllerHandleWebhook200ResponseFromJSON(jsonValue));
+        return new runtime.VoidApiResponse(response);
     }
 
     /**
-     * Webhook receiver for Kinguin order deliveries
+     * Webhook receiver for Kinguin eCommerce API events
      */
-    async kinguinControllerHandleWebhook(requestParameters: KinguinControllerHandleWebhookRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<KinguinControllerHandleWebhook200Response> {
-        const response = await this.kinguinControllerHandleWebhookRaw(requestParameters, initOverrides);
-        return await response.value();
+    async kinguinControllerHandleWebhook(requestParameters: KinguinControllerHandleWebhookRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<void> {
+        await this.kinguinControllerHandleWebhookRaw(requestParameters, initOverrides);
     }
 
 }

@@ -1,8 +1,8 @@
-import { Processor, WorkerHost } from '@nestjs/bullmq';
+import { Processor, WorkerHost, InjectQueue } from '@nestjs/bullmq';
 import { Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import type { Job } from 'bullmq';
+import type { Job, Queue } from 'bullmq';
 import { FulfillmentService } from '../modules/fulfillment/fulfillment.service';
 import { OrdersService } from '../modules/orders/orders.service';
 import { FulfillmentGateway } from '../modules/fulfillment/fulfillment.gateway';
@@ -51,6 +51,8 @@ export class FulfillmentProcessor extends WorkerHost {
     private readonly fulfillmentGateway: FulfillmentGateway,
     @InjectRepository(WebhookLog)
     private readonly webhookLogsRepo: Repository<WebhookLog>,
+    @InjectQueue(QUEUE_NAMES.FULFILLMENT)
+    private readonly fulfillmentQueue: Queue,
   ) {
     super();
   }
@@ -134,7 +136,27 @@ export class FulfillmentProcessor extends WorkerHost {
           fulfillmentStatus: `reservation:${result.status}`,
         });
 
-        // Do not mark fulfilled here; wait for webhook to finalize
+        // Auto-complete ONLY for mock orders (no Kinguin webhook for mock client)
+        // Real Kinguin orders will receive a webhook when ready
+        const isMockOrder = result.reservationId.startsWith('mock-order-');
+
+        if (isMockOrder) {
+          this.logger.log(
+            `[Fulfillment] 🧪 Mock order detected: auto-queuing fetch-keys for ${result.reservationId}`,
+          );
+          // Queue fetch-keys job with small delay to simulate webhook delivery
+          await this.fulfillmentQueue.add(
+            'fetch-keys',
+            { kinguinOrderId: result.reservationId, orderId },
+            { delay: 500, attempts: 3, backoff: { type: 'exponential', delay: 1000 } },
+          );
+        } else {
+          this.logger.log(
+            `[Fulfillment] 📡 Real Kinguin order created: ${result.reservationId} - waiting for Kinguin webhook`,
+          );
+        }
+
+        // Do not mark fulfilled here; wait for webhook/fetch-keys to finalize
         return {
           orderId,
           status: 'reserved',

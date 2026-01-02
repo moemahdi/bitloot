@@ -1,5 +1,4 @@
-import { Controller, Post, Get, Body, Param, Headers, HttpCode, Logger, UnauthorizedException, NotFoundException, UsePipes, ValidationPipe, Req } from '@nestjs/common';
-import { Request } from 'express';
+import { Controller, Post, Get, Body, Param, Headers, HttpCode, Logger, UnauthorizedException, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -10,30 +9,46 @@ import { ApiTags, ApiOperation, ApiResponse, ApiHeader } from '@nestjs/swagger';
 import { KinguinService } from './kinguin.service';
 import { OrdersService } from '../orders/orders.service';
 import { OrderStatusResponse } from '../fulfillment/kinguin.client';
-import { WebhookPayloadDto } from './dto/webhook.dto';
+import { OrderStatusWebhookDto, ProductUpdateWebhookDto, KinguinWebhookEventName } from './dto/webhook.dto';
 import { MetricsService } from '../metrics/metrics.service';
 
 /**
  * Kinguin Controller
  *
  * Provides HTTP endpoints for:
- * - Webhook receiver: POST /kinguin/webhooks (from Kinguin order deliveries)
- * - Status polling: GET /kinguin/status/:reservationId (check delivery progress)
+ * - Webhook receiver: POST /kinguin/webhooks (from Kinguin eCommerce API)
+ * - Status polling: GET /kinguin/status/:orderId (check delivery progress)
  *
  * @example
- * // Webhook (called by Kinguin when order is ready):
+ * // Order Status Webhook (called by Kinguin when order status changes):
  * POST /kinguin/webhooks
- * X-KINGUIN-SIGNATURE: <hmac>
+ * X-Event-Name: order.status
+ * X-Event-Secret: <your-secret>
  * {
- *   "reservationId": "res-123",
- *   "status": "ready",
- *   "key": "XXXXX-XXXXX-..."
+ *   "orderId": "PHS84FJAG5U",
+ *   "orderExternalId": "AL2FEEHOO2OHF",
+ *   "status": "completed",
+ *   "updatedAt": "2020-10-16T11:24:08.025+00:00"
+ * }
+ *
+ * // Product Update Webhook (called when product stock changes):
+ * POST /kinguin/webhooks
+ * X-Event-Name: product.update
+ * X-Event-Secret: <your-secret>
+ * {
+ *   "kinguinId": 1949,
+ *   "productId": "5c9b5f6b2539a4e8f172916a",
+ *   "qty": 845,
+ *   "textQty": 845,
+ *   "cheapestOfferId": ["611222acff9ca40001f0b020"],
+ *   "updatedAt": "2020-10-16T11:24:08.015+00:00"
  * }
  *
  * // Status polling (called by frontend to check progress):
- * GET /kinguin/status/res-123
- * Response: { id: "res-123", status: "ready", key: "XXXXX-..." }
+ * GET /kinguin/status/PHS84FJAG5U
+ * Response: { id: "PHS84FJAG5U", status: "completed", ... }
  *
+ * @see https://api.kinguin.net/doc/webhooks
  * @see KinguinService for business logic
  * @see KinguinClient for API communication
  */
@@ -85,257 +100,316 @@ export class KinguinController {
   }
 
   /**
-   * Webhook endpoint - Receive order delivery notifications from Kinguin
+   * Webhook endpoint - Receive notifications from Kinguin eCommerce API
    *
-   * Called by Kinguin when:
-   * - Order is ready (status=ready, includes key)
-   * - Order fails (status=failed, includes error)
-   * - Order is cancelled (status=cancelled)
+   * Called by Kinguin for:
+   * - order.status: Order status changes (processing → completed, canceled, refunded)
+   * - product.update: Product stock/availability updates
    *
-   * Validates webhook signature and processes idempotently (same reservation can appear multiple times)
+   * Validates X-Event-Secret header and processes idempotently.
    *
-   * @param payload Webhook payload from Kinguin (reservationId, status, key, error, etc.)
-   * @param signature HMAC signature from X-KINGUIN-SIGNATURE header for verification
-   * @returns { ok: true } to acknowledge receipt and prevent Kinguin retries
+   * @param eventName Event type from X-Event-Name header
+   * @param eventSecret Secret from X-Event-Secret header for verification
+   * @param body Raw webhook body (validated based on event type)
    *
-   * @throws UnauthorizedException (401) - Invalid or missing signature
-   * @throws BadRequestException (400) - Invalid payload or reservation ID
+   * @returns 204 No Content to acknowledge receipt
    *
-   * @example
-   * POST /kinguin/webhooks
-   * X-KINGUIN-SIGNATURE: abc123...
-   * {
-   *   "reservationId": "res-123",
-   *   "status": "ready",
-   *   "key": "XXXXX-XXXXX-XXXXX"
-   * }
+   * @throws UnauthorizedException (401) - Invalid or missing X-Event-Secret
+   * @throws BadRequestException (400) - Invalid payload or unknown event type
    *
-   * Response (200):
-   * { "ok": true }
-   *
-   * Security: Signature verification ensures webhook came from Kinguin
+   * @see https://api.kinguin.net/doc/webhooks
    */
   @Post('webhooks')
-  @HttpCode(200)
-  @ApiOperation({ summary: 'Webhook receiver for Kinguin order deliveries' })
+  @HttpCode(204)
+  @ApiOperation({ summary: 'Webhook receiver for Kinguin eCommerce API events' })
   @ApiHeader({
-    name: 'X-KINGUIN-SIGNATURE',
-    description: 'HMAC signature for webhook verification',
+    name: 'X-Event-Name',
+    description: 'Webhook event type (order.status or product.update)',
     required: true,
   })
-  @ApiResponse({ status: 200, schema: { properties: { ok: { type: 'boolean' } } } })
-  @ApiResponse({ status: 401, description: 'Invalid webhook signature' })
-  @UsePipes(new ValidationPipe({ whitelist: true }))
+  @ApiHeader({
+    name: 'X-Event-Secret',
+    description: 'Secret key for webhook verification',
+    required: true,
+  })
+  @ApiResponse({ status: 204, description: 'Webhook acknowledged' })
+  @ApiResponse({ status: 401, description: 'Invalid X-Event-Secret' })
+  @ApiResponse({ status: 400, description: 'Invalid event type or payload' })
   async handleWebhook(
-    @Body() payload: WebhookPayloadDto,
-    @Headers('x-kinguin-signature') signature: string | undefined,
-    @Req() req: Request,
-  ): Promise<{ ok: boolean }> {
+    @Headers('x-event-name') eventName: string | undefined,
+    @Headers('x-event-secret') eventSecret: string | undefined,
+    @Body() body: Record<string, unknown>,
+  ): Promise<void> {
     // LOG START
     this.logStructured('info', 'handleWebhook:start', 'received', {
-      reservationId: payload.reservationId,
-      status: payload.status,
-      hasKey: typeof payload.key === 'string' && payload.key.length > 0,
+      eventName,
+      hasSecret: typeof eventSecret === 'string' && eventSecret.length > 0,
     });
 
-    // 1. Validate signature header exists
-    if (signature === undefined || typeof signature !== 'string' || signature.length === 0) {
-      // LOG MISSING SIGNATURE
-      this.logStructured('warn', 'handleWebhook:missing_header', 'no_signature', {
-        reservationId: payload.reservationId,
+    // 1. Validate X-Event-Name header
+    const validEvents = ['order.status', 'order.complete', 'product.update'];
+    if (typeof eventName !== 'string' || !validEvents.includes(eventName)) {
+      this.logStructured('warn', 'handleWebhook:invalid_event', 'bad_request', {
+        eventName,
       });
-
-      this.logger.warn('[KINGUIN_WEBHOOK] ❌ Missing X-KINGUIN-SIGNATURE header');
-      throw new UnauthorizedException('Missing X-KINGUIN-SIGNATURE header');
+      this.logger.warn(`[KINGUIN_WEBHOOK] ❌ Invalid or missing X-Event-Name: ${eventName}`);
+      throw new BadRequestException(`Invalid X-Event-Name: ${eventName}`);
     }
 
-    // 2. Get raw body from middleware (captured before JSON parsing and DTO transformation)
-    // This ensures HMAC is verified against the exact payload sent by Kinguin
-    const rawPayload = (req as unknown as Record<string, unknown>).rawBody as string | undefined;
-
-    if (rawPayload === undefined || rawPayload === '' || rawPayload.length === 0) {
-      // LOG INVALID PAYLOAD
-      this.logStructured('warn', 'handleWebhook:invalid_body', 'missing_raw_body', {
-        reservationId: payload.reservationId,
+    // 2. Validate X-Event-Secret header
+    if (typeof eventSecret !== 'string' || eventSecret.length === 0) {
+      this.logStructured('warn', 'handleWebhook:missing_secret', 'unauthorized', {
+        eventName,
       });
-
-      this.logger.warn('[KINGUIN_WEBHOOK] ❌ Invalid webhook payload (rawBody missing/empty)');
-      this.logger.debug(`   rawBody value: ${String(rawPayload)}`);
-      this.logger.debug(`   req.body: ${JSON.stringify(req.body)}`);
-      throw new UnauthorizedException('Invalid webhook payload');
+      this.logger.warn('[KINGUIN_WEBHOOK] ❌ Missing X-Event-Secret header');
+      throw new UnauthorizedException('Missing X-Event-Secret header');
     }
 
-    this.logger.debug(`[KINGUIN_WEBHOOK] DEBUG: rawPayload=${rawPayload.substring(0, 80)}..., sig=${signature.substring(0, 32)}...`);
-
-    // 3. Verify HMAC signature using raw payload (matches what Kinguin signed)
-    const isValid = this.kinguinService.validateWebhook(rawPayload, signature);
-
+    // 3. Verify X-Event-Secret matches configured secret
+    const isValid = this.kinguinService.validateWebhookSecret(eventSecret);
     if (!isValid) {
-      // LOG INVALID SIGNATURE
-      this.logStructured('warn', 'handleWebhook:verify_failed', 'invalid_signature', {
-        reservationId: payload.reservationId,
+      this.logStructured('warn', 'handleWebhook:verify_failed', 'unauthorized', {
+        eventName,
       });
-
-      this.logger.warn('[KINGUIN_WEBHOOK] ❌ Invalid HMAC signature');
-      throw new UnauthorizedException('Invalid webhook signature');
+      this.metrics.incrementInvalidHmac('kinguin');
+      this.logger.warn('[KINGUIN_WEBHOOK] ❌ Invalid X-Event-Secret');
+      throw new UnauthorizedException('Invalid X-Event-Secret');
     }
 
-    // LOG SIGNATURE VERIFIED
-    this.logStructured('info', 'handleWebhook:signature_verified', 'valid', {
-      reservationId: payload.reservationId,
+    // LOG SECRET VERIFIED
+    this.logStructured('info', 'handleWebhook:secret_verified', 'valid', {
+      eventName,
     });
 
-    // 4. Extract reservation ID from validated DTO
-    const reservationId = payload.reservationId;
-    if (reservationId === undefined || reservationId === '') {
-      // LOG MISSING RESERVATION ID
-      this.logStructured('warn', 'handleWebhook:missing_reservation', 'invalid_payload', {
-        status: payload.status,
-      });
+    // 4. Route by event type
+    const typedEventName = eventName as KinguinWebhookEventName;
 
-      this.logger.warn('[KINGUIN_WEBHOOK] ❌ Missing reservationId in payload');
-      throw new UnauthorizedException('Missing reservationId in webhook payload');
+    if (typedEventName === 'order.status' || typedEventName === 'order.complete') {
+      // order.complete is essentially a final order.status update
+      await this.handleOrderStatusWebhook(body as unknown as OrderStatusWebhookDto);
+    } else if (typedEventName === 'product.update') {
+      await this.handleProductUpdateWebhook(body as unknown as ProductUpdateWebhookDto);
     }
 
-    // 5. Extract fields
-    const status = payload.status ?? '';
-    const hasKey = typeof payload.key === 'string' && payload.key.length > 0;
+    // 204 No Content returned automatically (void return)
+  }
 
-    this.logger.log(
-      `[KINGUIN_WEBHOOK] ✅ Webhook received: reservationId=${reservationId}, status=${status}, hasKey=${hasKey}`,
-    );
+  /**
+   * Handle order.status webhook event
+   * Processes order status changes from Kinguin
+   */
+  private async handleOrderStatusWebhook(payload: OrderStatusWebhookDto): Promise<void> {
+    const { orderId, orderExternalId, status, updatedAt } = payload;
 
-    // 6. Idempotency: skip if we already logged this reservation webhook
+    this.logStructured('info', 'handleOrderStatus:start', 'processing', {
+      orderId,
+      orderExternalId,
+      status,
+      updatedAt,
+    });
+
+    // Validate required fields
+    if (orderId === undefined || orderId === null || orderId === '') {
+      this.logStructured('warn', 'handleOrderStatus:missing_orderId', 'bad_request', {
+        status,
+      });
+      throw new BadRequestException('Missing orderId in webhook payload');
+    }
+
+    // Idempotency: skip if we already logged this EXACT webhook (same orderId + status)
+    // Note: We need to allow different status transitions (processing → completed) for the same order
     const existing = await this.webhookLogsRepo.findOne({
-      where: { externalId: reservationId, webhookType: 'kinguin_webhook' },
+      where: { 
+        externalId: orderId, 
+        webhookType: 'kinguin_order_status',
+        paymentStatus: status,  // Include status in uniqueness check
+      },
     });
+
     if (existing !== null) {
-      // LOG DUPLICATE DETECTION
-      this.logStructured('info', 'handleWebhook:duplicate_detected', 'already_processed', {
-        reservationId,
+      this.logStructured('info', 'handleOrderStatus:duplicate', 'already_processed', {
+        orderId,
+        status,
         previousWebhookId: existing.id,
       });
-
-      this.logger.debug(
-        `[KINGUIN_WEBHOOK] Duplicate webhook ignored for reservationId=${reservationId}`,
-      );
-      return { ok: true };
+      this.metrics.incrementDuplicateWebhook('kinguin', 'order_status');
+      this.logger.debug(`[KINGUIN_WEBHOOK] Duplicate webhook ignored for orderId=${orderId}, status=${status}`);
+      return;
     }
 
-    // LOG IDEMPOTENCY CHECK PASSED
-    this.logStructured('info', 'handleWebhook:idempotency_check', 'new_webhook', {
-      reservationId,
+    this.logStructured('info', 'handleOrderStatus:idempotency_passed', 'new_webhook', {
+      orderId,
       status,
-      hasKey,
     });
 
-    // 7. Log webhook for admin visibility
+    // Log webhook for admin visibility
     const log = new WebhookLog();
-    log.externalId = reservationId;
-    log.webhookType = 'kinguin_webhook';
+    log.externalId = orderId;
+    log.webhookType = 'kinguin_order_status';
     log.payload = payload as unknown as Record<string, unknown>;
-    log.signature = signature;
+    log.signature = '';  // eCommerce API uses X-Event-Secret, not signature
     log.signatureValid = true;
     log.processed = false;
     log.paymentStatus = status;
     await this.webhookLogsRepo.save(log);
 
-    // 8. Find order by reservation ID to get orderId for job processing
-    const order = await this.ordersService.findByReservation(reservationId);
+    // Find order by Kinguin order ID (stored as kinguinReservationId in our database)
+    const order = await this.ordersService.findByReservation(orderId);
     if (order === null) {
-      // LOG ORDER NOT FOUND
-      this.logStructured('warn', 'handleWebhook:order_not_found', 'lookup_failed', {
-        reservationId,
+      this.logStructured('warn', 'handleOrderStatus:order_not_found', 'lookup_failed', {
+        orderId,
+        orderExternalId,
       });
-
-      this.logger.warn(
-        `[KINGUIN_WEBHOOK] ❌ Order not found for reservationId=${reservationId}`,
-      );
-      // Log the error but still return 200 OK (Kinguin should not retry)
-      throw new NotFoundException(`Order not found for reservation ${reservationId}`);
+      this.logger.warn(`[KINGUIN_WEBHOOK] ⚠️ Order not found for orderId=${orderId}`);
+      // Log but don't throw - acknowledge webhook to prevent retries
+      return;
     }
 
-    // LOG JOB ENQUEUEING
-    this.logStructured('info', 'handleWebhook:enqueuing_job', 'in_progress', {
-      reservationId,
-      orderId: order.id,
+    this.logStructured('info', 'handleOrderStatus:enqueuing_job', 'in_progress', {
+      orderId,
+      internalOrderId: order.id,
       status,
     });
 
-    // 9. Enqueue fulfillment webhook job for processor routing (now with orderId)
-    await this.fulfillmentQueue.add(
-      'kinguin.webhook',
-      { orderId: order.id, reservationId, status },
-      { jobId: `kinguin-webhook-${reservationId}-${Date.now()}`, removeOnComplete: true },
-    );
+    // Enqueue fulfillment job based on status
+    // Status values: processing, completed, canceled, refunded
+    if (status === 'completed') {
+      await this.fulfillmentQueue.add(
+        'kinguin.order.completed',
+        { orderId: order.id, kinguinOrderId: orderId, status },
+        { jobId: `kinguin-completed-${orderId}-${Date.now()}`, removeOnComplete: true },
+      );
+    } else if (status === 'canceled' || status === 'refunded') {
+      await this.fulfillmentQueue.add(
+        'kinguin.order.failed',
+        { orderId: order.id, kinguinOrderId: orderId, status },
+        { jobId: `kinguin-failed-${orderId}-${Date.now()}`, removeOnComplete: true },
+      );
+    }
+    // 'processing' status doesn't require action - order is still in progress
 
-    // LOG COMPLETION
-    this.logStructured('info', 'handleWebhook:complete', 'success', {
-      reservationId,
-      orderId: order.id,
+    this.logStructured('info', 'handleOrderStatus:complete', 'success', {
+      orderId,
+      internalOrderId: order.id,
       status,
     });
-
-    // 10. Always return 200 OK (prevents Kinguin from retrying)
-    return { ok: true };
   }
 
   /**
-   * Query order delivery status from Kinguin
+   * Handle product.update webhook event
+   * Processes product stock/availability updates from Kinguin
+   */
+  private async handleProductUpdateWebhook(payload: ProductUpdateWebhookDto): Promise<void> {
+    const { kinguinId, productId, qty, textQty, cheapestOfferId, updatedAt } = payload;
+
+    this.logStructured('info', 'handleProductUpdate:start', 'processing', {
+      kinguinId,
+      productId,
+      qty,
+      textQty,
+      offerCount: cheapestOfferId?.length ?? 0,
+      updatedAt,
+    });
+
+    // Check for duplicate webhook (idempotency)
+    const existingLog = await this.webhookLogsRepo.findOne({
+      where: {
+        externalId: String(kinguinId),
+        webhookType: 'kinguin_product_update',
+      },
+    });
+
+    if (existingLog) {
+      this.logStructured('info', 'handleProductUpdate:duplicate', 'already_processed', {
+        kinguinId,
+        productId,
+        previousWebhookId: existingLog.id,
+      });
+      this.logger.debug(
+        `[KINGUIN_WEBHOOK] Duplicate product update ignored for kinguinId=${kinguinId}`,
+      );
+      return; // Skip duplicate
+    }
+
+    // For now, just log the product update
+    // Future: Update local product cache, trigger price updates, etc.
+    this.logger.log(
+      `[KINGUIN_WEBHOOK] Product update: kinguinId=${kinguinId}, productId=${productId}, qty=${qty}`,
+    );
+
+    // Log webhook for admin visibility
+    const log = new WebhookLog();
+    log.externalId = String(kinguinId);
+    log.webhookType = 'kinguin_product_update';
+    log.payload = payload as unknown as Record<string, unknown>;
+    log.signature = '';
+    log.signatureValid = true;
+    log.processed = true;  // Product updates are logged but not processed further
+    log.paymentStatus = 'product_update';
+    await this.webhookLogsRepo.save(log);
+
+    this.logStructured('info', 'handleProductUpdate:complete', 'success', {
+      kinguinId,
+      productId,
+      qty,
+    });
+  }
+
+  /**
+   * Query order status from Kinguin eCommerce API
    *
-   * Polls Kinguin API to check current status of reservation.
+   * Polls Kinguin API to check current status of an order.
    * Used by frontend to track order fulfillment progress.
    *
-   * Status progression:
-   * - waiting: Order created, awaiting processing
-   * - processing: Kinguin is fulfilling the order
-   * - ready: Order ready, key available (terminal - success)
-   * - failed: Order failed (terminal - error)
-   * - cancelled: Order cancelled (terminal - cancelled)
+   * Status progression (eCommerce API):
+   * - processing: Order is being fulfilled
+   * - completed: Order fulfilled, keys available (terminal - success)
+   * - canceled: Order was canceled (terminal - canceled)
+   * - refunded: Order was refunded (terminal - refunded)
    *
-   * @param reservationId Kinguin reservation/order ID from previous reserve() call
-   * @returns Current status with key (if ready) or error message
+   * @param orderId Kinguin order ID (e.g., "PHS84FJAG5U")
+   * @returns Current status with keys (if completed) or error message
    *
-   * @throws NotFoundException (404) - Reservation not found
-   * @throws BadRequestException (400) - Invalid reservation ID
+   * @throws NotFoundException (404) - Order not found
+   * @throws BadRequestException (400) - Invalid order ID
    * @throws InternalServerErrorException (500) - API failure
    *
    * @example
-   * GET /kinguin/status/res-123
+   * GET /kinguin/status/PHS84FJAG5U
    *
    * Response (200):
    * {
-   *   "id": "res-123",
-   *   "status": "ready",
+   *   "id": "PHS84FJAG5U",
+   *   "status": "completed",
    *   "key": "XXXXX-XXXXX-XXXXX-XXXXX"
    * }
    *
    * Response (400):
-   * { "error": "Invalid reservation ID format" }
+   * { "error": "Invalid order ID format" }
    *
    * Response (404):
-   * { "error": "Reservation not found" }
+   * { "error": "Order not found" }
    */
-  @Get('status/:reservationId')
-  @ApiOperation({ summary: 'Query Kinguin order delivery status' })
+  @Get('status/:orderId')
+  @ApiOperation({ summary: 'Query Kinguin order status' })
   @ApiResponse({ status: 200, description: 'Order status retrieved', schema: { properties: { id: { type: 'string' }, status: { type: 'string' }, key: { type: 'string' } } } })
-  @ApiResponse({ status: 404, description: 'Reservation not found' })
+  @ApiResponse({ status: 404, description: 'Order not found' })
   async getStatus(
-    @Param('reservationId') reservationId: string,
+    @Param('orderId') orderId: string,
   ): Promise<OrderStatusResponse> {
-    // 1. Validate reservation ID
-    if (reservationId === undefined || reservationId === '' || reservationId.length === 0) {
-      this.logger.warn('[KINGUIN_STATUS] ❌ Missing reservationId parameter');
-      throw new NotFoundException('Reservation ID is required');
+    // 1. Validate order ID
+    if (orderId === undefined || orderId === '' || orderId.length === 0) {
+      this.logger.warn('[KINGUIN_STATUS] ❌ Missing orderId parameter');
+      throw new NotFoundException('Order ID is required');
     }
 
     // 2. Query Kinguin service
-    this.logger.debug(`[KINGUIN_STATUS] Querying status for reservation: ${reservationId}`);
+    this.logger.debug(`[KINGUIN_STATUS] Querying status for order: ${orderId}`);
 
     try {
-      const status = await this.kinguinService.getDelivered(reservationId);
+      const status = await this.kinguinService.getDelivered(orderId);
 
-      this.logger.log(`[KINGUIN_STATUS] ✅ Status retrieved: id=${reservationId}, status=${status.status}`);
+      this.logger.log(`[KINGUIN_STATUS] ✅ Status retrieved: id=${orderId}, status=${status.status}`);
 
       return status;
     } catch (error) {

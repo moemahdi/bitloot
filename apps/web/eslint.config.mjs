@@ -30,6 +30,14 @@ export default tseslint.config(
       'build',
       '.storybook',
       'storybook-static',
+      // Config files (not in tsconfig.json)
+      'eslint.config.mjs',
+      '*.config.mjs',
+      'postcss.config.mjs',
+      // shadcn/ui generated primitives - 3rd party code
+      'src/design-system/primitives/**',
+      'src/design-system/hooks/**',
+      'src/design-system/lib/**',
     ],
   },
 

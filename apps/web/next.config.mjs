@@ -10,6 +10,11 @@ const nextConfig = {
       },
       {
         protocol: 'https',
+        hostname: 'cdns.kinguin.net',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
         hostname: 'img.youtube.com',
         pathname: '/**',
       },

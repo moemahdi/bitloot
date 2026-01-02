@@ -296,6 +296,51 @@ export class KinguinCatalogClient {
     try {
       this.logger.debug(`Searching Kinguin products for: "${query}"`);
 
+      // Check if we're using sandbox API (sandbox doesn't support name query parameter)
+      const isSandbox = this.baseUrl.includes('sandbox');
+
+      if (isSandbox) {
+        // Sandbox fallback: fetch all products and filter client-side
+        // Sandbox only has ~10 products, so this is safe
+        this.logger.debug('Using sandbox fallback: fetching all products and filtering client-side');
+
+        const response = await this.client.get<KinguinPaginatedResponse>('/v1/products', {
+          params: {
+            page: 1,
+            limit: 100,
+          },
+        });
+
+        const queryLower = query.toLowerCase();
+        const filteredResults = (response.data.results ?? []).filter((product) => {
+          const nameMatch = product.name?.toLowerCase().includes(queryLower);
+          const platformMatch =
+            !options?.platform ||
+            options.platform === '' ||
+            product.platform?.toLowerCase() === options.platform.toLowerCase();
+          const genreMatch =
+            !options?.genre ||
+            options.genre === '' ||
+            product.genres?.some((g) => g.toLowerCase().includes(options.genre?.toLowerCase() ?? ''));
+
+          return nameMatch && platformMatch && genreMatch;
+        });
+
+        // Apply limit if specified
+        const limit = Math.min(options?.limit ?? 25, 100);
+        const paginatedResults = filteredResults.slice(0, limit);
+
+        this.logger.debug(
+          `Sandbox search for "${query}" returned ${paginatedResults.length} products (filtered from ${response.data.results?.length ?? 0} total)`,
+        );
+
+        return {
+          results: paginatedResults,
+          item_count: filteredResults.length,
+        };
+      }
+
+      // Production API: use name query parameter
       const response = await this.client.get<KinguinPaginatedResponse>('/v1/products', {
         params: {
           name: query,

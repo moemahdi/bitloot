@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, Logger } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { BullModule } from '@nestjs/bullmq';
 import { QUEUE_NAMES } from '../../jobs/queues';
@@ -77,20 +77,28 @@ import { FulfillmentGateway } from './fulfillment.gateway';
   ],
   providers: [
     // Kinguin API client (factory pattern for environment config)
-    // Uses mock client in development mode or when credentials are obviously test/mock
+    // Uses real client when valid Kinguin credentials exist (including sandbox)
     {
       provide: KinguinClient,
       useFactory: () => {
+        const logger = new (require('@nestjs/common').Logger)('FulfillmentModule');
         const apiKey = process.env.KINGUIN_API_KEY ?? '';
-        const baseUrl = process.env.KINGUIN_BASE ?? 'https://api.kinguin.io/v1';
-        const isDevMode = process.env.NODE_ENV === 'development';
-        const isMockKey = apiKey.includes('mock') || apiKey === 'dcdd1e2280b04bf60029b250cfbf4cec';
+        const baseUrl = process.env.KINGUIN_BASE_URL ?? 'https://gateway.kinguin.net/esa/api/v2';
 
-        // Use mock client in dev mode or with obviously test credentials
-        if (isDevMode || isMockKey) {
+        // Check if credentials look like mock/test credentials
+        const isMockOrEmptyKey =
+          apiKey === '' ||
+          apiKey.includes('mock') ||
+          apiKey === 'dcdd1e2280b04bf60029b250cfbf4cec';
+
+        // Use mock client ONLY when credentials are missing/mock
+        // Real sandbox credentials should use real client even in dev mode
+        if (isMockOrEmptyKey) {
+          logger.log('🧪 Using MockKinguinClient (no valid credentials)');
           return new MockKinguinClient() as unknown as KinguinClient;
         }
 
+        logger.log(`✅ Using real KinguinClient (API key: ${apiKey.substring(0, 8)}...)`);
         return new KinguinClient(apiKey, baseUrl);
       },
     },
@@ -99,29 +107,33 @@ import { FulfillmentGateway } from './fulfillment.gateway';
     {
       provide: R2StorageClient,
       useFactory: () => {
-        const isDevMode = process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'test';
+        const logger = new Logger('R2StorageClientFactory');
         const accessKeyId = process.env.R2_ACCESS_KEY_ID ?? '';
         const secretAccessKey = process.env.R2_SECRET_ACCESS_KEY ?? '';
         const endpoint = process.env.R2_ENDPOINT ?? 'https://s3.us-west-2.amazonaws.com';
         const bucketName = process.env.R2_BUCKET ?? 'bitloot-keys';
 
-        // Use mock in dev/test mode or when credentials missing
+        // Check if real credentials are provided
         const hasCredentials =
           accessKeyId !== '' &&
           accessKeyId !== 'mock' &&
           secretAccessKey !== '' &&
           secretAccessKey !== 'mock';
 
-        if (isDevMode || !hasCredentials) {
-          return new MockR2StorageClient() as unknown as R2StorageClient;
+        // Use real client when credentials are available (even in dev mode)
+        if (hasCredentials) {
+          logger.log(`✅ Using real R2StorageClient (bucket: ${bucketName})`);
+          return new R2StorageClient({
+            endpoint,
+            accessKeyId,
+            secretAccessKey,
+            bucketName,
+          });
         }
 
-        return new R2StorageClient({
-          endpoint,
-          accessKeyId,
-          secretAccessKey,
-          bucketName,
-        });
+        // Fall back to mock only when credentials are missing
+        logger.warn('⚠️ Using MockR2StorageClient (no R2 credentials provided)');
+        return new MockR2StorageClient() as unknown as R2StorageClient;
       },
     },
 

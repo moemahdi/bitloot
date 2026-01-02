@@ -1,114 +1,196 @@
-import { IsString, IsEnum, IsOptional, IsNumber } from 'class-validator';
+import {
+  IsString,
+  IsEnum,
+  IsOptional,
+  IsNumber,
+  IsArray,
+} from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 /**
- * Kinguin Webhook Payload DTO
+ * Kinguin eCommerce API Webhook Event Names
+ * @see https://gateway.kinguin.net/esa/api - Webhooks documentation
+ */
+export type KinguinWebhookEventName = 'order.status' | 'order.complete' | 'product.update';
+
+/**
+ * Kinguin Order Status values from eCommerce API
+ * @see api/order/v1/README.md#order-statuses
+ */
+export type KinguinOrderStatus =
+  | 'processing'
+  | 'completed'
+  | 'canceled'
+  | 'refunded';
+
+/**
+ * Order Status Changed Webhook DTO
  *
- * Validates incoming webhooks from Kinguin for order delivery notifications.
+ * Triggered when an order status changes in Kinguin eCommerce API.
  *
- * Webhook is triggered when:
- * - Order is ready (status='ready', includes key)
- * - Order fails (status='failed', includes error)
- * - Order is cancelled (status='cancelled')
+ * Headers:
+ * - X-Event-Name: 'order.status'
+ * - X-Event-Secret: Your configured secret key
  *
  * @example
  * {
- *   "reservationId": "res-12345",
- *   "status": "ready",
- *   "key": "XXXXX-XXXXX-XXXXX-XXXXX",
- *   "timestamp": 1730000000000
+ *   "orderId": "PHS84FJAG5U",
+ *   "orderExternalId": "AL2FEEHOO2OHF",
+ *   "status": "completed",
+ *   "updatedAt": "2020-10-16T11:24:08.025+00:00"
  * }
  *
- * @see KinguinController.handleWebhook() - Uses this DTO for validation
+ * @see KinguinController.handleWebhook()
  */
-export class WebhookPayloadDto {
+export class OrderStatusWebhookDto {
   /**
-   * Kinguin reservation/order ID
-   *
-   * Unique identifier for the order reservation made via reserve() call.
-   * Used to link webhook back to original order in database.
-   *
-   * @example "res-12345"
+   * Kinguin Order ID
+   * @example "PHS84FJAG5U"
    */
   @ApiProperty({
-    description: 'Kinguin reservation ID',
-    example: 'res-12345',
+    description: 'Kinguin Order ID',
+    example: 'PHS84FJAG5U',
   })
   @IsString()
-  reservationId!: string;
+  orderId!: string;
 
   /**
-   * Current order fulfillment status
-   *
-   * Possible values:
-   * - waiting: Order created, awaiting processing
-   * - processing: Kinguin is fulfilling the order
-   * - ready: Order complete, key available (terminal success)
-   * - failed: Order failed (terminal error)
-   * - cancelled: Order cancelled by user/admin (terminal cancelled)
-   *
-   * Terminal states (ready/failed/cancelled) should not transition further.
-   *
-   * @example "ready"
+   * Your external order ID (if provided when placing order)
+   * @example "AL2FEEHOO2OHF"
    */
   @ApiProperty({
-    description: 'Order fulfillment status',
-    enum: ['waiting', 'processing', 'ready', 'failed', 'cancelled'],
-    example: 'ready',
-  })
-  @IsEnum(['waiting', 'processing', 'ready', 'failed', 'cancelled'])
-  status!: 'waiting' | 'processing' | 'ready' | 'failed' | 'cancelled';
-
-  /**
-   * License key (only present when status='ready')
-   *
-   * The actual game key or license key delivered by Kinguin.
-   * Only populated when order is successfully fulfilled.
-   * Should NOT be present for other statuses.
-   *
-   * @example "XXXXX-XXXXX-XXXXX-XXXXX"
-   */
-  @ApiProperty({
-    description: 'License key (only when status=ready)',
-    example: 'XXXXX-XXXXX-XXXXX-XXXXX',
+    description: 'Order external ID (your reference)',
+    example: 'AL2FEEHOO2OHF',
     required: false,
   })
   @IsString()
   @IsOptional()
-  key?: string;
+  orderExternalId?: string;
 
   /**
-   * Error message (only present when status='failed')
+   * Current order status
    *
-   * Describes why the order failed.
-   * Only populated when order fails.
-   * Should NOT be present for other statuses.
+   * Values:
+   * - processing: Order is waiting for delivering the keys
+   * - completed: Order is completed (all keys have been delivered)
+   * - canceled: Order has been canceled
+   * - refunded: Order has been refunded
    *
-   * @example "Out of stock"
+   * @example "completed"
    */
   @ApiProperty({
-    description: 'Error message (only when status=failed)',
-    example: 'Out of stock',
-    required: false,
+    description: 'Order status',
+    enum: ['processing', 'completed', 'canceled', 'refunded'],
+    example: 'completed',
+  })
+  @IsEnum(['processing', 'completed', 'canceled', 'refunded'])
+  status!: KinguinOrderStatus;
+
+  /**
+   * Timestamp of the status change (ISO 8601 format)
+   * @example "2020-10-16T11:24:08.025+00:00"
+   */
+  @ApiProperty({
+    description: 'Date of change in ISO 8601 format',
+    example: '2020-10-16T11:24:08.025+00:00',
   })
   @IsString()
-  @IsOptional()
-  error?: string;
+  updatedAt!: string;
+}
 
+/**
+ * Product Updated Webhook DTO
+ *
+ * Triggered when a product changes, becomes out of stock, or a new offer becomes available.
+ *
+ * Headers:
+ * - X-Event-Name: 'product.update'
+ * - X-Event-Secret: Your configured secret key
+ *
+ * @example
+ * {
+ *   "kinguinId": 1949,
+ *   "productId": "5c9b5f6b2539a4e8f172916a",
+ *   "qty": 845,
+ *   "textQty": 845,
+ *   "cheapestOfferId": ["611222acff9ca40001f0b020"],
+ *   "updatedAt": "2020-10-16T11:24:08.015+00:00"
+ * }
+ *
+ * @see KinguinController.handleWebhook()
+ */
+export class ProductUpdateWebhookDto {
   /**
-   * Webhook timestamp (Unix milliseconds)
-   *
-   * When the webhook was generated by Kinguin.
-   * Used to detect out-of-order deliveries and clock skew.
-   *
-   * @example 1730000000000
+   * Kinguin Product ID (integer)
+   * @example 1949
    */
   @ApiProperty({
-    description: 'Webhook timestamp (Unix milliseconds)',
-    example: 1730000000000,
-    required: false,
+    description: 'Kinguin Product ID',
+    example: 1949,
   })
   @IsNumber()
-  @IsOptional()
-  timestamp?: number;
+  kinguinId!: number;
+
+  /**
+   * Product ID (MongoDB ObjectId string)
+   * @example "5c9b5f6b2539a4e8f172916a"
+   */
+  @ApiProperty({
+    description: 'Product ID (string)',
+    example: '5c9b5f6b2539a4e8f172916a',
+  })
+  @IsString()
+  productId!: string;
+
+  /**
+   * Total quantity from the cheapest offers
+   * @example 845
+   */
+  @ApiProperty({
+    description: 'Total quantity from the cheapest offers',
+    example: 845,
+  })
+  @IsNumber()
+  qty!: number;
+
+  /**
+   * Quantity of text-type serials
+   * @example 845
+   */
+  @ApiProperty({
+    description: 'Quantity of text type serials',
+    example: 845,
+  })
+  @IsNumber()
+  textQty!: number;
+
+  /**
+   * List of cheapest offer IDs
+   * @example ["611222acff9ca40001f0b020"]
+   */
+  @ApiProperty({
+    description: 'List of cheapest offer IDs',
+    example: ['611222acff9ca40001f0b020'],
+    type: [String],
+  })
+  @IsArray()
+  @IsString({ each: true })
+  cheapestOfferId!: string[];
+
+  /**
+   * Timestamp of the update (ISO 8601 format)
+   * @example "2020-10-16T11:24:08.015+00:00"
+   */
+  @ApiProperty({
+    description: 'Date of change in ISO 8601 format',
+    example: '2020-10-16T11:24:08.015+00:00',
+  })
+  @IsString()
+  updatedAt!: string;
 }
+
+/**
+ * @deprecated Use OrderStatusWebhookDto or ProductUpdateWebhookDto instead
+ * Kept for backwards compatibility during migration
+ */
+export type WebhookPayloadDto = OrderStatusWebhookDto | ProductUpdateWebhookDto;

@@ -4,10 +4,46 @@
  *
  * @file DTOs for webhook request/response validation
  * @module webhooks/dto
+ *
+ * IMPORTANT: NOWPayments IPN payload structure varies by status and includes
+ * many optional fields. This DTO is intentionally permissive to accept all
+ * valid NOWPayments payloads without validation errors.
  */
 
-import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsNumber, IsUUID, IsNotEmpty, IsOptional } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import {
+  IsString,
+  IsNumber,
+  IsNotEmpty,
+  IsOptional,
+  IsObject,
+  ValidateIf,
+} from 'class-validator';
+
+/**
+ * Fee breakdown object from NOWPayments
+ */
+export class NowPaymentsFeeDto {
+  @ApiPropertyOptional({ description: 'Fee currency' })
+  @IsString()
+  @IsOptional()
+  currency?: string;
+
+  @ApiPropertyOptional({ description: 'Deposit fee' })
+  @IsNumber()
+  @IsOptional()
+  depositFee?: number;
+
+  @ApiPropertyOptional({ description: 'Service fee' })
+  @IsNumber()
+  @IsOptional()
+  serviceFee?: number;
+
+  @ApiPropertyOptional({ description: 'Withdrawal fee' })
+  @IsNumber()
+  @IsOptional()
+  withdrawalFee?: number;
+}
 
 /**
  * NOWPayments IPN incoming webhook payload
@@ -15,98 +51,84 @@ import { IsString, IsNumber, IsUUID, IsNotEmpty, IsOptional } from 'class-valida
  *
  * @class NowpaymentsIpnRequestDto
  *
+ * IMPORTANT: NOWPayments sends invoice_id as a NUMBER, not a UUID string.
+ * The order_id field contains our actual order UUID.
+ *
  * @example
  * ```json
  * {
- *   "payment_id": "123456789",
- *   "invoice_id": "550e8400-e29b-41d4-a716-446655440000",
- *   "order_id": "550e8400-e29b-41d4-a716-446655440000",
+ *   "payment_id": 5284800572,
+ *   "invoice_id": 5208745935,
+ *   "order_id": "930a98e1-b8fd-4eb0-adb2-f37df3d0bfbe",
  *   "payment_status": "finished",
- *   "price_amount": 100.00,
+ *   "price_amount": 19.5,
  *   "price_currency": "eur",
- *   "pay_amount": 0.0025,
+ *   "pay_amount": 0.00025524,
  *   "pay_currency": "btc",
- *   "received_amount": 0.0025,
- *   "received_currency": "btc",
- *   "created_at": "2025-11-08T15:30:00Z",
- *   "updated_at": "2025-11-08T15:35:00Z"
+ *   "actually_paid": 0.00025524,
+ *   "outcome_amount": 0.2778371,
+ *   "outcome_currency": "ltc"
  * }
  * ```
  */
 export class NowpaymentsIpnRequestDto {
   /**
-   * Unique NOWPayments payment ID
+   * Unique NOWPayments payment ID (can be number or string)
    * Used for idempotency tracking
-   *
-   * @type {string}
-   * @example "123456789"
    */
   @ApiProperty({
     description: 'NOWPayments payment ID',
-    example: '123456789',
+    example: 5284800572,
+    oneOf: [{ type: 'number' }, { type: 'string' }],
+  })
+  @ValidateIf((o) => o.payment_id !== undefined)
+  @IsNotEmpty()
+  payment_id!: number | string;
+
+  /**
+   * NOWPayments invoice ID (sent as NUMBER, not UUID)
+   * This is NOWPayments' internal invoice ID, NOT our order UUID
+   */
+  @ApiProperty({
+    description: 'NOWPayments invoice ID (number)',
+    example: 5208745935,
+    oneOf: [{ type: 'number' }, { type: 'string' }],
+  })
+  @ValidateIf((o) => o.invoice_id !== undefined)
+  @IsOptional()
+  invoice_id?: number | string;
+
+  /**
+   * Our system's order UUID
+   * This is the actual order ID we use to look up orders
+   */
+  @ApiProperty({
+    description: 'Our order UUID',
+    example: '930a98e1-b8fd-4eb0-adb2-f37df3d0bfbe',
   })
   @IsString()
-  @IsNotEmpty()
-  payment_id!: string;
-
-  /**
-   * Order UUID (our system's order ID)
-   * Matches the invoice_id sent to NOWPayments
-   *
-   * @type {string}
-   * @example "550e8400-e29b-41d4-a716-446655440000"
-   */
-  @ApiProperty({
-    description: 'Order UUID from our system',
-    example: '550e8400-e29b-41d4-a716-446655440000',
-  })
-  @IsUUID()
-  @IsNotEmpty()
-  invoice_id!: string;
-
-  /**
-   * Duplicate of invoice_id (for NOWPayments compatibility)
-   * Also maps to our order ID
-   *
-   * @type {string}
-   * @example "550e8400-e29b-41d4-a716-446655440000"
-   */
-  @ApiProperty({
-    description: 'Duplicate of invoice_id',
-    example: '550e8400-e29b-41d4-a716-446655440000',
-  })
-  @IsUUID()
   @IsNotEmpty()
   order_id!: string;
 
   /**
    * Payment status from NOWPayments
-   * Transitions: waiting → confirming → finished (success)
-   * Or: failed, underpaid (error)
-   *
-   * @type {string}
-   * @enum {string} 'waiting' | 'confirming' | 'finished' | 'failed' | 'underpaid'
-   * @example "finished"
+   * Transitions: waiting → confirming → sending → finished (success)
+   * Or: failed, partially_paid, expired, refunded
    */
   @ApiProperty({
     description: 'Payment status',
-    enum: ['waiting', 'confirming', 'finished', 'failed', 'underpaid'],
     example: 'finished',
   })
   @IsString()
   @IsNotEmpty()
-  payment_status!: 'waiting' | 'confirming' | 'finished' | 'failed' | 'underpaid';
+  payment_status!: string;
 
   /**
-   * Expected EUR price amount for the order
-   * Used to verify payment amount matches
-   *
-   * @type {number}
-   * @example 100.00
+   * Expected fiat price amount for the order
    */
   @ApiProperty({
-    description: 'Expected EUR price amount',
-    example: 100.0,
+    description: 'Expected price amount',
+    example: 19.5,
     type: Number,
   })
   @IsNumber()
@@ -114,10 +136,7 @@ export class NowpaymentsIpnRequestDto {
   price_amount!: number;
 
   /**
-   * Price currency (always EUR in our system)
-   *
-   * @type {string}
-   * @example "eur"
+   * Price currency (e.g., 'eur', 'usd')
    */
   @ApiProperty({
     description: 'Price currency',
@@ -127,110 +146,319 @@ export class NowpaymentsIpnRequestDto {
   @IsNotEmpty()
   price_currency!: string;
 
-  /**
-   * Amount paid in cryptocurrency
-   * Exact amount user sent to payment address
-   *
-   * @type {number}
-   * @example 0.0025
-   */
-  @ApiProperty({
-    description: 'Crypto amount paid',
-    example: 0.0025,
-    type: Number,
-  })
-  @IsNumber()
-  @IsNotEmpty()
-  pay_amount!: number;
+  // ============================================================
+  // OPTIONAL FIELDS - NOWPayments sends these variably
+  // ============================================================
 
   /**
-   * Cryptocurrency currency code
-   * Examples: btc, eth, xrp, etc.
-   *
-   * @type {string}
-   * @example "btc"
+   * Amount to pay in cryptocurrency
    */
-  @ApiProperty({
-    description: 'Cryptocurrency code',
+  @ApiPropertyOptional({
+    description: 'Crypto amount to pay',
+    example: 0.00025524,
+  })
+  @IsNumber()
+  @IsOptional()
+  pay_amount?: number;
+
+  /**
+   * Cryptocurrency to pay with
+   */
+  @ApiPropertyOptional({
+    description: 'Pay currency code',
     example: 'btc',
   })
   @IsString()
-  @IsNotEmpty()
-  pay_currency!: string;
+  @IsOptional()
+  pay_currency?: string;
 
   /**
-   * Amount actually received by NOWPayments
-   * May differ from pay_amount due to network fees
-   *
-   * @type {number}
-   * @example 0.0025
+   * Payment address for cryptocurrency
    */
-  @ApiProperty({
-    description: 'Amount received after fees',
-    example: 0.0025,
-    type: Number,
+  @ApiPropertyOptional({
+    description: 'Crypto payment address',
+    example: '36GMdZsn5ciVZhHEyUfGyoiUmyhAdG5gn3',
+  })
+  @IsString()
+  @IsOptional()
+  pay_address?: string;
+
+  /**
+   * Amount actually paid by customer
+   */
+  @ApiPropertyOptional({
+    description: 'Amount actually paid',
+    example: 0.00025524,
   })
   @IsNumber()
-  @IsNotEmpty()
-  received_amount!: number;
+  @IsOptional()
+  actually_paid?: number;
 
   /**
-   * Cryptocurrency received in
-   * (may differ if converted)
-   *
-   * @type {string}
-   * @example "btc"
+   * Amount actually paid in fiat equivalent
    */
-  @ApiProperty({
-    description: 'Crypto currency received',
+  @ApiPropertyOptional({
+    description: 'Amount actually paid in fiat',
+    example: 19.5,
+  })
+  @IsNumber()
+  @IsOptional()
+  actually_paid_at_fiat?: number;
+
+  /**
+   * Amount received after conversion (if applicable)
+   */
+  @ApiPropertyOptional({
+    description: 'Amount received after fees/conversion',
+    example: 0.0025,
+  })
+  @IsNumber()
+  @IsOptional()
+  received_amount?: number;
+
+  /**
+   * Currency received in
+   */
+  @ApiPropertyOptional({
+    description: 'Currency received',
     example: 'btc',
   })
   @IsString()
-  @IsNotEmpty()
-  received_currency!: string;
+  @IsOptional()
+  received_currency?: string;
 
   /**
-   * Payment creation timestamp (ISO 8601)
-   *
-   * @type {string}
-   * @example "2025-11-08T15:30:00Z"
+   * Outcome amount (converted to payout currency)
    */
-  @ApiProperty({
+  @ApiPropertyOptional({
+    description: 'Outcome amount',
+    example: 0.2778371,
+  })
+  @IsNumber()
+  @IsOptional()
+  outcome_amount?: number;
+
+  /**
+   * Outcome currency (payout currency)
+   */
+  @ApiPropertyOptional({
+    description: 'Outcome currency',
+    example: 'ltc',
+  })
+  @IsString()
+  @IsOptional()
+  outcome_currency?: string;
+
+  /**
+   * Fee breakdown object
+   */
+  @ApiPropertyOptional({
+    description: 'Fee breakdown',
+    type: NowPaymentsFeeDto,
+  })
+  @IsObject()
+  @IsOptional()
+  fee?: NowPaymentsFeeDto;
+
+  /**
+   * Purchase ID from NOWPayments
+   */
+  @ApiPropertyOptional({
+    description: 'NOWPayments purchase ID',
+    example: '5489876303',
+  })
+  @IsOptional()
+  purchase_id?: string | number;
+
+  /**
+   * Order description we sent
+   */
+  @ApiPropertyOptional({
+    description: 'Order description',
+    example: 'BitLoot Order #930a98e1',
+  })
+  @IsString()
+  @IsOptional()
+  order_description?: string;
+
+  /**
+   * Payment creation timestamp (can be ISO string or Unix timestamp)
+   */
+  @ApiPropertyOptional({
     description: 'Payment created at',
     example: '2025-11-08T15:30:00Z',
   })
-  @IsString()
-  @IsNotEmpty()
-  created_at!: string;
+  @IsOptional()
+  created_at?: string | number;
 
   /**
-   * Payment last updated timestamp (ISO 8601)
-   *
-   * @type {string}
-   * @example "2025-11-08T15:35:00Z"
+   * Payment last updated timestamp (can be ISO string or Unix timestamp)
    */
-  @ApiProperty({
+  @ApiPropertyOptional({
     description: 'Payment updated at',
-    example: '2025-11-08T15:35:00Z',
+    example: 1767352373337,
   })
-  @IsString()
-  @IsNotEmpty()
-  updated_at!: string;
+  @IsOptional()
+  updated_at?: string | number;
 
   /**
-   * Optional NOWPayments reference or tracking info
-   * May include additional payment metadata
-   *
-   * @type {string | undefined}
-   * @optional
+   * Optional NOWPayments reference
    */
-  @ApiProperty({
-    description: 'Optional NOWPayments reference',
-    required: false,
+  @ApiPropertyOptional({
+    description: 'Optional reference',
   })
   @IsString()
   @IsOptional()
   reference?: string;
+
+  /**
+   * Network (blockchain) used for payment
+   */
+  @ApiPropertyOptional({
+    description: 'Blockchain network',
+    example: 'btc',
+  })
+  @IsString()
+  @IsOptional()
+  network?: string;
+
+  /**
+   * Network precision/decimals
+   */
+  @ApiPropertyOptional({
+    description: 'Network precision',
+  })
+  @IsNumber()
+  @IsOptional()
+  network_precision?: number;
+
+  /**
+   * Burning percentage (if applicable)
+   */
+  @ApiPropertyOptional({
+    description: 'Burning percentage',
+  })
+  @IsNumber()
+  @IsOptional()
+  burning_percent?: number;
+
+  /**
+   * Expiration date/time
+   */
+  @ApiPropertyOptional({
+    description: 'Payment expiration',
+  })
+  @IsOptional()
+  expiration_estimate_date?: string;
+
+  /**
+   * Whether this is a test/sandbox payment
+   */
+  @ApiPropertyOptional({
+    description: 'Is sandbox/test payment',
+  })
+  @IsOptional()
+  is_fixed_rate?: boolean;
+
+  /**
+   * Whether payment uses fixed rate
+   */
+  @ApiPropertyOptional({
+    description: 'Fixed rate enabled',
+  })
+  @IsOptional()
+  is_fee_paid_by_user?: boolean;
+
+  /**
+   * Time limit for payment (in minutes)
+   */
+  @ApiPropertyOptional({
+    description: 'Valid until timestamp',
+  })
+  @IsOptional()
+  valid_until?: string;
+
+  /**
+   * Payment type
+   */
+  @ApiPropertyOptional({
+    description: 'Payment type',
+  })
+  @IsString()
+  @IsOptional()
+  type?: string;
+
+  /**
+   * Smart contract address (for token payments)
+   */
+  @ApiPropertyOptional({
+    description: 'Smart contract address',
+  })
+  @IsString()
+  @IsOptional()
+  smart_contract?: string;
+
+  /**
+   * Extra ID for some cryptocurrencies (e.g., XRP destination tag)
+   */
+  @ApiPropertyOptional({
+    description: 'Extra ID (e.g., XRP tag)',
+  })
+  @IsOptional()
+  payin_extra_id?: string;
+
+  /**
+   * Parent payment ID (for split payments or refunds)
+   */
+  @ApiPropertyOptional({
+    description: 'Parent payment ID (for split payments)',
+  })
+  @IsOptional()
+  parent_payment_id?: number | string | null;
+
+  /**
+   * Payment extra IDs (for some cryptocurrencies)
+   */
+  @ApiPropertyOptional({
+    description: 'Payment extra IDs',
+  })
+  @IsOptional()
+  payment_extra_ids?: string | null;
+
+  /**
+   * Deposit ID (for some payment methods)
+   */
+  @ApiPropertyOptional({
+    description: 'Deposit ID',
+  })
+  @IsOptional()
+  deposit_id?: string | number | null;
+
+  /**
+   * Sender address
+   */
+  @ApiPropertyOptional({
+    description: 'Sender wallet address',
+  })
+  @IsString()
+  @IsOptional()
+  sender_address?: string;
+
+  /**
+   * Transaction hash/ID
+   */
+  @ApiPropertyOptional({
+    description: 'Blockchain transaction hash',
+  })
+  @IsString()
+  @IsOptional()
+  txn_id?: string;
+
+  /**
+   * Any additional/unknown fields - catch-all to prevent validation errors
+   * NOWPayments may send new fields at any time
+   */
+  [key: string]: unknown;
 }
 
 /**

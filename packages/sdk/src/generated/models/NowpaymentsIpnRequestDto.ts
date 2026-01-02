@@ -13,6 +13,28 @@
  */
 
 import { mapValues } from '../runtime';
+import type { NowpaymentsIpnRequestDtoInvoiceId } from './NowpaymentsIpnRequestDtoInvoiceId';
+import {
+    NowpaymentsIpnRequestDtoInvoiceIdFromJSON,
+    NowpaymentsIpnRequestDtoInvoiceIdFromJSONTyped,
+    NowpaymentsIpnRequestDtoInvoiceIdToJSON,
+    NowpaymentsIpnRequestDtoInvoiceIdToJSONTyped,
+} from './NowpaymentsIpnRequestDtoInvoiceId';
+import type { NowpaymentsIpnRequestDtoPaymentId } from './NowpaymentsIpnRequestDtoPaymentId';
+import {
+    NowpaymentsIpnRequestDtoPaymentIdFromJSON,
+    NowpaymentsIpnRequestDtoPaymentIdFromJSONTyped,
+    NowpaymentsIpnRequestDtoPaymentIdToJSON,
+    NowpaymentsIpnRequestDtoPaymentIdToJSONTyped,
+} from './NowpaymentsIpnRequestDtoPaymentId';
+import type { NowPaymentsFeeDto } from './NowPaymentsFeeDto';
+import {
+    NowPaymentsFeeDtoFromJSON,
+    NowPaymentsFeeDtoFromJSONTyped,
+    NowPaymentsFeeDtoToJSON,
+    NowPaymentsFeeDtoToJSONTyped,
+} from './NowPaymentsFeeDto';
+
 /**
  * 
  * @export
@@ -20,19 +42,19 @@ import { mapValues } from '../runtime';
  */
 export interface NowpaymentsIpnRequestDto {
     /**
-     * NOWPayments payment ID
-     * @type {string}
+     * 
+     * @type {NowpaymentsIpnRequestDtoPaymentId}
      * @memberof NowpaymentsIpnRequestDto
      */
-    paymentId: string;
+    paymentId: NowpaymentsIpnRequestDtoPaymentId;
     /**
-     * Order UUID from our system
-     * @type {string}
+     * 
+     * @type {NowpaymentsIpnRequestDtoInvoiceId}
      * @memberof NowpaymentsIpnRequestDto
      */
-    invoiceId: string;
+    invoiceId: NowpaymentsIpnRequestDtoInvoiceId;
     /**
-     * Duplicate of invoice_id
+     * Our order UUID
      * @type {string}
      * @memberof NowpaymentsIpnRequestDto
      */
@@ -42,9 +64,9 @@ export interface NowpaymentsIpnRequestDto {
      * @type {string}
      * @memberof NowpaymentsIpnRequestDto
      */
-    paymentStatus: NowpaymentsIpnRequestDtoPaymentStatusEnum;
+    paymentStatus: string;
     /**
-     * Expected EUR price amount
+     * Expected price amount
      * @type {number}
      * @memberof NowpaymentsIpnRequestDto
      */
@@ -56,62 +78,186 @@ export interface NowpaymentsIpnRequestDto {
      */
     priceCurrency: string;
     /**
-     * Crypto amount paid
+     * Crypto amount to pay
      * @type {number}
      * @memberof NowpaymentsIpnRequestDto
      */
-    payAmount: number;
+    payAmount?: number;
     /**
-     * Cryptocurrency code
+     * Pay currency code
      * @type {string}
      * @memberof NowpaymentsIpnRequestDto
      */
-    payCurrency: string;
+    payCurrency?: string;
     /**
-     * Amount received after fees
+     * Crypto payment address
+     * @type {string}
+     * @memberof NowpaymentsIpnRequestDto
+     */
+    payAddress?: string;
+    /**
+     * Amount actually paid
      * @type {number}
      * @memberof NowpaymentsIpnRequestDto
      */
-    receivedAmount: number;
+    actuallyPaid?: number;
     /**
-     * Crypto currency received
+     * Amount actually paid in fiat
+     * @type {number}
+     * @memberof NowpaymentsIpnRequestDto
+     */
+    actuallyPaidAtFiat?: number;
+    /**
+     * Amount received after fees/conversion
+     * @type {number}
+     * @memberof NowpaymentsIpnRequestDto
+     */
+    receivedAmount?: number;
+    /**
+     * Currency received
      * @type {string}
      * @memberof NowpaymentsIpnRequestDto
      */
-    receivedCurrency: string;
+    receivedCurrency?: string;
+    /**
+     * Outcome amount
+     * @type {number}
+     * @memberof NowpaymentsIpnRequestDto
+     */
+    outcomeAmount?: number;
+    /**
+     * Outcome currency
+     * @type {string}
+     * @memberof NowpaymentsIpnRequestDto
+     */
+    outcomeCurrency?: string;
+    /**
+     * Fee breakdown
+     * @type {NowPaymentsFeeDto}
+     * @memberof NowpaymentsIpnRequestDto
+     */
+    fee?: NowPaymentsFeeDto;
+    /**
+     * NOWPayments purchase ID
+     * @type {object}
+     * @memberof NowpaymentsIpnRequestDto
+     */
+    purchaseId?: object;
+    /**
+     * Order description
+     * @type {string}
+     * @memberof NowpaymentsIpnRequestDto
+     */
+    orderDescription?: string;
     /**
      * Payment created at
-     * @type {string}
+     * @type {object}
      * @memberof NowpaymentsIpnRequestDto
      */
-    createdAt: string;
+    createdAt?: object;
     /**
      * Payment updated at
-     * @type {string}
+     * @type {object}
      * @memberof NowpaymentsIpnRequestDto
      */
-    updatedAt: string;
+    updatedAt?: object;
     /**
-     * Optional NOWPayments reference
+     * Optional reference
      * @type {string}
      * @memberof NowpaymentsIpnRequestDto
      */
     reference?: string;
+    /**
+     * Blockchain network
+     * @type {string}
+     * @memberof NowpaymentsIpnRequestDto
+     */
+    network?: string;
+    /**
+     * Network precision
+     * @type {number}
+     * @memberof NowpaymentsIpnRequestDto
+     */
+    networkPrecision?: number;
+    /**
+     * Burning percentage
+     * @type {number}
+     * @memberof NowpaymentsIpnRequestDto
+     */
+    burningPercent?: number;
+    /**
+     * Payment expiration
+     * @type {string}
+     * @memberof NowpaymentsIpnRequestDto
+     */
+    expirationEstimateDate?: string;
+    /**
+     * Is sandbox/test payment
+     * @type {boolean}
+     * @memberof NowpaymentsIpnRequestDto
+     */
+    isFixedRate?: boolean;
+    /**
+     * Fixed rate enabled
+     * @type {boolean}
+     * @memberof NowpaymentsIpnRequestDto
+     */
+    isFeePaidByUser?: boolean;
+    /**
+     * Valid until timestamp
+     * @type {string}
+     * @memberof NowpaymentsIpnRequestDto
+     */
+    validUntil?: string;
+    /**
+     * Payment type
+     * @type {string}
+     * @memberof NowpaymentsIpnRequestDto
+     */
+    type?: string;
+    /**
+     * Smart contract address
+     * @type {string}
+     * @memberof NowpaymentsIpnRequestDto
+     */
+    smartContract?: string;
+    /**
+     * Extra ID (e.g., XRP tag)
+     * @type {string}
+     * @memberof NowpaymentsIpnRequestDto
+     */
+    payinExtraId?: string;
+    /**
+     * Parent payment ID (for split payments)
+     * @type {object}
+     * @memberof NowpaymentsIpnRequestDto
+     */
+    parentPaymentId?: object;
+    /**
+     * Payment extra IDs
+     * @type {object}
+     * @memberof NowpaymentsIpnRequestDto
+     */
+    paymentExtraIds?: object;
+    /**
+     * Deposit ID
+     * @type {object}
+     * @memberof NowpaymentsIpnRequestDto
+     */
+    depositId?: object;
+    /**
+     * Sender wallet address
+     * @type {string}
+     * @memberof NowpaymentsIpnRequestDto
+     */
+    senderAddress?: string;
+    /**
+     * Blockchain transaction hash
+     * @type {string}
+     * @memberof NowpaymentsIpnRequestDto
+     */
+    txnId?: string;
 }
-
-
-/**
- * @export
- */
-export const NowpaymentsIpnRequestDtoPaymentStatusEnum = {
-    Waiting: 'waiting',
-    Confirming: 'confirming',
-    Finished: 'finished',
-    Failed: 'failed',
-    Underpaid: 'underpaid'
-} as const;
-export type NowpaymentsIpnRequestDtoPaymentStatusEnum = typeof NowpaymentsIpnRequestDtoPaymentStatusEnum[keyof typeof NowpaymentsIpnRequestDtoPaymentStatusEnum];
-
 
 /**
  * Check if a given object implements the NowpaymentsIpnRequestDto interface.
@@ -123,12 +269,6 @@ export function instanceOfNowpaymentsIpnRequestDto(value: object): value is Nowp
     if (!('paymentStatus' in value) || value['paymentStatus'] === undefined) return false;
     if (!('priceAmount' in value) || value['priceAmount'] === undefined) return false;
     if (!('priceCurrency' in value) || value['priceCurrency'] === undefined) return false;
-    if (!('payAmount' in value) || value['payAmount'] === undefined) return false;
-    if (!('payCurrency' in value) || value['payCurrency'] === undefined) return false;
-    if (!('receivedAmount' in value) || value['receivedAmount'] === undefined) return false;
-    if (!('receivedCurrency' in value) || value['receivedCurrency'] === undefined) return false;
-    if (!('createdAt' in value) || value['createdAt'] === undefined) return false;
-    if (!('updatedAt' in value) || value['updatedAt'] === undefined) return false;
     return true;
 }
 
@@ -142,19 +282,42 @@ export function NowpaymentsIpnRequestDtoFromJSONTyped(json: any, ignoreDiscrimin
     }
     return {
         
-        'paymentId': json['payment_id'],
-        'invoiceId': json['invoice_id'],
+        'paymentId': NowpaymentsIpnRequestDtoPaymentIdFromJSON(json['payment_id']),
+        'invoiceId': NowpaymentsIpnRequestDtoInvoiceIdFromJSON(json['invoice_id']),
         'orderId': json['order_id'],
         'paymentStatus': json['payment_status'],
         'priceAmount': json['price_amount'],
         'priceCurrency': json['price_currency'],
-        'payAmount': json['pay_amount'],
-        'payCurrency': json['pay_currency'],
-        'receivedAmount': json['received_amount'],
-        'receivedCurrency': json['received_currency'],
-        'createdAt': json['created_at'],
-        'updatedAt': json['updated_at'],
+        'payAmount': json['pay_amount'] == null ? undefined : json['pay_amount'],
+        'payCurrency': json['pay_currency'] == null ? undefined : json['pay_currency'],
+        'payAddress': json['pay_address'] == null ? undefined : json['pay_address'],
+        'actuallyPaid': json['actually_paid'] == null ? undefined : json['actually_paid'],
+        'actuallyPaidAtFiat': json['actually_paid_at_fiat'] == null ? undefined : json['actually_paid_at_fiat'],
+        'receivedAmount': json['received_amount'] == null ? undefined : json['received_amount'],
+        'receivedCurrency': json['received_currency'] == null ? undefined : json['received_currency'],
+        'outcomeAmount': json['outcome_amount'] == null ? undefined : json['outcome_amount'],
+        'outcomeCurrency': json['outcome_currency'] == null ? undefined : json['outcome_currency'],
+        'fee': json['fee'] == null ? undefined : NowPaymentsFeeDtoFromJSON(json['fee']),
+        'purchaseId': json['purchase_id'] == null ? undefined : json['purchase_id'],
+        'orderDescription': json['order_description'] == null ? undefined : json['order_description'],
+        'createdAt': json['created_at'] == null ? undefined : json['created_at'],
+        'updatedAt': json['updated_at'] == null ? undefined : json['updated_at'],
         'reference': json['reference'] == null ? undefined : json['reference'],
+        'network': json['network'] == null ? undefined : json['network'],
+        'networkPrecision': json['network_precision'] == null ? undefined : json['network_precision'],
+        'burningPercent': json['burning_percent'] == null ? undefined : json['burning_percent'],
+        'expirationEstimateDate': json['expiration_estimate_date'] == null ? undefined : json['expiration_estimate_date'],
+        'isFixedRate': json['is_fixed_rate'] == null ? undefined : json['is_fixed_rate'],
+        'isFeePaidByUser': json['is_fee_paid_by_user'] == null ? undefined : json['is_fee_paid_by_user'],
+        'validUntil': json['valid_until'] == null ? undefined : json['valid_until'],
+        'type': json['type'] == null ? undefined : json['type'],
+        'smartContract': json['smart_contract'] == null ? undefined : json['smart_contract'],
+        'payinExtraId': json['payin_extra_id'] == null ? undefined : json['payin_extra_id'],
+        'parentPaymentId': json['parent_payment_id'] == null ? undefined : json['parent_payment_id'],
+        'paymentExtraIds': json['payment_extra_ids'] == null ? undefined : json['payment_extra_ids'],
+        'depositId': json['deposit_id'] == null ? undefined : json['deposit_id'],
+        'senderAddress': json['sender_address'] == null ? undefined : json['sender_address'],
+        'txnId': json['txn_id'] == null ? undefined : json['txn_id'],
     };
 }
 
@@ -169,19 +332,42 @@ export function NowpaymentsIpnRequestDtoToJSONTyped(value?: NowpaymentsIpnReques
 
     return {
         
-        'payment_id': value['paymentId'],
-        'invoice_id': value['invoiceId'],
+        'payment_id': NowpaymentsIpnRequestDtoPaymentIdToJSON(value['paymentId']),
+        'invoice_id': NowpaymentsIpnRequestDtoInvoiceIdToJSON(value['invoiceId']),
         'order_id': value['orderId'],
         'payment_status': value['paymentStatus'],
         'price_amount': value['priceAmount'],
         'price_currency': value['priceCurrency'],
         'pay_amount': value['payAmount'],
         'pay_currency': value['payCurrency'],
+        'pay_address': value['payAddress'],
+        'actually_paid': value['actuallyPaid'],
+        'actually_paid_at_fiat': value['actuallyPaidAtFiat'],
         'received_amount': value['receivedAmount'],
         'received_currency': value['receivedCurrency'],
+        'outcome_amount': value['outcomeAmount'],
+        'outcome_currency': value['outcomeCurrency'],
+        'fee': NowPaymentsFeeDtoToJSON(value['fee']),
+        'purchase_id': value['purchaseId'],
+        'order_description': value['orderDescription'],
         'created_at': value['createdAt'],
         'updated_at': value['updatedAt'],
         'reference': value['reference'],
+        'network': value['network'],
+        'network_precision': value['networkPrecision'],
+        'burning_percent': value['burningPercent'],
+        'expiration_estimate_date': value['expirationEstimateDate'],
+        'is_fixed_rate': value['isFixedRate'],
+        'is_fee_paid_by_user': value['isFeePaidByUser'],
+        'valid_until': value['validUntil'],
+        'type': value['type'],
+        'smart_contract': value['smartContract'],
+        'payin_extra_id': value['payinExtraId'],
+        'parent_payment_id': value['parentPaymentId'],
+        'payment_extra_ids': value['paymentExtraIds'],
+        'deposit_id': value['depositId'],
+        'sender_address': value['senderAddress'],
+        'txn_id': value['txnId'],
     };
 }
 

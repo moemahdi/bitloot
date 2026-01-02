@@ -126,6 +126,9 @@ export class RevealedKeyDto {
    * This is the actual license key decrypted from R2 storage.
    * Keep this safe and do not share.
    *
+   * For image content types (image/jpeg, image/png, image/gif),
+   * this will contain base64-encoded image data.
+   *
    * @example "KEY-ABC123XYZ789"
    */
   @ApiProperty({
@@ -135,6 +138,25 @@ export class RevealedKeyDto {
   @IsNotEmpty()
   @IsString()
   plainKey!: string;
+
+  /**
+   * Content type of the key data
+   *
+   * Indicates the format of the plainKey field:
+   * - 'text/plain': Standard text license key
+   * - 'image/jpeg': Base64-encoded JPEG image
+   * - 'image/png': Base64-encoded PNG image
+   * - 'image/gif': Base64-encoded GIF image
+   *
+   * @example "text/plain"
+   */
+  @ApiProperty({
+    description: 'Content type of the key data (text/plain, image/jpeg, image/png, image/gif)',
+    example: 'text/plain',
+  })
+  @IsNotEmpty()
+  @IsString()
+  contentType!: string;
 
   /**
    * Timestamp when the key was revealed (ISO8601)

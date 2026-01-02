@@ -185,6 +185,8 @@ export interface OrderStatusResponse {
   id: string;
   status: KinguinOrderStatus | 'waiting' | 'ready' | 'failed' | 'cancelled';
   key?: string;
+  /** Content type of the key (text/plain, image/jpeg, image/png, image/gif) */
+  keyType?: 'text/plain' | 'image/jpeg' | 'image/png' | 'image/gif';
   error?: string;
 }
 
@@ -643,6 +645,7 @@ export class KinguinClient {
 
       // Find first delivered key if any
       let key: string | undefined;
+      let keyType: OrderStatusResponse['keyType'];
       for (const product of order.products ?? []) {
         for (const keyInfo of product.keys ?? []) {
           if (keyInfo.status === 'DELIVERED') {
@@ -652,6 +655,7 @@ export class KinguinClient {
               const matchingKey = keys.find((k) => k.id === keyInfo.id);
               if (matchingKey !== undefined) {
                 key = matchingKey.serial;
+                keyType = matchingKey.type;
               }
             } catch {
               // Keys not yet available
@@ -668,9 +672,9 @@ export class KinguinClient {
         legacyStatus = 'waiting';
       } else if (order.status === 'completed') {
         legacyStatus = 'ready';
-      } else if (order.status === 'canceled') {
-        legacyStatus = 'cancelled';
       } else if (order.status === 'refunded') {
+        legacyStatus = 'cancelled';
+      } else if (order.status === 'canceled') {
         legacyStatus = 'cancelled';
       }
 
@@ -678,6 +682,7 @@ export class KinguinClient {
         id: order.orderId,
         status: legacyStatus,
         key,
+        keyType,
       };
     } catch (error: unknown) {
       const message = this.extractErrorMessage(error);

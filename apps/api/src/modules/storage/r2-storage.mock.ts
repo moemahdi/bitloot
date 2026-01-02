@@ -120,4 +120,103 @@ export class MockR2StorageClient {
   clear(): void {
     this.storage.clear();
   }
+
+  /**
+   * Mock: Check if file exists at path
+   *
+   * Returns true if a file has been stored at this path in-memory.
+   *
+   * @param path Full path to check (e.g., 'products/{productId}/key.json')
+   * @returns true if file exists, false otherwise
+   */
+  // eslint-disable-next-line @typescript-eslint/require-await
+  async exists(path: string): Promise<boolean> {
+    if (path === '' || path === null || path === undefined) {
+      throw new Error('Invalid path: must be a non-empty string');
+    }
+
+    // Check both in-memory storage and simulated paths
+    const exists = this.storage.has(path);
+    console.log(`[MockR2] exists(${path}): ${exists}`);
+    return exists;
+  }
+
+  /**
+   * Mock: Generate signed URL for arbitrary path
+   *
+   * Returns a fake but realistic-looking URL with expiry timestamp.
+   *
+   * @param params URL generation parameters
+   * @param params.path Full path to the file
+   * @param params.expiresInSeconds URL expiry time (default: 900 = 15 min)
+   * @returns Signed URL string
+   */
+  // eslint-disable-next-line @typescript-eslint/require-await
+  async generateSignedUrlForPath(params: {
+    path: string;
+    expiresInSeconds?: number;
+  }): Promise<string> {
+    if (params.path === '' || params.path === null || params.path === undefined) {
+      throw new Error('Invalid path: must be a non-empty string');
+    }
+
+    const expiresIn = params.expiresInSeconds ?? 900; // 15 minutes default
+    const expiresAt = Math.floor(Date.now() / 1000) + expiresIn;
+
+    // Generate fake but realistic-looking signed URL
+    const fakeSignature = Buffer.from(
+      `mock-sig-${params.path}-${expiresAt}`,
+    ).toString('base64');
+    const url = `https://r2.mock/${params.path}?X-Amz-Signature=${fakeSignature}&X-Amz-Expires=${expiresIn}&X-Amz-Date=${new Date()
+      .toISOString()
+      .replace(/[:-]/g, '')}`;
+
+    console.log(`[MockR2] generateSignedUrlForPath(${params.path}): ${url}`);
+    return url;
+  }
+
+  /**
+   * Mock: Upload file to arbitrary path
+   *
+   * Stores data in-memory at the given path.
+   *
+   * @param params Upload parameters
+   * @param params.path Full path to store the file
+   * @param params.data File content (JSON object or string)
+   * @returns Mock ETag
+   */
+  // eslint-disable-next-line @typescript-eslint/require-await
+  async uploadToPath(params: {
+    path: string;
+    data: Record<string, unknown> | string;
+  }): Promise<string> {
+    if (params.path === '' || params.path === null || params.path === undefined) {
+      throw new Error('Invalid path: must be a non-empty string');
+    }
+
+    const body = typeof params.data === 'string' ? params.data : JSON.stringify(params.data);
+    
+    // Store as Buffer for consistency with other storage methods
+    this.storage.set(params.path, {
+      key: Buffer.from(body),
+      iv: Buffer.from('mock-iv'),
+      authTag: Buffer.from('mock-auth'),
+    });
+
+    const etag = `"mock-etag-${Date.now()}"`;
+    console.log(`[MockR2] uploadToPath(${params.path}): ${etag}`);
+    return etag;
+  }
+
+  /**
+   * Mock: Verify key exists for order
+   *
+   * @param orderId Order ID
+   * @returns true if key exists, false otherwise
+   */
+  // eslint-disable-next-line @typescript-eslint/require-await
+  async verifyKeyExists(orderId: string): Promise<boolean> {
+    const path = `orders/${orderId}/key.json`;
+    return this.storage.has(path);
+  }
 }

@@ -29,6 +29,9 @@ export default tseslint.config(
       '**/test-setup.ts', // Exclude test setup from linting
       '**/vitest.config.ts', // Exclude vitest config from linting
       'check-migrations.ts', // Standalone script not in tsconfig
+      '*.config.mjs', // ESLint config files
+      'eslint.config.mjs', // ESLint config file
+      'src/database/migrations/**', // TypeORM migrations use console.log
     ],
   },
 

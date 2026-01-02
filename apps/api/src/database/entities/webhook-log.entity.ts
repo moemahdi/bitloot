@@ -25,7 +25,7 @@ import {
 @Index(['externalId', 'webhookType', 'createdAt'])
 @Index(['orderId', 'createdAt'])
 @Index(['webhookType', 'processed', 'createdAt'])
-@Unique('UQ_webhook_idempotency', ['externalId', 'webhookType', 'processed'])
+@Unique('UQ_webhook_idempotency', ['externalId', 'webhookType', 'paymentStatus'])
 export class WebhookLog {
   @PrimaryGeneratedColumn('uuid')
   id!: string;

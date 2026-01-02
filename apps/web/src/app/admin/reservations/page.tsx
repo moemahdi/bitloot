@@ -59,11 +59,12 @@ export default function AdminReservationsPage(): React.ReactElement {
 
   const { data, isLoading, error, refetch } = query;
 
-  // Mutation to check Kinguin reservation status
+  // Mutation to check Kinguin order status (orderId = kinguinReservationId from our system)
   const checkKinguinStatusMutation = useMutation<KinguinControllerGetStatus200Response, Error, string>({
     mutationFn: async (reservationId: string) => {
       setCheckingReservationId(reservationId);
-      const response = await kinguinApi.kinguinControllerGetStatus({ reservationId });
+      // Note: The SDK now uses 'orderId' parameter to match Kinguin eCommerce API v2
+      const response = await kinguinApi.kinguinControllerGetStatus({ orderId: reservationId });
       return response;
     },
     onSuccess: (data, reservationId) => {
