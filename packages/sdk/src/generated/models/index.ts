@@ -1,5 +1,6 @@
 /* tslint:disable */
 /* eslint-disable */
+export * from './AddToWatchlistDto';
 export * from './AdminControllerGetKeyAuditTrail200ResponseInner';
 export * from './AdminControllerGetOrders200Response';
 export * from './AdminControllerGetOrders200ResponseDataInner';
@@ -46,6 +47,7 @@ export * from './BulkRepriceProductsDto';
 export * from './BulkRepriceResponseDto';
 export * from './CategoriesResponseDto';
 export * from './CategoryDto';
+export * from './CheckWatchlistResponseDto';
 export * from './CreateAuditLogDto';
 export * from './CreateOrderDto';
 export * from './CreatePaymentDto';
@@ -85,6 +87,7 @@ export * from './OtpResponseDto';
 export * from './PaginatedAdminReviewsDto';
 export * from './PaginatedAuditLogsDto';
 export * from './PaginatedReviewsDto';
+export * from './PaginatedWatchlistResponseDto';
 export * from './PaymentResponseDto';
 export * from './PaymentsControllerAdminListPayments200Response';
 export * from './PaymentsControllerAdminListPayments200ResponseDataInner';
@@ -120,4 +123,7 @@ export * from './UpdateReviewDto';
 export * from './UserResponseDto';
 export * from './VerifyOtpDto';
 export * from './VideoDto';
+export * from './WatchlistControllerGetWatchlistCount200Response';
+export * from './WatchlistItemResponseDto';
+export * from './WatchlistProductDto';
 export * from './WebhookPayloadDto';

@@ -10,6 +10,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { UsersApi, type OrderResponseDto } from '@bitloot/sdk';
 import { apiConfig } from '@/lib/api-config';
+import { useWatchlist, useRemoveFromWatchlist } from '@/features/watchlist';
+import { useCart } from '@/context/CartContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/design-system/primitives/card';
 import { Button } from '@/design-system/primitives/button';
 import { Input } from '@/design-system/primitives/input';
@@ -17,12 +19,13 @@ import { Label } from '@/design-system/primitives/label';
 import { Separator } from '@/design-system/primitives/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/design-system/primitives/tabs';
 import { Badge } from '@/design-system/primitives/badge';
-import { Loader2, User, Shield, Lock, Key, Package, DollarSign, Check, Download, Copy, ShoppingBag, LogOut, LayoutDashboard, Eye, HelpCircle, Mail, Hash, Crown, ShieldCheck, AlertCircle, Fingerprint, KeyRound, Info } from 'lucide-react';
+import { Loader2, User, Shield, Lock, Key, Package, DollarSign, Check, Download, Copy, ShoppingBag, LogOut, LayoutDashboard, Eye, HelpCircle, Mail, Hash, Crown, ShieldCheck, AlertCircle, Fingerprint, KeyRound, Info, Heart } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion } from 'framer-motion';
 import { DashboardStatCard } from '@/components/dashboard/DashboardStatCard';
 import { AnimatedGridPattern } from '@/components/animations/FloatingParticles';
 import { GlowButton } from '@/design-system/primitives/glow-button';
+import { WatchlistProductCard } from '@/features/watchlist/components/WatchlistProductCard';
 
 // Validation schemas
 const passwordSchema = z
@@ -39,6 +42,184 @@ const passwordSchema = z
 type PasswordFormValues = z.infer<typeof passwordSchema>;
 
 const usersClient = new UsersApi(apiConfig);
+
+// ============ WATCHLIST TAB CONTENT COMPONENT ============
+function WatchlistTabContent(): React.ReactElement {
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 12;
+  
+  const { data: watchlistData, isLoading, error, refetch } = useWatchlist(currentPage, itemsPerPage);
+  const removeFromWatchlist = useRemoveFromWatchlist();
+  const { addItem } = useCart();
+
+  const handleAddToCart = (item: NonNullable<typeof watchlistData>['data'][0]): void => {
+    addItem({
+      productId: item.product.id,
+      title: item.product.title,
+      price: item.product.price,
+      quantity: 1,
+      image: item.product.coverImageUrl ?? undefined,
+    });
+    toast.success(`${item.product.title} added to cart`);
+  };
+
+  const handleRemoveFromWatchlist = async (productId: string, productTitle: string): Promise<void> => {
+    try {
+      await removeFromWatchlist.mutateAsync(productId);
+      toast.success(`${productTitle} removed from watchlist`);
+    } catch {
+      toast.error('Failed to remove from watchlist');
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <Card className="glass border-border/50 bg-bg-secondary/50 backdrop-blur-sm">
+        <CardContent className="flex items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-cyan-glow" />
+          <span className="ml-3 text-text-secondary">Loading your watchlist...</span>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (error !== null) {
+    return (
+      <Card className="glass border-border/50 bg-bg-secondary/50 backdrop-blur-sm">
+        <CardContent className="flex flex-col items-center justify-center py-12 space-y-4">
+          <AlertCircle className="h-12 w-12 text-red-500" />
+          <p className="text-text-secondary">Failed to load watchlist</p>
+          <Button variant="outline" onClick={() => refetch()}>
+            Try Again
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  const items = watchlistData?.data ?? [];
+  const total = watchlistData?.total ?? 0;
+  const totalPages = watchlistData?.totalPages ?? 1;
+
+  if (items.length === 0) {
+    return (
+      <Card className="glass border-border/50 bg-bg-secondary/50 backdrop-blur-sm">
+        <CardContent className="flex flex-col items-center justify-center py-16 space-y-4">
+          <div className="p-4 rounded-full bg-purple-neon/10">
+            <Heart className="h-12 w-12 text-purple-neon" />
+          </div>
+          <h3 className="text-xl font-semibold text-text-primary">Your watchlist is empty</h3>
+          <p className="text-text-secondary text-center max-w-md">
+            Browse our catalog and add products to your watchlist to track them here.
+          </p>
+          <Link href="/catalog">
+            <Button className="mt-4 bg-gradient-to-r from-purple-neon to-cyan-glow text-white hover:opacity-90">
+              <ShoppingBag className="mr-2 h-4 w-4" />
+              Browse Products
+            </Button>
+          </Link>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Header Stats */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
+      >
+        <Card className="glass border-border/50 bg-bg-secondary/50 backdrop-blur-sm">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-text-primary flex items-center gap-2">
+                  <Heart className="h-5 w-5 text-purple-neon" />
+                  Your Watchlist
+                </CardTitle>
+                <CardDescription className="text-text-secondary mt-1">
+                  {total} {total === 1 ? 'product' : 'products'} saved
+                </CardDescription>
+              </div>
+              <Link href="/catalog">
+                <Button variant="outline" size="sm" className="border-border/50 hover:border-cyan-glow/30">
+                  <ShoppingBag className="mr-2 h-4 w-4" />
+                  Browse More
+                </Button>
+              </Link>
+            </div>
+          </CardHeader>
+        </Card>
+      </motion.div>
+
+      {/* Watchlist Items Grid - Matching ProductCard Design */}
+      <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        {items.map((item, index) => (
+          <motion.div
+            key={item.id}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: index * 0.05 }}
+          >
+            <WatchlistProductCard
+              product={{
+                id: item.product.id,
+                slug: item.product.slug,
+                title: item.product.title,
+                subtitle: item.product.subtitle,
+                price: item.product.price,
+                coverImageUrl: item.product.coverImageUrl,
+                platform: item.product.platform,
+                region: item.product.region,
+                isPublished: item.product.isPublished,
+              }}
+              addedAt={item.createdAt}
+              onRemove={async (productId: string) => {
+                await handleRemoveFromWatchlist(productId, item.product.title);
+              }}
+              onAddToCart={() => handleAddToCart(item)}
+              isRemoving={removeFromWatchlist.isPending}
+            />
+          </motion.div>
+        ))}
+      </div>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.4, delay: 0.2 }}
+          className="flex justify-center gap-2 pt-4"
+        >
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+            disabled={currentPage === 1}
+            className="border-border/50"
+          >
+            Previous
+          </Button>
+          <span className="flex items-center px-4 text-sm text-text-secondary">
+            Page {currentPage} of {totalPages}
+          </span>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+            disabled={currentPage === totalPages}
+            className="border-border/50"
+          >
+            Next
+          </Button>
+        </motion.div>
+      )}
+    </div>
+  );
+}
 
 export default function ProfilePage(): React.ReactElement {
   const { user, logout } = useAuth();
@@ -67,7 +248,7 @@ export default function ProfilePage(): React.ReactElement {
   
   // Sync activeTab with URL query params
   const urlTab = searchParams.get('tab');
-  const validTabs = ['overview', 'purchases', 'security', 'account', 'help'];
+  const validTabs = ['overview', 'purchases', 'watchlist', 'security', 'account', 'help'];
   const [activeTab, setActiveTab] = useState(() => 
     urlTab !== null && validTabs.includes(urlTab) ? urlTab : 'overview'
   );
@@ -232,7 +413,7 @@ export default function ProfilePage(): React.ReactElement {
 
       {/* Main Tabs Section */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="glass grid w-full grid-cols-5 border border-border/30 bg-bg-secondary/50 p-1 backdrop-blur-sm">
+        <TabsList className="glass grid w-full grid-cols-6 border border-border/30 bg-bg-secondary/50 p-1 backdrop-blur-sm">
           <TabsTrigger
             value="overview"
             aria-label="Overview tab - view dashboard summary"
@@ -248,6 +429,14 @@ export default function ProfilePage(): React.ReactElement {
           >
             <ShoppingBag className="h-4 w-4" />
             <span className="hidden sm:inline">Purchases</span>
+          </TabsTrigger>
+          <TabsTrigger
+            value="watchlist"
+            aria-label="Watchlist tab - view and manage your saved products"
+            className="flex items-center justify-center gap-1.5 transition-all duration-200 focus-visible:ring-2 focus-visible:ring-cyan-glow/50 focus-visible:ring-offset-2 focus-visible:ring-offset-bg-primary data-[state=active]:bg-cyan-glow/10 data-[state=active]:text-cyan-glow data-[state=active]:shadow-glow-sm"
+          >
+            <Heart className="h-4 w-4" />
+            <span className="hidden sm:inline">Watchlist</span>
           </TabsTrigger>
           <TabsTrigger
             value="account"
@@ -960,6 +1149,11 @@ export default function ProfilePage(): React.ReactElement {
               </CardContent>
             </Card>
           </motion.div>
+        </TabsContent>
+
+        {/* Watchlist Tab */}
+        <TabsContent value="watchlist" className="space-y-6">
+          <WatchlistTabContent />
         </TabsContent>
 
         {/* Help Tab */}

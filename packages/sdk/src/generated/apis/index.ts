@@ -22,4 +22,5 @@ export * from './OrdersApi';
 export * from './PaymentsApi';
 export * from './ReviewsApi';
 export * from './UsersApi';
+export * from './WatchlistApi';
 export * from './WebhooksApi';

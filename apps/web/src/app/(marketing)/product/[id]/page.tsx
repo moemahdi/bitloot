@@ -13,7 +13,7 @@ import { Card, CardContent } from '@/design-system/primitives/card';
 import { Skeleton } from '@/design-system/primitives/skeleton';
 import { 
   Bitcoin, Zap, Loader2, Globe, Monitor, ChevronLeft, 
-  Share2, Heart, Check, Package, Play, Image as ImageIcon, 
+  Share2, Check, Package, Play, Image as ImageIcon, 
   Cpu, HardDrive, AlertTriangle, Key, Clock, 
   RefreshCw, FileText, Wallet, Lock, BadgeCheck,
   Volume2, Wifi, Settings, Gamepad2, Shield, Star
@@ -22,6 +22,7 @@ import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import { AddToCartButton } from '@/features/product/components/AddToCartButton';
 import { ProductReviews } from '@/features/reviews';
+import { WatchlistButton } from '@/features/watchlist';
 import { useState, useCallback, useEffect } from 'react';
 
 // ========== Design Constants & Utilities ==========
@@ -916,14 +917,15 @@ export default function ProductPage(): React.ReactElement {
                           image={product.imageUrl}
                         />
                       </div>
-                      <Button 
-                        variant="outline" 
-                        size="icon" 
-                        className="col-span-1 h-11 w-full border-white/10 hover:bg-pink-500/10 hover:text-pink-500 hover:border-pink-500/30 transition-colors"
-                        onClick={() => {/* Add to wishlist logic */}}
-                      >
-                        <Heart className="h-5 w-5" />
-                      </Button>
+                      <div className="col-span-1">
+                        <WatchlistButton
+                          productId={product.id ?? ''}
+                          productTitle={product.title ?? 'Product'}
+                          variant="icon"
+                          size="md"
+                          className="h-11 w-full border border-white/10 hover:bg-pink-500/10 hover:text-pink-500 hover:border-pink-500/30"
+                        />
+                      </div>
                     </div>
                   </div>
 

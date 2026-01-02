@@ -20,8 +20,10 @@ apis/OrdersApi.ts
 apis/PaymentsApi.ts
 apis/ReviewsApi.ts
 apis/UsersApi.ts
+apis/WatchlistApi.ts
 apis/WebhooksApi.ts
 apis/index.ts
+docs/AddToWatchlistDto.md
 docs/AdminApi.md
 docs/AdminCatalogKinguinApi.md
 docs/AdminCatalogPricingApi.md
@@ -81,6 +83,7 @@ docs/CatalogApi.md
 docs/CatalogGroupsApi.md
 docs/CategoriesResponseDto.md
 docs/CategoryDto.md
+docs/CheckWatchlistResponseDto.md
 docs/CreateAuditLogDto.md
 docs/CreateOrderDto.md
 docs/CreatePaymentDto.md
@@ -126,6 +129,7 @@ docs/OtpResponseDto.md
 docs/PaginatedAdminReviewsDto.md
 docs/PaginatedAuditLogsDto.md
 docs/PaginatedReviewsDto.md
+docs/PaginatedWatchlistResponseDto.md
 docs/PaymentResponseDto.md
 docs/PaymentsApi.md
 docs/PaymentsControllerAdminListPayments200Response.md
@@ -164,9 +168,14 @@ docs/UserResponseDto.md
 docs/UsersApi.md
 docs/VerifyOtpDto.md
 docs/VideoDto.md
+docs/WatchlistApi.md
+docs/WatchlistControllerGetWatchlistCount200Response.md
+docs/WatchlistItemResponseDto.md
+docs/WatchlistProductDto.md
 docs/WebhookPayloadDto.md
 docs/WebhooksApi.md
 index.ts
+models/AddToWatchlistDto.ts
 models/AdminControllerGetKeyAuditTrail200ResponseInner.ts
 models/AdminControllerGetOrders200Response.ts
 models/AdminControllerGetOrders200ResponseDataInner.ts
@@ -213,6 +222,7 @@ models/BulkRepriceProductsDto.ts
 models/BulkRepriceResponseDto.ts
 models/CategoriesResponseDto.ts
 models/CategoryDto.ts
+models/CheckWatchlistResponseDto.ts
 models/CreateAuditLogDto.ts
 models/CreateOrderDto.ts
 models/CreatePaymentDto.ts
@@ -252,6 +262,7 @@ models/OtpResponseDto.ts
 models/PaginatedAdminReviewsDto.ts
 models/PaginatedAuditLogsDto.ts
 models/PaginatedReviewsDto.ts
+models/PaginatedWatchlistResponseDto.ts
 models/PaymentResponseDto.ts
 models/PaymentsControllerAdminListPayments200Response.ts
 models/PaymentsControllerAdminListPayments200ResponseDataInner.ts
@@ -287,6 +298,9 @@ models/UpdateReviewDto.ts
 models/UserResponseDto.ts
 models/VerifyOtpDto.ts
 models/VideoDto.ts
+models/WatchlistControllerGetWatchlistCount200Response.ts
+models/WatchlistItemResponseDto.ts
+models/WatchlistProductDto.ts
 models/WebhookPayloadDto.ts
 models/index.ts
 runtime.ts

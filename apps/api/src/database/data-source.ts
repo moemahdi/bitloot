@@ -10,6 +10,7 @@ import { User } from './entities/user.entity';
 import { AuditLog } from './entities/audit-log.entity';
 import { EmailBounce } from './entities/email-bounce.entity';
 import { Review } from './entities/review.entity';
+import { WatchlistItem } from './entities/watchlist-item.entity';
 import { Product } from '../modules/catalog/entities/product.entity';
 import { ProductOffer } from '../modules/catalog/entities/product-offer.entity';
 import { ProductGroup } from '../modules/catalog/entities/product-group.entity';
@@ -32,13 +33,14 @@ import { MakePricingRuleProductIdNullable1764400000000 } from './migrations/1764
 import { CreateProductGroups1765000000000 } from './migrations/1765000000000-CreateProductGroups';
 import { CreateReviews1766000000000 } from './migrations/1766000000000-CreateReviews';
 import { MakeReviewOrderIdNullable1766000000001 } from './migrations/1766000000001-MakeReviewOrderIdNullable';
+import { CreateWatchlist1767000000000 } from './migrations/1767000000000-CreateWatchlist';
 
 dotenv.config({ path: path.resolve(__dirname, '../../../../.env') });
 
 export default new DataSource({
   type: 'postgres',
   url: process.env.DATABASE_URL,
-  entities: [Order, OrderItem, Key, Payment, WebhookLog, User, AuditLog, EmailBounce, Review, Product, ProductOffer, ProductGroup, DynamicPricingRule],
+  entities: [Order, OrderItem, Key, Payment, WebhookLog, User, AuditLog, EmailBounce, Review, WatchlistItem, Product, ProductOffer, ProductGroup, DynamicPricingRule],
   migrations: [
     InitOrders1710000000000,
     AddKeysReservation1720000000000,
@@ -58,6 +60,7 @@ export default new DataSource({
     CreateProductGroups1765000000000,
     CreateReviews1766000000000,
     MakeReviewOrderIdNullable1766000000001,
+    CreateWatchlist1767000000000,
   ],
   logging: true,
   synchronize: false,

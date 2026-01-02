@@ -27,6 +27,7 @@ import { EmailsModule } from './modules/emails/emails.module';
 import { AuditModule } from './modules/audit/audit.module';
 import { CatalogModule } from './modules/catalog/catalog.module';
 import { ReviewsModule } from './modules/reviews/reviews.module';
+import { WatchlistModule } from './modules/watchlist/watchlist.module';
 
 @Module({
   imports: [
@@ -74,6 +75,8 @@ import { ReviewsModule } from './modules/reviews/reviews.module';
     CatalogModule,
     // Reviews module (customer reviews, admin moderation, ratings)
     ReviewsModule,
+    // Watchlist module (customer product wishlists)
+    WatchlistModule,
   ],
   controllers: [HealthController, OrdersController],
   providers: [
