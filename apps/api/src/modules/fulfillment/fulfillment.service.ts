@@ -8,7 +8,6 @@ import { Order, type OrderStatus } from '../orders/order.entity';
 import { OrderItem } from '../orders/order-item.entity';
 import { KinguinClient } from './kinguin.client';
 import { R2StorageClient } from '../storage/r2.client';
-import { generateEncryptionKey, encryptKey } from '../storage/encryption.util';
 import { DeliveryService } from './delivery.service';
 import { EmailsService } from '../emails/emails.service';
 import { Key } from '../orders/key.entity';
@@ -182,10 +181,10 @@ export class FulfillmentService {
       );
     }
 
-    // Generate signed URL (15 minute expiry)
+    // Generate signed URL (3 hour expiry)
     const signedUrl = await this.r2StorageClient.generateSignedUrlForPath({
       path: storageRef,
-      expiresInSeconds: 15 * 60,
+      expiresInSeconds: 3 * 60 * 60, // 3 hours
     });
 
     this.logger.debug(`[FULFILLMENT:CUSTOM] Generated signed URL for ${storageRef}`);
@@ -261,7 +260,7 @@ export class FulfillmentService {
 
   /**
    * Fulfill a single KINGUIN order item
-   * Fetches key from Kinguin API, encrypts, uploads to R2
+   * Fetches key from Kinguin API and uploads to R2 in original format (no encryption)
    * 
    * Requires the order to already have a kinguinReservationId from startReservation()
    */
@@ -278,12 +277,25 @@ export class FulfillmentService {
         throw new BadRequestException(`Order ${orderId} has no Kinguin reservation ID - call startReservation first`);
       }
 
-      // Fetch the actual key from Kinguin API
+      // Fetch the actual key from Kinguin API (v2 endpoint returns full key object with type)
       this.logger.debug(`[FULFILLMENT:KINGUIN] Fetching key from Kinguin for reservation: ${reservationId}`);
       
-      let plainKey: string;
+      let keyObject: { serial: string; type: string; name?: string };
       try {
-        plainKey = await this.kinguinClient.getKey(reservationId);
+        const keys = await this.kinguinClient.getKeysV2(reservationId);
+        if (keys.length === 0) {
+          throw new BadRequestException(`No keys returned from Kinguin for order ${orderId}`);
+        }
+        // Use the first key (most orders have a single key)
+        const firstKey = keys[0];
+        if (firstKey === undefined) {
+          throw new BadRequestException(`First key is undefined for order ${orderId}`);
+        }
+        keyObject = {
+          serial: firstKey.serial,
+          type: firstKey.type,
+          name: firstKey.name,
+        };
       } catch (keyError) {
         // Key might not be ready yet - Kinguin orders can take time
         const keyErrorMsg = keyError instanceof Error ? keyError.message : String(keyError);
@@ -291,33 +303,28 @@ export class FulfillmentService {
         throw new BadRequestException(`Kinguin key not ready for order ${orderId}: ${keyErrorMsg}`);
       }
       
-      this.logger.debug(`[FULFILLMENT:KINGUIN] Retrieved key from Kinguin: ${plainKey.length} chars`);
+      this.logger.debug(`[FULFILLMENT:KINGUIN] Retrieved key from Kinguin: ${keyObject.serial.length} chars, type: ${keyObject.type}`);
 
-      // Generate encryption key
-      const encryptionKey = generateEncryptionKey();
-      this.logger.debug(`[FULFILLMENT:KINGUIN] Generated encryption key: 32 bytes`);
-
-      // Encrypt the key with AES-256-GCM
-      const encrypted = encryptKey(plainKey, encryptionKey);
-      this.logger.debug(
-        `[FULFILLMENT:KINGUIN] Encrypted key: ${encrypted.encryptedKey.length} chars (base64)`,
-      );
-
-      // Upload to R2
-      await this.r2StorageClient.uploadEncryptedKey({
+      // Upload raw key to R2 (no encryption - R2 is credential-protected)
+      const uploadResult = await this.r2StorageClient.uploadRawKey({
         orderId,
-        encryptedKey: encrypted.encryptedKey,
-        encryptionIv: encrypted.iv,
-        authTag: encrypted.authTag,
+        content: keyObject.serial,
+        contentType: keyObject.type,
+        filename: keyObject.name,
+        metadata: {
+          'order-item-id': item.id,
+          'kinguin-reservation-id': reservationId,
+        },
       });
-      this.logger.debug(`[FULFILLMENT:KINGUIN] Uploaded encrypted key to R2`);
+      this.logger.debug(`[FULFILLMENT:KINGUIN] Uploaded raw key to R2: ${uploadResult.objectKey}`);
 
-      // Generate signed URL (15 minute expiry)
-      const signedUrl = await this.r2StorageClient.generateSignedUrl({
+      // Generate signed URL (3 hour expiry)
+      const signedUrl = await this.r2StorageClient.generateSignedUrlForRawKey({
         orderId,
-        expiresInSeconds: 15 * 60,
+        contentType: keyObject.type,
+        expiresInSeconds: 3 * 60 * 60, // 3 hours
       });
-      this.logger.debug(`[FULFILLMENT:KINGUIN] Generated signed URL (15 min expiry)`);
+      this.logger.debug(`[FULFILLMENT:KINGUIN] Generated signed URL (3 hour expiry)`);
 
       // Update order item with signed URL
       await this.orderItemRepo.update(
@@ -328,12 +335,12 @@ export class FulfillmentService {
         },
       );
 
-      // Create a Key record for audit (storageRef points to R2 object)
-      const storageRef = `orders/${orderId}/key.json`;
+      // Create a Key record for audit (storageRef points to R2 object, no encryptionKey needed)
       const keyEntity = this.keyRepo.create({
         orderItemId: item.id,
-        storageRef,
-        encryptionKey: encryptionKey.toString('base64'),
+        storageRef: uploadResult.objectKey,
+        // Store contentType instead of encryptionKey (no encryption used)
+        encryptionKey: `raw:${keyObject.type}`,
       });
       await this.keyRepo.save(keyEntity);
 
@@ -343,7 +350,7 @@ export class FulfillmentService {
         itemId: item.id,
         productId: item.productId,
         signedUrl,
-        encryptionKeySize: 32,
+        encryptionKeySize: 0, // No encryption used
         status: 'fulfilled',
       };
     } catch (error) {
@@ -361,11 +368,14 @@ export class FulfillmentService {
       const primary = results[0];
       if (primary !== undefined && typeof order.email === 'string' && order.email.length > 0) {
         const productName = 'Your Digital Product';
+        // Use gateway URL instead of raw signed URL for graceful expiry handling
+        const frontendUrl = process.env.FRONTEND_URL ?? 'http://localhost:3000';
+        const gatewayUrl = `${frontendUrl}/download/${order.id}`;
         await this.emailsService.sendOrderCompleted(order.email, {
           orderId: order.id,
           productName,
-          downloadUrl: primary.signedUrl,
-          expiresIn: '15 minutes',
+          downloadUrl: gatewayUrl,
+          expiresIn: '3 hours',
         });
         this.logger.debug(`[FULFILLMENT] Order completion email queued for ${order.email}`);
       }
@@ -471,31 +481,37 @@ export class FulfillmentService {
 
     const plainKey = status.key;
     const keyType = status.keyType ?? 'text/plain';
-    const encryptionKey = generateEncryptionKey();
-    // Removed: this.deliveryService.storeEncryptionKey(order.id, encryptionKey);
 
-    const encrypted = encryptKey(plainKey, encryptionKey);
-
-    await this.r2StorageClient.uploadEncryptedKey({
+    // Upload raw key to R2 (no encryption - R2 is already credential-protected)
+    await this.r2StorageClient.uploadRawKey({
       orderId: order.id,
-      encryptedKey: encrypted.encryptedKey,
-      encryptionIv: encrypted.iv,
-      authTag: encrypted.authTag,
+      content: plainKey,
       contentType: keyType,
     });
 
-    const signedUrl = await this.r2StorageClient.generateSignedUrl({
+    // Generate signed URL for raw file download (3 hours)
+    const signedUrl = await this.r2StorageClient.generateSignedUrlForRawKey({
       orderId: order.id,
-      expiresInSeconds: 15 * 60,
+      contentType: keyType,
+      expiresInSeconds: 3 * 60 * 60, // 3 hours
     });
+
+    // Determine file extension for storage reference
+    const extensionMap: Record<string, string> = {
+      'text/plain': 'txt',
+      'image/jpeg': 'jpg',
+      'image/png': 'png',
+      'image/gif': 'gif',
+    };
+    const extension = extensionMap[keyType] ?? 'txt';
+    const storageRef = `orders/${order.id}/key.${extension}`;
 
     for (const item of order.items) {
       await this.orderItemRepo.update({ id: item.id }, { signedUrl, updatedAt: new Date() });
-      const storageRef = `orders/${order.id}/key.json`;
       const keyEntity = this.keyRepo.create({
         orderItemId: item.id,
         storageRef,
-        encryptionKey: encryptionKey.toString('base64'),
+        encryptionKey: `raw:${keyType}`, // Mark as raw (no encryption)
         contentType: keyType,
       });
       await this.keyRepo.save(keyEntity);
@@ -503,11 +519,14 @@ export class FulfillmentService {
 
     try {
       if (order.email !== undefined && order.email !== '') {
+        // Use gateway URL instead of raw signed URL for graceful expiry handling
+        const frontendUrl = process.env.FRONTEND_URL ?? 'http://localhost:3000';
+        const gatewayUrl = `${frontendUrl}/download/${order.id}`;
         await this.emailsService.sendOrderCompleted(order.email, {
           orderId: order.id,
           productName: 'Your Digital Product',
-          downloadUrl: signedUrl,
-          expiresIn: '15 minutes',
+          downloadUrl: gatewayUrl,
+          expiresIn: '3 hours',
         });
       }
     } catch (e) {

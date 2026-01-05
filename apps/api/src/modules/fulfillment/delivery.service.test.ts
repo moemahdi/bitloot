@@ -174,12 +174,12 @@ describe('DeliveryService', () => {
       const result = await service.generateDeliveryLink('order-123');
       const afterCall = Date.now();
 
-      const expectedExpiry = beforeCall + 15 * 60 * 1000;
+      const expectedExpiry = beforeCall + 3 * 60 * 60 * 1000; // 3 hours
       const resultExpiry = result.expiresAt.getTime();
 
       // Allow 100ms tolerance
       expect(resultExpiry).toBeGreaterThanOrEqual(expectedExpiry - 100);
-      expect(resultExpiry).toBeLessThanOrEqual(afterCall + 15 * 60 * 1000 + 100);
+      expect(resultExpiry).toBeLessThanOrEqual(afterCall + 3 * 60 * 60 * 1000 + 100);
     });
   });
 

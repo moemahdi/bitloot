@@ -15,15 +15,23 @@
 
 import * as runtime from '../runtime';
 import type {
+  OrderResponseDto,
   UpdatePasswordDto,
   UserResponseDto,
 } from '../models/index';
 import {
+    OrderResponseDtoFromJSON,
+    OrderResponseDtoToJSON,
     UpdatePasswordDtoFromJSON,
     UpdatePasswordDtoToJSON,
     UserResponseDtoFromJSON,
     UserResponseDtoToJSON,
 } from '../models/index';
+
+export interface UsersControllerGetOrdersRequest {
+    page?: number;
+    limit?: number;
+}
 
 export interface UsersControllerUpdatePasswordRequest {
     updatePasswordDto: UpdatePasswordDto;
@@ -37,8 +45,16 @@ export class UsersApi extends runtime.BaseAPI {
     /**
      * Get user\'s orders
      */
-    async usersControllerGetOrdersRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<void>> {
+    async usersControllerGetOrdersRaw(requestParameters: UsersControllerGetOrdersRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<OrderResponseDto>>> {
         const queryParameters: any = {};
+
+        if (requestParameters['page'] != null) {
+            queryParameters['page'] = requestParameters['page'];
+        }
+
+        if (requestParameters['limit'] != null) {
+            queryParameters['limit'] = requestParameters['limit'];
+        }
 
         const headerParameters: runtime.HTTPHeaders = {};
 
@@ -60,14 +76,15 @@ export class UsersApi extends runtime.BaseAPI {
             query: queryParameters,
         }, initOverrides);
 
-        return new runtime.VoidApiResponse(response);
+        return new runtime.JSONApiResponse(response, (jsonValue) => jsonValue.map(OrderResponseDtoFromJSON));
     }
 
     /**
      * Get user\'s orders
      */
-    async usersControllerGetOrders(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<void> {
-        await this.usersControllerGetOrdersRaw(initOverrides);
+    async usersControllerGetOrders(requestParameters: UsersControllerGetOrdersRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<OrderResponseDto>> {
+        const response = await this.usersControllerGetOrdersRaw(requestParameters, initOverrides);
+        return await response.value();
     }
 
     /**

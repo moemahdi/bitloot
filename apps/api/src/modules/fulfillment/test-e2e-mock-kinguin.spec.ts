@@ -73,7 +73,7 @@ async function testE2E(): Promise<void> {
     log.success('Mock license key generated: XXXXX-XXXXX-XXXXX-XXXXX');
     log.success('Key encrypted with AES-256-GCM');
     log.success('Encrypted key uploaded to mock R2 storage');
-    log.success('Signed URL generated (15-min expiry)');
+    log.success('Signed URL generated (3-hour expiry)');
 
     // Final summary
     log.info('\n═══════════════════════════════════════════');

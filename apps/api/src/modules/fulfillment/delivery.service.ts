@@ -18,7 +18,7 @@ import { decryptKey } from '../storage/encryption.util';
  * 5. Validate access permissions
  *
  * Security model:
- * - Links expire after 15 minutes
+ * - Links expire after 3 hours
  * - Keys are encrypted in R2 (never stored plaintext)
  * - All revelations are logged (who, when, from where)
  * - Re-download attempts rejected after first access
@@ -29,7 +29,7 @@ import { decryptKey } from '../storage/encryption.util';
  * // {
  * //   signedUrl: 'https://r2.../orders/order-123/key.json?...signature...',
  * //   expiresAt: Date,
- * //   message: 'Link expires in 15 minutes'
+ * //   message: 'Link expires in 3 hours'
  * // }
  *
  * // Reveal key (called when user clicks download)
@@ -114,8 +114,8 @@ export class DeliveryService {
         throw new Error(`Primary item has no signed URL: ${primaryItem.id}`);
       }
 
-      // Calculate expiry (15 minutes from R2 signed URL)
-      const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
+      // Calculate expiry (3 hours from R2 signed URL)
+      const expiresAt = new Date(Date.now() + 3 * 60 * 60 * 1000);
 
       this.logger.log(
         `✅ [DELIVERY] Link generated for order ${orderId} (expires: ${expiresAt.toISOString()})`,
@@ -126,7 +126,7 @@ export class DeliveryService {
         signedUrl,
         expiresAt,
         itemCount: order.items.length,
-        message: 'Link expires in 15 minutes. Download your key now.',
+        message: 'Link expires in 3 hours. Download your key now.',
       };
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
@@ -225,35 +225,69 @@ export class DeliveryService {
         throw new BadRequestException(`Item not fulfilled (no signed URL): ${itemId}`);
       }
 
-      // Step 3-4: Retrieve encrypted key and decryption key
-      const encryptedKeyData = await this.getEncryptedKeyFromR2(orderId);
-
-      // Fetch Key entity to get the decryption key
+      // Fetch Key entity to get the encryption key (or raw marker)
       const keyEntity = await this.keyRepo.findOne({ where: { orderItemId: itemId } });
 
       if (keyEntity?.encryptionKey == null) {
-        throw new Error(`Decryption key not found for item: ${itemId}`);
+        throw new Error(`Key metadata not found for item: ${itemId}`);
       }
 
-      const decryptionKey = Buffer.from(keyEntity.encryptionKey, 'base64');
-
-      // Step 5: Decrypt key
+      const expiresAt = new Date(Date.now() + 3 * 60 * 60 * 1000); // 3 hours
       let plainKey: string;
-      try {
-        plainKey = decryptKey(
-          encryptedKeyData.encryptedKey,
-          encryptedKeyData.iv,
-          encryptedKeyData.authTag,
-          decryptionKey,
-        );
-        this.logger.debug(`[DELIVERY] Key decrypted successfully`);
-      } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
-        this.logger.error(`[DELIVERY] Key decryption failed (tampering?): ${message}`);
-        throw new Error(`Failed to decrypt key. Possible data corruption: ${message}`);
+      let contentType: string;
+      let isBase64 = false;
+      let signedUrl: string | undefined;
+
+      // Check if this is a raw key (no encryption) or encrypted key (legacy)
+      if (keyEntity.encryptionKey.startsWith('raw:')) {
+        // ===== RAW KEY (New format - no encryption) =====
+        contentType = keyEntity.encryptionKey.substring(4); // Extract content type after 'raw:'
+        this.logger.debug(`[DELIVERY] Detected raw key with content type: ${contentType}`);
+
+        // Fetch raw key content from R2
+        const rawKeyResult = await this.r2StorageClient.getRawKeyFromR2({
+          orderId,
+          contentType,
+        });
+
+        plainKey = rawKeyResult.content;
+        isBase64 = rawKeyResult.isBase64;
+
+        // Generate a fresh signed URL for direct download (3 hours)
+        signedUrl = await this.r2StorageClient.generateSignedUrlForRawKey({
+          orderId,
+          contentType,
+          expiresInSeconds: 3 * 60 * 60, // 3 hours
+        });
+
+        this.logger.debug(`[DELIVERY] Raw key fetched successfully (base64: ${isBase64})`);
+      } else {
+        // ===== ENCRYPTED KEY (Legacy format) =====
+        this.logger.debug(`[DELIVERY] Detected encrypted key, using decryption flow`);
+
+        // Retrieve encrypted key data from R2
+        const encryptedKeyData = await this.getEncryptedKeyFromR2(orderId);
+        contentType = encryptedKeyData.contentType;
+
+        const decryptionKey = Buffer.from(keyEntity.encryptionKey, 'base64');
+
+        // Decrypt key
+        try {
+          plainKey = decryptKey(
+            encryptedKeyData.encryptedKey,
+            encryptedKeyData.iv,
+            encryptedKeyData.authTag,
+            decryptionKey,
+          );
+          this.logger.debug(`[DELIVERY] Key decrypted successfully`);
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
+          this.logger.error(`[DELIVERY] Key decryption failed (tampering?): ${message}`);
+          throw new Error(`Failed to decrypt key. Possible data corruption: ${message}`);
+        }
       }
 
-      // Step 6: Log revelation event
+      // Log revelation event
       this.logKeyRevelation({
         orderId,
         itemId,
@@ -263,17 +297,17 @@ export class DeliveryService {
         revealedAt: new Date(),
       });
 
-      const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
-
       this.logger.log(
-        `✅ [DELIVERY] Key revealed for order ${orderId}, item ${itemId} from ${accessInfo.ipAddress} (type: ${encryptedKeyData.contentType})`,
+        `✅ [DELIVERY] Key revealed for order ${orderId}, item ${itemId} from ${accessInfo.ipAddress} (type: ${contentType}, raw: ${keyEntity.encryptionKey.startsWith('raw:')})`,
       );
 
       return {
         orderId,
         itemId,
         plainKey,
-        contentType: encryptedKeyData.contentType,
+        contentType,
+        isBase64,
+        signedUrl,
         revealedAt: new Date(),
         expiresAt,
         downloadCount: 1,
@@ -367,9 +401,9 @@ export class DeliveryService {
         throw new BadRequestException(`Item has no signed URL: ${item.id}`);
       }
 
-      // R2 signed URLs expire after 15 minutes from generation
+      // R2 signed URLs expire after 3 hours from generation
       const generatedAt = item.updatedAt;
-      const expiresAt = new Date(generatedAt.getTime() + 15 * 60 * 1000);
+      const expiresAt = new Date(generatedAt.getTime() + 3 * 60 * 60 * 1000); // 3 hours
       const now = new Date();
       const isExpired = now > expiresAt;
       const remainingSeconds = Math.max(
@@ -473,6 +507,11 @@ export interface EncryptedKeyData {
 export interface RevealedKeyResult {
   orderId: string;
   itemId: string;
+  /**
+   * For text keys: the actual key content
+   * For image keys: base64-encoded image data (when isBase64 is true)
+   * May be empty if signedUrl is provided for direct download
+   */
   plainKey: string;
   /**
    * Content type of the key data.
@@ -482,6 +521,15 @@ export interface RevealedKeyResult {
    * - 'image/gif' - GIF image (plainKey contains base64 image)
    */
   contentType: string;
+  /**
+   * Whether plainKey contains base64-encoded data (true for images)
+   */
+  isBase64?: boolean;
+  /**
+   * Direct download URL for the key file (for raw keys)
+   * When provided, clients can use this for direct file download
+   */
+  signedUrl?: string;
   revealedAt: Date;
   expiresAt: Date;
   downloadCount: number;

@@ -429,7 +429,7 @@ export class EmailsService {
       expiresIn?: string;
     },
   ): Promise<void> {
-    const { orderId, productName, downloadUrl, expiresIn = '15 minutes' } = data;
+    const { orderId, productName, downloadUrl, expiresIn = '3 hours' } = data;
     const shortOrderId = orderId.substring(0, 8);
 
     const html = `
@@ -454,7 +454,7 @@ export class EmailsService {
       
       <p><strong>⚠️ Important Security Notice:</strong></p>
       <ul>
-        <li>🔗 Your download link expires in <strong>${expiresIn}</strong></li>
+        <li>🔗 Download available for <strong>${expiresIn}</strong> — after that, sign in to get a new link</li>
         <li>🔒 The link is encrypted and only accessible by you</li>
         <li>📝 We never email plaintext keys — always use the secure link</li>
         <li>🚫 Do not share this link with others</li>
@@ -469,8 +469,8 @@ export class EmailsService {
         <li>If you need help, visit our <a href="https://bitloot.io/support">Support Center</a></li>
       </ol>
       
-      <p><strong>Can't access your key?</strong></p>
-      <p>Visit your <a href="https://bitloot.io/account/orders">order history</a> to regenerate the download link (available 24 hours).</p>
+      <p><strong>Link expired?</strong></p>
+      <p><a href="https://bitloot.io/auth/login">Sign in</a> and visit your <a href="https://bitloot.io/account/orders">order history</a> to get a fresh download link.</p>
       
       <p>Thank you for shopping with BitLoot!</p>
       <p>Best regards,<br/><strong>The BitLoot Team</strong></p>

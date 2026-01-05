@@ -12,7 +12,7 @@ All URIs are relative to *http://localhost*
 
 ## usersControllerGetOrders
 
-> usersControllerGetOrders()
+> Array&lt;OrderResponseDto&gt; usersControllerGetOrders(page, limit)
 
 Get user\&#39;s orders
 
@@ -33,8 +33,15 @@ async function example() {
   });
   const api = new UsersApi(config);
 
+  const body = {
+    // number | Page number (default: 1) (optional)
+    page: 8.14,
+    // number | Items per page (default: 20, max: 100) (optional)
+    limit: 8.14,
+  } satisfies UsersControllerGetOrdersRequest;
+
   try {
-    const data = await api.usersControllerGetOrders();
+    const data = await api.usersControllerGetOrders(body);
     console.log(data);
   } catch (error) {
     console.error(error);
@@ -47,11 +54,15 @@ example().catch(console.error);
 
 ### Parameters
 
-This endpoint does not need any parameter.
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **page** | `number` | Page number (default: 1) | [Optional] [Defaults to `undefined`] |
+| **limit** | `number` | Items per page (default: 20, max: 100) | [Optional] [Defaults to `undefined`] |
 
 ### Return type
 
-`void` (Empty response body)
+[**Array&lt;OrderResponseDto&gt;**](OrderResponseDto.md)
 
 ### Authorization
 
@@ -60,7 +71,7 @@ This endpoint does not need any parameter.
 ### HTTP request headers
 
 - **Content-Type**: Not defined
-- **Accept**: Not defined
+- **Accept**: `application/json`
 
 
 ### HTTP response details

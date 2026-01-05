@@ -40,7 +40,7 @@ describe('StorageService', () => {
       const input = {
         orderId: 'order-123',
         plainKey: 'GAME-KEY-ABC123',
-        expiresInMinutes: 15,
+        expiresInMinutes: 180,
       };
 
       const url = await service.uploadAndGetSignedUrl(input);
@@ -49,11 +49,11 @@ describe('StorageService', () => {
       expect(mockR2Client.uploadEncryptedKey).toHaveBeenCalled();
       expect(mockR2Client.generateSignedUrl).toHaveBeenCalledWith({
         orderId: 'order-123',
-        expiresInSeconds: 900, // 15 * 60
+        expiresInSeconds: 10800, // 180 * 60 = 3 hours
       });
     });
 
-    it('should use default 15-minute expiry if not specified', async () => {
+    it('should use default 3-hour expiry if not specified', async () => {
       const input = {
         orderId: 'order-456',
         plainKey: 'GAME-KEY-DEF456',
@@ -63,7 +63,7 @@ describe('StorageService', () => {
 
       expect(mockR2Client.generateSignedUrl).toHaveBeenCalledWith({
         orderId: 'order-456',
-        expiresInSeconds: 900, // 15 * 60 (default)
+        expiresInSeconds: 10800, // 180 * 60 = 3 hours (default)
       });
     });
 

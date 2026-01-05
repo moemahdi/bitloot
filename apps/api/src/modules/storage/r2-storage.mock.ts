@@ -60,7 +60,7 @@ export class MockR2StorageClient {
     orderId: string;
     expiresInSeconds?: number;
   }): Promise<string> {
-    const expiresIn = config.expiresInSeconds ?? 15 * 60; // 15 minutes default
+    const expiresIn = config.expiresInSeconds ?? 180 * 60; // 3 hours default
     const expiresAt = Math.floor(Date.now() / 1000) + expiresIn;
 
     // Generate fake but realistic-looking signed URL
@@ -148,7 +148,7 @@ export class MockR2StorageClient {
    *
    * @param params URL generation parameters
    * @param params.path Full path to the file
-   * @param params.expiresInSeconds URL expiry time (default: 900 = 15 min)
+   * @param params.expiresInSeconds URL expiry time (default: 10800 = 3 hours)
    * @returns Signed URL string
    */
   // eslint-disable-next-line @typescript-eslint/require-await
@@ -160,7 +160,7 @@ export class MockR2StorageClient {
       throw new Error('Invalid path: must be a non-empty string');
     }
 
-    const expiresIn = params.expiresInSeconds ?? 900; // 15 minutes default
+    const expiresIn = params.expiresInSeconds ?? 10800; // 3 hours default
     const expiresAt = Math.floor(Date.now() / 1000) + expiresIn;
 
     // Generate fake but realistic-looking signed URL

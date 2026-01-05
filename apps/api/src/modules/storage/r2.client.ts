@@ -175,6 +175,229 @@ export class R2StorageClient {
   }
 
   /**
+   * Upload raw key content to R2 (no encryption)
+   *
+   * Stores the key content directly in its original format as provided by Kinguin.
+   * The key is stored at: `orders/{orderId}/key.{extension}`
+   *
+   * @param params Upload parameters
+   * @param params.orderId Order ID (used as storage key)
+   * @param params.content Raw key content (string or Buffer)
+   * @param params.contentType Content type (text/plain, image/jpeg, etc.)
+   * @param params.filename Original filename (optional)
+   * @param params.metadata Optional metadata (order email, timestamp, etc.)
+   *
+   * @returns Object with ETag, objectKey, and contentType
+   *
+   * @throws Error if upload fails
+   *
+   * @example
+   * const result = await client.uploadRawKey({
+   *   orderId: '550e8400-e29b-41d4-a716-446655440000',
+   *   content: 'XXXXX-XXXXX-XXXXX-XXXXX-XXXXX',
+   *   contentType: 'text/plain',
+   * });
+   */
+  async uploadRawKey(params: {
+    orderId: string;
+    content: string | Buffer;
+    contentType: string;
+    filename?: string;
+    metadata?: Record<string, string>;
+  }): Promise<{ etag: string; objectKey: string; contentType: string }> {
+    // Validate orderId
+    if (params.orderId === '' || params.orderId === null || params.orderId === undefined) {
+      throw new Error('Invalid orderId: must be a non-empty string');
+    }
+
+    // Determine file extension from content type
+    const extensionMap: Record<string, string> = {
+      'text/plain': 'txt',
+      'image/jpeg': 'jpg',
+      'image/png': 'png',
+      'image/gif': 'gif',
+      'application/octet-stream': 'bin',
+    };
+    const extension = extensionMap[params.contentType] ?? 'txt';
+    const objectKey = `orders/${params.orderId}/key.${extension}`;
+
+    try {
+      this.logger.debug(`Uploading raw key to R2: ${objectKey} (${params.contentType})`);
+
+      const input: PutObjectCommandInput = {
+        Bucket: this.bucketName,
+        Key: objectKey,
+        Body: params.content,
+        ContentType: params.contentType,
+        Metadata: {
+          'order-id': params.orderId,
+          'original-filename': params.filename ?? `key.${extension}`,
+          'uploaded-at': new Date().toISOString(),
+          ...params.metadata,
+        },
+      };
+
+      const command = new PutObjectCommand(input);
+      const response = await this.s3.send(command);
+
+      const etag = response.ETag ?? 'unknown';
+      this.logger.log(`✅ Raw key uploaded to R2: ${objectKey} (ETag: ${etag}, type: ${params.contentType})`);
+
+      return { etag, objectKey, contentType: params.contentType };
+    } catch (error) {
+      const message = this.extractErrorMessage(error);
+      this.logger.error(`❌ Failed to upload raw key to R2: ${message}`);
+      throw new Error(`R2 raw key upload failed: ${message}`);
+    }
+  }
+
+  /**
+   * Generate signed URL for raw key download
+   *
+   * Creates a time-limited URL for downloading the raw key from R2.
+   *
+   * @param params URL generation parameters
+   * @param params.orderId Order ID (must match uploaded key)
+   * @param params.contentType Content type of the stored key
+   * @param params.expiresInSeconds URL expiry time in seconds (default: 10800 = 3 hours)
+   *
+   * @returns Signed download URL
+   */
+  async generateSignedUrlForRawKey(params: {
+    orderId: string;
+    contentType: string;
+    expiresInSeconds?: number;
+  }): Promise<string> {
+    // Validate orderId
+    if (params.orderId === '' || params.orderId === null || params.orderId === undefined) {
+      throw new Error('Invalid orderId: must be a non-empty string');
+    }
+
+    const expiresInSeconds = params.expiresInSeconds ?? 10800; // Default 3 hours
+
+    // Determine file extension and filename
+    const extensionMap: Record<string, string> = {
+      'text/plain': 'txt',
+      'image/jpeg': 'jpg',
+      'image/png': 'png',
+      'image/gif': 'gif',
+      'application/octet-stream': 'bin',
+    };
+    const extension = extensionMap[params.contentType] ?? 'txt';
+    const objectKey = `orders/${params.orderId}/key.${extension}`;
+    const filename = `bitloot-key-${params.orderId}.${extension}`;
+
+    try {
+      this.logger.debug(
+        `Generating signed URL for raw key: ${objectKey} (expires in ${expiresInSeconds}s)`,
+      );
+
+      const input: GetObjectCommandInput = {
+        Bucket: this.bucketName,
+        Key: objectKey,
+        ResponseContentDisposition: `attachment; filename="${filename}"`,
+        ResponseContentType: params.contentType,
+      };
+
+      const command = new GetObjectCommand(input);
+      const url = await getSignedUrl(this.s3, command, { expiresIn: expiresInSeconds });
+
+      this.logger.log(`✅ Signed URL generated for raw key: ${objectKey}`);
+
+      return url;
+    } catch (error) {
+      const message = this.extractErrorMessage(error);
+      this.logger.error(`❌ Failed to generate signed URL for raw key: ${message}`);
+      throw new Error(`R2 signed URL generation failed: ${message}`);
+    }
+  }
+
+  /**
+   * Fetch raw key content from R2
+   *
+   * Retrieves the raw key file (text or image) from R2 storage.
+   * For text keys, returns the content as a string.
+   * For image keys, returns the content as base64.
+   *
+   * @param params Fetch parameters
+   * @param params.orderId Order ID
+   * @param params.contentType Content type of the stored key
+   *
+   * @returns Object with key content (text or base64) and content type
+   *
+   * @example
+   * const result = await client.getRawKeyFromR2({
+   *   orderId: '550e8400-e29b-41d4-a716-446655440000',
+   *   contentType: 'text/plain',
+   * });
+   * // Returns: { content: 'XXXX-XXXX-XXXX', contentType: 'text/plain', isBase64: false }
+   */
+  async getRawKeyFromR2(params: {
+    orderId: string;
+    contentType: string;
+  }): Promise<{ content: string; contentType: string; isBase64: boolean }> {
+    // Validate orderId
+    if (params.orderId === '' || params.orderId === null || params.orderId === undefined) {
+      throw new Error('Invalid orderId: must be a non-empty string');
+    }
+
+    // Determine file extension
+    const extensionMap: Record<string, string> = {
+      'text/plain': 'txt',
+      'image/jpeg': 'jpg',
+      'image/png': 'png',
+      'image/gif': 'gif',
+      'application/octet-stream': 'bin',
+    };
+    const extension = extensionMap[params.contentType] ?? 'txt';
+    const objectKey = `orders/${params.orderId}/key.${extension}`;
+
+    try {
+      this.logger.debug(`Fetching raw key from R2: ${objectKey}`);
+
+      const input: GetObjectCommandInput = {
+        Bucket: this.bucketName,
+        Key: objectKey,
+      };
+
+      const command = new GetObjectCommand(input);
+      const response = await this.s3.send(command);
+
+      if (response.Body === null || response.Body === undefined) {
+        throw new Error(`No content found at ${objectKey}`);
+      }
+
+      // Read the body as bytes
+      const bodyBytes = await response.Body.transformToByteArray();
+
+      // For text content, return as string
+      // For images, return as base64
+      const isImage = params.contentType.startsWith('image/');
+      let content: string;
+
+      if (isImage) {
+        // Convert to base64 for images
+        content = Buffer.from(bodyBytes).toString('base64');
+      } else {
+        // Convert to string for text
+        content = Buffer.from(bodyBytes).toString('utf-8');
+      }
+
+      this.logger.log(`✅ Raw key fetched from R2: ${objectKey} (${bodyBytes.length} bytes)`);
+
+      return {
+        content,
+        contentType: params.contentType,
+        isBase64: isImage,
+      };
+    } catch (error) {
+      const message = this.extractErrorMessage(error);
+      this.logger.error(`❌ Failed to fetch raw key from R2: ${message}`);
+      throw new Error(`R2 raw key fetch failed: ${message}`);
+    }
+  }
+
+  /**
    * Generate signed URL for key download
    *
    * Creates a time-limited URL that allows downloading the encrypted key
@@ -182,7 +405,7 @@ export class R2StorageClient {
    *
    * @param params URL generation parameters
    * @param params.orderId Order ID (must match uploaded key)
-   * @param params.expiresInSeconds URL expiry time in seconds (default: 900 = 15 min)
+   * @param params.expiresInSeconds URL expiry time in seconds (default: 10800 = 3 hours)
    *
    * @returns Signed download URL
    *
@@ -191,7 +414,7 @@ export class R2StorageClient {
    * @example
    * const url = await client.generateSignedUrl({
    *   orderId: '550e8400-e29b-41d4-a716-446655440000',
-   *   expiresInSeconds: 900, // 15 minutes
+   *   expiresInSeconds: 10800, // 3 hours
    * });
    * // Returns: https://xxx.r2.cloudflarestorage.com/orders/550e8400.../key.json?...signature...
    */
@@ -201,7 +424,7 @@ export class R2StorageClient {
       throw new Error('Invalid orderId: must be a non-empty string');
     }
 
-    const expiresInSeconds = params.expiresInSeconds ?? 900; // Default 15 minutes
+    const expiresInSeconds = params.expiresInSeconds ?? 10800; // Default 3 hours
 
     // Validate expiry
     if (typeof expiresInSeconds !== 'number' || expiresInSeconds < 1 || expiresInSeconds > 604800) {

@@ -25,7 +25,7 @@ describe('FulfillmentProcessor', () => {
     const fulfillOrderFn = vi.fn().mockResolvedValue({
       orderId: 'order-123',
       keyUrl: 'https://r2.example.com/signed/key/url',
-      expiresAt: new Date(Date.now() + 15 * 60 * 1000),
+      expiresAt: new Date(Date.now() + 3 * 60 * 60 * 1000), // 3 hours
     });
 
     const getFn = vi.fn().mockResolvedValue({

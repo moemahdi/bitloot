@@ -131,7 +131,7 @@ export class StorageService {
   }): Promise<string> {
     try {
       this.logger.debug(
-        `[STORAGE] Uploading key for order: ${input.orderId} (expires in ${input.expiresInMinutes ?? 15} min)`,
+        `[STORAGE] Uploading key for order: ${input.orderId} (expires in ${input.expiresInMinutes ?? 180} min)`,
       );
 
       // Generate encryption key
@@ -154,13 +154,13 @@ export class StorageService {
       this.logger.debug(`[STORAGE] Uploaded encrypted key to R2 for order: ${input.orderId}`);
 
       // Generate signed URL with configurable expiry
-      const expiresInSeconds = (input.expiresInMinutes ?? 15) * 60;
+      const expiresInSeconds = (input.expiresInMinutes ?? 180) * 60;
       const signedUrl = await this.r2StorageClient.generateSignedUrl({
         orderId: input.orderId,
         expiresInSeconds,
       });
       this.logger.debug(
-        `[STORAGE] Generated signed URL (expires in ${input.expiresInMinutes ?? 15} minutes)`,
+        `[STORAGE] Generated signed URL (expires in ${input.expiresInMinutes ?? 180} minutes)`,
       );
 
       return signedUrl;
@@ -274,7 +274,7 @@ export class StorageService {
     return this.uploadAndGetSignedUrl({
       orderId,
       plainKey: `demo-key-${orderId}`,
-      expiresInMinutes: 15,
+      expiresInMinutes: 180,
     });
   }
 
