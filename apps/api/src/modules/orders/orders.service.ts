@@ -18,7 +18,7 @@ export class OrdersService {
     private readonly catalogService: CatalogService,
   ) { }
 
-  async create(dto: CreateOrderDto): Promise<OrderResponseDto> {
+  async create(dto: CreateOrderDto, userId?: string): Promise<OrderResponseDto> {
     const product = await this.catalogService.getProductById(dto.productId);
     if (product === null || product === undefined) {
       throw new NotFoundException(`Product not found: ${dto.productId}`);
@@ -26,13 +26,14 @@ export class OrdersService {
 
     // Determine source type from product (kinguin or custom)
     const sourceType = product.sourceType ?? 'custom';
-    this.logger.log(`Creating order for product ${dto.productId} with sourceType: ${sourceType}`);
+    this.logger.log(`Creating order for product ${dto.productId} with sourceType: ${sourceType}${userId ? `, userId: ${userId}` : ' (guest)'}`);
 
     const order = this.ordersRepo.create({
       email: dto.email,
       status: 'created',
       totalCrypto: product.price,
       sourceType: sourceType,
+      userId: userId ?? undefined,
     });
     const savedOrder = await this.ordersRepo.save(order);
 
@@ -45,7 +46,7 @@ export class OrdersService {
     });
     const savedItem = await this.itemsRepo.save(item);
 
-    return this.mapToResponse(savedOrder, [savedItem]);
+    return await this.mapToResponse(savedOrder, [savedItem]);
   }
 
   /**
@@ -71,7 +72,7 @@ export class OrdersService {
       relations: ['items'],
     });
     if (order === null) return null;
-    return this.mapToResponse(order, order.items);
+    return await this.mapToResponse(order, order.items);
   }
 
   async markPaid(orderId: string): Promise<OrderResponseDto> {
@@ -81,7 +82,7 @@ export class OrdersService {
     });
     order.status = 'paid';
     const updated = await this.ordersRepo.save(order);
-    return this.mapToResponse(updated, updated.items);
+    return await this.mapToResponse(updated, updated.items);
   }
 
   async fulfill(orderId: string, signedUrl: string): Promise<OrderResponseDto> {
@@ -100,7 +101,7 @@ export class OrdersService {
     order.status = 'fulfilled';
     const updated = await this.ordersRepo.save(order);
 
-    return this.mapToResponse(updated, updated.items);
+    return await this.mapToResponse(updated, updated.items);
   }
 
   async get(id: string): Promise<OrderResponseDto> {
@@ -108,7 +109,7 @@ export class OrdersService {
       where: { id },
       relations: ['items'],
     });
-    return this.mapToResponse(order, order.items);
+    return await this.mapToResponse(order, order.items);
   }
 
   /**
@@ -285,8 +286,13 @@ export class OrdersService {
       take: Math.min(limit, 100), // cap at 100 per page
     });
 
+    // Map orders with product titles (async)
+    const mappedOrders = await Promise.all(
+      orders.map((order) => this.mapToResponse(order, order.items)),
+    );
+
     return {
-      data: orders.map((order) => this.mapToResponse(order, order.items)),
+      data: mappedOrders,
       total,
     };
   }
@@ -309,7 +315,34 @@ export class OrdersService {
     return (validTransitions[fromStatus] ?? []).includes(toStatus);
   }
 
-  private mapToResponse(order: Order, items: OrderItem[]): OrderResponseDto {
+  /**
+   * Link all orders with matching email to a user account
+   * This is called during login/signup to ensure guest orders appear in the user's dashboard
+   * @param userId The user's ID to link orders to
+   * @param email The email to match orders against
+   * @returns Number of orders linked
+   */
+  async linkOrdersByEmail(userId: string, email: string): Promise<number> {
+    const result = await this.ordersRepo
+      .createQueryBuilder()
+      .update(Order)
+      .set({ userId })
+      .where('email = :email', { email })
+      .andWhere('userId IS NULL')
+      .execute();
+
+    const linkedCount = result.affected ?? 0;
+    if (linkedCount > 0) {
+      this.logger.log(`🔗 Linked ${linkedCount} orders to user ${userId} by email ${email}`);
+    }
+    return linkedCount;
+  }
+
+  private async mapToResponse(order: Order, items: OrderItem[]): Promise<OrderResponseDto> {
+    // Batch fetch product titles for all items
+    const productIds = items.map((item) => item.productId);
+    const productMap = await this.catalogService.getProductsBySlugs(productIds);
+
     return {
       id: order.id,
       email: order.email,
@@ -322,6 +355,7 @@ export class OrdersService {
         (item): OrderItemResponseDto => ({
           id: item.id,
           productId: item.productId,
+          productTitle: productMap.get(item.productId)?.title ?? item.productId,
           sourceType: item.productSourceType ?? 'custom',
           signedUrl: item.signedUrl,
         }),

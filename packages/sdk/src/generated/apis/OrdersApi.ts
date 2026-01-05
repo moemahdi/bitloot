@@ -33,6 +33,10 @@ export interface OrdersControllerGetRequest {
     id: string;
 }
 
+export interface OrdersControllerGetForCheckoutRequest {
+    id: string;
+}
+
 export interface OrdersControllerSetReservationRequest {
     id: string;
 }
@@ -59,6 +63,14 @@ export class OrdersApi extends runtime.BaseAPI {
 
         headerParameters['Content-Type'] = 'application/json';
 
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("JWT-auth", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
 
         let urlPath = `/orders`;
 
@@ -123,6 +135,43 @@ export class OrdersApi extends runtime.BaseAPI {
      */
     async ordersControllerGet(requestParameters: OrdersControllerGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<OrderResponseDto> {
         const response = await this.ordersControllerGetRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Get order for checkout (public - UUID is auth)
+     */
+    async ordersControllerGetForCheckoutRaw(requestParameters: OrdersControllerGetForCheckoutRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<OrderResponseDto>> {
+        if (requestParameters['id'] == null) {
+            throw new runtime.RequiredError(
+                'id',
+                'Required parameter "id" was null or undefined when calling ordersControllerGetForCheckout().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/orders/{id}/checkout`;
+        urlPath = urlPath.replace(`{${"id"}}`, encodeURIComponent(String(requestParameters['id'])));
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => OrderResponseDtoFromJSON(jsonValue));
+    }
+
+    /**
+     * Get order for checkout (public - UUID is auth)
+     */
+    async ordersControllerGetForCheckout(requestParameters: OrdersControllerGetForCheckoutRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<OrderResponseDto> {
+        const response = await this.ordersControllerGetForCheckoutRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

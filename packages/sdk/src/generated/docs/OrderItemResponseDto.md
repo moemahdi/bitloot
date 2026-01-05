@@ -8,6 +8,7 @@ Name | Type
 ------------ | -------------
 `id` | string
 `productId` | string
+`productTitle` | string
 `sourceType` | string
 `signedUrl` | object
 
@@ -20,6 +21,7 @@ import type { OrderItemResponseDto } from ''
 const example = {
   "id": null,
   "productId": null,
+  "productTitle": null,
   "sourceType": custom,
   "signedUrl": null,
 } satisfies OrderItemResponseDto

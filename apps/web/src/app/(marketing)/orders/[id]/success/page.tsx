@@ -1,30 +1,22 @@
 'use client';
 
-import { useQuery, useMutation } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { useParams, useRouter } from 'next/navigation';
 import { useState } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import {
-  AlertCircle,
   Copy,
   XCircle,
-  Eye,
-  Loader2,
-  Check,
-  Image as ImageIcon,
-  Key,
   CheckCircle2,
   ArrowLeft,
-  Mail,
   Calendar,
   Package,
-  Download,
   ShieldCheck,
   HelpCircle,
 } from 'lucide-react';
-import { OrdersApi, FulfillmentApi } from '@bitloot/sdk';
-import type { OrderResponseDto, RevealedKeyDto } from '@bitloot/sdk';
+import { OrdersApi } from '@bitloot/sdk';
+import type { OrderResponseDto } from '@bitloot/sdk';
 import {
   Alert,
   AlertTitle,
@@ -45,18 +37,15 @@ import { toast } from 'sonner';
 import { apiConfig } from '@/lib/api-config';
 import { Confetti } from '@/components/animations/Confetti';
 import { cn } from '@/design-system/utils/utils';
+import { KeyReveal } from '@/features/orders';
 
-// Initialize SDK clients
+// Initialize SDK client
 const ordersClient = new OrdersApi(apiConfig);
-const fulfillmentClient = new FulfillmentApi(apiConfig);
 
 export default function OrderSuccessPage(): React.ReactElement {
   const params = useParams();
   const router = useRouter();
   const orderId = String(params.id);
-  const [revealedKeys, setRevealedKeys] = useState<Record<string, RevealedKeyDto>>({});
-  const [revealingItemId, setRevealingItemId] = useState<string | null>(null);
-  const [copiedKey, setCopiedKey] = useState<string | null>(null);
   const [showConfetti, setShowConfetti] = useState(true);
 
   const { data, isError, isPending } = useQuery<OrderResponseDto>({
@@ -67,35 +56,9 @@ export default function OrderSuccessPage(): React.ReactElement {
     },
   });
 
-  const revealKeyMutation = useMutation({
-    mutationFn: async ({ itemId }: { itemId: string }) => {
-      setRevealingItemId(itemId);
-      return await fulfillmentClient.fulfillmentControllerRevealMyKey({
-        id: orderId,
-        itemId,
-      });
-    },
-    onSuccess: (keyData, variables) => {
-      setRevealedKeys(prev => ({ ...prev, [variables.itemId]: keyData }));
-      setRevealingItemId(null);
-      toast.success('Key revealed successfully!');
-    },
-    onError: (err) => {
-      console.error('Failed to reveal key:', err);
-      setRevealingItemId(null);
-      toast.error('Failed to reveal key. Please try again.');
-    },
-  });
-
-  const handleRevealKey = (itemId: string): void => {
-    revealKeyMutation.mutate({ itemId });
-  };
-
-  const copyToClipboard = (text: string): void => {
+  const copyOrderId = (text: string): void => {
     void navigator.clipboard.writeText(text);
-    setCopiedKey(text);
     toast.success('Copied to clipboard!');
-    setTimeout(() => setCopiedKey(null), 2000);
   };
 
   // Check if order is fulfilled and has keys ready
@@ -242,145 +205,14 @@ export default function OrderSuccessPage(): React.ReactElement {
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.5, delay: 0.2 }}
             >
-              {/* Digital Keys Card */}
-              {isOrderFulfilled && orderItems.length > 0 ? (
-                <Card className="border-[hsl(var(--green-success))]/20">
-                  <CardHeader>
-                    <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 rounded-lg bg-[hsl(var(--green-success))]/10 border border-[hsl(var(--green-success))]/20 flex items-center justify-center">
-                        <Key className="h-5 w-5 text-[hsl(var(--green-success))]" />
-                      </div>
-                      <div>
-                        <CardTitle className="text-lg">Your Digital Keys</CardTitle>
-                        <CardDescription>Click to reveal and copy your product keys</CardDescription>
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    {orderItems.map((item, index) => {
-                      const itemId = item.id;
-                      const revealedKey = revealedKeys[itemId];
-                      const isRevealing = revealingItemId === itemId;
-                      const isImage = revealedKey?.contentType?.startsWith('image/');
-                      
-                      return (
-                        <div 
-                          key={itemId} 
-                          className="rounded-xl border bg-card p-4 shadow-sm transition-all hover:shadow-md"
-                        >
-                          <div className="flex items-center justify-between mb-3">
-                            <div className="flex items-center gap-3">
-                              <div className="h-9 w-9 rounded-lg bg-muted flex items-center justify-center">
-                                <Package className="h-4 w-4 text-muted-foreground" />
-                              </div>
-                              <div>
-                                <p className="font-medium text-sm">Product Key</p>
-                                <p className="text-xs text-muted-foreground">Item {index + 1} of {orderItems.length}</p>
-                              </div>
-                            </div>
-                            {revealedKey && (
-                              <Badge variant="outline" className="text-[hsl(var(--green-success))] border-[hsl(var(--green-success))]/30 bg-[hsl(var(--green-success))]/10">
-                                <Check className="mr-1 h-3 w-3" />
-                                Revealed
-                              </Badge>
-                            )}
-                          </div>
-                          
-                          {!revealedKey ? (
-                            <Button 
-                              onClick={() => handleRevealKey(itemId)} 
-                              disabled={isRevealing}
-                              className="w-full bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70"
-                              size="lg"
-                            >
-                              {isRevealing ? (
-                                <>
-                                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                  Revealing Key...
-                                </>
-                              ) : (
-                                <>
-                                  <Eye className="mr-2 h-4 w-4" />
-                                  Reveal Key
-                                </>
-                              )}
-                            </Button>
-                          ) : (
-                            <div className="space-y-3">
-                              {isImage ? (
-                                <div className="space-y-3">
-                                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                    <ImageIcon className="h-4 w-4" />
-                                    <span>Image Key ({revealedKey.contentType})</span>
-                                  </div>
-                                  <div className="relative rounded-lg overflow-hidden border bg-muted/30">
-                                    <img 
-                                      src={`data:${revealedKey.contentType};base64,${revealedKey.plainKey}`}
-                                      alt="Product Key"
-                                      className="max-w-full"
-                                    />
-                                  </div>
-                                  <Button variant="outline" size="sm" className="w-full">
-                                    <Download className="mr-2 h-4 w-4" />
-                                    Download Image
-                                  </Button>
-                                </div>
-                              ) : (
-                                <div className="space-y-2">
-                                  <div className="flex items-center justify-between rounded-lg bg-muted/50 p-1">
-                                    <code className="flex-1 px-3 py-2 font-mono text-sm break-all select-all">
-                                      {revealedKey.plainKey}
-                                    </code>
-                                    <Button
-                                      variant={copiedKey === revealedKey.plainKey ? "default" : "ghost"}
-                                      size="icon"
-                                      onClick={() => copyToClipboard(revealedKey.plainKey)}
-                                      className={cn(
-                                        "shrink-0 transition-all",
-                                        copiedKey === revealedKey.plainKey && "bg-[hsl(var(--green-success))] hover:bg-[hsl(var(--green-success))]/80"
-                                      )}
-                                    >
-                                      {copiedKey === revealedKey.plainKey ? (
-                                        <Check className="h-4 w-4 text-white" />
-                                      ) : (
-                                        <Copy className="h-4 w-4" />
-                                      )}
-                                    </Button>
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </CardContent>
-                </Card>
-              ) : orderItems.length > 0 ? (
-                <Card className="border-[hsl(var(--orange-warning))]/20">
-                  <CardHeader>
-                    <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 rounded-lg bg-[hsl(var(--orange-warning))]/10 border border-[hsl(var(--orange-warning))]/20 flex items-center justify-center">
-                        <Loader2 className="h-5 w-5 text-[hsl(var(--orange-warning))] animate-spin" />
-                      </div>
-                      <div>
-                        <CardTitle className="text-lg">Preparing Your Keys</CardTitle>
-                        <CardDescription>This usually takes just a few moments</CardDescription>
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="rounded-lg bg-muted/50 p-4">
-                      <div className="flex items-center gap-3">
-                        <div className="h-2 w-2 rounded-full bg-[hsl(var(--orange-warning))] animate-pulse" />
-                        <span className="text-sm text-muted-foreground">
-                          Fetching your product keys from the supplier...
-                        </span>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ) : null}
+              {/* Digital Keys - Using KeyReveal Component */}
+              {orderItems.length > 0 && (
+                <KeyReveal 
+                  orderId={orderId}
+                  items={orderItems}
+                  isFulfilled={isOrderFulfilled}
+                />
+              )}
 
               {/* Security Notice */}
               <Alert className="border-[hsl(var(--cyan-glow))]/20 bg-[hsl(var(--cyan-glow))]/5">
@@ -415,7 +247,7 @@ export default function OrderSuccessPage(): React.ReactElement {
                           variant="ghost"
                           size="icon"
                           className="h-6 w-6"
-                          onClick={() => copyToClipboard(orderId)}
+                          onClick={() => copyOrderId(orderId)}
                         >
                           <Copy className="h-3 w-3" />
                         </Button>

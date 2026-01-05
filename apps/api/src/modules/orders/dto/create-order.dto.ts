@@ -30,6 +30,9 @@ export class OrderItemResponseDto {
   @ApiProperty()
   productId!: string;
 
+  @ApiProperty({ description: 'Product title/name for display' })
+  productTitle!: string;
+
   @ApiProperty({
     description: 'Fulfillment source for this item',
     enum: ['custom', 'kinguin'],

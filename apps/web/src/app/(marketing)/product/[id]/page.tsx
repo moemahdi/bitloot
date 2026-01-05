@@ -23,6 +23,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { AddToCartButton } from '@/features/product/components/AddToCartButton';
 import { ProductReviews } from '@/features/reviews';
 import { WatchlistButton } from '@/features/watchlist';
+import { EmailEntryModal } from '@/features/checkout/EmailEntryModal';
+import { useAuth } from '@/hooks/useAuth';
 import { useState, useCallback, useEffect } from 'react';
 
 // ========== Design Constants & Utilities ==========
@@ -741,6 +743,8 @@ export default function ProductPage(): React.ReactElement {
   const slug = params.id as string;
   const catalogClient = new CatalogApi(apiConfig);
   const [copied, setCopied] = useState(false);
+  const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
+  const { user, isAuthenticated } = useAuth();
 
   const { data: product, isLoading, isError, refetch } = useQuery<ProductResponseDto>({
     queryKey: ['product', slug],
@@ -902,12 +906,14 @@ export default function ProductPage(): React.ReactElement {
 
                   {/* Actions */}
                   <div className="space-y-3">
-                    <Link href={`/checkout/${product.id}`} className="block w-full">
-                      <Button size="lg" className="w-full h-12 text-base font-bold bg-linear-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white shadow-lg shadow-cyan-500/25 border-0 transition-all hover:scale-[1.02] active:scale-[0.98]">
-                        <Bitcoin className="h-5 w-5 mr-2" />
-                        Buy Now
-                      </Button>
-                    </Link>
+                    <Button 
+                      size="lg" 
+                      className="w-full h-12 text-base font-bold bg-linear-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white shadow-lg shadow-cyan-500/25 border-0 transition-all hover:scale-[1.02] active:scale-[0.98]"
+                      onClick={() => setIsEmailModalOpen(true)}
+                    >
+                      <Bitcoin className="h-5 w-5 mr-2" />
+                      Buy Now
+                    </Button>
                     <div className="grid grid-cols-5 gap-2">
                       <div className="col-span-4">
                         <AddToCartButton
@@ -1018,6 +1024,17 @@ export default function ProductPage(): React.ReactElement {
           </div>
         </div>
       </div>
+
+      {/* Email Entry Modal */}
+      <EmailEntryModal
+        isOpen={isEmailModalOpen}
+        onClose={() => setIsEmailModalOpen(false)}
+        productId={product.id ?? ''}
+        productTitle={product.title ?? 'Product'}
+        productPrice={priceInDollars.toFixed(2)}
+        userEmail={user?.email}
+        isAuthenticated={isAuthenticated}
+      />
     </div>
   );
 }

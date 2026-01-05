@@ -597,6 +597,125 @@ export class FulfillmentService {
   }
 
   /**
+   * RECOVERY: Recover signed URLs for orders that have keys in R2 but no signedUrl
+   *
+   * This handles the case where:
+   * 1. Payment was successful
+   * 2. Key was uploaded to R2 (Kinguin delivered or custom uploaded)
+   * 3. But signedUrl was never populated (webhook failed, job crashed, etc.)
+   *
+   * The method checks if keys exist in R2 and regenerates signed URLs.
+   *
+   * @param orderId Order ID to recover
+   * @returns Updated order items with fresh signed URLs
+   */
+  async recoverOrderKeys(orderId: string): Promise<{ recovered: boolean; items: Array<{ itemId: string; signedUrl: string | null }> }> {
+    this.logger.debug(`[RECOVERY] Starting key recovery for order: ${orderId}`);
+
+    // Load order with items and keys
+    const order = await this.orderRepo.findOne({
+      where: { id: orderId },
+      relations: ['items', 'items.keys'],
+    });
+
+    if (order === null || order === undefined) {
+      this.logger.warn(`[RECOVERY] Order not found: ${orderId}`);
+      return { recovered: false, items: [] };
+    }
+
+    // Only recover orders that are paid but not fulfilled
+    if (order.status !== 'paid') {
+      this.logger.debug(`[RECOVERY] Order ${orderId} has status '${order.status}', skipping recovery`);
+      return { recovered: false, items: order.items.map(i => ({ itemId: i.id, signedUrl: i.signedUrl })) };
+    }
+
+    const recoveredItems: Array<{ itemId: string; signedUrl: string | null }> = [];
+    let anyRecovered = false;
+
+    for (const item of order.items) {
+      // Skip items that already have a signed URL
+      if (item.signedUrl !== null && item.signedUrl !== undefined && item.signedUrl.length > 0) {
+        recoveredItems.push({ itemId: item.id, signedUrl: item.signedUrl });
+        continue;
+      }
+
+      // Try to recover key from R2
+      try {
+        // Get the key record to find contentType
+        const key = item.keys?.[0];
+        const contentType = key?.contentType ?? 'text/plain';
+
+        // Map content type to file extension
+        const extensionMap: Record<string, string> = {
+          'text/plain': 'txt',
+          'image/jpeg': 'jpg',
+          'image/png': 'png',
+          'image/gif': 'gif',
+          'application/octet-stream': 'bin',
+        };
+        const extension = extensionMap[contentType] ?? 'txt';
+
+        // Check if file exists in R2
+        const keyPath = `orders/${orderId}/key.${extension}`;
+        const keyExists = await this.r2StorageClient.exists(keyPath);
+
+        if (!keyExists) {
+          this.logger.warn(`[RECOVERY] Key not found at ${keyPath} for order ${orderId}`);
+          recoveredItems.push({ itemId: item.id, signedUrl: null });
+          continue;
+        }
+
+        // Generate fresh signed URL
+        const signedUrl = await this.r2StorageClient.generateSignedUrlForRawKey({
+          orderId,
+          contentType,
+          expiresInSeconds: 10800, // 3 hours
+        });
+
+        // Update order item with signed URL
+        await this.orderItemRepo.update(item.id, { signedUrl });
+
+        this.logger.log(`[RECOVERY] Successfully recovered key for order ${orderId}, item ${item.id}`);
+        recoveredItems.push({ itemId: item.id, signedUrl });
+        anyRecovered = true;
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        this.logger.error(`[RECOVERY] Failed to recover item ${item.id}: ${message}`);
+        recoveredItems.push({ itemId: item.id, signedUrl: null });
+      }
+    }
+
+    // If all items now have signed URLs, mark order as fulfilled
+    const allItemsHaveUrls = recoveredItems.every(i => i.signedUrl !== null);
+    if (anyRecovered && allItemsHaveUrls) {
+      await this.ordersService.markFulfilled(orderId);
+      this.logger.log(`[RECOVERY] Order ${orderId} marked as fulfilled after recovery`);
+
+      // Send delivery email
+      try {
+        const freshOrder = await this.orderRepo.findOne({
+          where: { id: orderId },
+          relations: ['items'],
+        });
+        if (freshOrder !== null && freshOrder !== undefined) {
+          const firstSignedUrl = freshOrder.items.find(i => i.signedUrl !== null && i.signedUrl.length > 0)?.signedUrl ?? '';
+          await this.emailsService.sendOrderCompleted(freshOrder.email, {
+            orderId,
+            productName: freshOrder.items.map(i => i.productId).join(', '),
+            downloadUrl: firstSignedUrl,
+            expiresIn: '3 hours',
+          });
+          this.logger.log(`[RECOVERY] Delivery email sent for order ${orderId}`);
+        }
+      } catch (emailError) {
+        this.logger.warn(`[RECOVERY] Failed to send delivery email: ${emailError}`);
+      }
+    }
+
+    return { recovered: anyRecovered, items: recoveredItems };
+  }
+
+  /**
    * Health check for fulfillment service
    */
   async healthCheck(): Promise<HealthCheckResult> {

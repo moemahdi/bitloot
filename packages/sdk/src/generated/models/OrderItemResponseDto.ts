@@ -32,6 +32,12 @@ export interface OrderItemResponseDto {
      */
     productId: string;
     /**
+     * Product title/name for display
+     * @type {string}
+     * @memberof OrderItemResponseDto
+     */
+    productTitle: string;
+    /**
      * Fulfillment source for this item
      * @type {string}
      * @memberof OrderItemResponseDto
@@ -62,6 +68,7 @@ export type OrderItemResponseDtoSourceTypeEnum = typeof OrderItemResponseDtoSour
 export function instanceOfOrderItemResponseDto(value: object): value is OrderItemResponseDto {
     if (!('id' in value) || value['id'] === undefined) return false;
     if (!('productId' in value) || value['productId'] === undefined) return false;
+    if (!('productTitle' in value) || value['productTitle'] === undefined) return false;
     if (!('sourceType' in value) || value['sourceType'] === undefined) return false;
     if (!('signedUrl' in value) || value['signedUrl'] === undefined) return false;
     return true;
@@ -79,6 +86,7 @@ export function OrderItemResponseDtoFromJSONTyped(json: any, ignoreDiscriminator
         
         'id': json['id'],
         'productId': json['productId'],
+        'productTitle': json['productTitle'],
         'sourceType': json['sourceType'],
         'signedUrl': json['signedUrl'],
     };
@@ -97,6 +105,7 @@ export function OrderItemResponseDtoToJSONTyped(value?: OrderItemResponseDto | n
         
         'id': value['id'],
         'productId': value['productId'],
+        'productTitle': value['productTitle'],
         'sourceType': value['sourceType'],
         'signedUrl': value['signedUrl'],
     };

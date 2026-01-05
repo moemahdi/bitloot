@@ -8,10 +8,11 @@ import { useQuery } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { UsersApi, type OrderResponseDto } from '@bitloot/sdk';
+import { UsersApi, FulfillmentApi, type OrderResponseDto, type OrderItemResponseDto } from '@bitloot/sdk';
 import { apiConfig } from '@/lib/api-config';
 import { useWatchlist, useRemoveFromWatchlist } from '@/features/watchlist';
 import { useCart } from '@/context/CartContext';
+import { KeyReveal, type OrderItem } from '@/features/orders';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/design-system/primitives/card';
 import { Button } from '@/design-system/primitives/button';
 import { Input } from '@/design-system/primitives/input';
@@ -19,7 +20,7 @@ import { Label } from '@/design-system/primitives/label';
 import { Separator } from '@/design-system/primitives/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/design-system/primitives/tabs';
 import { Badge } from '@/design-system/primitives/badge';
-import { Loader2, User, Shield, Lock, Key, Package, DollarSign, Check, Download, Copy, ShoppingBag, LogOut, LayoutDashboard, Eye, HelpCircle, Mail, Hash, Crown, ShieldCheck, AlertCircle, Fingerprint, KeyRound, Info, Heart } from 'lucide-react';
+import { Loader2, User, Shield, Lock, Key, Package, DollarSign, Check, Copy, ShoppingBag, LogOut, LayoutDashboard, Eye, HelpCircle, Mail, Hash, Crown, ShieldCheck, AlertCircle, Fingerprint, KeyRound, Info, Heart, ChevronDown, ChevronUp, RefreshCw, Download } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion } from 'framer-motion';
 import { DashboardStatCard } from '@/components/dashboard/DashboardStatCard';
@@ -42,6 +43,7 @@ const passwordSchema = z
 type PasswordFormValues = z.infer<typeof passwordSchema>;
 
 const usersClient = new UsersApi(apiConfig);
+const fulfillmentClient = new FulfillmentApi(apiConfig);
 
 // ============ WATCHLIST TAB CONTENT COMPONENT ============
 function WatchlistTabContent(): React.ReactElement {
@@ -253,6 +255,13 @@ export default function ProfilePage(): React.ReactElement {
     urlTab !== null && validTabs.includes(urlTab) ? urlTab : 'overview'
   );
 
+  // State for expanded orders in Purchases tab
+  const [expandedOrders, setExpandedOrders] = useState<Set<string>>(new Set());
+  // State for tracking download in progress
+  const [downloadingOrder, setDownloadingOrder] = useState<string | null>(null);
+  // State for tracking key recovery in progress
+  const [recoveringOrder, setRecoveringOrder] = useState<string | null>(null);
+
   // Update activeTab when URL changes
   useEffect(() => {
     if (urlTab !== null && validTabs.includes(urlTab)) {
@@ -262,12 +271,12 @@ export default function ProfilePage(): React.ReactElement {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [urlTab]);
 
-  // Fetch user's orders
-  const { data: orders = [], isLoading: ordersLoading } = useQuery<OrderResponseDto[]>({
+  // Fetch user's orders - always fetch fresh data to show updated order status
+  const { data: orders = [], isLoading: ordersLoading, refetch: refetchOrders } = useQuery<OrderResponseDto[]>({
     queryKey: ['profile-orders'],
     queryFn: async () => {
       try {
-        const response = await usersClient.usersControllerGetOrdersRaw();
+        const response = await usersClient.usersControllerGetOrdersRaw({});
         if (response.raw.ok) {
           return (await response.raw.json()) as OrderResponseDto[];
         }
@@ -278,6 +287,9 @@ export default function ProfilePage(): React.ReactElement {
       }
     },
     enabled: user !== null && user !== undefined,
+    staleTime: 0, // Always consider data stale to fetch fresh status
+    refetchOnMount: 'always', // Refetch when component mounts (tab visited)
+    refetchOnWindowFocus: true, // Refetch when user returns to window
   });
 
   const {
@@ -316,6 +328,41 @@ export default function ProfilePage(): React.ReactElement {
       toast.error('Failed to update password. Please check your current password.');
     } finally {
       setIsSubmittingPassword(false);
+    }
+  };
+
+  // Download keys for a fulfilled order
+  const handleDownloadKeys = async (orderId: string): Promise<void> => {
+    setDownloadingOrder(orderId);
+    try {
+      const response = await fulfillmentClient.fulfillmentControllerGetDownloadLink({ id: orderId });
+      if (response.signedUrl != null && response.signedUrl !== '') {
+        // Open the signed URL in a new tab to download the keys
+        window.open(response.signedUrl, '_blank');
+        toast.success('Keys download started!');
+      } else {
+        toast.error('Download link not available');
+      }
+    } catch (error) {
+      console.error('Failed to get download link:', error);
+      toast.error('Failed to download keys. Please try again.');
+    } finally {
+      setDownloadingOrder(null);
+    }
+  };
+
+  // Recover keys for orders stuck at 'paid' status with null signedUrl
+  const handleRecoverKeys = async (orderId: string): Promise<void> => {
+    setRecoveringOrder(orderId);
+    try {
+      await fulfillmentClient.fulfillmentControllerRecoverOrder({ id: orderId });
+      toast.success('Keys recovered successfully! Refreshing orders...');
+      await refetchOrders();
+    } catch (error) {
+      console.error('Failed to recover keys:', error);
+      toast.error('Failed to recover keys. Please contact support.');
+    } finally {
+      setRecoveringOrder(null);
     }
   };
 
@@ -577,139 +624,338 @@ export default function ProfilePage(): React.ReactElement {
           </div>
         </TabsContent>
 
-        {/* My Purchases Tab */}
+        {/* My Purchases Tab - Comprehensive Order History */}
         <TabsContent value="purchases" className="space-y-6">
           <Card className="glass border-border/50 bg-bg-secondary/50 backdrop-blur-sm transition-all duration-300 hover:border-cyan-glow/20 focus-within:ring-2 focus-within:ring-cyan-glow/30">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-text-primary">
-                <ShoppingBag className="h-5 w-5 text-cyan-glow" />
-                My Purchases
-              </CardTitle>
-              <CardDescription className="text-text-secondary">View all your orders and download your digital keys</CardDescription>
+            <CardHeader className="pb-4">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-purple-neon/10 border border-purple-neon/20">
+                    <ShoppingBag className="h-5 w-5 text-purple-neon" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-text-primary">Purchase History</CardTitle>
+                    <CardDescription className="text-text-secondary">{totalOrders} orders • {completedOrders} completed • €{totalSpent.toFixed(2)} total spent</CardDescription>
+                  </div>
+                </div>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => void refetchOrders()}
+                  disabled={ordersLoading}
+                  className="border-cyan-glow/30 text-cyan-glow hover:bg-cyan-glow/10"
+                >
+                  <RefreshCw className={`h-4 w-4 mr-2 ${ordersLoading ? 'animate-spin' : ''}`} />
+                  Refresh
+                </Button>
+              </div>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-4">
               {ordersLoading ? (
-                <div className="flex h-40 items-center justify-center">
-                  <Loader2 className="h-8 w-8 animate-spin text-cyan-glow" />
+                <div className="flex flex-col items-center justify-center py-12 space-y-4">
+                  <Loader2 className="h-10 w-10 animate-spin text-purple-neon" />
+                  <p className="text-text-secondary">Loading your purchase history...</p>
                 </div>
               ) : orders.length === 0 ? (
-                <div className="flex h-48 flex-col items-center justify-center text-text-muted">
-                  <div className="mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-linear-to-br from-cyan-glow/10 to-purple-neon/10 border border-cyan-glow/20">
-                    <ShoppingBag className="h-10 w-10 text-cyan-glow/40" />
-                  </div>
-                  <p className="text-lg font-medium text-text-secondary">No purchases yet</p>
-                  <p className="text-sm text-text-muted mt-1 text-center max-w-xs">Your purchased games and digital keys will appear here after checkout</p>
-                  <Button variant="outline" size="sm" asChild className="mt-4 border-cyan-glow/30 text-cyan-glow hover:bg-cyan-glow/10">
-                    <Link href="/">Start Shopping</Link>
-                  </Button>
+                <div className="flex flex-col items-center justify-center py-12 text-center">
+                  <ShoppingBag className="h-16 w-16 text-text-muted/30 mb-4" />
+                  <h3 className="text-lg font-semibold text-text-primary mb-2">No purchases yet</h3>
+                  <p className="text-text-secondary mb-4">Start exploring our catalog to find amazing deals!</p>
+                  <Link href="/">
+                    <Button className="bg-purple-neon hover:bg-purple-neon/80">
+                      Browse Products
+                    </Button>
+                  </Link>
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {orders.map((order: OrderResponseDto, index) => (
-                    <motion.div
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: index * 0.05 }}
-                      key={order.id}
-                      className="group rounded-xl border border-border/50 bg-bg-tertiary/30 p-5 transition-all hover:border-cyan-glow/30 hover:bg-bg-tertiary/50 hover:shadow-[0_0_20px_rgba(0,217,255,0.08)]"
-                    >
-                      {/* Order Header */}
-                      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between mb-4">
-                        <div className="flex items-center gap-4">
-                          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-cyan-glow/10 text-cyan-glow border border-cyan-glow/20">
-                            <Package className="h-6 w-6" />
-                          </div>
-                          <div>
-                            <p className="font-medium text-text-primary">Order #{order.id.slice(0, 8).toUpperCase()}</p>
-                            <p className="text-sm text-text-secondary">
-                              {new Date(order.createdAt ?? new Date()).toLocaleDateString('en-US', {
-                                year: 'numeric',
-                                month: 'long',
-                                day: 'numeric',
-                                hour: '2-digit',
-                                minute: '2-digit'
-                              })}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <Badge
-                            variant={order.status === 'fulfilled' ? 'default' : 'secondary'}
-                            className={order.status === 'fulfilled'
-                              ? 'bg-green-success/20 text-green-success hover:bg-green-success/30 border-green-success/20'
-                              : order.status === 'pending'
-                                ? 'bg-orange-warning/20 text-orange-warning hover:bg-orange-warning/30 border-orange-warning/20'
-                                : 'bg-cyan-glow/20 text-cyan-glow hover:bg-cyan-glow/30 border-cyan-glow/20'
-                            }
-                          >
-                            {order.status ?? 'pending'}
-                          </Badge>
-                          <span className="font-bold text-lg text-text-primary">
-                            €{(() => { const total = typeof order.total === 'string' ? parseFloat(order.total) : (order.total ?? 0); return typeof total === 'number' ? total.toFixed(2) : '0.00'; })()}
-                          </span>
-                        </div>
-                      </div>
+                  {orders.map((order: OrderResponseDto, index) => {
+                    const isExpanded = expandedOrders.has(order.id);
+                    const isFulfilled = order.status === 'fulfilled';
+                    const isPaid = order.status === 'paid';
+                    const isFailed = order.status === 'failed' || order.status === 'underpaid';
+                    const isPending = order.status === 'waiting' || order.status === 'pending' || order.status === 'confirming';
+                    
+                    // Map order items to KeyReveal format using real product titles
+                    const keyRevealItems: OrderItem[] = order.items.map((item: OrderItemResponseDto) => ({
+                      id: item.id,
+                      productId: item.productId,
+                      productTitle: item.productTitle,
+                      quantity: 1,
+                    }));
 
-                      {/* Order Items */}
-                      <div className="space-y-3">
-                        {order.items.map((item, itemIndex) => (
-                          <div
-                            key={itemIndex}
-                            className="flex items-center justify-between rounded-lg bg-bg-primary/50 p-4 border border-border/30"
-                          >
+                    return (
+                      <motion.div
+                        key={order.id}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.3, delay: index * 0.05 }}
+                        className={`group rounded-xl border transition-all duration-300 ${
+                          isFulfilled 
+                            ? 'border-green-success/30 bg-green-success/5 hover:border-green-success/50' 
+                            : isFailed
+                            ? 'border-red-500/30 bg-red-500/5 hover:border-red-500/50'
+                            : isPaid
+                            ? 'border-blue-500/30 bg-blue-500/5 hover:border-blue-500/50'
+                            : 'border-border/50 bg-bg-tertiary/30 hover:border-purple-neon/20 hover:bg-bg-tertiary/50'
+                        }`}
+                      >
+                        {/* Order Header - Clickable to expand */}
+                        <div 
+                          className="p-5 cursor-pointer"
+                          onClick={() => {
+                            const newExpanded = new Set(expandedOrders);
+                            if (isExpanded) {
+                              newExpanded.delete(order.id);
+                            } else {
+                              newExpanded.add(order.id);
+                            }
+                            setExpandedOrders(newExpanded);
+                          }}
+                        >
+                          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                             <div className="flex items-center gap-3">
-                              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-purple-neon/10 text-purple-neon">
-                                <Key className="h-5 w-5" />
+                              <div className={`flex h-12 w-12 items-center justify-center rounded-lg border ${
+                                isFulfilled 
+                                  ? 'bg-green-success/10 border-green-success/30' 
+                                  : isFailed
+                                  ? 'bg-red-500/10 border-red-500/30'
+                                  : isPaid
+                                  ? 'bg-blue-500/10 border-blue-500/30'
+                                  : 'bg-purple-neon/10 border-purple-neon/20'
+                              }`}>
+                                {isFulfilled ? (
+                                  <Key className="h-6 w-6 text-green-success" />
+                                ) : isFailed ? (
+                                  <AlertCircle className="h-6 w-6 text-red-500" />
+                                ) : isPaid ? (
+                                  <RefreshCw className="h-6 w-6 text-blue-400" />
+                                ) : (
+                                  <Package className="h-6 w-6 text-purple-neon" />
+                                )}
                               </div>
                               <div>
-                                {/* TODO: Fetch product name from catalog service using productId */}
-                                <p className="font-medium text-text-primary">Digital Key</p>
-                                <p className="text-sm text-text-secondary font-mono">SKU: {item.productId.slice(0, 8).toUpperCase()}</p>
+                                <div className="flex items-center gap-2">
+                                  <p className="font-semibold text-text-primary">
+                                    Order #{order.id.slice(-8).toUpperCase()}
+                                  </p>
+                                  <Badge variant="outline" className="text-xs">
+                                    {order.items.length} {order.items.length === 1 ? 'item' : 'items'}
+                                  </Badge>
+                                </div>
+                                <p className="text-sm text-text-secondary line-clamp-1">
+                                  {order.items.length === 1 
+                                    ? (order.items[0]?.productTitle ?? 'Unknown Product')
+                                    : order.items.length > 1
+                                    ? `${order.items[0]?.productTitle ?? 'Product'} + ${order.items.length - 1} more`
+                                    : 'No items'}
+                                </p>
+                                <p className="text-xs text-text-tertiary mt-0.5">
+                                  {order.createdAt != null
+                                    ? new Date(order.createdAt).toLocaleDateString('en-US', {
+                                        year: 'numeric',
+                                        month: 'short',
+                                        day: 'numeric',
+                                        hour: '2-digit',
+                                        minute: '2-digit'
+                                      })
+                                    : 'Date unknown'}
+                                </p>
                               </div>
                             </div>
-                            {order.status === 'fulfilled' && (
-                              <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-4">
+                              <Badge
+                                className={
+                                  isFulfilled
+                                    ? 'bg-green-success/20 text-green-success border-green-success/30'
+                                    : isFailed
+                                    ? 'bg-red-500/20 text-red-500 border-red-500/30'
+                                    : isPaid
+                                    ? 'bg-blue-500/20 text-blue-400 border-blue-500/30'
+                                    : order.status === 'confirming'
+                                    ? 'bg-orange-warning/20 text-orange-warning border-orange-warning/30'
+                                    : 'bg-cyan-glow/20 text-cyan-glow border-cyan-glow/30'
+                                }
+                              >
+                                {isFulfilled && <Check className="h-3 w-3 mr-1" />}
+                                {order.status ?? 'pending'}
+                              </Badge>
+                              <span className="font-bold text-lg text-text-primary">
+                                €{(() => { const total = typeof order.total === 'string' ? parseFloat(order.total) : (order.total ?? 0); return typeof total === 'number' ? total.toFixed(2) : '0.00'; })()}
+                              </span>
+                              <div className="text-text-muted">
+                                {isExpanded ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
+                              </div>
+                            </div>
+                          </div>
+                          
+                          {/* Quick action buttons (always visible) */}
+                          <div className="flex items-center gap-3 mt-4 pt-4 border-t border-border/30">
+                            {isFulfilled && (
+                              <>
                                 <Button
-                                  variant="outline"
                                   size="sm"
-                                  aria-label={`Copy key for ${item.productId}`}
-                                  className="border-cyan-glow/30 text-cyan-glow hover:bg-cyan-glow/10 hover:border-cyan-glow/50"
-                                  onClick={() => {
-                                    // TODO: Fetch real key from secure R2 signed URL
-                                    void navigator.clipboard.writeText('XXXX-XXXX-XXXX-XXXX');
-                                    toast.success('Key copied to clipboard!');
-                                  }}
+                                  onClick={(e) => { e.stopPropagation(); void handleDownloadKeys(order.id); }}
+                                  disabled={downloadingOrder === order.id}
+                                  className="bg-green-success hover:bg-green-success/80 text-black"
                                 >
-                                  <Copy className="h-4 w-4 mr-1" />
-                                  Copy Key
+                                  {downloadingOrder === order.id ? (
+                                    <><Loader2 className="h-4 w-4 mr-1 animate-spin" />Downloading...</>
+                                  ) : (
+                                    <><Download className="h-4 w-4 mr-1" />Download All Keys</>
+                                  )}
                                 </Button>
                                 <Button
-                                  variant="outline"
                                   size="sm"
-                                  aria-label={`Download key file for ${item.productId}`}
-                                  className="border-green-success/30 text-green-success hover:bg-green-success/10 hover:border-green-success/50"
-                                  onClick={() => {
-                                    // TODO: Fetch real key from secure R2 signed URL
-                                    const blob = new Blob([`Product: ${item.productId}\nKey: XXXX-XXXX-XXXX-XXXX\nPurchased: ${new Date(order.createdAt ?? new Date()).toISOString()}`], { type: 'text/plain' });
-                                    const url = URL.createObjectURL(blob);
-                                    const a = document.createElement('a');
-                                    a.href = url;
-                                    a.download = `key-${order.id.slice(0, 8)}.txt`;
-                                    a.click();
-                                    URL.revokeObjectURL(url);
-                                    toast.success('Key downloaded!');
-                                  }}
+                                  variant="outline"
+                                  onClick={(e) => { e.stopPropagation(); setExpandedOrders(prev => new Set(prev).add(order.id)); }}
+                                  className="border-cyan-glow/30 text-cyan-glow hover:bg-cyan-glow/10"
                                 >
-                                  <Download className="h-4 w-4 mr-1" />
-                                  Download
+                                  <Eye className="h-4 w-4 mr-1" />
+                                  View Keys
                                 </Button>
+                              </>
+                            )}
+                            {isPaid && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={(e) => { e.stopPropagation(); void handleRecoverKeys(order.id); }}
+                                disabled={recoveringOrder === order.id}
+                                className="border-blue-500/30 bg-blue-500/10 text-blue-400 hover:bg-blue-500/20"
+                              >
+                                {recoveringOrder === order.id ? (
+                                  <><Loader2 className="h-4 w-4 mr-1 animate-spin" />Recovering...</>
+                                ) : (
+                                  <><RefreshCw className="h-4 w-4 mr-1" />Recover Keys</>
+                                )}
+                              </Button>
+                            )}
+                            {isPending && (
+                              <div className="flex items-center gap-2 text-sm text-text-secondary">
+                                <Loader2 className="h-4 w-4 animate-spin text-orange-warning" />
+                                <span>
+                                  {order.status === 'confirming' ? 'Payment being confirmed...' : 
+                                   order.status === 'waiting' ? 'Awaiting payment...' : 
+                                   'Processing...'}
+                                </span>
+                              </div>
+                            )}
+                            {isFailed && (
+                              <div className="flex items-center gap-2 text-sm text-red-400">
+                                <AlertCircle className="h-4 w-4" />
+                                <span>{order.status === 'underpaid' ? 'Insufficient payment received' : 'Payment failed'}</span>
                               </div>
                             )}
                           </div>
-                        ))}
-                      </div>
-                    </motion.div>
-                  ))}
+                        </div>
+
+                        {/* Expanded Order Details with KeyReveal */}
+                        {isExpanded && (
+                          <motion.div
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: 'auto' }}
+                            exit={{ opacity: 0, height: 0 }}
+                            transition={{ duration: 0.3 }}
+                            className="border-t border-border/30 px-5 pb-5"
+                          >
+                            <div className="pt-5 space-y-4">
+                              {/* Order Details Summary */}
+                              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 rounded-lg bg-bg-primary/50 border border-border/30">
+                                <div>
+                                  <p className="text-xs text-text-muted uppercase tracking-wider">Order ID</p>
+                                  <p className="font-mono text-sm text-text-primary truncate">{order.id}</p>
+                                </div>
+                                <div>
+                                  <p className="text-xs text-text-muted uppercase tracking-wider">Total Items</p>
+                                  <p className="font-semibold text-text-primary">{order.items.length}</p>
+                                </div>
+                                <div>
+                                  <p className="text-xs text-text-muted uppercase tracking-wider">Payment</p>
+                                  <p className="font-semibold text-text-primary">€{(() => { const total = typeof order.total === 'string' ? parseFloat(order.total) : (order.total ?? 0); return typeof total === 'number' ? total.toFixed(2) : '0.00'; })()}</p>
+                                </div>
+                                <div>
+                                  <p className="text-xs text-text-muted uppercase tracking-wider">Status</p>
+                                  <p className={`font-semibold ${
+                                    isFulfilled ? 'text-green-success' : 
+                                    isFailed ? 'text-red-500' : 
+                                    isPaid ? 'text-blue-400' : 
+                                    'text-orange-warning'
+                                  }`}>
+                                    {(order.status ?? 'pending').charAt(0).toUpperCase() + (order.status ?? 'pending').slice(1)}
+                                  </p>
+                                </div>
+                              </div>
+
+                              {/* KeyReveal Component for Fulfilled Orders */}
+                              {(isFulfilled || isPaid) && order.items.length > 0 && (
+                                <div className="mt-4">
+                                  <KeyReveal
+                                    orderId={order.id}
+                                    items={keyRevealItems}
+                                    isFulfilled={isFulfilled}
+                                    variant="default"
+                                  />
+                                </div>
+                              )}
+
+                              {/* Items List for Non-Fulfilled Orders */}
+                              {!isFulfilled && !isPaid && order.items.length > 0 && (
+                                <div className="space-y-2">
+                                  <h4 className="font-medium text-text-primary flex items-center gap-2">
+                                    <Package className="h-4 w-4 text-purple-neon" />
+                                    Order Items
+                                  </h4>
+                                  <div className="space-y-2">
+                                    {order.items.map((item: OrderItemResponseDto, itemIndex) => (
+                                      <div
+                                        key={item.id}
+                                        className="flex items-center justify-between p-3 rounded-lg bg-bg-primary/50 border border-border/30"
+                                      >
+                                        <div className="flex items-center gap-3">
+                                          <div className="flex h-8 w-8 items-center justify-center rounded bg-purple-neon/10 text-purple-neon text-sm font-bold">
+                                            {itemIndex + 1}
+                                          </div>
+                                          <div>
+                                            <p className="text-sm font-medium text-text-primary">
+                                              {item.productTitle}
+                                            </p>
+                                            <p className="text-xs text-text-muted">
+                                              Source: {item.sourceType ?? 'custom'}
+                                            </p>
+                                          </div>
+                                        </div>
+                                        <Badge variant="outline" className="text-xs">
+                                          {isPending ? 'Pending' : isFailed ? 'Failed' : 'Processing'}
+                                        </Badge>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Copy Order ID */}
+                              <div className="flex justify-end pt-2">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="text-text-muted hover:text-cyan-glow"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    void navigator.clipboard.writeText(order.id);
+                                    toast.success('Order ID copied to clipboard');
+                                  }}
+                                >
+                                  <Copy className="h-4 w-4 mr-1" />
+                                  Copy Order ID
+                                </Button>
+                              </div>
+                            </div>
+                          </motion.div>
+                        )}
+                      </motion.div>
+                    );
+                  })}
                 </div>
               )}
             </CardContent>

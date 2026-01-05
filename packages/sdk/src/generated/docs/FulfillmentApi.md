@@ -7,6 +7,7 @@ All URIs are relative to *http://localhost*
 | [**fulfillmentControllerGetDownloadLink**](FulfillmentApi.md#fulfillmentcontrollergetdownloadlink) | **GET** /fulfillment/{id}/download-link | Generate delivery link for fulfilled order (requires ownership) |
 | [**fulfillmentControllerGetStatus**](FulfillmentApi.md#fulfillmentcontrollergetstatus) | **GET** /fulfillment/{id}/status | Get order fulfillment status (requires ownership) |
 | [**fulfillmentControllerHealthCheck**](FulfillmentApi.md#fulfillmentcontrollerhealthcheck) | **GET** /fulfillment/health/check | Health check for fulfillment service |
+| [**fulfillmentControllerRecoverOrder**](FulfillmentApi.md#fulfillmentcontrollerrecoverorder) | **POST** /fulfillment/{id}/recover | Recover signed URLs for orders with keys in R2 (requires ownership) |
 | [**fulfillmentControllerRevealKey**](FulfillmentApi.md#fulfillmentcontrollerrevealkey) | **POST** /fulfillment/{id}/reveal-key/{itemId} | Admin: Reveal encrypted key (requires admin role) |
 | [**fulfillmentControllerRevealMyKey**](FulfillmentApi.md#fulfillmentcontrollerrevealmykey) | **POST** /fulfillment/{id}/reveal/{itemId} | Reveal encrypted key (requires ownership) |
 
@@ -210,6 +211,78 @@ No authorization required
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
 | **200** |  |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## fulfillmentControllerRecoverOrder
+
+> fulfillmentControllerRecoverOrder(id)
+
+Recover signed URLs for orders with keys in R2 (requires ownership)
+
+### Example
+
+```ts
+import {
+  Configuration,
+  FulfillmentApi,
+} from '';
+import type { FulfillmentControllerRecoverOrderRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const config = new Configuration({ 
+    // Configure HTTP bearer authorization: JWT-auth
+    accessToken: "YOUR BEARER TOKEN",
+  });
+  const api = new FulfillmentApi(config);
+
+  const body = {
+    // string
+    id: id_example,
+  } satisfies FulfillmentControllerRecoverOrderRequest;
+
+  try {
+    const data = await api.fulfillmentControllerRecoverOrder(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **id** | `string` |  | [Defaults to `undefined`] |
+
+### Return type
+
+`void` (Empty response body)
+
+### Authorization
+
+[JWT-auth](../README.md#JWT-auth)
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: Not defined
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Recovery result with updated items |  -  |
+| **401** | Unauthorized - missing or invalid JWT |  -  |
+| **403** | Forbidden - order does not belong to user |  -  |
+| **404** | Order not found |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 

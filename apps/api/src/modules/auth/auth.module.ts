@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
@@ -12,6 +12,7 @@ import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { RefreshTokenGuard } from './guards/refresh-token.guard';
 import { MetricsModule } from '../metrics/metrics.module';
 import { EmailsModule } from '../emails/emails.module';
+import { OrdersModule } from '../orders/orders.module';
 
 /**
  * Authentication Module
@@ -52,6 +53,7 @@ import { EmailsModule } from '../emails/emails.module';
     }),
     MetricsModule,
     EmailsModule,
+    forwardRef(() => OrdersModule), // Link guest orders to users on login
   ],
 
   controllers: [AuthController],

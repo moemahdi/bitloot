@@ -6,6 +6,7 @@ All URIs are relative to *http://localhost*
 |------------- | ------------- | -------------|
 | [**ordersControllerCreate**](OrdersApi.md#orderscontrollercreate) | **POST** /orders | Create a new order |
 | [**ordersControllerGet**](OrdersApi.md#orderscontrollerget) | **GET** /orders/{id} | Get order by ID (requires ownership) |
+| [**ordersControllerGetForCheckout**](OrdersApi.md#orderscontrollergetforcheckout) | **GET** /orders/{id}/checkout | Get order for checkout (public - UUID is auth) |
 | [**ordersControllerSetReservation**](OrdersApi.md#orderscontrollersetreservation) | **PATCH** /orders/{id}/reservation | Set Kinguin reservation ID (test/internal use) |
 
 
@@ -27,7 +28,11 @@ import type { OrdersControllerCreateRequest } from '';
 
 async function example() {
   console.log("🚀 Testing  SDK...");
-  const api = new OrdersApi();
+  const config = new Configuration({ 
+    // Configure HTTP bearer authorization: JWT-auth
+    accessToken: "YOUR BEARER TOKEN",
+  });
+  const api = new OrdersApi(config);
 
   const body = {
     // CreateOrderDto
@@ -59,7 +64,7 @@ example().catch(console.error);
 
 ### Authorization
 
-No authorization required
+[JWT-auth](../README.md#JWT-auth)
 
 ### HTTP request headers
 
@@ -142,6 +147,72 @@ example().catch(console.error);
 | **200** |  |  -  |
 | **401** | Unauthorized - missing or invalid JWT |  -  |
 | **403** | Forbidden - order does not belong to user |  -  |
+| **404** | Order not found |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## ordersControllerGetForCheckout
+
+> OrderResponseDto ordersControllerGetForCheckout(id)
+
+Get order for checkout (public - UUID is auth)
+
+### Example
+
+```ts
+import {
+  Configuration,
+  OrdersApi,
+} from '';
+import type { OrdersControllerGetForCheckoutRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new OrdersApi();
+
+  const body = {
+    // string
+    id: id_example,
+  } satisfies OrdersControllerGetForCheckoutRequest;
+
+  try {
+    const data = await api.ordersControllerGetForCheckout(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **id** | `string` |  | [Defaults to `undefined`] |
+
+### Return type
+
+[**OrderResponseDto**](OrderResponseDto.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** |  |  -  |
 | **404** | Order not found |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)

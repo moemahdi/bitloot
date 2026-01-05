@@ -13,6 +13,7 @@ import { OtpService } from './otp.service';
 import { AuthService } from './auth.service';
 import { UserService } from './user.service';
 import { EmailsService } from '../emails/emails.service';
+import { OrdersService } from '../orders/orders.service';
 import { verifyCaptchaToken } from '../../utils/captcha.util';
 import {
   RequestOtpDto,
@@ -39,6 +40,7 @@ export class AuthController {
     private readonly authService: AuthService,
     private readonly userService: UserService,
     private readonly emailsService: EmailsService,
+    private readonly ordersService: OrdersService,
   ) {}
 
   /**
@@ -131,6 +133,12 @@ export class AuthController {
 
       // Mark email as confirmed
       await this.userService.confirmEmail(dto.email);
+
+      // Link any guest orders to this user by email match
+      const linkedOrders = await this.ordersService.linkOrdersByEmail(user.id, dto.email);
+      if (linkedOrders > 0) {
+        this.logger.log(`🔗 Linked ${linkedOrders} guest orders to user ${dto.email}`);
+      }
 
       // Generate JWT tokens
       const { accessToken, refreshToken } = this.authService.generateTokens(user);

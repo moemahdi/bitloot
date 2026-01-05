@@ -39,6 +39,10 @@ export interface FulfillmentControllerGetStatusRequest {
     id: string;
 }
 
+export interface FulfillmentControllerRecoverOrderRequest {
+    id: string;
+}
+
 export interface FulfillmentControllerRevealKeyRequest {
     id: string;
     itemId: string;
@@ -171,6 +175,50 @@ export class FulfillmentApi extends runtime.BaseAPI {
     async fulfillmentControllerHealthCheck(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<HealthCheckResultDto> {
         const response = await this.fulfillmentControllerHealthCheckRaw(initOverrides);
         return await response.value();
+    }
+
+    /**
+     * Recover signed URLs for orders with keys in R2 (requires ownership)
+     */
+    async fulfillmentControllerRecoverOrderRaw(requestParameters: FulfillmentControllerRecoverOrderRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<void>> {
+        if (requestParameters['id'] == null) {
+            throw new runtime.RequiredError(
+                'id',
+                'Required parameter "id" was null or undefined when calling fulfillmentControllerRecoverOrder().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("JWT-auth", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/fulfillment/{id}/recover`;
+        urlPath = urlPath.replace(`{${"id"}}`, encodeURIComponent(String(requestParameters['id'])));
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.VoidApiResponse(response);
+    }
+
+    /**
+     * Recover signed URLs for orders with keys in R2 (requires ownership)
+     */
+    async fulfillmentControllerRecoverOrder(requestParameters: FulfillmentControllerRecoverOrderRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<void> {
+        await this.fulfillmentControllerRecoverOrderRaw(requestParameters, initOverrides);
     }
 
     /**

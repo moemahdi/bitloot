@@ -2,6 +2,7 @@ import { Body, Controller, Get, Param, Post, Patch, UseGuards, Request } from '@
 import { ApiOperation, ApiResponse, ApiTags, ApiBearerAuth } from '@nestjs/swagger';
 import type { Request as ExpressRequest } from 'express';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { OptionalAuthGuard } from '../auth/guards/optional-auth.guard';
 import { CreateOrderDto, OrderResponseDto } from './dto/create-order.dto';
 import { OrdersService } from './orders.service';
 import { EmailsService } from '../emails/emails.service';
@@ -24,9 +25,11 @@ export class OrdersController {
   ) {}
 
   @Post()
+  @UseGuards(OptionalAuthGuard)
+  @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Create a new order' })
   @ApiResponse({ status: 201, type: OrderResponseDto })
-  async create(@Body() dto: CreateOrderDto): Promise<OrderResponseDto> {
+  async create(@Body() dto: CreateOrderDto, @Request() req: AuthenticatedRequest): Promise<OrderResponseDto> {
     // Verify CAPTCHA token if enabled
     const turnstileEnabled = process.env.TURNSTILE_ENABLED === 'true';
     if (turnstileEnabled) {
@@ -37,7 +40,10 @@ export class OrdersController {
       await verifyCaptchaToken(captchaToken);
     }
 
-    const order = await this.orders.create(dto);
+    // Extract userId from JWT if user is authenticated
+    const userId = req.user?.sub ?? undefined;
+
+    const order = await this.orders.create(dto, userId);
 
     // Send order confirmation email
     try {
@@ -57,6 +63,16 @@ export class OrdersController {
     }
 
     return order;
+  }
+
+  @Get(':id/checkout')
+  @ApiOperation({ summary: 'Get order for checkout (public - UUID is auth)' })
+  @ApiResponse({ status: 200, type: OrderResponseDto })
+  @ApiResponse({ status: 404, description: 'Order not found' })
+  async getForCheckout(@Param('id') id: string): Promise<OrderResponseDto> {
+    // Public endpoint for checkout flow - UUID serves as auth token
+    // Only returns order info needed for payment, no sensitive data
+    return this.orders.get(id);
   }
 
   @Get(':id')

@@ -253,6 +253,59 @@ export class FulfillmentController {
   }
 
   /**
+   * Recovery endpoint: Recover signed URLs for orders with keys in R2
+   *
+   * This endpoint is for orders that have:
+   * - Status 'paid' (payment confirmed)
+   * - Keys uploaded to R2 (Kinguin delivered or custom uploaded)
+   * - But signedUrl is null (webhook/job failed)
+   *
+   * It checks R2, regenerates signed URLs, and marks order as fulfilled.
+   * Requires authentication and ownership of the order.
+   *
+   * @param id Order ID to recover
+   * @param req Authenticated request
+   * @returns Recovery result with updated items
+   */
+  @Post(':id/recover')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: 'Recover signed URLs for orders with keys in R2 (requires ownership)' })
+  @ApiResponse({ status: 200, description: 'Recovery result with updated items' })
+  @ApiResponse({ status: 401, description: 'Unauthorized - missing or invalid JWT' })
+  @ApiResponse({ status: 403, description: 'Forbidden - order does not belong to user' })
+  @ApiResponse({ status: 404, description: 'Order not found' })
+  async recoverOrder(
+    @Param('id') id: string,
+    @Request() req: AuthenticatedRequest,
+  ): Promise<{ recovered: boolean; items: Array<{ itemId: string; signedUrl: string | null }> }> {
+    try {
+      const user = req.user ?? null;
+      if (user === null) {
+        throw new Error('User not found in request');
+      }
+
+      // Verify ownership
+      const order = await this.ordersService.get(id);
+      if (order === null || order === undefined) {
+        throw new HttpException('Order not found', HttpStatus.NOT_FOUND);
+      }
+      if (order.userId !== user.sub && user.role !== 'admin') {
+        throw new HttpException('Forbidden', HttpStatus.FORBIDDEN);
+      }
+
+      // Attempt recovery
+      const result = await this.fulfillmentService.recoverOrderKeys(id);
+
+      return result;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to recover order';
+      const status = message.includes('not found') ? HttpStatus.NOT_FOUND : HttpStatus.BAD_REQUEST;
+      throw new HttpException(message, status);
+    }
+  }
+
+  /**
    * Health check for fulfillment service
    *
    * @returns HealthCheckResult with service status

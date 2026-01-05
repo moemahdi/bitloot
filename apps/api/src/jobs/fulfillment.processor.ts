@@ -128,7 +128,32 @@ export class FulfillmentProcessor extends WorkerHost {
         // Route by job.name to support multiple phases per plan
       const jobName = job.name;
       if (jobName === 'reserve') {
-        // Phase: start reservation with Kinguin
+        // Check product source type to determine fulfillment path
+        const sourceType = order.sourceType ?? 'custom';
+        
+        if (sourceType === 'custom') {
+          // CUSTOM PRODUCTS: Direct fulfillment (keys pre-uploaded to R2)
+          this.logger.log(`[Fulfillment] 📦 Custom product order ${orderId} - executing direct fulfillment`);
+          
+          const result = await this.fulfillmentService.fulfillOrder(orderId);
+          
+          this.fulfillmentGateway.emitFulfillmentStatusChange({
+            orderId,
+            status: 'fulfilled',
+            fulfillmentStatus: 'completed',
+          });
+          
+          this.logger.log(`[Fulfillment] ✅ Custom order ${orderId} fulfilled successfully`);
+          
+          return {
+            orderId,
+            status: 'fulfilled',
+            message: `Custom order fulfilled with ${result.items.length} items`,
+          };
+        }
+        
+        // KINGUIN PRODUCTS: Start reservation with Kinguin API
+        this.logger.log(`[Fulfillment] 👑 Kinguin product order ${orderId} - starting reservation`);
         const result = await this.fulfillmentService.startReservation(orderId);
         this.fulfillmentGateway.emitFulfillmentStatusChange({
           orderId,
