@@ -1,792 +1,1286 @@
 'use client';
 
-import { Suspense, useState, useMemo, useEffect } from 'react';
+import { useState, useCallback, useMemo, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { useQuery } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useQuery } from '@tanstack/react-query';
 import {
-  catalogClient,
-  CatalogGroupsApi,
-  Configuration,
-  type FeaturedCategoryDto,
-  type CategoryDto,
-  type ProductGroupResponseDto,
-} from '@bitloot/sdk';
-import type { ProductListResponseDto } from '@bitloot/sdk';
-import { useCatalogCategories } from '@/hooks/useCatalog';
-import { CatalogFilters } from '@/features/catalog/components/CatalogFilters';
-import { ProductGrid } from '@/features/catalog/components/ProductGrid';
+    Search,
+    Filter,
+    X,
+    Loader2,
+    Grid3X3,
+    LayoutList,
+    ChevronLeft,
+    ChevronRight,
+    SlidersHorizontal,
+    Sparkles,
+    Zap,
+    RefreshCw,
+    Package,
+    AlertCircle,
+    TrendingUp,
+    Star,
+    Gift,
+    Gamepad2,
+    Monitor,
+    Smartphone,
+    Crown,
+    Flame,
+    Clock,
+    ArrowUpDown,
+    Home,
+    Layers,
+} from 'lucide-react';
+
+import { catalogClient, CatalogGroupsApi, Configuration } from '@bitloot/sdk';
+import type { CategoriesResponseDto, FiltersResponseDto, ProductGroupResponseDto } from '@bitloot/sdk';
+
+import { Button } from '@/design-system/primitives/button';
+import { Input } from '@/design-system/primitives/input';
+import { Badge } from '@/design-system/primitives/badge';
+import { Card, CardContent } from '@/design-system/primitives/card';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/design-system/primitives/select';
+import {
+    Sheet,
+    SheetContent,
+    SheetHeader,
+    SheetTitle,
+    SheetTrigger,
+    SheetClose,
+} from '@/design-system/primitives/sheet';
+import { Skeleton } from '@/design-system/primitives/skeleton';
+import { Slider } from '@/design-system/primitives/slider';
+import { Checkbox } from '@/design-system/primitives/checkbox';
+import { Separator } from '@/design-system/primitives/separator';
+import {
+    Accordion,
+    AccordionContent,
+    AccordionItem,
+    AccordionTrigger,
+} from '@/design-system/primitives/accordion';
+import { ScrollArea } from '@/design-system/primitives/scroll-area';
+
+import { ProductCard } from '@/features/catalog/components/ProductCard';
+import type { Product } from '@/features/catalog/components/ProductCard';
 import { ProductGroupCard } from '@/features/catalog/components/ProductGroupCard';
 import { GroupVariantsModal } from '@/features/catalog/components/GroupVariantsModal';
-import { GlowButton } from '@/design-system/primitives/glow-button';
 
-// Create API client instance for groups
+// Initialize catalog groups API client
 const catalogGroupsApi = new CatalogGroupsApi(
-  new Configuration({
-    basePath: process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000',
-  })
+    new Configuration({
+        basePath: process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000',
+    })
 );
-import { Input } from '@/design-system/primitives/input';
-import { Skeleton } from '@/design-system/primitives/skeleton';
-import { Sheet, SheetContent, SheetTrigger } from '@/design-system/primitives/sheet';
-import {
-  Filter,
-  Loader2,
-  Search,
-  TrendingUp,
-  Award,
-  Sparkles,
-  Crown,
-  Gamepad2,
-  MonitorPlay,
-  Gift,
-  UserCircle,
-  LayoutGrid,
-  List,
-  SlidersHorizontal,
-  Package,
-  Zap,
-  RefreshCw,
-  AlertCircle,
-  Music,
-  Film,
-  BookOpen,
-  type LucideIcon,
-} from 'lucide-react';
-import type { Product } from '@/features/catalog/components/ProductCard';
-import { cn } from '@/design-system/utils/utils';
-import { FloatingParticles, AnimatedGridPattern } from '@/components/animations/FloatingParticles';
 
-// Icon mapping for categories (slugs to Lucide icons)
-const CATEGORY_ICONS: Record<string, LucideIcon> = {
-  all: LayoutGrid,
-  trending: TrendingUp,
-  'best-sellers': Award,
-  bestsellers: Award,
-  new: Sparkles,
-  newest: Sparkles,
-  premium: Crown,
-  steam: Gamepad2,
-  games: Gamepad2,
-  software: MonitorPlay,
-  'gift-cards': Gift,
-  giftcards: Gift,
-  social: UserCircle,
-  'social-media': UserCircle,
-  music: Music,
-  movies: Film,
-  education: BookOpen,
-  default: Package,
+// ============================================================================
+// Types & Constants
+// ============================================================================
+
+interface FilterState {
+    search: string;
+    category: string;
+    platform: string[];
+    region: string;
+    minPrice: number;
+    maxPrice: number;
+    sort: 'newest' | 'price_asc' | 'price_desc' | 'rating';
+}
+
+const DEFAULT_FILTERS: FilterState = {
+    search: '',
+    category: 'all',
+    platform: [],
+    region: 'all',
+    minPrice: 0,
+    maxPrice: 500,
+    sort: 'newest',
 };
 
-// Helper to get icon for a category slug
-function getCategoryIcon(slug: string): LucideIcon {
-  const normalizedSlug = slug.toLowerCase().replace(/\s+/g, '-');
-  return CATEGORY_ICONS[normalizedSlug] ?? Package;
-}
+const PRODUCTS_PER_PAGE = 24;
 
-// Tab item interface for dynamic tabs
-interface TabItem {
-  id: string;
-  label: string;
-  icon: LucideIcon;
-  category?: string;
-  platform?: string;
-  sort?: string;
-  count?: number;
-}
+const GAMING_EASING = [0.25, 0.46, 0.45, 0.94];
+
+// Category icons mapping
+const CATEGORY_ICONS: Record<string, React.ElementType> = {
+    all: Sparkles,
+    trending: TrendingUp,
+    games: Gamepad2,
+    software: Monitor,
+    'gift-cards': Gift,
+    subscriptions: Clock,
+    mobile: Smartphone,
+    featured: Crown,
+    deals: Flame,
+};
 
 // Sort options
 const SORT_OPTIONS = [
-  { value: 'popular', label: 'Most Popular' },
-  { value: 'newest', label: 'Newest First' },
-  { value: 'price_asc', label: 'Price: Low to High' },
-  { value: 'price_desc', label: 'Price: High to Low' },
-  { value: 'rating', label: 'Highest Rated' },
+    { value: 'newest', label: 'Newest First', icon: Clock },
+    { value: 'price_asc', label: 'Price: Low to High', icon: ArrowUpDown },
+    { value: 'price_desc', label: 'Price: High to Low', icon: ArrowUpDown },
+    { value: 'rating', label: 'Top Rated', icon: Star },
 ] as const;
 
-function CatalogContent(): React.ReactElement {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const [activeCategory, setActiveCategory] = useState<string>('all');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [sortBy, setSortBy] = useState<string>('popular');
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+// ============================================================================
+// Skeleton Components
+// ============================================================================
 
-  // Product groups state
-  const [selectedGroup, setSelectedGroup] = useState<ProductGroupResponseDto | null>(null);
-  const [isGroupModalOpen, setIsGroupModalOpen] = useState(false);
-
-  // Fetch product groups
-  const { data: groupsData } = useQuery({
-    queryKey: ['product-groups'],
-    queryFn: () => catalogGroupsApi.groupsControllerListGroups(),
-    staleTime: 5 * 60 * 1000, // 5 minutes
-  });
-
-  // Handler for viewing group variants
-  const handleViewVariants = (group: ProductGroupResponseDto): void => {
-    setSelectedGroup(group);
-    setIsGroupModalOpen(true);
-  };
-
-  // Fetch dynamic categories from API
-  const { data: categoriesData, isLoading: isCategoriesLoading } = useCatalogCategories();
-
-  // Build tabs from dynamic categories
-  const categoryTabs = useMemo<TabItem[]>(() => {
-    // Always include "All Products" as first tab
-    const tabs: TabItem[] = [
-      { id: 'all', label: 'All Products', icon: LayoutGrid },
-    ];
-
-    if (categoriesData === null || categoriesData === undefined) {
-      // Return minimal fallback tabs while loading
-      return [
-        ...tabs,
-        { id: 'trending', label: 'Trending', icon: TrendingUp, sort: 'trending' },
-        { id: 'new', label: 'New', icon: Sparkles, sort: 'newest' },
-        { id: 'games', label: 'Games', icon: Gamepad2, category: 'games' },
-      ];
-    }
-
-    // Add featured/virtual categories from API
-    categoriesData.featured.forEach((featured: FeaturedCategoryDto) => {
-      tabs.push({
-        id: featured.id,
-        label: featured.label,
-        icon: getCategoryIcon(featured.id),
-        sort: featured.sort ?? undefined,
-      });
-    });
-
-    // Add real categories from API
-    categoriesData.categories.forEach((cat: CategoryDto) => {
-      // Use platform filter for platform-type categories, category filter for genres
-      const isPlatform = cat.type === 'platform';
-      tabs.push({
-        id: cat.id,
-        label: cat.label,
-        icon: getCategoryIcon(cat.id),
-        ...(isPlatform ? { platform: cat.label } : { category: cat.label }),
-        count: cat.count,
-      });
-    });
-
-    return tabs;
-  }, [categoriesData]);
-
-  // Sync activeCategory from URL params on mount and when URL changes
-  useEffect(() => {
-    const urlPlatform = searchParams.get('platform');
-    const urlCategory = searchParams.get('category');
-
-    if (
-      urlPlatform !== null &&
-      urlPlatform !== undefined &&
-      urlPlatform !== ''
-    ) {
-      // Find tab with matching platform
-      const platformTab = categoryTabs.find(
-        (tab) => tab.platform === urlPlatform,
-      );
-      if (platformTab !== null && platformTab !== undefined) {
-        setActiveCategory(platformTab.id);
-        return;
-      }
-    }
-
-    if (
-      urlCategory !== null &&
-      urlCategory !== undefined &&
-      urlCategory !== ''
-    ) {
-      // Find tab with matching category
-      const categoryTab = categoryTabs.find(
-        (tab) => tab.category === urlCategory || tab.id === urlCategory,
-      );
-      if (categoryTab !== null && categoryTab !== undefined) {
-        setActiveCategory(categoryTab.id);
-        return;
-      }
-    }
-
-    // Default to 'all' if no filter params
-    if (
-      (urlPlatform === null ||
-        urlPlatform === undefined ||
-        urlPlatform === '') &&
-      (urlCategory === null || urlCategory === undefined || urlCategory === '')
-    ) {
-      setActiveCategory('all');
-    }
-  }, [searchParams, categoryTabs]);
-
-  // Get selected tab info
-  const selectedTab = categoryTabs.find((tab) => tab.id === activeCategory) ?? categoryTabs[0];
-
-  // Map sort values from featured tabs to SDK enum
-  const getSdkSort = (sort?: string): 'newest' | 'price_asc' | 'price_desc' | 'rating' | undefined => {
-    switch (sort) {
-      case 'trending':
-        return 'newest';
-      case 'sales':
-        return 'price_desc';
-      case 'newest':
-        return 'newest';
-      case 'discount':
-        return 'price_desc';
-      default:
-        return undefined;
-    }
-  };
-
-  // Extract query params - but use state for category/platform (tabs don't update URL)
-  const pageParam = searchParams.get('page');
-  const page = pageParam !== null && pageParam !== undefined ? Number(pageParam) : 1;
-  const minPriceParam = searchParams.get('minPrice');
-  const minPrice =
-    minPriceParam !== null && minPriceParam !== undefined ? Number(minPriceParam) : undefined;
-  const maxPriceParam = searchParams.get('maxPrice');
-  const maxPrice =
-    maxPriceParam !== null && maxPriceParam !== undefined ? Number(maxPriceParam) : undefined;
-  const search = searchParams.get('search') ?? undefined;
-
-  // Get category/platform from active tab state (not URL) - tabs don't change URL
-  const category = selectedTab?.category;
-  const platform = selectedTab?.platform;
-
-  const {
-    data,
-    isLoading,
-    isError,
-    refetch,
-    isFetching,
-  } = useQuery<ProductListResponseDto>({
-    // Include activeCategory for cache invalidation when tab changes
-    queryKey: ['products', { page, activeCategory, category, platform, minPrice, maxPrice, search }],
-    queryFn: async () => {
-      try {
-        // Category/platform come from active tab state, other params from URL
-        const result = await catalogClient.findAll({
-          page,
-          limit: 12,
-          category: category,
-          platform: platform,
-          minPrice,
-          maxPrice,
-          search,
-          sort: getSdkSort(selectedTab?.sort),
-        });
-        return result;
-      } catch (error) {
-        console.error('Failed to fetch products:', error);
-        throw error;
-      }
-    },
-  });
-
-  // Map ProductResponseDto to Product interface expected by ProductCard
-  const products: Product[] = (data?.data ?? []).map((dto) => ({
-    id: dto.id,
-    slug: dto.slug,
-    name: dto.title,
-    description: dto.description ?? '',
-    price: dto.price,
-    currency: dto.currency,
-    image: dto.imageUrl,
-    platform: dto.platform,
-    discount: 0,
-  }));
-  const total = data?.total ?? 0;
-  const totalPages = Math.ceil(total / 12);
-
-  // Handle search
-  const handleSearch = (e: React.FormEvent): void => {
-    e.preventDefault();
-    const params = new URLSearchParams(searchParams.toString());
-    if (searchQuery !== '') {
-      params.set('search', searchQuery);
-    } else {
-      params.delete('search');
-    }
-    params.set('page', '1');
-    router.push(`/catalog?${params.toString()}`);
-  };
-
-  // Handle category change - just update state, don't change URL
-  const handleCategoryChange = (categoryId: string): void => {
-    setActiveCategory(categoryId);
-  };
-
-  // Handle pagination
-  const goToPage = (newPage: number): void => {
-    const params = new URLSearchParams(searchParams.toString());
-    params.set('page', newPage.toString());
-    router.push(`/catalog?${params.toString()}`);
-  };
-
-  return (
-    <div className="min-h-screen bg-bg-primary">
-      {/* Hero Section */}
-      <section className="relative overflow-hidden border-b border-border-subtle bg-gradient-dark">
-        {/* Animated Background */}
-        <div className="absolute inset-0">
-          <div className="absolute left-1/4 top-0 h-[400px] w-[600px] bg-radial-cyan opacity-30 blur-3xl pointer-events-none" />
-          <div className="absolute bottom-0 right-1/4 h-[300px] w-[400px] bg-radial-purple opacity-20 blur-3xl pointer-events-none" />
-          <AnimatedGridPattern />
-          <FloatingParticles count={20} />
-        </div>
-
-        <div className="container relative z-10 mx-auto px-4 py-12 md:py-16">
-          {/* Header */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mb-8 text-center"
-          >
-            <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-cyan-glow/30 bg-cyan-glow/10 px-4 py-1.5">
-              <Package className="h-4 w-4 text-cyan-glow" />
-              <span className="text-sm font-medium text-cyan-glow">
-                {total.toLocaleString()}+ Products Available
-              </span>
-            </div>
-            <h1 className="mb-4 text-4xl font-display font-bold text-white md:text-5xl">
-              Browse Our{' '}
-              <span className="text-gradient-primary animate-glow-pulse">Catalog</span>
-            </h1>
-            <p className="mx-auto max-w-2xl text-lg text-text-secondary">
-              Discover thousands of digital products with instant delivery and secure crypto
-              payments
-            </p>
-          </motion.div>
-
-          {/* Search Bar */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="mx-auto mb-8 max-w-2xl"
-          >
-            <form onSubmit={handleSearch} className="relative group">
-              <div className="absolute inset-0 rounded-xl bg-radial-cyan opacity-0 blur-xl transition-opacity duration-300 group-focus-within:opacity-20 pointer-events-none" />
-              <Search
-                className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-text-muted transition-colors group-focus-within:text-cyan-glow"
-                aria-hidden="true"
-              />
-              <Input
-                type="search"
-                placeholder="Search for games, software, gift cards..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                aria-label="Search products"
-                className="glass w-full rounded-xl border-border-accent py-6 pl-12 pr-4 text-base text-white placeholder:text-text-muted transition-all duration-300 hover:border-cyan-glow/50 focus:border-cyan-glow focus:shadow-glow-cyan"
-              />
-              <GlowButton
-                type="submit"
-                size="sm"
-                className="absolute right-2 top-1/2 -translate-y-1/2"
-              >
-                Search
-              </GlowButton>
-            </form>
-          </motion.div>
-
-          {/* Category Tabs */}
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-          >
-            <nav
-              className="flex justify-center gap-2 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-border-subtle scrollbar-track-transparent"
-              role="tablist"
-              aria-label="Product categories"
-            >
-              {isCategoriesLoading ? (
-                // Loading skeleton
-                <>
-                  {[1, 2, 3, 4, 5].map((i) => (
-                    <Skeleton key={i} className="h-10 w-28 shrink-0 rounded-xl" />
-                  ))}
-                </>
-              ) : (
-                categoryTabs.map((tab) => {
-                  const Icon = tab.icon;
-                  const isActive = activeCategory === tab.id;
-
-                  return (
-                    <button
-                      key={tab.id}
-                      role="tab"
-                      aria-selected={isActive}
-                      aria-controls={`tabpanel-${tab.id}`}
-                      onClick={() => handleCategoryChange(tab.id)}
-                      className={cn(
-                        'flex shrink-0 cursor-pointer items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium transition-all duration-300',
-                        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-glow/50 focus-visible:ring-offset-2 focus-visible:ring-offset-bg-primary',
-                        isActive
-                          ? 'border border-cyan-glow/30 bg-cyan-glow/15 text-cyan-glow shadow-[0_0_20px_rgba(0,217,255,0.2)]'
-                          : 'glass border border-border-subtle text-text-muted hover:border-cyan-glow/30 hover:bg-bg-tertiary/50 hover:text-text-primary'
-                      )}
-                    >
-                      <Icon className="h-4 w-4" />
-                      <span className="whitespace-nowrap">{tab.label}</span>
-                      {tab.count !== undefined && tab.count > 0 && (
-                        <span className="ml-1 rounded-full bg-bg-tertiary px-1.5 py-0.5 text-xs text-text-muted">
-                          {tab.count}
-                        </span>
-                      )}
-                    </button>
-                  );
-                })
-              )}
-            </nav>
-          </motion.div>
-        </div>
-      </section>
-
-      {/* Main Content */}
-      <section className="container mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 gap-8 lg:grid-cols-4">
-          {/* Sidebar Filters - Desktop */}
-          <aside className="hidden lg:block">
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              className="sticky top-24"
-            >
-              <div className="glass rounded-2xl border border-border-subtle p-6">
-                <div className="mb-6 flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <SlidersHorizontal className="h-5 w-5 text-cyan-glow" />
-                    <h3 className="text-lg font-semibold text-white">Filters</h3>
-                  </div>
-                  <button
-                    onClick={() => router.push('/catalog')}
-                    className="text-sm text-text-muted transition-colors hover:text-cyan-glow"
-                  >
-                    Reset
-                  </button>
-                </div>
-                <CatalogFilters />
-              </div>
-            </motion.div>
-          </aside>
-
-          {/* Products Area */}
-          <div className="lg:col-span-3">
-            {/* Toolbar */}
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="mb-6 flex flex-wrap items-center justify-between gap-4"
-            >
-              {/* Results Count */}
-              <div className="flex items-center gap-3">
-                <span className="text-sm text-text-secondary">
-                  {isLoading ? (
-                    <span className="flex items-center gap-2">
-                      <Loader2 className="h-4 w-4 animate-spin text-cyan-glow" />
-                      Loading...
-                    </span>
-                  ) : (
-                    <>
-                      Showing{' '}
-                      <span className="font-medium text-white">{products.length}</span> of{' '}
-                      <span className="font-medium text-white">{total.toLocaleString()}</span>{' '}
-                      products
-                    </>
-                  )}
-                </span>
-                {isFetching && !isLoading && (
-                  <Loader2 className="h-4 w-4 animate-spin text-cyan-glow" />
-                )}
-              </div>
-
-              {/* Controls */}
-              <div className="flex items-center gap-3">
-                {/* Mobile Filter Button */}
-                <Sheet>
-                  <SheetTrigger asChild>
-                    <GlowButton variant="outline" size="sm" className="lg:hidden">
-                      <Filter className="mr-2 h-4 w-4" />
-                      Filters
-                    </GlowButton>
-                  </SheetTrigger>
-                  <SheetContent side="left" className="w-80 bg-bg-secondary p-6">
-                    <div className="mb-6 flex items-center gap-2">
-                      <SlidersHorizontal className="h-5 w-5 text-cyan-glow" />
-                      <h3 className="text-lg font-semibold text-white">Filters</h3>
-                    </div>
-                    <CatalogFilters />
-                  </SheetContent>
-                </Sheet>
-
-                {/* Sort Dropdown */}
-                <select
-                  value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value)}
-                  aria-label="Sort products"
-                  className="glass cursor-pointer rounded-lg border border-border-subtle bg-bg-secondary px-3 py-2 text-sm text-white transition-colors hover:border-cyan-glow/30 focus:border-cyan-glow focus:outline-none"
-                >
-                  {SORT_OPTIONS.map((option) => (
-                    <option key={option.value} value={option.value} className="bg-bg-secondary">
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-
-                {/* View Toggle */}
-                <div className="hidden items-center gap-1 rounded-lg border border-border-subtle p-1 sm:flex">
-                  <button
-                    onClick={() => setViewMode('grid')}
-                    aria-label="Grid view"
-                    aria-pressed={viewMode === 'grid'}
-                    className={cn(
-                      'rounded-md p-2 transition-colors',
-                      viewMode === 'grid'
-                        ? 'bg-cyan-glow/15 text-cyan-glow'
-                        : 'text-text-muted hover:text-white'
-                    )}
-                  >
-                    <LayoutGrid className="h-4 w-4" />
-                  </button>
-                  <button
-                    onClick={() => setViewMode('list')}
-                    aria-label="List view"
-                    aria-pressed={viewMode === 'list'}
-                    className={cn(
-                      'rounded-md p-2 transition-colors',
-                      viewMode === 'list'
-                        ? 'bg-cyan-glow/15 text-cyan-glow'
-                        : 'text-text-muted hover:text-white'
-                    )}
-                  >
-                    <List className="h-4 w-4" />
-                  </button>
-                </div>
-
-                {/* Refresh Button */}
-                <button
-                  onClick={() => refetch()}
-                  disabled={isFetching}
-                  aria-label="Refresh products"
-                  className={cn(
-                    'rounded-lg border border-border-subtle p-2 text-text-muted transition-colors hover:border-cyan-glow/30 hover:text-cyan-glow',
-                    isFetching && 'cursor-not-allowed opacity-50'
-                  )}
-                >
-                  <RefreshCw className={cn('h-4 w-4', isFetching && 'animate-spin')} />
-                </button>
-              </div>
-            </motion.div>
-
-            {/* Products Grid */}
-            <AnimatePresence mode="wait">
-              {isLoading ? (
+function ProductGridSkeleton({ count = 12 }: { count?: number }): React.ReactElement {
+    return (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
+            {Array.from({ length: count }).map((_, i) => (
                 <motion.div
-                  key="loading"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  className="flex h-96 flex-col items-center justify-center gap-4"
+                    key={i}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.05, ease: GAMING_EASING }}
                 >
-                  <div className="relative">
-                    <div className="absolute -inset-4 animate-ping rounded-full bg-cyan-glow/20" />
-                    <div className="relative flex h-16 w-16 items-center justify-center rounded-2xl border border-cyan-glow/30 bg-bg-secondary">
-                      <Zap className="h-8 w-8 animate-pulse text-cyan-glow" fill="currentColor" />
-                    </div>
-                  </div>
-                  <p className="text-text-secondary">Loading products...</p>
-                  <Loader2 className="h-5 w-5 animate-spin text-cyan-glow" />
-                </motion.div>
-              ) : isError ? (
-                <motion.div
-                  key="error"
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  className="flex h-96 flex-col items-center justify-center gap-6"
-                >
-                  <div className="flex h-20 w-20 items-center justify-center rounded-2xl border border-accent-error/30 bg-accent-error/10">
-                    <AlertCircle className="h-10 w-10 text-accent-error" />
-                  </div>
-                  <div className="text-center">
-                    <h3 className="mb-2 text-xl font-semibold text-white">Failed to Load Products</h3>
-                    <p className="mb-4 text-text-secondary">
-                      Something went wrong. Please try again.
-                    </p>
-                    <GlowButton onClick={() => refetch()} variant="outline">
-                      <RefreshCw className="mr-2 h-4 w-4" />
-                      Try Again
-                    </GlowButton>
-                  </div>
-                </motion.div>
-              ) : products.length === 0 ? (
-                <motion.div
-                  key="empty"
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  className="flex h-96 flex-col items-center justify-center gap-6"
-                >
-                  <div className="flex h-20 w-20 items-center justify-center rounded-2xl border border-border-subtle bg-bg-secondary">
-                    <Search className="h-10 w-10 text-text-muted" />
-                  </div>
-                  <div className="text-center">
-                    <h3 className="mb-2 text-xl font-semibold text-white">No Products Found</h3>
-                    <p className="mb-4 max-w-md text-text-secondary">
-                      We couldn&apos;t find any products matching your criteria. Try adjusting your
-                      filters or search terms.
-                    </p>
-                    <GlowButton onClick={() => router.push('/catalog')} variant="outline">
-                      Clear All Filters
-                    </GlowButton>
-                  </div>
-                </motion.div>
-              ) : (
-                <motion.div
-                  key="products"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  role="tabpanel"
-                  id={`tabpanel-${activeCategory}`}
-                >
-                  {/* Product Groups Section */}
-                  {groupsData !== null &&
-                    groupsData !== undefined &&
-                    groupsData.length > 0 &&
-                    activeCategory === 'all' &&
-                    (searchQuery === null ||
-                      searchQuery === undefined ||
-                      searchQuery === '') && (
-                    <div className="mb-10">
-                      <div className="mb-6 flex items-center gap-3">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-purple-500/30 bg-purple-500/10">
-                          <Package className="h-5 w-5 text-purple-400" />
+                    <Card className="h-full overflow-hidden bg-bg-secondary border border-border-subtle">
+                        <div className="relative aspect-4/3 overflow-hidden">
+                            <Skeleton className="absolute inset-0" />
                         </div>
-                        <div>
-                          <h2 className="text-xl font-bold text-white">Game Collections</h2>
-                          <p className="text-sm text-text-secondary">
-                            Browse all editions and platforms in one place
-                          </p>
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                        {groupsData.map((group: ProductGroupResponseDto) => (
-                          <ProductGroupCard
-                            key={group.id}
-                            group={group}
-                            onViewVariants={handleViewVariants}
-                          />
-                        ))}
-                      </div>
-                      <div className="mt-8 border-t border-border-subtle pt-8">
-                        <h2 className="mb-6 text-xl font-bold text-white">Individual Products</h2>
-                      </div>
-                    </div>
-                  )}
-
-                  <ProductGrid products={products} />
-
-                  {/* Pagination */}
-                  {totalPages > 1 && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="mt-12 flex items-center justify-center gap-2"
-                    >
-                      <GlowButton
-                        variant="outline"
-                        size="sm"
-                        disabled={page <= 1}
-                        onClick={() => goToPage(page - 1)}
-                        className="px-4"
-                      >
-                        Previous
-                      </GlowButton>
-
-                      <div className="flex items-center gap-1">
-                        {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                          let pageNum: number;
-                          if (totalPages <= 5) {
-                            pageNum = i + 1;
-                          } else if (page <= 3) {
-                            pageNum = i + 1;
-                          } else if (page >= totalPages - 2) {
-                            pageNum = totalPages - 4 + i;
-                          } else {
-                            pageNum = page - 2 + i;
-                          }
-
-                          return (
-                            <button
-                              key={pageNum}
-                              onClick={() => goToPage(pageNum)}
-                              aria-label={`Go to page ${pageNum}`}
-                              aria-current={page === pageNum ? 'page' : undefined}
-                              className={cn(
-                                'flex h-10 w-10 items-center justify-center rounded-lg text-sm font-medium transition-all',
-                                page === pageNum
-                                  ? 'border border-cyan-glow/30 bg-cyan-glow/15 text-cyan-glow shadow-[0_0_12px_rgba(0,217,255,0.2)]'
-                                  : 'text-text-muted hover:bg-bg-tertiary hover:text-white'
-                              )}
-                            >
-                              {pageNum}
-                            </button>
-                          );
-                        })}
-                      </div>
-
-                      <GlowButton
-                        variant="outline"
-                        size="sm"
-                        disabled={page >= totalPages}
-                        onClick={() => goToPage(page + 1)}
-                        className="px-4"
-                      >
-                        Next
-                      </GlowButton>
-                    </motion.div>
-                  )}
+                        <CardContent className="p-4 space-y-3">
+                            <Skeleton className="h-5 w-3/4" />
+                            <Skeleton className="h-4 w-full" />
+                            <div className="flex items-center justify-between pt-2">
+                                <Skeleton className="h-6 w-20" />
+                                <Skeleton className="h-5 w-16" />
+                            </div>
+                        </CardContent>
+                    </Card>
                 </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
+            ))}
         </div>
-      </section>
-
-      {/* Group Variants Modal */}
-      <GroupVariantsModal
-        group={selectedGroup}
-        open={isGroupModalOpen}
-        onOpenChange={setIsGroupModalOpen}
-      />
-    </div>
-  );
+    );
 }
 
-export default function CatalogPage(): React.ReactElement {
-  return (
-    <Suspense
-      fallback={
-        <div className="flex h-screen items-center justify-center bg-bg-primary">
-          <div className="flex flex-col items-center gap-4">
-            <div className="relative">
-              <div className="absolute -inset-4 animate-ping rounded-full bg-cyan-glow/20" />
-              <div className="relative flex h-16 w-16 items-center justify-center rounded-2xl border border-cyan-glow/30 bg-bg-secondary">
-                <Zap className="h-8 w-8 animate-pulse text-cyan-glow" fill="currentColor" />
-              </div>
+function FilterSidebarSkeleton(): React.ReactElement {
+    return (
+        <div className="space-y-6 p-4">
+            <Skeleton className="h-10 w-full" />
+            <div className="space-y-3">
+                <Skeleton className="h-6 w-24" />
+                <Skeleton className="h-10 w-full" />
             </div>
-            <p className="text-sm text-text-muted">Loading catalog...</p>
-            <Loader2 className="h-5 w-5 animate-spin text-cyan-glow" />
-          </div>
+            <div className="space-y-3">
+                <Skeleton className="h-6 w-32" />
+                {Array.from({ length: 5 }).map((_, i) => (
+                    <div key={i} className="flex items-center gap-2">
+                        <Skeleton className="h-4 w-4" />
+                        <Skeleton className="h-4 w-20" />
+                    </div>
+                ))}
+            </div>
+            <div className="space-y-3">
+                <Skeleton className="h-6 w-28" />
+                <Skeleton className="h-10 w-full" />
+            </div>
         </div>
-      }
-    >
-      <CatalogContent />
-    </Suspense>
-  );
+    );
+}
+
+// ============================================================================
+// Filter Sidebar Component
+// ============================================================================
+
+interface FilterSidebarProps {
+    filters: FilterState;
+    onFilterChange: (updates: Partial<FilterState>) => void;
+    onClearFilters: () => void;
+    filtersData?: FiltersResponseDto;
+    categoriesData?: CategoriesResponseDto;
+    isLoading: boolean;
+    activeFilterCount: number;
+}
+
+function FilterSidebar({
+    filters,
+    onFilterChange,
+    onClearFilters,
+    filtersData,
+    categoriesData,
+    isLoading,
+    activeFilterCount,
+}: FilterSidebarProps): React.ReactElement {
+    if (isLoading) {
+        return <FilterSidebarSkeleton />;
+    }
+
+    const priceRange = filtersData?.priceRange ?? { min: 0, max: 500 };
+
+    return (
+        <div className="space-y-6">
+            {/* Header */}
+            <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                    <div className="p-2 rounded-lg bg-cyan-glow/10 border border-cyan-glow/20">
+                        <SlidersHorizontal className="w-4 h-4 text-cyan-glow" />
+                    </div>
+                    <h2 className="text-lg font-semibold text-text-primary">Filters</h2>
+                    {activeFilterCount > 0 && (
+                        <Badge variant="secondary" className="bg-cyan-glow/20 text-cyan-glow border-cyan-glow/30">
+                            {activeFilterCount}
+                        </Badge>
+                    )}
+                </div>
+                {activeFilterCount > 0 && (
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={onClearFilters}
+                        className="text-text-secondary hover:text-cyan-glow transition-colors"
+                    >
+                        <X className="w-4 h-4 mr-1" />
+                        Clear
+                    </Button>
+                )}
+            </div>
+
+            <Separator className="bg-border-subtle" />
+
+            <Accordion type="multiple" defaultValue={['category', 'platform', 'price']} className="space-y-2">
+                {/* Category Filter */}
+                <AccordionItem value="category" className="border-border-subtle">
+                    <AccordionTrigger className="text-text-primary hover:text-cyan-glow transition-colors py-3">
+                        <span className="flex items-center gap-2">
+                            <Sparkles className="w-4 h-4" />
+                            Category
+                        </span>
+                    </AccordionTrigger>
+                    <AccordionContent>
+                        <div className="space-y-2 pt-2">
+                            <button
+                                onClick={() => onFilterChange({ category: 'all' })}
+                                className={`w-full flex items-center justify-between p-2 rounded-lg transition-all duration-200 ${
+                                    filters.category === 'all'
+                                        ? 'bg-cyan-glow/10 border border-cyan-glow/30 text-cyan-glow'
+                                        : 'hover:bg-bg-tertiary text-text-secondary hover:text-text-primary'
+                                }`}
+                            >
+                                <span className="flex items-center gap-2">
+                                    <Sparkles className="w-4 h-4" />
+                                    All Categories
+                                </span>
+                                {categoriesData !== null && categoriesData !== undefined && (
+                                    <Badge variant="outline" className="text-xs">
+                                        {categoriesData.totalProducts}
+                                    </Badge>
+                                )}
+                            </button>
+                            {categoriesData?.categories.map((cat) => {
+                                const IconComponent = CATEGORY_ICONS[cat.id] ?? Package;
+                                return (
+                                    <button
+                                        key={cat.id}
+                                        onClick={() => onFilterChange({ category: cat.id })}
+                                        className={`w-full flex items-center justify-between p-2 rounded-lg transition-all duration-200 ${
+                                            filters.category === cat.id
+                                                ? 'bg-cyan-glow/10 border border-cyan-glow/30 text-cyan-glow'
+                                                : 'hover:bg-bg-tertiary text-text-secondary hover:text-text-primary'
+                                        }`}
+                                    >
+                                        <span className="flex items-center gap-2">
+                                            <IconComponent className="w-4 h-4" />
+                                            {cat.label}
+                                        </span>
+                                        <Badge variant="outline" className="text-xs">
+                                            {cat.count}
+                                        </Badge>
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    </AccordionContent>
+                </AccordionItem>
+
+                {/* Platform Filter */}
+                <AccordionItem value="platform" className="border-border-subtle">
+                    <AccordionTrigger className="text-text-primary hover:text-cyan-glow transition-colors py-3">
+                        <span className="flex items-center gap-2">
+                            <Gamepad2 className="w-4 h-4" />
+                            Platform
+                        </span>
+                    </AccordionTrigger>
+                    <AccordionContent>
+                        <div className="space-y-2 pt-2">
+                            {filtersData?.platforms.map((platform) => (
+                                <label
+                                    key={platform.id}
+                                    className="flex items-center justify-between p-2 rounded-lg hover:bg-bg-tertiary cursor-pointer transition-colors"
+                                >
+                                    <div className="flex items-center gap-3">
+                                        <Checkbox
+                                            checked={filters.platform.includes(platform.id)}
+                                            onCheckedChange={(checked) => {
+                                                const newPlatforms = checked === true
+                                                    ? [...filters.platform, platform.id]
+                                                    : filters.platform.filter((p) => p !== platform.id);
+                                                onFilterChange({ platform: newPlatforms });
+                                            }}
+                                            className="border-border-accent data-[state=checked]:bg-cyan-glow data-[state=checked]:border-cyan-glow"
+                                        />
+                                        <span className="text-text-secondary">{platform.label}</span>
+                                    </div>
+                                    <Badge variant="outline" className="text-xs">
+                                        {platform.count}
+                                    </Badge>
+                                </label>
+                            ))}
+                        </div>
+                    </AccordionContent>
+                </AccordionItem>
+
+                {/* Price Range Filter */}
+                <AccordionItem value="price" className="border-border-subtle">
+                    <AccordionTrigger className="text-text-primary hover:text-cyan-glow transition-colors py-3">
+                        <span className="flex items-center gap-2">
+                            <Zap className="w-4 h-4" />
+                            Price Range
+                        </span>
+                    </AccordionTrigger>
+                    <AccordionContent>
+                        <div className="space-y-4 pt-2">
+                            <div className="flex items-center justify-between text-sm">
+                                <span className="text-text-secondary">
+                                    €{filters.minPrice}
+                                </span>
+                                <span className="text-text-secondary">
+                                    €{filters.maxPrice}
+                                </span>
+                            </div>
+                            <Slider
+                                value={[filters.minPrice, filters.maxPrice]}
+                                min={priceRange.min}
+                                max={priceRange.max}
+                                step={5}
+                                onValueChange={([min, max]) => {
+                                    onFilterChange({ minPrice: min, maxPrice: max });
+                                }}
+                                className="**:[[role=slider]]:bg-cyan-glow **:[[role=slider]]:border-cyan-glow"
+                            />
+                            <div className="grid grid-cols-2 gap-3">
+                                <div className="space-y-1">
+                                    <label className="text-xs text-text-muted">Min</label>
+                                    <Input
+                                        type="number"
+                                        value={filters.minPrice}
+                                        onChange={(e) => onFilterChange({ minPrice: Number(e.target.value) })}
+                                        className="h-9 bg-bg-tertiary border-border-subtle"
+                                    />
+                                </div>
+                                <div className="space-y-1">
+                                    <label className="text-xs text-text-muted">Max</label>
+                                    <Input
+                                        type="number"
+                                        value={filters.maxPrice}
+                                        onChange={(e) => onFilterChange({ maxPrice: Number(e.target.value) })}
+                                        className="h-9 bg-bg-tertiary border-border-subtle"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                    </AccordionContent>
+                </AccordionItem>
+
+                {/* Region Filter */}
+                {filtersData !== null && filtersData !== undefined && filtersData.regions.length > 0 && (
+                    <AccordionItem value="region" className="border-border-subtle">
+                        <AccordionTrigger className="text-text-primary hover:text-cyan-glow transition-colors py-3">
+                            <span className="flex items-center gap-2">
+                                <Monitor className="w-4 h-4" />
+                                Region
+                            </span>
+                        </AccordionTrigger>
+                        <AccordionContent>
+                            <div className="space-y-2 pt-2">
+                                <button
+                                    onClick={() => onFilterChange({ region: 'all' })}
+                                    className={`w-full flex items-center justify-between p-2 rounded-lg transition-all duration-200 ${
+                                        filters.region === 'all'
+                                            ? 'bg-cyan-glow/10 border border-cyan-glow/30 text-cyan-glow'
+                                            : 'hover:bg-bg-tertiary text-text-secondary hover:text-text-primary'
+                                    }`}
+                                >
+                                    <span>All Regions</span>
+                                </button>
+                                {filtersData.regions.map((region) => (
+                                    <button
+                                        key={region.id}
+                                        onClick={() => onFilterChange({ region: region.id })}
+                                        className={`w-full flex items-center justify-between p-2 rounded-lg transition-all duration-200 ${
+                                            filters.region === region.id
+                                                ? 'bg-cyan-glow/10 border border-cyan-glow/30 text-cyan-glow'
+                                                : 'hover:bg-bg-tertiary text-text-secondary hover:text-text-primary'
+                                        }`}
+                                    >
+                                        <span>{region.label}</span>
+                                        <Badge variant="outline" className="text-xs">
+                                            {region.count}
+                                        </Badge>
+                                    </button>
+                                ))}
+                            </div>
+                        </AccordionContent>
+                    </AccordionItem>
+                )}
+            </Accordion>
+        </div>
+    );
+}
+
+// ============================================================================
+// Empty State Component
+// ============================================================================
+
+function EmptyState({ 
+    onClearFilters,
+    searchQuery,
+}: { 
+    onClearFilters: () => void;
+    searchQuery?: string;
+}): React.ReactElement {
+    const popularSearches = ['Cyberpunk 2077', 'Game Pass', 'Steam Wallet', 'FIFA', 'Windows 11'];
+
+    return (
+        <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ ease: GAMING_EASING }}
+            className="flex flex-col items-center justify-center py-16 px-4"
+        >
+            {/* Icon with glow */}
+            <div className="relative mb-6">
+                <div className="absolute inset-0 bg-purple-neon/20 blur-2xl rounded-full" />
+                <div className="relative p-6 rounded-2xl bg-bg-secondary border border-border-subtle">
+                    <Package className="w-16 h-16 text-purple-neon" />
+                </div>
+            </div>
+
+            {/* Message */}
+            <h3 className="text-xl font-semibold text-text-primary mb-2">
+                No products found
+            </h3>
+            <p className="text-text-secondary text-center max-w-md mb-6">
+                {searchQuery !== undefined && searchQuery !== null && searchQuery !== ''
+                    ? `We couldn't find any products matching "${searchQuery}". Try adjusting your filters or search terms.`
+                    : 'No products match your current filters. Try adjusting your search criteria.'}
+            </p>
+
+            {/* Actions */}
+            <div className="flex flex-col sm:flex-row gap-3 mb-8">
+                <Button
+                    onClick={onClearFilters}
+                    className="bg-cyan-glow text-bg-primary hover:bg-cyan-glow/90 hover:shadow-glow-cyan transition-all"
+                >
+                    <X className="w-4 h-4 mr-2" />
+                    Clear All Filters
+                </Button>
+                <Button
+                    variant="outline"
+                    onClick={() => window.location.href = '/'}
+                    className="border-border-accent hover:border-cyan-glow/60 hover:text-cyan-glow"
+                >
+                    <Home className="w-4 h-4 mr-2" />
+                    Back to Home
+                </Button>
+            </div>
+
+            {/* Popular searches */}
+            <div className="text-center">
+                <p className="text-text-muted text-sm mb-3">Popular searches:</p>
+                <div className="flex flex-wrap justify-center gap-2">
+                    {popularSearches.map((term) => (
+                        <Badge
+                            key={term}
+                            variant="outline"
+                            className="cursor-pointer hover:bg-cyan-glow/10 hover:border-cyan-glow/50 hover:text-cyan-glow transition-all"
+                        >
+                            {term}
+                        </Badge>
+                    ))}
+                </div>
+            </div>
+        </motion.div>
+    );
+}
+
+// ============================================================================
+// Error State Component
+// ============================================================================
+
+function ErrorState({ 
+    onRetry,
+    error,
+}: { 
+    onRetry: () => void;
+    error?: Error;
+}): React.ReactElement {
+    return (
+        <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ ease: GAMING_EASING }}
+            className="flex flex-col items-center justify-center py-16 px-4"
+        >
+            {/* Icon with glow */}
+            <div className="relative mb-6">
+                <div className="absolute inset-0 bg-orange-warning/20 blur-2xl rounded-full" />
+                <div className="relative p-6 rounded-2xl bg-bg-secondary border border-orange-warning/30">
+                    <AlertCircle className="w-16 h-16 text-orange-warning" />
+                </div>
+            </div>
+
+            {/* Message */}
+            <h3 className="text-xl font-semibold text-text-primary mb-2">
+                Something went wrong
+            </h3>
+            <p className="text-text-secondary text-center max-w-md mb-6">
+                We couldn&apos;t load the products. Please try again or contact support if the problem persists.
+            </p>
+
+            {error !== null && error !== undefined && (
+                <div className="mb-6 p-3 rounded-lg bg-bg-tertiary border border-border-subtle max-w-md">
+                    <code className="text-xs text-orange-warning font-mono break-all">
+                        {error.message}
+                    </code>
+                </div>
+            )}
+
+            {/* Actions */}
+            <div className="flex flex-col sm:flex-row gap-3">
+                <Button
+                    onClick={onRetry}
+                    className="bg-cyan-glow text-bg-primary hover:bg-cyan-glow/90 hover:shadow-glow-cyan transition-all"
+                >
+                    <RefreshCw className="w-4 h-4 mr-2" />
+                    Try Again
+                </Button>
+                <Button
+                    variant="outline"
+                    onClick={() => window.location.href = '/'}
+                    className="border-border-accent hover:border-cyan-glow/60 hover:text-cyan-glow"
+                >
+                    <Home className="w-4 h-4 mr-2" />
+                    Go Home
+                </Button>
+            </div>
+        </motion.div>
+    );
+}
+
+// ============================================================================
+// Main Catalog Content Component
+// ============================================================================
+
+function CatalogContent(): React.ReactElement {
+    const router = useRouter();
+    const searchParams = useSearchParams();
+    
+    // Filter state
+    const [filters, setFilters] = useState<FilterState>(() => {
+        const minPriceParam = Number(searchParams.get('minPrice'));
+        const maxPriceParam = Number(searchParams.get('maxPrice'));
+        const sortParam = searchParams.get('sort');
+        return {
+            search: searchParams.get('q') ?? '',
+            category: searchParams.get('category') ?? 'all',
+            platform: searchParams.get('platform')?.split(',').filter(Boolean) ?? [],
+            region: searchParams.get('region') ?? 'all',
+            minPrice: Number.isNaN(minPriceParam) ? 0 : minPriceParam,
+            maxPrice: Number.isNaN(maxPriceParam) || maxPriceParam === 0 ? 500 : maxPriceParam,
+            sort: (sortParam !== null && sortParam !== '' ? sortParam : 'newest') as FilterState['sort'],
+        };
+    });
+    
+    const [page, setPage] = useState(1);
+    const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+    const [isRefreshing, setIsRefreshing] = useState(false);
+    
+    // Product groups modal state
+    const [selectedGroup, setSelectedGroup] = useState<ProductGroupResponseDto | null>(null);
+    const [isGroupModalOpen, setIsGroupModalOpen] = useState(false);
+
+    // Sync URL with filters
+    useEffect(() => {
+        const params = new URLSearchParams();
+        if (filters.search !== '') params.set('q', filters.search);
+        if (filters.category !== 'all') params.set('category', filters.category);
+        if (filters.platform.length > 0) params.set('platform', filters.platform.join(','));
+        if (filters.region !== 'all') params.set('region', filters.region);
+        if (filters.minPrice > 0) params.set('minPrice', String(filters.minPrice));
+        if (filters.maxPrice < 500) params.set('maxPrice', String(filters.maxPrice));
+        if (filters.sort !== 'newest') params.set('sort', filters.sort);
+        
+        const queryString = params.toString();
+        const newUrl = queryString !== '' ? `/catalog?${queryString}` : '/catalog';
+        router.replace(newUrl, { scroll: false });
+    }, [filters, router]);
+
+    // Fetch categories
+    const { data: categoriesData, isLoading: isCategoriesLoading } = useQuery({
+        queryKey: ['catalog-categories'],
+        queryFn: () => catalogClient.getCategories(),
+        staleTime: 5 * 60 * 1000,
+    });
+
+    // Fetch filters
+    const { data: filtersData, isLoading: isFiltersLoading } = useQuery({
+        queryKey: ['catalog-filters'],
+        queryFn: () => catalogClient.getFilters(),
+        staleTime: 5 * 60 * 1000,
+    });
+
+    // Fetch product groups
+    const { data: productGroups, isLoading: isGroupsLoading } = useQuery({
+        queryKey: ['catalog-groups'],
+        queryFn: () => catalogGroupsApi.groupsControllerListGroups(),
+        staleTime: 5 * 60 * 1000,
+    });
+
+    // Handle opening group variants modal
+    const handleViewGroupVariants = useCallback((group: ProductGroupResponseDto) => {
+        setSelectedGroup(group);
+        setIsGroupModalOpen(true);
+    }, []);
+
+    // Fetch products
+    const {
+        data: productsData,
+        isLoading: isProductsLoading,
+        isError,
+        error,
+        refetch,
+        isFetching,
+    } = useQuery({
+        queryKey: ['catalog-products', filters, page],
+        queryFn: () =>
+            catalogClient.findAll({
+                search: filters.search !== '' ? filters.search : undefined,
+                category: filters.category !== 'all' ? filters.category : undefined,
+                platform: filters.platform.length > 0 ? filters.platform[0] : undefined,
+                region: filters.region !== 'all' ? filters.region : undefined,
+                minPrice: filters.minPrice > 0 ? filters.minPrice : undefined,
+                maxPrice: filters.maxPrice < 500 ? filters.maxPrice : undefined,
+                sort: filters.sort,
+                limit: PRODUCTS_PER_PAGE,
+                page,
+            }),
+        staleTime: 2 * 60 * 1000,
+    });
+
+    // Filter handlers
+    const handleFilterChange = useCallback((updates: Partial<FilterState>) => {
+        setFilters((prev) => ({ ...prev, ...updates }));
+        setPage(1);
+    }, []);
+
+    const handleClearFilters = useCallback(() => {
+        setFilters(DEFAULT_FILTERS);
+        setPage(1);
+    }, []);
+
+    const handleRefresh = useCallback(async () => {
+        setIsRefreshing(true);
+        await refetch();
+        setIsRefreshing(false);
+    }, [refetch]);
+
+    // Calculate active filter count
+    const activeFilterCount = useMemo(() => {
+        let count = 0;
+        if (filters.search !== '') count++;
+        if (filters.category !== 'all') count++;
+        if (filters.platform.length > 0) count++;
+        if (filters.region !== 'all') count++;
+        if (filters.minPrice > 0 || filters.maxPrice < 500) count++;
+        return count;
+    }, [filters]);
+
+    // Map API response to ProductCard format
+    const products: Product[] = useMemo(() => {
+        if (productsData?.data === undefined || productsData.data === null) return [];
+        return productsData.data.map((item) => ({
+            id: item.id,
+            slug: item.slug ?? '',
+            name: item.title,
+            description: item.description ?? '',
+            price: item.price ?? '0',
+            currency: item.currency ?? 'EUR',
+            image: item.imageUrl ?? undefined,
+            platform: item.platform ?? undefined,
+            discount: undefined,
+            stock: undefined,
+            isAvailable: item.isPublished === true,
+            rating: item.rating ?? undefined,
+            isFeatured: false,
+        }));
+    }, [productsData]);
+
+    const totalProducts = productsData?.total ?? 0;
+    const totalPages = Math.ceil(totalProducts / PRODUCTS_PER_PAGE);
+    const hasProducts = products.length > 0;
+
+    // Debounced search
+    const [searchInput, setSearchInput] = useState(filters.search);
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            if (searchInput !== filters.search) {
+                handleFilterChange({ search: searchInput });
+            }
+        }, 300);
+        return () => clearTimeout(timer);
+    }, [searchInput, filters.search, handleFilterChange]);
+
+    return (
+        <main className="min-h-screen bg-bg-primary">
+            {/* Hero Section */}
+            <section className="relative overflow-hidden border-b border-border-subtle">
+                {/* Animated gradient orbs */}
+                <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                    <motion.div
+                        className="absolute -top-1/2 -left-1/4 w-[600px] h-[600px] rounded-full bg-cyan-glow/10 blur-3xl"
+                        animate={{ 
+                            x: [0, 50, 0],
+                            y: [0, 30, 0],
+                            scale: [1, 1.1, 1],
+                        }}
+                        transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
+                    />
+                    <motion.div
+                        className="absolute -top-1/4 right-0 w-[500px] h-[500px] rounded-full bg-purple-neon/10 blur-3xl"
+                        animate={{ 
+                            x: [0, -30, 0],
+                            y: [0, 40, 0],
+                            scale: [1, 1.15, 1],
+                        }}
+                        transition={{ duration: 10, repeat: Infinity, ease: 'easeInOut', delay: 1 }}
+                    />
+                    <motion.div
+                        className="absolute bottom-0 left-1/3 w-[400px] h-[400px] rounded-full bg-pink-featured/5 blur-3xl"
+                        animate={{ 
+                            x: [0, 40, 0],
+                            y: [0, -20, 0],
+                        }}
+                        transition={{ duration: 12, repeat: Infinity, ease: 'easeInOut', delay: 2 }}
+                    />
+                </div>
+
+                {/* Gradient overlay */}
+                <div className="absolute inset-0 bg-linear-to-b from-transparent via-bg-primary/50 to-bg-primary pointer-events-none" />
+
+                <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-16">
+                    {/* Badge */}
+                    <motion.div
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ ease: GAMING_EASING }}
+                        className="flex justify-center mb-6"
+                    >
+                        <Badge 
+                            variant="outline" 
+                            className="px-4 py-1.5 bg-bg-secondary/80 border-cyan-glow/30 text-cyan-glow shadow-glow-cyan-sm backdrop-blur-sm"
+                        >
+                            <span className="relative flex h-2 w-2 mr-2">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-glow opacity-75" />
+                                <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-glow" />
+                            </span>
+                            <Zap className="w-3.5 h-3.5 mr-1.5" />
+                            {totalProducts.toLocaleString()}+ Digital Products
+                        </Badge>
+                    </motion.div>
+
+                    {/* Title */}
+                    <motion.h1
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.1, ease: GAMING_EASING }}
+                        className="text-3xl sm:text-4xl lg:text-5xl font-bold text-center text-text-primary mb-4"
+                    >
+                        Browse All{' '}
+                        <span className="text-gradient-primary">Editions</span>
+                        {' '}and{' '}
+                        <span className="text-gradient-featured">Platforms</span>
+                    </motion.h1>
+
+                    {/* Subtitle */}
+                    <motion.p
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.2, ease: GAMING_EASING }}
+                        className="text-text-secondary text-center max-w-2xl mx-auto mb-8"
+                    >
+                        Discover thousands of digital products with instant delivery and secure crypto payments
+                    </motion.p>
+
+                    {/* Search Bar */}
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.3, ease: GAMING_EASING }}
+                        className="max-w-2xl mx-auto"
+                    >
+                        <div className="relative group">
+                            {/* Glow effect */}
+                            <div className="absolute -inset-0.5 bg-linear-to-r from-cyan-glow/40 via-purple-neon/40 to-pink-featured/40 rounded-xl blur opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity duration-300" />
+                            
+                            <div className="relative flex items-center bg-bg-secondary border border-border-subtle rounded-xl overflow-hidden focus-within:border-cyan-glow/60 transition-colors">
+                                <Search className="w-5 h-5 text-text-muted ml-4 shrink-0" />
+                                <Input
+                                    type="text"
+                                    placeholder="Search games, software, gift cards..."
+                                    value={searchInput}
+                                    onChange={(e) => setSearchInput(e.target.value)}
+                                    className="flex-1 h-12 md:h-14 border-0 bg-transparent text-text-primary placeholder:text-text-muted focus-visible:ring-0 text-base"
+                                />
+                                <div className="hidden md:flex items-center gap-2 pr-2">
+                                    <kbd className="hidden lg:inline-flex h-7 select-none items-center gap-1 rounded-md border border-border-subtle bg-bg-tertiary px-2 text-xs font-mono text-text-muted">
+                                        ⌘K
+                                    </kbd>
+                                    <Button
+                                        size="sm"
+                                        className="bg-cyan-glow text-bg-primary hover:bg-cyan-glow/90 hover:shadow-glow-cyan-sm transition-all"
+                                    >
+                                        <Search className="w-4 h-4 mr-1.5" />
+                                        Search
+                                    </Button>
+                                </div>
+                            </div>
+                        </div>
+                    </motion.div>
+
+                    {/* Quick Stats */}
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.4, ease: GAMING_EASING }}
+                        className="flex flex-wrap justify-center gap-4 md:gap-8 mt-8 text-sm"
+                    >
+                        <div className="flex items-center gap-2 text-text-secondary">
+                            <Zap className="w-4 h-4 text-cyan-glow" />
+                            <span>Instant Delivery</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-text-secondary">
+                            <Package className="w-4 h-4 text-purple-neon" />
+                            <span>300+ Crypto Accepted</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-text-secondary">
+                            <Star className="w-4 h-4 text-pink-featured" />
+                            <span>Secure & Encrypted</span>
+                        </div>
+                    </motion.div>
+                </div>
+            </section>
+
+            {/* Main Content */}
+            <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+                <div className="flex flex-col lg:flex-row gap-6 lg:gap-8">
+                    {/* Sidebar - Desktop */}
+                    <aside className="hidden lg:block w-72 shrink-0">
+                        <div className="sticky top-4">
+                            <Card className="bg-bg-secondary border-border-subtle overflow-hidden">
+                                {/* Header glow accent */}
+                                <div className="h-1 bg-linear-to-r from-cyan-glow via-purple-neon to-pink-featured" />
+                                <ScrollArea className="h-[calc(100vh-8rem)]">
+                                    <div className="p-4">
+                                        <FilterSidebar
+                                            filters={filters}
+                                            onFilterChange={handleFilterChange}
+                                            onClearFilters={handleClearFilters}
+                                            filtersData={filtersData}
+                                            categoriesData={categoriesData}
+                                            isLoading={isCategoriesLoading || isFiltersLoading}
+                                            activeFilterCount={activeFilterCount}
+                                        />
+                                    </div>
+                                </ScrollArea>
+                            </Card>
+                        </div>
+                    </aside>
+
+                    {/* Mobile Filter Sheet */}
+                    <div className="lg:hidden">
+                        <Sheet>
+                            <SheetTrigger asChild>
+                                <Button
+                                    variant="outline"
+                                    className="w-full border-border-accent hover:border-cyan-glow/60 hover:text-cyan-glow"
+                                >
+                                    <Filter className="w-4 h-4 mr-2" />
+                                    Filters
+                                    {activeFilterCount > 0 && (
+                                        <Badge className="ml-2 bg-cyan-glow text-bg-primary">
+                                            {activeFilterCount}
+                                        </Badge>
+                                    )}
+                                </Button>
+                            </SheetTrigger>
+                            <SheetContent side="left" className="w-80 bg-bg-secondary border-border-subtle p-0">
+                                <SheetHeader className="p-4 border-b border-border-subtle">
+                                    <SheetTitle className="text-text-primary flex items-center gap-2">
+                                        <SlidersHorizontal className="w-5 h-5 text-cyan-glow" />
+                                        Filters
+                                    </SheetTitle>
+                                </SheetHeader>
+                                <ScrollArea className="h-[calc(100vh-5rem)]">
+                                    <div className="p-4">
+                                        <FilterSidebar
+                                            filters={filters}
+                                            onFilterChange={handleFilterChange}
+                                            onClearFilters={handleClearFilters}
+                                            filtersData={filtersData}
+                                            categoriesData={categoriesData}
+                                            isLoading={isCategoriesLoading || isFiltersLoading}
+                                            activeFilterCount={activeFilterCount}
+                                        />
+                                    </div>
+                                </ScrollArea>
+                                <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-border-subtle bg-bg-secondary">
+                                    <SheetClose asChild>
+                                        <Button className="w-full bg-cyan-glow text-bg-primary hover:bg-cyan-glow/90">
+                                            Show Results ({totalProducts})
+                                        </Button>
+                                    </SheetClose>
+                                </div>
+                            </SheetContent>
+                        </Sheet>
+                    </div>
+
+                    {/* Products Section */}
+                    <div className="flex-1 min-w-0">
+                        {/* Product Groups Section */}
+                        {productGroups !== undefined && productGroups !== null && productGroups.length > 0 && (
+                            <motion.div
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ ease: GAMING_EASING }}
+                                className="mb-8"
+                            >
+                                {/* Section Header */}
+                                <div className="flex items-center justify-between mb-4">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 rounded-lg bg-purple-neon/20 flex items-center justify-center">
+                                            <Layers className="w-5 h-5 text-purple-neon" aria-hidden="true" />
+                                        </div>
+                                        <div>
+                                            <h2 className="text-lg font-semibold text-text-primary">Product Collections</h2>
+                                            <p className="text-sm text-text-secondary">Browse games with multiple editions & platforms</p>
+                                        </div>
+                                    </div>
+                                    <Badge variant="outline" className="border-purple-neon/30 text-purple-neon">
+                                        {productGroups.length} {productGroups.length === 1 ? 'collection' : 'collections'}
+                                    </Badge>
+                                </div>
+
+                                {/* Groups Grid */}
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+                                    {isGroupsLoading ? (
+                                        // Loading skeletons
+                                        Array.from({ length: 3 }).map((_, i) => (
+                                            <div key={i} className="aspect-3/4 rounded-lg bg-bg-secondary border border-border-subtle skeleton" />
+                                        ))
+                                    ) : (
+                                        productGroups.slice(0, 6).map((group, index) => (
+                                            <motion.div
+                                                key={group.id}
+                                                initial={{ opacity: 0, y: 20 }}
+                                                animate={{ opacity: 1, y: 0 }}
+                                                transition={{ delay: index * 0.05, ease: GAMING_EASING }}
+                                            >
+                                                <ProductGroupCard
+                                                    group={group}
+                                                    onViewVariants={handleViewGroupVariants}
+                                                />
+                                            </motion.div>
+                                        ))
+                                    )}
+                                </div>
+                            </motion.div>
+                        )}
+
+                        {/* Toolbar */}
+                        <div className="glass rounded-xl p-4 mb-6">
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                                {/* Results count */}
+                                <div className="flex items-center gap-3">
+                                    <p className="text-text-secondary">
+                                        {isProductsLoading ? (
+                                            <span className="flex items-center gap-2">
+                                                <Loader2 className="w-4 h-4 animate-spin text-cyan-glow" />
+                                                Loading...
+                                            </span>
+                                        ) : (
+                                            <>
+                                                Showing{' '}
+                                                <span className="text-text-primary font-medium">
+                                                    {products.length}
+                                                </span>{' '}
+                                                of{' '}
+                                                <span className="text-cyan-glow font-medium">
+                                                    {totalProducts.toLocaleString()}
+                                                </span>{' '}
+                                                products
+                                            </>
+                                        )}
+                                    </p>
+                                    {isFetching && !isProductsLoading && (
+                                        <Badge variant="outline" className="text-cyan-glow border-cyan-glow/30 animate-pulse">
+                                            <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                                            Updating
+                                        </Badge>
+                                    )}
+                                </div>
+
+                                {/* Controls */}
+                                <div className="flex items-center gap-3">
+                                    {/* Sort */}
+                                    <Select
+                                        value={filters.sort}
+                                        onValueChange={(value) => handleFilterChange({ sort: value as FilterState['sort'] })}
+                                    >
+                                        <SelectTrigger className="w-44 bg-bg-tertiary border-border-subtle hover:border-cyan-glow/40 transition-colors">
+                                            <SelectValue placeholder="Sort by" />
+                                        </SelectTrigger>
+                                        <SelectContent className="bg-bg-secondary border-border-subtle">
+                                            {SORT_OPTIONS.map((option) => (
+                                                <SelectItem
+                                                    key={option.value}
+                                                    value={option.value}
+                                                    className="hover:bg-bg-tertiary focus:bg-bg-tertiary"
+                                                >
+                                                    <span className="flex items-center gap-2">
+                                                        <option.icon className="w-4 h-4" />
+                                                        {option.label}
+                                                    </span>
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+
+                                    {/* View Toggle */}
+                                    <div className="hidden sm:flex items-center rounded-lg border border-border-subtle bg-bg-tertiary p-1">
+                                        <button
+                                            onClick={() => setViewMode('grid')}
+                                            className={`p-2 rounded-md transition-all duration-200 ${
+                                                viewMode === 'grid'
+                                                    ? 'bg-cyan-glow/20 text-cyan-glow shadow-glow-cyan-sm'
+                                                    : 'text-text-muted hover:text-text-primary'
+                                            }`}
+                                            aria-label="Grid view"
+                                        >
+                                            <Grid3X3 className="w-4 h-4" />
+                                        </button>
+                                        <button
+                                            onClick={() => setViewMode('list')}
+                                            className={`p-2 rounded-md transition-all duration-200 ${
+                                                viewMode === 'list'
+                                                    ? 'bg-cyan-glow/20 text-cyan-glow shadow-glow-cyan-sm'
+                                                    : 'text-text-muted hover:text-text-primary'
+                                            }`}
+                                            aria-label="List view"
+                                        >
+                                            <LayoutList className="w-4 h-4" />
+                                        </button>
+                                    </div>
+
+                                    {/* Refresh */}
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        onClick={handleRefresh}
+                                        disabled={isRefreshing}
+                                        className="hover:text-cyan-glow hover:bg-cyan-glow/10 transition-all"
+                                    >
+                                        <RefreshCw className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                                    </Button>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Products Grid */}
+                        <AnimatePresence mode="wait">
+                            {isError ? (
+                                <ErrorState 
+                                    key="error"
+                                    onRetry={() => refetch()} 
+                                    error={error instanceof Error ? error : undefined}
+                                />
+                            ) : isProductsLoading ? (
+                                <motion.div
+                                    key="loading"
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    exit={{ opacity: 0 }}
+                                >
+                                    <ProductGridSkeleton count={12} />
+                                </motion.div>
+                            ) : !hasProducts ? (
+                                <EmptyState 
+                                    key="empty"
+                                    onClearFilters={handleClearFilters}
+                                    searchQuery={filters.search}
+                                />
+                            ) : (
+                                <motion.div
+                                    key="products"
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    exit={{ opacity: 0 }}
+                                >
+                                    <div className={`grid gap-4 md:gap-6 ${
+                                        viewMode === 'grid'
+                                            ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'
+                                            : 'grid-cols-1'
+                                    }`}>
+                                        {products.map((product, index) => (
+                                            <motion.div
+                                                key={product.id}
+                                                initial={{ opacity: 0, y: 20 }}
+                                                animate={{ opacity: 1, y: 0 }}
+                                                transition={{ 
+                                                    delay: index * 0.03,
+                                                    ease: GAMING_EASING,
+                                                }}
+                                            >
+                                                <ProductCard product={product} />
+                                            </motion.div>
+                                        ))}
+                                    </div>
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+
+                        {/* Pagination */}
+                        {hasProducts && totalPages > 1 && (
+                            <motion.div
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: 0.2, ease: GAMING_EASING }}
+                                className="mt-12"
+                            >
+                                <div className="text-center mb-4">
+                                    <p className="text-text-secondary text-sm">
+                                        Page <span className="text-cyan-glow font-medium">{page}</span> of{' '}
+                                        <span className="text-text-primary font-medium">{totalPages}</span>
+                                    </p>
+                                </div>
+
+                                <div className="flex items-center justify-center gap-2">
+                                    <Button
+                                        variant="outline"
+                                        onClick={() => setPage((p) => Math.max(1, p - 1))}
+                                        disabled={page === 1}
+                                        className="border-border-accent hover:border-cyan-glow/60 hover:text-cyan-glow disabled:opacity-50"
+                                    >
+                                        <ChevronLeft className="w-4 h-4 mr-1" />
+                                        Previous
+                                    </Button>
+
+                                    <div className="hidden sm:flex items-center gap-1 glass rounded-lg px-2 py-1">
+                                        {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                                            let pageNum: number;
+                                            if (totalPages <= 5) {
+                                                pageNum = i + 1;
+                                            } else if (page <= 3) {
+                                                pageNum = i + 1;
+                                            } else if (page >= totalPages - 2) {
+                                                pageNum = totalPages - 4 + i;
+                                            } else {
+                                                pageNum = page - 2 + i;
+                                            }
+                                            return (
+                                                <button
+                                                    key={pageNum}
+                                                    onClick={() => setPage(pageNum)}
+                                                    className={`w-10 h-10 rounded-lg font-medium transition-all duration-200 ${
+                                                        page === pageNum
+                                                            ? 'bg-cyan-glow text-bg-primary shadow-glow-cyan-sm'
+                                                            : 'text-text-secondary hover:text-cyan-glow hover:bg-cyan-glow/10'
+                                                    }`}
+                                                >
+                                                    {pageNum}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+
+                                    <Button
+                                        variant="outline"
+                                        onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                                        disabled={page === totalPages}
+                                        className="border-border-accent hover:border-cyan-glow/60 hover:text-cyan-glow disabled:opacity-50"
+                                    >
+                                        Next
+                                        <ChevronRight className="w-4 h-4 ml-1" />
+                                    </Button>
+                                </div>
+
+                                {/* Load More Alternative */}
+                                <div className="flex justify-center mt-6">
+                                    <Button
+                                        variant="outline"
+                                        size="lg"
+                                        onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                                        disabled={page === totalPages || isFetching}
+                                        className="border-purple-neon/40 hover:border-purple-neon hover:bg-purple-neon/10 hover:text-purple-neon hover:shadow-glow-purple-sm transition-all"
+                                    >
+                                        {isFetching ? (
+                                            <>
+                                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                                Loading...
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Sparkles className="w-4 h-4 mr-2" />
+                                                Load More Products
+                                            </>
+                                        )}
+                                    </Button>
+                                </div>
+                            </motion.div>
+                        )}
+                    </div>
+                </div>
+            </section>
+
+            {/* Group Variants Modal */}
+            <GroupVariantsModal
+                group={selectedGroup}
+                open={isGroupModalOpen}
+                onOpenChange={setIsGroupModalOpen}
+            />
+        </main>
+    );
+}
+
+// ============================================================================
+// Page Export with Suspense
+// ============================================================================
+
+export default function CatalogPage(): React.ReactElement {
+    return (
+        <Suspense
+            fallback={
+                <main className="min-h-screen bg-bg-primary">
+                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+                        <div className="flex flex-col items-center justify-center py-16">
+                            <div className="relative">
+                                <div className="absolute inset-0 bg-cyan-glow/20 blur-2xl rounded-full animate-pulse" />
+                                <Loader2 className="w-12 h-12 text-cyan-glow animate-spin relative" />
+                            </div>
+                            <p className="mt-4 text-text-secondary">Loading catalog...</p>
+                        </div>
+                    </div>
+                </main>
+            }
+        >
+            <CatalogContent />
+        </Suspense>
+    );
 }

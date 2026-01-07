@@ -5,7 +5,6 @@ import { useParams, useRouter } from 'next/navigation';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Bitcoin,
   Loader2,
   AlertCircle,
   Shield,
@@ -30,10 +29,6 @@ import Link from 'next/link';
 const ordersClient = new OrdersApi(apiConfig);
 const paymentsClient = new PaymentsApi(apiConfig);
 
-// Glass styling constants - matching product page
-const GLASS_PANEL = 'bg-[#0A0A0B]/80 backdrop-blur-xl border border-white/5 shadow-2xl shadow-black/50';
-const GLASS_CARD = 'bg-white/5 backdrop-blur-md border border-white/10 hover:border-white/20 transition-all';
-
 // Crypto payment options with icons and details
 const CRYPTO_OPTIONS = [
   {
@@ -43,7 +38,7 @@ const CRYPTO_OPTIONS = [
     description: 'The original cryptocurrency',
     icon: '₿',
     color: 'from-orange-500 to-amber-500',
-    bgGlow: 'hover:shadow-orange-500/20',
+    glowClass: 'hover:shadow-glow-error',
   },
   {
     id: 'eth',
@@ -51,8 +46,8 @@ const CRYPTO_OPTIONS = [
     symbol: 'ETH',
     description: 'Fast & widely accepted',
     icon: 'Ξ',
-    color: 'from-blue-500 to-purple-500',
-    bgGlow: 'hover:shadow-blue-500/20',
+    color: 'from-purple-neon to-cyan-glow',
+    glowClass: 'hover:shadow-glow-purple-sm',
   },
   {
     id: 'usdttrc20',
@@ -60,8 +55,8 @@ const CRYPTO_OPTIONS = [
     symbol: 'USDT',
     description: 'Stable coin (TRC20)',
     icon: '₮',
-    color: 'from-emerald-500 to-teal-500',
-    bgGlow: 'hover:shadow-emerald-500/20',
+    color: 'from-green-success to-cyan-glow',
+    glowClass: 'hover:shadow-glow-success',
   },
   {
     id: 'ltc',
@@ -69,8 +64,8 @@ const CRYPTO_OPTIONS = [
     symbol: 'LTC',
     description: 'Fast & low fees',
     icon: 'Ł',
-    color: 'from-gray-400 to-slate-500',
-    bgGlow: 'hover:shadow-gray-400/20',
+    color: 'from-text-secondary to-text-muted',
+    glowClass: 'hover:shadow-glow-cyan-sm',
   },
 ] as const;
 
@@ -102,7 +97,7 @@ export default function CheckoutPage(): React.ReactElement {
   // Create payment mutation
   const createPaymentMutation = useMutation({
     mutationFn: async () => {
-      if (!order) throw new Error('Order not found');
+      if (order === null || order === undefined) throw new Error('Order not found');
 
       const payment = await paymentsClient.paymentsControllerCreate({
         createPaymentDto: {
@@ -118,7 +113,7 @@ export default function CheckoutPage(): React.ReactElement {
     },
     onSuccess: (payment) => {
       // Redirect to NOWPayments invoice
-      if (payment.invoiceUrl && payment.invoiceUrl.length > 0) {
+      if (payment.invoiceUrl !== undefined && payment.invoiceUrl !== '' && payment.invoiceUrl.length > 0) {
         window.location.href = payment.invoiceUrl;
       } else {
         toast.error('Payment URL not available. Please try again.');
@@ -144,35 +139,35 @@ export default function CheckoutPage(): React.ReactElement {
   // Loading state
   if (orderLoading) {
     return (
-      <div className="min-h-screen bg-[#030303] flex items-center justify-center">
+      <div className="min-h-screen bg-bg-primary flex items-center justify-center">
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
-          className={`${GLASS_PANEL} rounded-3xl p-12 text-center max-w-md`}
+          className="glass-strong rounded-3xl p-12 text-center max-w-md shadow-glow-cyan-sm"
         >
-          <Loader2 className="h-12 w-12 animate-spin text-cyan-400 mx-auto mb-4" />
-          <p className="text-white/70 text-lg">Loading your order...</p>
+          <Loader2 className="h-12 w-12 animate-spin-glow text-cyan-glow mx-auto mb-4" />
+          <p className="text-text-secondary text-lg">Loading your order...</p>
         </motion.div>
       </div>
     );
   }
 
   // Error state
-  if (orderError || !order) {
+  if (orderError !== null || order === null || order === undefined) {
     return (
-      <div className="min-h-screen bg-[#030303] flex items-center justify-center p-4">
+      <div className="min-h-screen bg-bg-primary flex items-center justify-center p-4">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className={`${GLASS_PANEL} rounded-3xl p-12 text-center max-w-md`}
+          className="glass-strong rounded-3xl p-12 text-center max-w-md shadow-glow-error"
         >
-          <AlertCircle className="h-16 w-16 text-red-400 mx-auto mb-6" />
-          <h2 className="text-2xl font-bold text-white mb-3">Order Not Found</h2>
-          <p className="text-white/60 mb-8">
-            We couldn't find this order. It may have expired or doesn't exist.
+          <AlertCircle className="h-16 w-16 text-orange-warning mx-auto mb-6" />
+          <h2 className="text-2xl font-bold text-text-primary mb-3">Order Not Found</h2>
+          <p className="text-text-secondary mb-8">
+            We couldn&apos;t find this order. It may have expired or doesn&apos;t exist.
           </p>
           <Link href="/catalog">
-            <Button className="bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white">
+            <Button className="bg-cyan-glow text-bg-primary hover:shadow-glow-cyan font-semibold">
               <ArrowLeft className="h-4 w-4 mr-2" />
               Browse Products
             </Button>
@@ -183,11 +178,11 @@ export default function CheckoutPage(): React.ReactElement {
   }
 
   return (
-    <div className="min-h-screen bg-[#030303] relative overflow-hidden">
+    <div className="min-h-screen bg-bg-primary relative overflow-hidden">
       {/* Background effects */}
       <div className="fixed inset-0 pointer-events-none">
-        <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-cyan-500/5 rounded-full blur-[120px]" />
-        <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-blue-500/5 rounded-full blur-[100px]" />
+        <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-cyan-glow/5 rounded-full blur-[120px]" />
+        <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-purple-neon/5 rounded-full blur-[100px]" />
       </div>
 
       <div className="relative z-10 container mx-auto max-w-4xl py-8 md:py-12 px-4">
@@ -199,7 +194,7 @@ export default function CheckoutPage(): React.ReactElement {
         >
           <button
             onClick={() => router.back()}
-            className="inline-flex items-center gap-2 text-white/50 hover:text-white transition-colors group"
+            className="inline-flex items-center gap-2 text-text-muted hover:text-cyan-glow transition-colors group"
           >
             <ArrowLeft className="h-4 w-4 group-hover:-translate-x-1 transition-transform" />
             <span>Back</span>
@@ -212,14 +207,14 @@ export default function CheckoutPage(): React.ReactElement {
           animate={{ opacity: 1, y: 0 }}
           className="text-center mb-10"
         >
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-cyan-500/10 to-blue-500/10 border border-cyan-500/20 mb-6">
-            <Lock className="h-4 w-4 text-cyan-400" />
-            <span className="text-sm font-medium text-cyan-400">Secure Checkout</span>
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-cyan-glow/10 border border-cyan-glow/30 mb-6">
+            <Lock className="h-4 w-4 text-cyan-glow" />
+            <span className="text-sm font-medium text-cyan-glow">Secure Checkout</span>
           </div>
-          <h1 className="text-3xl md:text-4xl font-bold text-white mb-3">
+          <h1 className="text-3xl md:text-4xl font-bold text-text-primary mb-3">
             Complete Your Purchase
           </h1>
-          <p className="text-white/50 text-lg">
+          <p className="text-text-muted text-lg">
             Select your preferred cryptocurrency to continue
           </p>
         </motion.div>
@@ -232,16 +227,16 @@ export default function CheckoutPage(): React.ReactElement {
             transition={{ delay: 0.1 }}
             className="lg:col-span-2"
           >
-            <div className={`${GLASS_PANEL} rounded-3xl overflow-hidden`}>
+            <div className="glass-strong rounded-3xl overflow-hidden shadow-card-lg">
               {/* Section Header */}
-              <div className="p-6 md:p-8 border-b border-white/5">
+              <div className="p-6 md:p-8 border-b border-border-subtle">
                 <div className="flex items-center gap-3">
-                  <div className="p-3 rounded-xl bg-gradient-to-br from-cyan-500/20 to-blue-500/20 border border-cyan-500/30">
-                    <CreditCard className="h-6 w-6 text-cyan-400" />
+                  <div className="p-3 rounded-xl bg-cyan-glow/10 border border-cyan-glow/30">
+                    <CreditCard className="h-6 w-6 text-cyan-glow" />
                   </div>
                   <div>
-                    <h2 className="text-xl font-bold text-white">Payment Method</h2>
-                    <p className="text-white/50 text-sm">Choose how you'd like to pay</p>
+                    <h2 className="text-xl font-bold text-text-primary">Payment Method</h2>
+                    <p className="text-text-muted text-sm">Choose how you&apos;d like to pay</p>
                   </div>
                 </div>
               </div>
@@ -268,11 +263,11 @@ export default function CheckoutPage(): React.ReactElement {
                         htmlFor={crypto.id}
                         className={`
                           relative flex flex-col p-5 rounded-2xl cursor-pointer transition-all duration-300
-                          ${GLASS_CARD}
-                          ${crypto.bgGlow}
-                          peer-data-[state=checked]:border-cyan-500/50
-                          peer-data-[state=checked]:bg-gradient-to-br peer-data-[state=checked]:from-cyan-500/10 peer-data-[state=checked]:to-blue-500/10
-                          peer-data-[state=checked]:shadow-lg peer-data-[state=checked]:shadow-cyan-500/10
+                          bg-bg-secondary/50 backdrop-blur-md border border-border-subtle hover:border-border-accent
+                          ${crypto.glowClass}
+                          peer-data-[state=checked]:border-cyan-glow/50
+                          peer-data-[state=checked]:bg-cyan-glow/10
+                          peer-data-[state=checked]:shadow-glow-cyan-sm
                         `}
                       >
                         {/* Selected indicator */}
@@ -284,7 +279,7 @@ export default function CheckoutPage(): React.ReactElement {
                               exit={{ opacity: 0, scale: 0 }}
                               className="absolute top-3 right-3"
                             >
-                              <CheckCircle2 className="h-5 w-5 text-cyan-400" />
+                              <CheckCircle2 className="h-5 w-5 text-cyan-glow" />
                             </motion.div>
                           )}
                         </AnimatePresence>
@@ -293,8 +288,8 @@ export default function CheckoutPage(): React.ReactElement {
                           {/* Crypto Icon */}
                           <div
                             className={`
-                            w-12 h-12 rounded-xl flex items-center justify-center text-2xl font-bold
-                            bg-gradient-to-br ${crypto.color}
+                            w-12 h-12 rounded-xl flex items-center justify-center text-2xl font-bold text-bg-primary
+                            bg-linear-to-br ${crypto.color}
                           `}
                           >
                             {crypto.icon}
@@ -302,8 +297,8 @@ export default function CheckoutPage(): React.ReactElement {
 
                           {/* Crypto Details */}
                           <div className="flex-1 min-w-0">
-                            <p className="font-semibold text-white">{crypto.name}</p>
-                            <p className="text-sm text-white/50">{crypto.description}</p>
+                            <p className="font-semibold text-text-primary">{crypto.name}</p>
+                            <p className="text-sm text-text-muted">{crypto.description}</p>
                           </div>
                         </div>
 
@@ -311,7 +306,7 @@ export default function CheckoutPage(): React.ReactElement {
                         <div className="mt-3">
                           <Badge
                             variant="outline"
-                            className="text-xs border-white/10 text-white/70"
+                            className="text-xs border-border-subtle text-text-secondary"
                           >
                             {crypto.symbol}
                           </Badge>
@@ -322,12 +317,12 @@ export default function CheckoutPage(): React.ReactElement {
                 </RadioGroup>
 
                 {/* Security note */}
-                <div className="mt-8 p-4 rounded-xl bg-emerald-500/5 border border-emerald-500/10">
+                <div className="mt-8 p-4 rounded-xl bg-green-success/5 border border-green-success/20">
                   <div className="flex items-start gap-3">
-                    <Shield className="h-5 w-5 text-emerald-400 mt-0.5 flex-shrink-0" />
+                    <Shield className="h-5 w-5 text-green-success mt-0.5 shrink-0" />
                     <div>
-                      <p className="text-sm font-medium text-emerald-400">Secure Payment</p>
-                      <p className="text-xs text-white/50 mt-1">
+                      <p className="text-sm font-medium text-green-success">Secure Payment</p>
+                      <p className="text-xs text-text-muted mt-1">
                         Your payment is processed securely through NOWPayments. We never store
                         your wallet information.
                       </p>
@@ -344,11 +339,11 @@ export default function CheckoutPage(): React.ReactElement {
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
           >
-            <div className={`${GLASS_PANEL} rounded-3xl overflow-hidden sticky top-8`}>
+            <div className="glass-strong rounded-3xl overflow-hidden sticky top-8 shadow-card-lg">
               {/* Order Header */}
-              <div className="p-6 border-b border-white/5">
-                <h3 className="font-semibold text-white flex items-center gap-2">
-                  <Sparkles className="h-4 w-4 text-cyan-400" />
+              <div className="p-6 border-b border-border-subtle">
+                <h3 className="font-semibold text-text-primary flex items-center gap-2">
+                  <Sparkles className="h-4 w-4 text-cyan-glow" />
                   Order Summary
                 </h3>
               </div>
@@ -357,37 +352,37 @@ export default function CheckoutPage(): React.ReactElement {
               <div className="p-6 space-y-4">
                 {/* Order ID */}
                 <div className="flex justify-between items-center text-sm">
-                  <span className="text-white/50">Order ID</span>
-                  <span className="text-white font-mono text-xs bg-white/5 px-2 py-1 rounded">
+                  <span className="text-text-muted">Order ID</span>
+                  <span className="text-text-primary font-mono text-xs bg-bg-tertiary px-2 py-1 rounded">
                     {order.id.slice(0, 8)}...
                   </span>
                 </div>
 
                 {/* Email */}
                 <div className="flex justify-between items-center text-sm">
-                  <span className="text-white/50">Email</span>
-                  <span className="text-white truncate max-w-[150px]">{order.email}</span>
+                  <span className="text-text-muted">Email</span>
+                  <span className="text-text-primary truncate max-w-[150px]">{order.email}</span>
                 </div>
 
-                <div className="h-px bg-white/5" />
+                <div className="h-px bg-border-subtle" />
 
                 {/* Product */}
-                <div className="p-3 rounded-xl bg-white/5">
-                  <p className="font-medium text-white text-sm mb-1">Digital Product</p>
-                  <p className="text-xs text-white/50">Instant delivery via email</p>
+                <div className="p-3 rounded-xl bg-bg-tertiary">
+                  <p className="font-medium text-text-primary text-sm mb-1">Digital Product</p>
+                  <p className="text-xs text-text-muted">Instant delivery via email</p>
                 </div>
 
-                <div className="h-px bg-white/5" />
+                <div className="h-px bg-border-subtle" />
 
                 {/* Total */}
                 <div className="flex justify-between items-center">
-                  <span className="text-white/70">Total</span>
+                  <span className="text-text-secondary">Total</span>
                   <div className="text-right">
-                    <p className="text-2xl font-bold text-white">
+                    <p className="text-2xl font-bold text-text-primary">
                       ${Number(order.total).toFixed(2)}
                     </p>
-                    {selectedCryptoDetails && (
-                      <p className="text-xs text-white/50">
+                    {selectedCryptoDetails !== undefined && (
+                      <p className="text-xs text-text-muted">
                         Pay with {selectedCryptoDetails.symbol}
                       </p>
                     )}
@@ -400,7 +395,7 @@ export default function CheckoutPage(): React.ReactElement {
                 <Button
                   onClick={handlePayment}
                   disabled={isProcessing || createPaymentMutation.isPending}
-                  className="w-full h-14 text-base font-bold bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white shadow-lg shadow-cyan-500/25 hover:shadow-cyan-500/40 transition-all duration-300 rounded-xl"
+                  className="w-full h-14 text-base font-bold bg-cyan-glow text-bg-primary hover:shadow-glow-cyan active:scale-[0.98] transition-all duration-300 rounded-xl disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isProcessing || createPaymentMutation.isPending ? (
                     <>
@@ -416,9 +411,9 @@ export default function CheckoutPage(): React.ReactElement {
                 </Button>
 
                 {/* Payment redirect note */}
-                <p className="text-xs text-center text-white/40 mt-4 flex items-center justify-center gap-1">
+                <p className="text-xs text-center text-text-muted mt-4 flex items-center justify-center gap-1">
                   <ExternalLink className="h-3 w-3" />
-                  You'll be redirected to complete payment
+                  You&apos;ll be redirected to complete payment
                 </p>
               </div>
             </div>
@@ -432,7 +427,7 @@ export default function CheckoutPage(): React.ReactElement {
           transition={{ delay: 0.4 }}
           className="mt-12 text-center"
         >
-          <p className="text-white/30 text-sm">
+          <p className="text-text-muted text-sm">
             By completing this purchase, you agree to our Terms of Service and Privacy Policy.
           </p>
         </motion.div>

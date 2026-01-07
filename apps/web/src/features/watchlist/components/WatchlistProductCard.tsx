@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Card, CardContent, CardFooter } from '@/design-system/primitives/card';
 import { Badge } from '@/design-system/primitives/badge';
-import { GlowButton } from '@/design-system/primitives/glow-button';
+import { Button } from '@/design-system/primitives/button';
 import { Eye, ShoppingCart, Trash2, Loader2, Clock } from 'lucide-react';
 
 export interface WatchlistProduct {
@@ -67,9 +67,9 @@ export function WatchlistProductCard({
       className="relative group h-full"
     >
       <Link href={`/product/${product.slug}`} className="block h-full">
-        <Card className="h-full overflow-hidden bg-bg-secondary border-border-subtle hover:border-cyan-glow/50 transition-all duration-300">
+        <Card className="h-full overflow-hidden bg-bg-secondary border-border-subtle hover:border-cyan-glow/50 hover:shadow-glow-cyan-sm transition-all duration-300">
           {/* Image Section with Blur Background */}
-          <div className="relative aspect-[3/4] overflow-hidden">
+          <div className="relative aspect-3/4 overflow-hidden">
             {/* Blurred Background */}
             <div
               className="absolute inset-0 bg-cover bg-center blur-xl opacity-40 scale-110"
@@ -89,12 +89,12 @@ export function WatchlistProductCard({
             {/* Badges - Top Right */}
             <div className="absolute top-3 right-3 z-20 flex flex-col gap-2">
               {isUnavailable && (
-                <Badge variant="destructive" className="text-sm font-bold shadow-lg">
+                <Badge variant="destructive" className="text-sm font-bold shadow-glow-error">
                   UNAVAILABLE
                 </Badge>
               )}
               {product.region !== undefined && product.region !== '' && (
-                <Badge className="bg-bg-primary/80 backdrop-blur-sm border-0 text-white text-xs">
+                <Badge className="bg-bg-tertiary/90 backdrop-blur-sm border border-border-subtle text-text-primary text-xs">
                   {product.region}
                 </Badge>
               )}
@@ -108,12 +108,13 @@ export function WatchlistProductCard({
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
                   transition={{ duration: 0.2 }}
-                  className="absolute inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center gap-3 z-20"
+                  className="absolute inset-0 bg-bg-primary/80 backdrop-blur-sm flex items-center justify-center gap-3 z-20"
                   onClick={(e) => e.preventDefault()}
                 >
                   {!isUnavailable && onQuickView !== undefined && (
-                    <GlowButton
+                    <Button
                       size="sm"
+                      className="bg-cyan-glow text-bg-primary hover:shadow-glow-cyan font-semibold"
                       onClick={(e) => {
                         e.preventDefault();
                         onQuickView(product);
@@ -121,25 +122,26 @@ export function WatchlistProductCard({
                     >
                       <Eye className="mr-2 h-4 w-4" />
                       Quick View
-                    </GlowButton>
+                    </Button>
                   )}
                   {!isUnavailable && onAddToCart !== undefined && (
-                    <GlowButton
+                    <Button
                       size="sm"
                       variant="outline"
+                      className="border-purple-neon/50 text-purple-neon hover:bg-purple-neon/20 hover:border-purple-neon hover:shadow-glow-purple-sm"
                       onClick={(e) => {
                         e.preventDefault();
                         onAddToCart(product);
                       }}
                     >
                       <ShoppingCart className="h-4 w-4" />
-                    </GlowButton>
+                    </Button>
                   )}
                   {/* Remove from Watchlist Button */}
-                  <GlowButton
+                  <Button
                     size="sm"
                     variant="outline"
-                    className="border-red-500/50 text-red-400 hover:bg-red-500/20 hover:border-red-500"
+                    className="border-orange-warning/50 text-orange-warning hover:bg-orange-warning/20 hover:border-orange-warning hover:shadow-glow-error"
                     onClick={handleRemove}
                     disabled={isRemoving}
                   >
@@ -148,7 +150,7 @@ export function WatchlistProductCard({
                     ) : (
                       <Trash2 className="h-4 w-4" />
                     )}
-                  </GlowButton>
+                  </Button>
                 </motion.div>
               )}
             </AnimatePresence>
@@ -157,7 +159,7 @@ export function WatchlistProductCard({
           {/* Content */}
           <CardContent className="p-4">
             <div className="flex items-start justify-between mb-2">
-              <h3 className="font-semibold text-white line-clamp-2 flex-1 group-hover:text-cyan-glow transition-colors">
+              <h3 className="font-semibold text-text-primary line-clamp-2 flex-1 group-hover:text-cyan-glow transition-colors">
                 {product.title}
               </h3>
             </div>

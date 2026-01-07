@@ -1,430 +1,346 @@
 @import 'tailwindcss';
+@config '../../../tailwind.config.ts';
+@plugin 'tailwindcss-animate';
 
-@layer base {
-  :root {
-    /* ========================================
-       BitLoot Enhanced Design System
-       Neon Cyberpunk Aesthetic for Gaming/Crypto
-       Light mode uses dark colors for consistency
-       ======================================== */
+/* ============================================
+   BITLOOT NEON CYBERPUNK DESIGN SYSTEM
+   Deep Space Dark Mode + Electric Neon Accents
+   ============================================ */
 
-    /* --- Core Backgrounds --- */
-    --background: 220 40% 7%;
-    /* #0A0E1A - Deep space */
-    --foreground: 0 0% 100%;
-    /* #FFFFFF */
+@theme inline {
+  /* Border Radius */
+  --radius: 0.625rem;
 
-    /* --- Neon Accent Colors --- */
-    --cyan-glow: 190 100% 50%;
-    /* #00D9FF - Electric cyan */
-    --purple-neon: 277 66% 59%;
-    /* #9D4EDD - Neon purple */
-    --green-success: 123 100% 54%;
-    /* #39FF14 - Neon green */
-    --orange-warning: 25 100% 50%;
-    /* #FF6B00 - Neon orange */
-    --pink-featured: 331 100% 50%;
-    /* #FF006E - Neon pink */
-
-    /* --- Semantic Accent Colors (Aliases) --- */
-    --accent-success: 123 100% 54%;
-    /* Same as green-success */
-    --accent-warning: 25 100% 50%;
-    /* Same as orange-warning */
-    --accent-error: 0 72% 51%;
-    /* #EF4444 - Error red */
-    --accent-info: 190 100% 50%;
-    /* Same as cyan-glow */
-    --accent-purple: 277 66% 59%;
-    /* Same as purple-neon */
-
-    /* --- Gradient Tokens --- */
-    --gradient-primary: linear-gradient(135deg, hsl(190 100% 50%) 0%, hsl(277 66% 59%) 100%);
-    --gradient-success: linear-gradient(135deg, hsl(123 100% 54%) 0%, hsl(160 100% 40%) 100%);
-    --gradient-featured: linear-gradient(135deg, hsl(331 100% 50%) 0%, hsl(277 66% 59%) 100%);
-    --gradient-dark: linear-gradient(180deg, hsl(220 40% 7%) 0%, hsl(220 35% 4%) 100%);
-
-    /* --- Semantic Backgrounds --- */
-    --bg-primary: 220 40% 7%;
-    /* Deep space */
-    --bg-secondary: 220 35% 10%;
-    /* Card backgrounds */
-    --bg-tertiary: 220 30% 14%;
-    /* Elevated surfaces */
-
-    /* --- Text Colors --- */
-    --text-primary: 0 0% 100%;
-    --text-secondary: 218 25% 75%;
-    --text-muted: 218 20% 55%;
-
-    /* --- Border Colors --- */
-    --border-subtle: 220 25% 20%;
-    --border-accent: 220 25% 26%;
-
-    /* --- Existing shadcn/ui colors --- */
-    --card: 220 35% 10%;
-    --card-foreground: 0 0% 100%;
-
-    --popover: 220 35% 10%;
-    --popover-foreground: 0 0% 100%;
-
-    --primary: 190 100% 50%;
-    /* Cyan glow */
-    --primary-foreground: 220 40% 7%;
-
-    --secondary: 277 66% 59%;
-    /* Purple neon */
-    --secondary-foreground: 0 0% 100%;
-
-    --muted: 220 30% 14%;
-    --muted-foreground: 218 20% 65%;
-
-    --accent: 220 30% 14%;
-    --accent-foreground: 0 0% 100%;
-
-    --destructive: 0 63% 31%;
-    --destructive-foreground: 0 0% 100%;
-
-    --border: 220 25% 20%;
-    --input: 220 25% 20%;
-    --ring: 190 100% 50%;
-
-    --radius: 0.5rem;
-
-    /* Chart Colors */
-    --chart-1: 190 100% 50%;
-    --chart-2: 277 66% 59%;
-    --chart-3: 123 100% 54%;
-    --chart-4: 25 100% 50%;
-    --chart-5: 331 100% 50%;
-
-    /* Sidebar */
-    --sidebar-background: 220 40% 7%;
-    --sidebar-foreground: 218 25% 75%;
-    --sidebar-primary: 190 100% 50%;
-    --sidebar-primary-foreground: 220 40% 7%;
-    --sidebar-accent: 220 30% 14%;
-    --sidebar-accent-foreground: 218 25% 75%;
-    --sidebar-border: 220 25% 20%;
-    --sidebar-ring: 190 100% 50%;
-
-    /* --- Focus Ring --- */
-    --focus-ring: 190 100% 50%;
-    --focus-ring-offset: 220 40% 7%;
-
-    /* --- Overlay Colors --- */
-    --overlay: 220 40% 4% / 0.8;
-    --overlay-light: 220 40% 4% / 0.5;
-
-    /* --- Glass Morphism --- */
-    --glass-bg: 220 35% 10% / 0.7;
-    --glass-border: 0 0% 100% / 0.1;
-
-    /* --- Shadows --- */
-    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.3);
-    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.4), 0 2px 4px -2px rgb(0 0 0 / 0.3);
-    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.5), 0 4px 6px -4px rgb(0 0 0 / 0.4);
-    --shadow-glow-cyan: 0 0 20px hsl(190 100% 50% / 0.4);
-    --shadow-glow-purple: 0 0 20px hsl(277 66% 59% / 0.4);
-    --shadow-glow-success: 0 0 20px hsl(123 100% 54% / 0.4);
-    --shadow-glow-error: 0 0 20px hsl(0 72% 51% / 0.4);
-  }
-
-  .dark {
-    /* ========================================
-       Dark Mode - Deep Space Cyberpunk (Primary Theme)
-       ======================================== */
-
-    --background: 220 40% 7%;
-    --foreground: 0 0% 100%;
-
-    --cyan-glow: 190 100% 50%;
-    --purple-neon: 277 66% 59%;
-    --green-success: 123 100% 54%;
-    --orange-warning: 25 100% 50%;
-    --pink-featured: 331 100% 50%;
-
-    --bg-primary: 220 40% 7%;
-    --bg-secondary: 220 35% 10%;
-    --bg-tertiary: 220 30% 14%;
-
-    --text-primary: 0 0% 100%;
-    --text-secondary: 218 25% 75%;
-    --text-muted: 218 20% 55%;
-
-    --border-subtle: 220 25% 20%;
-    --border-accent: 220 25% 26%;
-
-    --card: 220 35% 10%;
-    --card-foreground: 0 0% 100%;
-
-    --popover: 220 35% 10%;
-    --popover-foreground: 0 0% 100%;
-
-    --primary: 190 100% 50%;
-    --primary-foreground: 220 40% 7%;
-
-    --secondary: 277 66% 59%;
-    --secondary-foreground: 0 0% 100%;
-
-    --muted: 220 30% 14%;
-    --muted-foreground: 218 20% 65%;
-
-    --accent: 220 30% 14%;
-    --accent-foreground: 0 0% 100%;
-
-    --destructive: 0 63% 31%;
-    --destructive-foreground: 0 0% 100%;
-
-    --border: 220 25% 20%;
-    --input: 220 25% 20%;
-    --ring: 190 100% 50%;
-
-    --chart-1: 190 100% 50%;
-    --chart-2: 277 66% 59%;
-    --chart-3: 123 100% 54%;
-    --chart-4: 25 100% 50%;
-    --chart-5: 331 100% 50%;
-
-    --sidebar-background: 220 40% 7%;
-    --sidebar-foreground: 218 25% 75%;
-    --sidebar-primary: 190 100% 50%;
-    --sidebar-primary-foreground: 220 40% 7%;
-    --sidebar-accent: 220 30% 14%;
-    --sidebar-accent-foreground: 218 25% 75%;
-    --sidebar-border: 220 25% 20%;
-    --sidebar-ring: 190 100% 50%;
-
-    /* --- Focus Ring --- */
-    --focus-ring: 190 100% 50%;
-    --focus-ring-offset: 220 40% 7%;
-
-    /* --- Overlay Colors --- */
-    --overlay: 220 40% 4% / 0.8;
-    --overlay-light: 220 40% 4% / 0.5;
-
-    /* --- Glass Morphism --- */
-    --glass-bg: 220 35% 10% / 0.7;
-    --glass-border: 0 0% 100% / 0.1;
-
-    /* --- Shadows (Dark Mode) --- */
-    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.3);
-    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.4), 0 2px 4px -2px rgb(0 0 0 / 0.3);
-    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.5), 0 4px 6px -4px rgb(0 0 0 / 0.4);
-    --shadow-glow-cyan: 0 0 20px hsl(190 100% 50% / 0.4);
-    --shadow-glow-purple: 0 0 20px hsl(277 66% 59% / 0.4);
-    --shadow-glow-success: 0 0 20px hsl(123 100% 54% / 0.4);
-    --shadow-glow-error: 0 0 20px hsl(0 72% 51% / 0.4);
-  }
+  /* Font Families */
+  --font-sans: 'Geist', 'Inter', system-ui, sans-serif;
+  --font-mono: 'Geist Mono', 'JetBrains Mono', monospace;
 }
 
+/* ============================================
+   CSS CUSTOM PROPERTIES (Color System)
+   ============================================ */
+:root {
+  /* ========== PRIMARY NEON ACCENT COLORS ========== */
+  --cyan-glow: 190 100% 50%;           /* #00D9FF - Primary action, focus */
+  --purple-neon: 277 66% 59%;          /* #9D4EDD - Secondary accent */
+  --green-success: 123 100% 54%;       /* #39FF14 - Success states */
+  --orange-warning: 25 100% 50%;       /* #FF6B00 - Warning states */
+  --pink-featured: 331 100% 50%;       /* #FF006E - Featured highlights */
+
+  /* ========== BACKGROUND COLORS (Deep Space) ========== */
+  --bg-primary: 220 40% 7%;            /* #0A0E1A - Main background */
+  --bg-secondary: 220 35% 10%;         /* #0F1420 - Card backgrounds */
+  --bg-tertiary: 220 30% 14%;          /* #161D2A - Elevated surfaces */
+
+  /* ========== TEXT COLORS ========== */
+  --text-primary: 0 0% 100%;           /* #FFFFFF - Primary text */
+  --text-secondary: 218 25% 75%;       /* #B4BDD0 - Secondary text */
+  --text-muted: 218 20% 55%;           /* #7A8599 - Muted/disabled text */
+
+  /* ========== BORDER COLORS ========== */
+  --border-subtle: 220 25% 20%;        /* #2A3344 - Soft dividers */
+  --border-accent: 220 25% 26%;        /* #363F52 - Emphasized borders */
+
+  /* ========== OVERLAY ========== */
+  --overlay: 220 40% 4%;               /* For modals/sheets at 80% opacity */
+
+  /* ========== SHADCN/UI SEMANTIC MAPPINGS ========== */
+  --background: 220 40% 7%;
+  --foreground: 0 0% 100%;
+
+  --card: 220 35% 10%;
+  --card-foreground: 0 0% 100%;
+
+  --popover: 220 35% 10%;
+  --popover-foreground: 0 0% 100%;
+
+  --primary: 190 100% 50%;             /* Cyan glow */
+  --primary-foreground: 220 40% 7%;   /* Dark text on cyan */
+
+  --secondary: 277 66% 59%;            /* Purple neon */
+  --secondary-foreground: 0 0% 100%;
+
+  --muted: 220 30% 14%;
+  --muted-foreground: 218 20% 55%;
+
+  --accent: 220 30% 18%;
+  --accent-foreground: 0 0% 100%;
+
+  --destructive: 0 84% 60%;            /* Red for errors */
+  --destructive-foreground: 0 0% 100%;
+
+  --border: 220 25% 20%;
+  --input: 220 25% 20%;
+  --ring: 190 100% 50%;                /* Cyan focus ring */
+
+  /* ========== SIDEBAR (Admin Dashboard) ========== */
+  --sidebar-background: 220 40% 5%;
+  --sidebar-foreground: 218 25% 75%;
+  --sidebar-primary: 190 100% 50%;
+  --sidebar-primary-foreground: 220 40% 7%;
+  --sidebar-accent: 220 30% 14%;
+  --sidebar-accent-foreground: 0 0% 100%;
+  --sidebar-border: 220 25% 15%;
+  --sidebar-ring: 190 100% 50%;
+
+  /* ========== CHART COLORS (For analytics) ========== */
+  --chart-1: 190 100% 50%;             /* Cyan */
+  --chart-2: 277 66% 59%;              /* Purple */
+  --chart-3: 123 100% 54%;             /* Green */
+  --chart-4: 331 100% 50%;             /* Pink */
+  --chart-5: 25 100% 50%;              /* Orange */
+}
+
+/* ============================================
+   BASE LAYER - Global Resets & Defaults
+   ============================================ */
 @layer base {
-  * {
+  /* Apply dark theme to all elements */
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
     border-color: hsl(var(--border));
   }
 
+  /* Root HTML setup */
+  html {
+    @apply scroll-smooth antialiased;
+    color-scheme: dark;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Body defaults */
   body {
-    background-color: hsl(var(--background));
-    color: hsl(var(--foreground));
+    @apply bg-bg-primary text-text-primary font-sans;
+    @apply min-h-screen;
     font-feature-settings: 'rlig' 1, 'calt' 1;
   }
 
-  /* Scrollbar Styling */
-  ::-webkit-scrollbar {
-    width: 10px;
-    height: 10px;
+  /* Selection styling */
+  ::selection {
+    @apply bg-cyan-glow/30 text-text-primary;
   }
 
-  ::-webkit-scrollbar-track {
-    background: hsl(var(--bg-secondary));
+  /* Smooth focus outlines */
+  :focus-visible {
+    @apply outline-none ring-2 ring-cyan-glow ring-offset-2 ring-offset-bg-primary;
   }
 
-  ::-webkit-scrollbar-thumb {
-    background: hsl(var(--border-accent));
-    border-radius: 5px;
+  /* Headings */
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-semibold tracking-tight text-text-primary;
   }
 
-  ::-webkit-scrollbar-thumb:hover {
-    background: hsl(var(--cyan-glow) / 0.5);
+  h1 {
+    @apply text-3xl sm:text-4xl;
   }
 
-  /* ========================================
-     Focus States (Accessibility)
-     ======================================== */
-  
-  /* Remove default focus outline, use custom ring */
-  *:focus {
-    outline: none;
+  h2 {
+    @apply text-2xl sm:text-3xl;
   }
 
-  /* Visible focus ring for keyboard navigation */
-  *:focus-visible {
-    outline: 2px solid hsl(var(--focus-ring));
-    outline-offset: 2px;
-    border-radius: var(--radius);
+  h3 {
+    @apply text-xl sm:text-2xl;
   }
 
-  /* Button/interactive focus with glow */
-  button:focus-visible,
-  a:focus-visible,
-  [role="button"]:focus-visible {
-    outline: 2px solid hsl(var(--cyan-glow));
-    outline-offset: 2px;
-    box-shadow: 0 0 0 4px hsl(var(--cyan-glow) / 0.2);
+  h4 {
+    @apply text-lg sm:text-xl;
   }
 
-  /* Input focus styling */
-  input:focus-visible,
-  textarea:focus-visible,
-  select:focus-visible {
-    outline: none;
-    border-color: hsl(var(--cyan-glow));
-    box-shadow: 0 0 0 3px hsl(var(--cyan-glow) / 0.2);
+  /* Links */
+  a {
+    @apply text-cyan-glow hover:text-pink-featured transition-colors duration-200;
   }
 
-  /* Skip link for accessibility */
-  .skip-link {
-    position: absolute;
-    top: -40px;
-    left: 0;
-    background: hsl(var(--cyan-glow));
-    color: hsl(var(--bg-primary));
-    padding: 8px 16px;
-    z-index: 100;
-    transition: top 0.2s ease;
+  /* Code blocks */
+  code, pre {
+    @apply font-mono text-sm;
   }
 
-  .skip-link:focus {
-    top: 0;
+  code:not(pre code) {
+    @apply bg-bg-tertiary px-1.5 py-0.5 rounded text-cyan-glow;
+  }
+
+  pre {
+    @apply bg-bg-secondary border border-border-subtle rounded-lg p-4 overflow-x-auto;
+  }
+
+  /* Tables */
+  table {
+    @apply w-full border-collapse;
+  }
+
+  th {
+    @apply text-left font-medium text-text-secondary uppercase text-xs tracking-wider;
+    @apply px-4 py-3 border-b border-border-subtle;
+  }
+
+  td {
+    @apply px-4 py-3 border-b border-border-subtle text-text-primary;
+  }
+
+  tr:hover td {
+    @apply bg-bg-tertiary/50;
+  }
+
+  /* Form elements base styling */
+  input,
+  textarea,
+  select {
+    @apply bg-bg-secondary border border-border-subtle rounded-md;
+    @apply text-text-primary placeholder:text-text-muted;
+    @apply transition-all duration-200;
+  }
+
+  input:focus,
+  textarea:focus,
+  select:focus {
+    @apply border-cyan-glow shadow-inset-glow;
+  }
+
+  /* Remove default button styling */
+  button {
+    @apply cursor-pointer;
+  }
+
+  /* Disabled state for all interactive elements */
+  :disabled,
+  [disabled] {
+    @apply opacity-50 cursor-not-allowed;
   }
 }
 
-/* ========================================
-   Reduced Motion (Accessibility)
-   ======================================== */
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-    scroll-behavior: auto !important;
-  }
-}
-
-/* ========================================
-   High Contrast Mode Support
-   ======================================== */
-@media (prefers-contrast: high) {
-  :root {
-    --border: 0 0% 100%;
-    --text-secondary: 0 0% 90%;
-    --text-muted: 0 0% 80%;
-  }
-}
-
-/* ========================================
-   Utility Classes
-   ======================================== */
+/* ============================================
+   UTILITY CLASSES
+   ============================================ */
 @layer utilities {
-  /* Glass morphism effect */
+  /* ========== GLASS MORPHISM ========== */
   .glass {
-    background: hsl(var(--glass-bg));
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid hsl(var(--glass-border));
+    @apply backdrop-blur-md bg-bg-secondary/70 border border-border-subtle/50;
   }
 
   .glass-strong {
-    background: hsl(var(--bg-secondary) / 0.9);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border: 1px solid hsl(var(--border-accent) / 0.5);
+    @apply backdrop-blur-xl bg-bg-secondary/90 border border-border-subtle;
   }
 
-  /* Gradient text */
+  /* ========== TEXT GRADIENTS ========== */
   .text-gradient-primary {
-    background: linear-gradient(135deg, hsl(var(--cyan-glow)) 0%, hsl(var(--purple-neon)) 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    @apply bg-gradient-to-r from-cyan-glow to-purple-neon bg-clip-text text-transparent;
+  }
+
+  .text-gradient-featured {
+    @apply bg-gradient-to-r from-pink-featured to-purple-neon bg-clip-text text-transparent;
   }
 
   .text-gradient-success {
-    background: linear-gradient(135deg, hsl(var(--green-success)) 0%, hsl(160 100% 40%) 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    @apply bg-gradient-to-r from-green-success to-cyan-glow bg-clip-text text-transparent;
   }
 
-  /* Neon glow effects */
-  .glow-cyan {
-    box-shadow: var(--shadow-glow-cyan);
-  }
-
-  .glow-purple {
-    box-shadow: var(--shadow-glow-purple);
-  }
-
-  .glow-success {
-    box-shadow: var(--shadow-glow-success);
-  }
-
-  .glow-error {
-    box-shadow: var(--shadow-glow-error);
-  }
-
-  /* Text glow for neon effect */
+  /* ========== TEXT GLOW EFFECTS ========== */
   .text-glow-cyan {
-    text-shadow: 0 0 10px hsl(var(--cyan-glow) / 0.5), 0 0 20px hsl(var(--cyan-glow) / 0.3);
+    text-shadow: 0 0 10px hsl(var(--cyan-glow) / 0.5),
+                 0 0 20px hsl(var(--cyan-glow) / 0.3),
+                 0 0 30px hsl(var(--cyan-glow) / 0.2);
   }
 
   .text-glow-purple {
-    text-shadow: 0 0 10px hsl(var(--purple-neon) / 0.5), 0 0 20px hsl(var(--purple-neon) / 0.3);
+    text-shadow: 0 0 10px hsl(var(--purple-neon) / 0.5),
+                 0 0 20px hsl(var(--purple-neon) / 0.3),
+                 0 0 30px hsl(var(--purple-neon) / 0.2);
   }
 
-  /* Hover lift effect */
-  .hover-lift {
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  .text-glow-pink {
+    text-shadow: 0 0 10px hsl(var(--pink-featured) / 0.5),
+                 0 0 20px hsl(var(--pink-featured) / 0.3),
+                 0 0 30px hsl(var(--pink-featured) / 0.2);
   }
 
-  .hover-lift:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-lg);
+  /* ========== NEON BORDER ========== */
+  .border-neon-cyan {
+    @apply border-cyan-glow shadow-glow-cyan-sm;
   }
 
-  /* Card hover with glow */
-  .card-hover-glow {
-    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  .border-neon-purple {
+    @apply border-purple-neon shadow-glow-purple-sm;
   }
 
-  .card-hover-glow:hover {
-    border-color: hsl(var(--cyan-glow) / 0.3);
-    box-shadow: 0 0 30px hsl(var(--cyan-glow) / 0.1);
+  /* ========== SHIMMER LOADING EFFECT ========== */
+  .shimmer {
+    @apply relative overflow-hidden;
+    background: linear-gradient(
+      90deg,
+      hsl(var(--bg-tertiary)) 0%,
+      hsl(var(--bg-secondary)) 50%,
+      hsl(var(--bg-tertiary)) 100%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 2s linear infinite;
   }
 
-  /* Scrollbar thin variant */
+  /* ========== SAFE AREA PADDING (PWA) ========== */
+  .safe-top {
+    padding-top: env(safe-area-inset-top);
+  }
+
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .safe-left {
+    padding-left: env(safe-area-inset-left);
+  }
+
+  .safe-right {
+    padding-right: env(safe-area-inset-right);
+  }
+
+  .safe-all {
+    padding: env(safe-area-inset-top) env(safe-area-inset-right)
+             env(safe-area-inset-bottom) env(safe-area-inset-left);
+  }
+
+  /* ========== SCROLLBAR STYLING ========== */
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--border-accent)) transparent;
+  }
+
   .scrollbar-thin::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
+    width: 8px;
+    height: 8px;
   }
 
-  .scrollbar-none::-webkit-scrollbar {
-    display: none;
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
   }
 
-  /* Hide scrollbar but keep functionality */
-  .scrollbar-hide {
-    -ms-overflow-style: none;
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background-color: hsl(var(--border-accent));
+    border-radius: 4px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    background-color: hsl(var(--text-muted));
+  }
+
+  .scrollbar-hidden {
     scrollbar-width: none;
+    -ms-overflow-style: none;
   }
 
-  .scrollbar-hide::-webkit-scrollbar {
+  .scrollbar-hidden::-webkit-scrollbar {
     display: none;
   }
 
-  /* Line clamp utilities */
+  /* ========== CRYPTO AMOUNT FORMATTING ========== */
+  .crypto-amount {
+    @apply font-mono tabular-nums;
+    font-feature-settings: 'tnum' 1;
+  }
+
+  /* ========== LINE CLAMP ========== */
   .line-clamp-1 {
     display: -webkit-box;
     -webkit-line-clamp: 1;
@@ -446,24 +362,242 @@
     overflow: hidden;
   }
 
-  /* Safe area insets for PWA */
-  .safe-top {
-    padding-top: env(safe-area-inset-top);
+  /* ========== FOCUS RING VARIANTS ========== */
+  .focus-ring {
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-glow focus-visible:ring-offset-2 focus-visible:ring-offset-bg-primary;
   }
 
-  .safe-bottom {
-    padding-bottom: env(safe-area-inset-bottom);
+  .focus-ring-inset {
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-glow focus-visible:ring-inset;
   }
 
-  .safe-left {
-    padding-left: env(safe-area-inset-left);
+  /* ========== INTERACTIVE CARD STATES ========== */
+  .card-interactive {
+    @apply bg-bg-secondary border border-border-subtle rounded-lg;
+    @apply transition-all duration-200 ease-smooth;
+    @apply hover:border-border-accent hover:shadow-card-md;
+    @apply focus-visible:ring-2 focus-visible:ring-cyan-glow;
   }
 
-  .safe-right {
-    padding-right: env(safe-area-inset-right);
+  .card-interactive-glow {
+    /* Inherits card-interactive styles */
+    @apply bg-bg-secondary border border-border-subtle rounded-lg;
+    @apply transition-all duration-200 ease-smooth;
+    @apply hover:border-border-accent hover:shadow-card-md;
+    @apply focus-visible:ring-2 focus-visible:ring-cyan-glow;
+    /* Additional glow effects */
+    @apply hover:shadow-glow-cyan-sm hover:border-cyan-glow/50;
   }
 
-  .safe-all {
-    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  /* ========== BUTTON GLOW STATES ========== */
+  .btn-glow-cyan {
+    @apply hover:shadow-glow-cyan active:shadow-glow-cyan-sm;
+    @apply transition-shadow duration-200;
+  }
+
+  .btn-glow-purple {
+    @apply hover:shadow-glow-purple active:shadow-glow-purple-sm;
+    @apply transition-shadow duration-200;
+  }
+
+  /* ========== ANIMATED BACKGROUND ========== */
+  .bg-animated-gradient {
+    background: linear-gradient(
+      -45deg,
+      hsl(var(--bg-primary)),
+      hsl(var(--bg-secondary)),
+      hsl(var(--cyan-glow) / 0.1),
+      hsl(var(--purple-neon) / 0.1)
+    );
+    background-size: 400% 400%;
+    animation: gradient-shift 15s ease infinite;
+  }
+
+  /* ========== STATUS INDICATORS ========== */
+  .status-dot {
+    @apply w-2 h-2 rounded-full;
+  }
+
+  .status-dot-success {
+    @apply w-2 h-2 rounded-full bg-green-success shadow-glow-success;
+  }
+
+  .status-dot-warning {
+    @apply w-2 h-2 rounded-full bg-orange-warning shadow-glow-error;
+  }
+
+  .status-dot-error {
+    @apply w-2 h-2 rounded-full bg-destructive shadow-glow-error;
+  }
+
+  .status-dot-info {
+    @apply w-2 h-2 rounded-full bg-cyan-glow shadow-glow-cyan-sm;
+  }
+
+  /* ========== PULSE ANIMATION FOR NOTIFICATIONS ========== */
+  .pulse-notification {
+    @apply relative;
+  }
+
+  .pulse-notification::after {
+    content: '';
+    @apply absolute inset-0 rounded-full bg-cyan-glow/30;
+    animation: pulse-ring 1.5s ease-out infinite;
+  }
+}
+
+/* ============================================
+   COMPONENT OVERRIDES (shadcn/ui enhancements)
+   ============================================ */
+@layer components {
+  /* Enhanced button with neon hover */
+  .btn-primary {
+    @apply bg-cyan-glow text-bg-primary font-medium;
+    @apply hover:bg-cyan-glow/90 hover:shadow-glow-cyan;
+    @apply active:scale-[0.98];
+    @apply transition-all duration-200;
+  }
+
+  .btn-secondary {
+    @apply bg-purple-neon text-white font-medium;
+    @apply hover:bg-purple-neon/90 hover:shadow-glow-purple;
+    @apply active:scale-[0.98];
+    @apply transition-all duration-200;
+  }
+
+  .btn-ghost {
+    @apply bg-transparent text-text-secondary;
+    @apply hover:bg-bg-tertiary hover:text-text-primary;
+    @apply active:bg-bg-tertiary/80;
+    @apply transition-all duration-200;
+  }
+
+  .btn-outline {
+    @apply bg-transparent border border-border-subtle text-text-primary;
+    @apply hover:border-cyan-glow hover:text-cyan-glow hover:shadow-glow-cyan-sm;
+    @apply active:bg-cyan-glow/10;
+    @apply transition-all duration-200;
+  }
+
+  /* Input with glow focus */
+  .input-glow {
+    @apply bg-bg-secondary border border-border-subtle rounded-md;
+    @apply text-text-primary placeholder:text-text-muted;
+    @apply focus:border-cyan-glow focus:shadow-inset-glow focus:ring-1 focus:ring-cyan-glow/50;
+    @apply transition-all duration-200;
+  }
+
+  /* Badge variants */
+  .badge-success {
+    @apply bg-green-success/20 text-green-success border border-green-success/30;
+  }
+
+  .badge-warning {
+    @apply bg-orange-warning/20 text-orange-warning border border-orange-warning/30;
+  }
+
+  .badge-error {
+    @apply bg-destructive/20 text-destructive border border-destructive/30;
+  }
+
+  .badge-info {
+    @apply bg-cyan-glow/20 text-cyan-glow border border-cyan-glow/30;
+  }
+
+  .badge-featured {
+    @apply bg-pink-featured/20 text-pink-featured border border-pink-featured/30;
+  }
+
+  /* Empty state container */
+  .empty-state {
+    @apply flex flex-col items-center justify-center py-16 px-4 text-center;
+  }
+
+  .empty-state-icon {
+    @apply w-16 h-16 text-text-muted mb-4;
+  }
+
+  .empty-state-title {
+    @apply text-lg font-medium text-text-primary mb-2;
+  }
+
+  .empty-state-description {
+    @apply text-sm text-text-secondary max-w-sm;
+  }
+
+  /* Loading skeleton */
+  .skeleton {
+    @apply bg-bg-tertiary rounded animate-shimmer;
+    background: linear-gradient(
+      90deg,
+      hsl(var(--bg-tertiary)) 0%,
+      hsl(var(--border-subtle)) 50%,
+      hsl(var(--bg-tertiary)) 100%
+    );
+    background-size: 200% 100%;
+  }
+
+  /* Divider with label */
+  .divider-with-label {
+    @apply flex items-center gap-4 my-6;
+  }
+
+  .divider-with-label::before,
+  .divider-with-label::after {
+    content: '';
+    @apply flex-1 h-px bg-border-subtle;
+  }
+
+  .divider-with-label span {
+    @apply text-sm text-text-muted uppercase tracking-wider;
+  }
+}
+
+/* ============================================
+   REDUCED MOTION PREFERENCES
+   ============================================ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .animate-glow-pulse,
+  .animate-float,
+  .animate-shimmer,
+  .animate-spin-glow,
+  .animate-bounce-subtle,
+  .animate-pulse-ring,
+  .animate-gradient-shift {
+    animation: none !important;
+  }
+}
+
+/* ============================================
+   PRINT STYLES
+   ============================================ */
+@media print {
+  body {
+    background: white !important;
+    color: black !important;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  a {
+    text-decoration: underline;
+  }
+
+  .shadow-glow-cyan,
+  .shadow-glow-purple,
+  .shadow-glow-success,
+  .shadow-glow-error {
+    box-shadow: none !important;
   }
 }

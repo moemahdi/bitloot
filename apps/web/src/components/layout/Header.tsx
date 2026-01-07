@@ -13,33 +13,61 @@ import {
     Zap, 
     Shield, 
     Gamepad2,
-    HelpCircle,
-    BookOpen,
     ChevronRight,
     LayoutDashboard,
-    LogOut
+    LogOut,
+    Monitor,
+    Gift,
+    Repeat,
+    Sparkles,
 } from 'lucide-react';
 import { Sheet, SheetContent, SheetTrigger, SheetClose } from '@/design-system/primitives/sheet';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
+import { useCart } from '@/context/CartContext';
 
 export function Header(): React.ReactElement {
     const pathname = usePathname();
     const { isAuthenticated, user, logout } = useAuth();
+    const { itemCount } = useCart();
     const [isSearchOpen, setIsSearchOpen] = useState(false);
+
+    // Keyboard shortcut: ⌘K or Ctrl+K to focus search
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent): void => {
+            if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+                e.preventDefault();
+                setIsSearchOpen(true);
+                // Focus the search input after opening
+                setTimeout(() => {
+                    const searchInput = document.querySelector('input[type="search"]');
+                    if (searchInput instanceof HTMLInputElement) {
+                        searchInput.focus();
+                    }
+                }, 100);
+            }
+            if (e.key === 'Escape') {
+                setIsSearchOpen(false);
+            }
+        };
+        document.addEventListener('keydown', handleKeyDown);
+        return () => document.removeEventListener('keydown', handleKeyDown);
+    }, []);
 
     const isActiveLink = (href: string): boolean => pathname === href;
 
     const navLinks = [
-        { href: '/catalog', label: 'Catalog', icon: Gamepad2 },
-        { href: '/how-it-works', label: 'How it Works', icon: BookOpen },
-        { href: '/support', label: 'Support', icon: HelpCircle },
+        { href: '/catalog', label: 'Gaming', icon: Gamepad2 },
+        { href: '/catalog', label: 'Software', icon: Monitor },
+        { href: '/catalog', label: 'Gift Cards', icon: Gift },
+        { href: '/catalog', label: 'Subscriptions', icon: Repeat },
+        { href: '/catalog', label: 'A.I', icon: Sparkles },
     ];
 
     return (
-        <header className="sticky top-0 z-50 w-full border-b border-border-subtle/50 bg-bg-primary/80 backdrop-blur-xl supports-[backdrop-filter]:bg-bg-primary/60">
+        <header className="sticky top-0 z-50 w-full border-b border-border-subtle/50 bg-bg-primary/80 backdrop-blur-xl supports-backdrop-filter:bg-bg-primary/60">
             {/* Top accent line */}
-            <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-cyan-glow/50 to-transparent" />
+            <div className="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-cyan-glow/50 to-transparent" />
             
             <div className="container mx-auto flex h-16 items-center justify-between px-4 md:px-6">
                 {/* Logo */}
@@ -47,7 +75,7 @@ export function Header(): React.ReactElement {
                     href="/" 
                     className="group flex items-center gap-2.5 font-bold text-xl transition-all duration-300 hover:scale-[1.02]"
                 >
-                    <div className="relative flex items-center justify-center w-9 h-9 rounded-lg bg-gradient-to-br from-cyan-glow/20 to-purple-neon/20 border border-cyan-glow/30 group-hover:border-cyan-glow/60 group-hover:shadow-glow-cyan transition-all duration-300">
+                    <div className="relative flex items-center justify-center w-9 h-9 rounded-lg bg-linear-to-br from-cyan-glow/20 to-purple-neon/20 border border-cyan-glow/30 group-hover:border-cyan-glow/60 group-hover:shadow-glow-cyan transition-all duration-300">
                         <Zap className="w-5 h-5 text-cyan-glow group-hover:text-cyan-300 transition-colors" />
                         <div className="absolute inset-0 rounded-lg bg-cyan-glow/10 opacity-0 group-hover:opacity-100 transition-opacity" />
                     </div>
@@ -110,13 +138,15 @@ export function Header(): React.ReactElement {
                         <Button 
                             variant="ghost" 
                             size="icon" 
-                            className="relative text-text-muted hover:text-cyan-glow hover:bg-cyan-glow/10 transition-all duration-200"
+                            className="relative text-text-muted hover:text-cyan-glow hover:bg-cyan-glow/10 hover:shadow-glow-cyan-sm transition-all duration-200"
                         >
                             <ShoppingCart className="h-5 w-5" />
-                            <span className="absolute -top-0.5 -right-0.5 flex items-center justify-center min-w-[18px] h-[18px] px-1 text-[10px] font-bold rounded-full bg-purple-neon text-white shadow-glow-purple">
-                                2
-                            </span>
-                            <span className="sr-only">Cart</span>
+                            {itemCount > 0 && (
+                                <span className="absolute -top-0.5 -right-0.5 flex items-center justify-center min-w-[18px] h-[18px] px-1 text-[10px] font-bold rounded-full bg-purple-neon text-white shadow-glow-purple-sm animate-scale-in">
+                                    {itemCount > 99 ? '99+' : itemCount}
+                                </span>
+                            )}
+                            <span className="sr-only">Cart{itemCount > 0 ? ` (${itemCount} items)` : ''}</span>
                         </Button>
                     </Link>
 
@@ -177,10 +207,10 @@ export function Header(): React.ReactElement {
                             <Button 
                                 variant="ghost" 
                                 size="icon" 
-                                className="md:hidden text-text-muted hover:text-cyan-glow hover:bg-cyan-glow/10 transition-all duration-200"
+                                className="lg:hidden text-text-muted hover:text-cyan-glow hover:bg-cyan-glow/10 transition-all duration-200"
                             >
                                 <Menu className="h-5 w-5" />
-                                <span className="sr-only">Menu</span>
+                                <span className="sr-only">Open menu</span>
                             </Button>
                         </SheetTrigger>
                         <SheetContent 
@@ -188,20 +218,13 @@ export function Header(): React.ReactElement {
                             className="w-[300px] bg-bg-primary border-l border-border-subtle p-0"
                         >
                             {/* Mobile Menu Header */}
-                            <div className="flex items-center justify-between p-4 border-b border-border-subtle">
-                                <div className="flex items-center gap-2">
-                                    <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-cyan-glow/10 border border-cyan-glow/30">
-                                        <Zap className="w-4 h-4 text-cyan-glow" />
-                                    </div>
-                                    <span className="font-bold text-text-primary">
-                                        Bit<span className="text-cyan-glow">Loot</span>
-                                    </span>
+                            <div className="flex items-center gap-2 p-4 border-b border-border-subtle">
+                                <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-cyan-glow/10 border border-cyan-glow/30">
+                                    <Zap className="w-4 h-4 text-cyan-glow" />
                                 </div>
-                                <SheetClose asChild>
-                                    <Button variant="ghost" size="icon" className="text-text-muted hover:text-text-primary">
-                                        <X className="h-5 w-5" />
-                                    </Button>
-                                </SheetClose>
+                                <span className="font-bold text-text-primary">
+                                    Bit<span className="text-cyan-glow">Loot</span>
+                                </span>
                             </div>
 
                             {/* Mobile Menu Content */}
@@ -295,16 +318,17 @@ export function Header(): React.ReactElement {
             </div>
 
             {/* Mobile Search Bar (Expandable) */}
-            <div className={`md:hidden border-t border-border-subtle overflow-hidden transition-all duration-300 ${
+            <div className={`lg:hidden border-t border-border-subtle overflow-hidden transition-all duration-300 ${
                 isSearchOpen ? 'max-h-20 opacity-100' : 'max-h-0 opacity-0'
             }`}>
-                <div className="p-4 bg-bg-secondary/50">
-                    <div className="relative">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-text-muted" />
+                <div className="p-4 bg-bg-secondary/30">
+                    <div className="relative group">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-text-muted group-focus-within:text-cyan-glow transition-colors" />
                         <Input
                             type="search"
                             placeholder="Search games, software, keys..."
-                            className="w-full pl-10 h-10 bg-bg-primary border-border-subtle focus:border-cyan-glow text-text-primary placeholder:text-text-muted"
+                            aria-label="Search games and software"
+                            className="w-full pl-10 h-10 bg-bg-primary border-border-subtle focus:border-cyan-glow focus:ring-1 focus:ring-cyan-glow/20 text-text-primary placeholder:text-text-muted rounded-lg"
                             autoFocus={isSearchOpen}
                         />
                     </div>

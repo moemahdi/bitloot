@@ -4,7 +4,6 @@ import { useState } from 'react';
 import { useCart } from '@/context/CartContext';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/design-system/primitives/card';
-import { GlowButton } from '@/design-system/primitives/glow-button';
 import { Button } from '@/design-system/primitives/button';
 import { Input } from '@/design-system/primitives/input';
 import { Label } from '@/design-system/primitives/label';
@@ -15,7 +14,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { toast } from 'sonner';
-import { ChevronLeft, CheckCircle2, AlertCircle } from 'lucide-react';
+import { ChevronLeft, CheckCircle2, Loader2, ShoppingBag } from 'lucide-react';
 import { useMutation } from '@tanstack/react-query';
 import { OrdersApi } from '@bitloot/sdk';
 import { apiConfig } from '@/lib/api-config';
@@ -118,14 +117,17 @@ export default function CheckoutPage(): React.ReactElement | void {
   if (items.length === 0) {
     return (
       <div className="container mx-auto px-4 py-12">
-        <Card>
+        <Card className="glass-strong border-border-primary shadow-card-sm">
           <CardContent className="py-12 text-center">
-            <AlertCircle className="h-12 w-12 mx-auto text-yellow-600 mb-4" />
-            <h2 className="text-2xl font-semibold mb-4">Cart is Empty</h2>
-            <p className="text-muted-foreground mb-6">
+            <ShoppingBag className="h-12 w-12 mx-auto text-orange-warning mb-4" />
+            <h2 className="text-2xl font-semibold mb-4 text-text-primary">Cart is Empty</h2>
+            <p className="text-text-muted mb-6">
               Your cart is empty. Please add items before checking out.
             </p>
-            <Button onClick={() => router.push('/catalog')}>
+            <Button 
+              onClick={() => router.push('/catalog')}
+              className="bg-cyan-glow text-bg-primary hover:shadow-glow-cyan font-semibold"
+            >
               Return to Catalog
             </Button>
           </CardContent>
@@ -178,29 +180,29 @@ export default function CheckoutPage(): React.ReactElement | void {
     return (
       <div className="container mx-auto px-4 py-8">
         <CheckoutProgress currentStep="review" />
-        <h1 className="text-3xl font-bold mb-8 text-transparent bg-clip-text bg-gradient-to-r from-cyan-glow to-purple-neon">
+        <h1 className="text-3xl font-bold mb-8 text-transparent bg-clip-text bg-linear-to-r from-cyan-glow to-purple-neon">
           Checkout - Step 1: Review Order
         </h1>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Order Items */}
           <div className="lg:col-span-2">
-            <Card>
+            <Card className="glass-strong border-border-primary shadow-card-sm">
               <CardHeader>
-                <CardTitle>Order Items</CardTitle>
+                <CardTitle className="text-text-primary">Order Items</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 {items.map((item) => (
-                  <div key={item.productId} className="flex justify-between items-center pb-4 border-b last:border-b-0">
+                  <div key={item.productId} className="flex justify-between items-center pb-4 border-b border-border-primary last:border-b-0">
                     <div>
-                      <p className="font-semibold">{item.title}</p>
-                      <p className="text-sm text-muted-foreground">
+                      <p className="font-semibold text-text-primary">{item.title}</p>
+                      <p className="text-sm text-text-muted">
                         Quantity: {item.quantity}
                       </p>
                     </div>
                     <div className="text-right">
-                      <p className="font-semibold">€{(item.price * item.quantity).toFixed(2)}</p>
-                      <p className="text-sm text-muted-foreground">
+                      <p className="font-semibold text-cyan-glow">€{(item.price * item.quantity).toFixed(2)}</p>
+                      <p className="text-sm text-text-muted">
                         €{item.price.toFixed(2)} each
                       </p>
                     </div>
@@ -212,46 +214,46 @@ export default function CheckoutPage(): React.ReactElement | void {
 
           {/* Order Summary */}
           <div>
-            <Card className="sticky top-4">
+            <Card className="sticky top-4 glass-strong border-border-primary shadow-card-lg">
               <CardHeader>
-                <CardTitle>Order Summary</CardTitle>
+                <CardTitle className="text-text-primary">Order Summary</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Subtotal</span>
-                    <span>€{subtotal.toFixed(2)}</span>
+                    <span className="text-text-muted">Subtotal</span>
+                    <span className="text-text-secondary">€{subtotal.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Tax (8%)</span>
-                    <span>€{tax.toFixed(2)}</span>
+                    <span className="text-text-muted">Tax (8%)</span>
+                    <span className="text-text-secondary">€{tax.toFixed(2)}</span>
                   </div>
                 </div>
 
-                <Separator />
+                <Separator className="bg-border-primary" />
 
                 <div className="flex justify-between text-lg font-semibold">
-                  <span>Total</span>
-                  <span>€{estimatedTotal.toFixed(2)}</span>
+                  <span className="text-text-primary">Total</span>
+                  <span className="text-cyan-glow">€{estimatedTotal.toFixed(2)}</span>
                 </div>
 
-                <div className="bg-blue-50 dark:bg-blue-950 text-blue-900 dark:text-blue-100 p-3 rounded-md text-xs">
+                <div className="bg-cyan-glow/5 border border-cyan-glow/20 text-text-secondary p-3 rounded-lg text-xs">
                   <p>Instant delivery after payment</p>
                 </div>
 
-                <Separator />
+                <Separator className="bg-border-primary" />
 
-                <GlowButton
+                <Button
                   onClick={() => setCurrentStep('email')}
-                  className="w-full"
+                  className="w-full bg-cyan-glow text-bg-primary hover:shadow-glow-cyan font-semibold min-h-12"
                   size="lg"
                 >
                   Continue to Email
-                </GlowButton>
+                </Button>
                 <Button
                   variant="outline"
                   onClick={() => router.push('/cart')}
-                  className="w-full"
+                  className="w-full border-border-primary text-text-secondary hover:bg-bg-tertiary"
                 >
                   Back to Cart
                 </Button>
@@ -271,61 +273,67 @@ export default function CheckoutPage(): React.ReactElement | void {
 
         <button
           onClick={handleBackStep}
-          className="flex items-center gap-2 text-muted-foreground hover:text-foreground mb-8 transition-colors"
+          className="flex items-center gap-2 text-text-muted hover:text-text-primary mb-8 transition-colors"
         >
           <ChevronLeft className="h-4 w-4" />
           Back to Review
         </button>
 
-        <h1 className="text-3xl font-bold mb-8 text-transparent bg-clip-text bg-gradient-to-r from-cyan-glow to-purple-neon">
+        <h1 className="text-3xl font-bold mb-8 text-transparent bg-clip-text bg-linear-to-r from-cyan-glow to-purple-neon">
           Checkout - Step 2: Email Confirmation
         </h1>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Email Form */}
           <div className="lg:col-span-2">
-            <Card>
+            <Card className="glass-strong border-border-primary shadow-card-sm">
               <CardHeader>
-                <CardTitle>Confirm Your Email</CardTitle>
+                <CardTitle className="text-text-primary">Confirm Your Email</CardTitle>
               </CardHeader>
               <CardContent>
                 <form onSubmit={handleSubmit(handleEmailSubmit)} className="space-y-6">
                   <div className="space-y-2">
-                    <Label htmlFor="email">Email Address</Label>
+                    <Label htmlFor="email" className="text-text-secondary">Email Address</Label>
                     <Input
                       id="email"
                       type="email"
                       placeholder="your@email.com"
                       {...register('email')}
                       aria-invalid={Boolean(errors.email)}
+                      className="bg-bg-secondary border-border-primary text-text-primary placeholder:text-text-muted"
                     />
                     {errors.email !== undefined && (
-                      <p className="text-sm text-destructive">{errors.email.message}</p>
+                      <p className="text-sm text-orange-warning">{errors.email.message}</p>
                     )}
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="confirmEmail">Confirm Email Address</Label>
+                    <Label htmlFor="confirmEmail" className="text-text-secondary">Confirm Email Address</Label>
                     <Input
                       id="confirmEmail"
                       type="email"
                       placeholder="your@email.com"
                       {...register('confirmEmail')}
                       aria-invalid={Boolean(errors.confirmEmail)}
+                      className="bg-bg-secondary border-border-primary text-text-primary placeholder:text-text-muted"
                     />
                     {errors.confirmEmail !== undefined && (
-                      <p className="text-sm text-destructive">{errors.confirmEmail.message}</p>
+                      <p className="text-sm text-orange-warning">{errors.confirmEmail.message}</p>
                     )}
                   </div>
 
-                  <div className="bg-yellow-50 dark:bg-yellow-950 text-yellow-900 dark:text-yellow-100 p-4 rounded-md text-sm">
-                    <p className="font-semibold mb-1">Important</p>
+                  <div className="bg-orange-warning/5 border border-orange-warning/20 text-text-secondary p-4 rounded-lg text-sm">
+                    <p className="font-semibold mb-1 text-orange-warning">Important</p>
                     <p>We&apos;ll send your purchased keys and order confirmation to this email address. Make sure it&apos;s correct!</p>
                   </div>
 
-                  <GlowButton type="submit" className="w-full" size="lg">
+                  <Button 
+                    type="submit" 
+                    className="w-full bg-cyan-glow text-bg-primary hover:shadow-glow-cyan font-semibold min-h-12" 
+                    size="lg"
+                  >
                     Continue to Payment
-                  </GlowButton>
+                  </Button>
                 </form>
               </CardContent>
             </Card>
@@ -333,19 +341,19 @@ export default function CheckoutPage(): React.ReactElement | void {
 
           {/* Order Summary */}
           <div>
-            <Card className="sticky top-4">
+            <Card className="sticky top-4 glass-strong border-border-primary shadow-card-sm">
               <CardHeader>
-                <CardTitle>Order Summary</CardTitle>
+                <CardTitle className="text-text-primary">Order Summary</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <p className="text-xs text-muted-foreground mb-1">Items</p>
-                  <p className="text-lg font-semibold">{items.length}</p>
+                  <p className="text-xs text-text-muted mb-1">Items</p>
+                  <p className="text-lg font-semibold text-text-primary">{items.length}</p>
                 </div>
-                <Separator />
+                <Separator className="bg-border-primary" />
                 <div className="flex justify-between">
-                  <span>Total</span>
-                  <span className="font-semibold">€{estimatedTotal.toFixed(2)}</span>
+                  <span className="text-text-secondary">Total</span>
+                  <span className="font-semibold text-cyan-glow">€{estimatedTotal.toFixed(2)}</span>
                 </div>
               </CardContent>
             </Card>
@@ -363,23 +371,23 @@ export default function CheckoutPage(): React.ReactElement | void {
 
         <button
           onClick={handleBackStep}
-          className="flex items-center gap-2 text-muted-foreground hover:text-foreground mb-8 transition-colors"
+          className="flex items-center gap-2 text-text-muted hover:text-text-primary mb-8 transition-colors"
           disabled={isProcessing || paymentStatus !== 'idle'}
         >
           <ChevronLeft className="h-4 w-4" />
           Back to Email
         </button>
 
-        <h1 className="text-3xl font-bold mb-8 text-transparent bg-clip-text bg-gradient-to-r from-cyan-glow to-purple-neon">
+        <h1 className="text-3xl font-bold mb-8 text-transparent bg-clip-text bg-linear-to-r from-cyan-glow to-purple-neon">
           Checkout - Step 3: Payment Method
         </h1>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Payment Methods */}
           <div className="lg:col-span-2">
-            <Card>
+            <Card className="glass-strong border-border-primary shadow-card-sm">
               <CardHeader>
-                <CardTitle>Select Payment Method</CardTitle>
+                <CardTitle className="text-text-primary">Select Payment Method</CardTitle>
               </CardHeader>
               <CardContent>
                 {paymentStatus !== 'idle' ? (
@@ -391,39 +399,39 @@ export default function CheckoutPage(): React.ReactElement | void {
                     <RadioGroup value={paymentMethod} onValueChange={(val) => setPaymentMethod(val as 'BTC' | 'ETH' | 'USDT')}>
                       <div className="space-y-4">
                         {/* Bitcoin */}
-                        <div className={`flex items-center space-x-2 p-4 border rounded-lg cursor-pointer transition-all duration-200 ${paymentMethod === 'BTC' ? 'border-cyan-glow bg-cyan-glow/5' : 'hover:bg-accent'}`}>
+                        <div className={`flex items-center space-x-2 p-4 border rounded-lg cursor-pointer transition-all duration-200 ${paymentMethod === 'BTC' ? 'border-cyan-glow bg-cyan-glow/5 shadow-glow-cyan-sm' : 'border-border-primary hover:bg-bg-tertiary'}`}>
                           <RadioGroupItem value="BTC" id="btc" />
                           <Label htmlFor="btc" className="flex-1 cursor-pointer">
-                            <div className="font-semibold">Bitcoin (BTC)</div>
-                            <div className="text-sm text-muted-foreground">Most secure & widely used</div>
+                            <div className="font-semibold text-text-primary">Bitcoin (BTC)</div>
+                            <div className="text-sm text-text-muted">Most secure &amp; widely used</div>
                           </Label>
                           <Badge variant="outline" className="border-cyan-glow text-cyan-glow">Recommended</Badge>
                         </div>
 
                         {/* Ethereum */}
-                        <div className={`flex items-center space-x-2 p-4 border rounded-lg cursor-pointer transition-all duration-200 ${paymentMethod === 'ETH' ? 'border-purple-neon bg-purple-neon/5' : 'hover:bg-accent'}`}>
+                        <div className={`flex items-center space-x-2 p-4 border rounded-lg cursor-pointer transition-all duration-200 ${paymentMethod === 'ETH' ? 'border-purple-neon bg-purple-neon/5 shadow-glow-purple-sm' : 'border-border-primary hover:bg-bg-tertiary'}`}>
                           <RadioGroupItem value="ETH" id="eth" />
                           <Label htmlFor="eth" className="flex-1 cursor-pointer">
-                            <div className="font-semibold">Ethereum (ETH)</div>
-                            <div className="text-sm text-muted-foreground">Smart contract enabled</div>
+                            <div className="font-semibold text-text-primary">Ethereum (ETH)</div>
+                            <div className="text-sm text-text-muted">Smart contract enabled</div>
                           </Label>
                         </div>
 
                         {/* USDT */}
-                        <div className={`flex items-center space-x-2 p-4 border rounded-lg cursor-pointer transition-all duration-200 ${paymentMethod === 'USDT' ? 'border-green-success bg-green-success/5' : 'hover:bg-accent'}`}>
+                        <div className={`flex items-center space-x-2 p-4 border rounded-lg cursor-pointer transition-all duration-200 ${paymentMethod === 'USDT' ? 'border-green-success bg-green-success/5 shadow-glow-success' : 'border-border-primary hover:bg-bg-tertiary'}`}>
                           <RadioGroupItem value="USDT" id="usdt" />
                           <Label htmlFor="usdt" className="flex-1 cursor-pointer">
-                            <div className="font-semibold">Tether (USDT)</div>
-                            <div className="text-sm text-muted-foreground">Stablecoin, lowest volatility</div>
+                            <div className="font-semibold text-text-primary">Tether (USDT)</div>
+                            <div className="text-sm text-text-muted">Stablecoin, lowest volatility</div>
                           </Label>
                         </div>
                       </div>
                     </RadioGroup>
 
-                    <Separator className="my-6" />
+                    <Separator className="my-6 bg-border-primary" />
 
-                    <div className="bg-blue-50 dark:bg-blue-950/30 text-blue-900 dark:text-blue-100 p-4 rounded-md text-sm border border-blue-200 dark:border-blue-800">
-                      <p className="font-semibold mb-2">How it works</p>
+                    <div className="bg-cyan-glow/5 border border-cyan-glow/20 text-text-secondary p-4 rounded-lg text-sm">
+                      <p className="font-semibold mb-2 text-cyan-glow">How it works</p>
                       <ol className="list-decimal list-inside space-y-1 text-xs">
                         <li>Select your preferred cryptocurrency</li>
                         <li>We&apos;ll generate a payment address</li>
@@ -432,14 +440,21 @@ export default function CheckoutPage(): React.ReactElement | void {
                       </ol>
                     </div>
 
-                    <GlowButton
+                    <Button
                       onClick={() => handlePaymentSubmit()}
-                      className="w-full mt-6"
+                      className="w-full mt-6 bg-cyan-glow text-bg-primary hover:shadow-glow-cyan font-semibold min-h-12"
                       size="lg"
                       disabled={isProcessing}
                     >
-                      {isProcessing ? 'Processing...' : `Pay €${estimatedTotal.toFixed(2)} with ${paymentMethod}`}
-                    </GlowButton>
+                      {isProcessing ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Processing...
+                        </>
+                      ) : (
+                        `Pay €${estimatedTotal.toFixed(2)} with ${paymentMethod}`
+                      )}
+                    </Button>
                   </>
                 )}
               </CardContent>
@@ -448,29 +463,29 @@ export default function CheckoutPage(): React.ReactElement | void {
 
           {/* Order Summary */}
           <div>
-            <Card className="sticky top-4">
+            <Card className="sticky top-4 glass-strong border-border-primary shadow-card-sm">
               <CardHeader>
-                <CardTitle>Order Summary</CardTitle>
+                <CardTitle className="text-text-primary">Order Summary</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Subtotal</span>
-                    <span>€{subtotal.toFixed(2)}</span>
+                    <span className="text-text-muted">Subtotal</span>
+                    <span className="text-text-secondary">€{subtotal.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-muted-foreground">Tax</span>
-                    <span>€{tax.toFixed(2)}</span>
+                    <span className="text-text-muted">Tax</span>
+                    <span className="text-text-secondary">€{tax.toFixed(2)}</span>
                   </div>
                 </div>
-                <Separator />
+                <Separator className="bg-border-primary" />
                 <div className="flex justify-between text-lg font-semibold">
-                  <span>Total</span>
-                  <span>€{estimatedTotal.toFixed(2)}</span>
+                  <span className="text-text-primary">Total</span>
+                  <span className="text-cyan-glow">€{estimatedTotal.toFixed(2)}</span>
                 </div>
-                <div className="text-xs text-muted-foreground">
-                  <p>Email: {email}</p>
-                  <p>Payment: {paymentMethod}</p>
+                <div className="text-xs text-text-muted space-y-1">
+                  <p>Email: <span className="text-text-secondary">{email}</span></p>
+                  <p>Payment: <span className="text-text-secondary">{paymentMethod}</span></p>
                 </div>
               </CardContent>
             </Card>
@@ -488,67 +503,67 @@ export default function CheckoutPage(): React.ReactElement | void {
         <CheckoutProgress currentStep="confirmation" />
 
         <div className="max-w-2xl mx-auto">
-          <Card className="text-center border-green-success/30 bg-green-success/5">
+          <Card className="text-center glass-strong border-green-success/30 bg-green-success/5 shadow-glow-success">
             <CardContent className="py-12">
               <div className="mb-6 relative inline-block">
                 <div className="absolute inset-0 bg-green-success/20 blur-xl rounded-full animate-pulse" />
                 <CheckCircle2 className="h-16 w-16 text-green-success relative z-10" />
               </div>
 
-              <h1 className="text-4xl font-bold mb-4 text-transparent bg-clip-text bg-gradient-to-r from-green-success to-cyan-glow">
+              <h1 className="text-4xl font-bold mb-4 text-transparent bg-clip-text bg-linear-to-r from-green-success to-cyan-glow">
                 Order Confirmed!
               </h1>
 
-              <p className="text-xl text-muted-foreground mb-8">
+              <p className="text-xl text-text-muted mb-8">
                 Your payment has been received and processed.
               </p>
 
               {/* Order Details */}
-              <Card className="mb-8 bg-muted/50">
+              <Card className="mb-8 glass-strong border-border-primary">
                 <CardContent className="py-6">
                   <div className="space-y-4 text-left">
                     <div className="flex justify-between">
-                      <span className="text-muted-foreground">Order ID</span>
-                      <span className="font-mono font-semibold">{orderId}</span>
+                      <span className="text-text-muted">Order ID</span>
+                      <span className="font-mono font-semibold text-cyan-glow">{orderId}</span>
                     </div>
-                    <Separator />
+                    <Separator className="bg-border-primary" />
                     <div className="flex justify-between">
-                      <span className="text-muted-foreground">Email</span>
-                      <span>{email}</span>
+                      <span className="text-text-muted">Email</span>
+                      <span className="text-text-secondary">{email}</span>
                     </div>
-                    <Separator />
+                    <Separator className="bg-border-primary" />
                     <div className="flex justify-between">
-                      <span className="text-muted-foreground">Total Paid</span>
-                      <span className="text-lg font-semibold">€{estimatedTotal.toFixed(2)}</span>
+                      <span className="text-text-muted">Total Paid</span>
+                      <span className="text-lg font-semibold text-green-success">€{estimatedTotal.toFixed(2)}</span>
                     </div>
-                    <Separator />
+                    <Separator className="bg-border-primary" />
                     <div className="flex justify-between">
-                      <span className="text-muted-foreground">Payment Method</span>
-                      <span>{paymentMethod}</span>
+                      <span className="text-text-muted">Payment Method</span>
+                      <span className="text-text-secondary">{paymentMethod}</span>
                     </div>
                   </div>
                 </CardContent>
               </Card>
 
               {/* Key Delivery Info */}
-              <div className="bg-green-50 dark:bg-green-950 text-green-900 dark:text-green-100 p-4 rounded-md text-sm mb-8">
-                <p className="font-semibold mb-2">✓ Keys will be delivered to your email</p>
-                <p className="text-xs">Check your inbox and spam folder for your digital keys. Delivery is usually instant!</p>
+              <div className="bg-green-success/5 border border-green-success/20 text-text-secondary p-4 rounded-lg text-sm mb-8">
+                <p className="font-semibold mb-2 text-green-success">✓ Keys will be delivered to your email</p>
+                <p className="text-xs text-text-muted">Check your inbox and spam folder for your digital keys. Delivery is usually instant!</p>
               </div>
 
               {/* Actions */}
               <div className="space-y-3">
-                <GlowButton
+                <Button
                   onClick={handleNewOrder}
-                  className="w-full"
+                  className="w-full bg-cyan-glow text-bg-primary hover:shadow-glow-cyan font-semibold min-h-12"
                   size="lg"
                 >
                   Continue Shopping
-                </GlowButton>
+                </Button>
                 <Button
                   variant="outline"
                   asChild
-                  className="w-full"
+                  className="w-full border-border-primary text-text-secondary hover:bg-bg-tertiary"
                 >
                   <a href={`mailto:${email}?subject=Your Order ${orderId}`}>
                     Open Email Client
