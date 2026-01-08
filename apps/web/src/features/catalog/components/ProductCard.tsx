@@ -32,6 +32,8 @@ interface ProductCardProps {
     onBuyNow?: (product: Product) => void;
     isLoading?: boolean;
     variant?: 'default' | 'featured';
+    /** Mark as above-the-fold for LCP optimization (first 4 items) */
+    isAboveFold?: boolean;
 }
 
 // Skeleton loader for loading state
@@ -64,13 +66,16 @@ export function ProductCard({
     onAddToCart,
     onBuyNow,
     isLoading = false,
-    variant = 'default' 
+    variant = 'default',
+    isAboveFold = false
 }: ProductCardProps): React.ReactElement {
     const [isHovered, setIsHovered] = useState(false);
     const [imageError, setImageError] = useState(false);
     
     const isOutOfStock = typeof product.stock === 'number' && product.stock <= 0;
     const isFeatured = variant === 'featured' || product.isFeatured;
+    // Prioritize image loading for above-fold or featured cards (LCP optimization)
+    const shouldPrioritize = isAboveFold || isFeatured;
     const rawRating = product.rating ?? 4.8;
     const parsedRating = typeof rawRating === 'number' ? rawRating : parseFloat(String(rawRating));
     const displayRating = Number.isNaN(parsedRating) ? 4.8 : parsedRating;
@@ -153,7 +158,8 @@ export function ProductCard({
                                         ${isOutOfStock ? 'grayscale' : ''}
                                     `}
                                     onError={handleImageError}
-                                    priority={isFeatured}
+                                    priority={shouldPrioritize}
+                                    loading={shouldPrioritize ? 'eager' : 'lazy'}
                                 />
                             )}
                         </div>

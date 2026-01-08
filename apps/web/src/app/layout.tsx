@@ -23,6 +23,9 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
+  ),
   title: {
     default: 'BitLoot — Crypto Gaming Marketplace',
     template: '%s | BitLoot',
@@ -117,7 +120,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }): React.ReactElement {
   return (
-    <html lang="en" suppressHydrationWarning className="dark scrollbar-thin">
+    <html lang="en" suppressHydrationWarning className="dark scrollbar-thin" data-scroll-behavior="smooth">
       <head>
         <link rel="manifest" href="/manifest.json" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />

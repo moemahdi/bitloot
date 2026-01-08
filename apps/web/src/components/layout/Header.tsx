@@ -88,7 +88,7 @@ export function Header(): React.ReactElement {
                 <nav className="hidden md:flex items-center gap-1">
                     {navLinks.map((link) => (
                         <Link 
-                            key={link.href}
+                            key={link.label}
                             href={link.href} 
                             className={`relative px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 group ${
                                 isActiveLink(link.href)
@@ -230,7 +230,7 @@ export function Header(): React.ReactElement {
                             {/* Mobile Menu Content */}
                             <div className="flex flex-col p-4 gap-1">
                                 {navLinks.map((link) => (
-                                    <SheetClose key={link.href} asChild>
+                                    <SheetClose key={link.label} asChild>
                                         <Link 
                                             href={link.href} 
                                             className={`flex items-center justify-between px-4 py-3 rounded-lg transition-all duration-200 ${
