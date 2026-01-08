@@ -73,9 +73,9 @@ export function ProductCard({
     const [imageError, setImageError] = useState(false);
     
     const isOutOfStock = typeof product.stock === 'number' && product.stock <= 0;
-    const isFeatured = variant === 'featured' || product.isFeatured;
+    const isFeatured = variant === 'featured' || product.isFeatured === true;
     // Prioritize image loading for above-fold or featured cards (LCP optimization)
-    const shouldPrioritize = isAboveFold || isFeatured;
+    const shouldPrioritize = isAboveFold === true || isFeatured;
     const rawRating = product.rating ?? 4.8;
     const parsedRating = typeof rawRating === 'number' ? rawRating : parseFloat(String(rawRating));
     const displayRating = Number.isNaN(parsedRating) ? 4.8 : parsedRating;

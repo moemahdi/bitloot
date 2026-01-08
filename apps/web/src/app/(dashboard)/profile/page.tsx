@@ -76,22 +76,49 @@ function WatchlistTabContent(): React.ReactElement {
 
   if (isLoading) {
     return (
-      <Card className="glass border-border/50 bg-bg-secondary/50 backdrop-blur-sm">
-        <CardContent className="flex items-center justify-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-cyan-glow" />
-          <span className="ml-3 text-text-secondary">Loading your watchlist...</span>
-        </CardContent>
-      </Card>
+      <div className="space-y-6">
+        {/* Header Skeleton */}
+        <Card className="glass border-border/50">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <div className="space-y-2">
+                <div className="skeleton h-6 w-40 animate-shimmer rounded" />
+                <div className="skeleton h-4 w-28 animate-shimmer rounded" />
+              </div>
+              <div className="skeleton h-9 w-28 animate-shimmer rounded" />
+            </div>
+          </CardHeader>
+        </Card>
+        {/* Grid Skeleton */}
+        <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {Array.from({ length: 8 }).map((_, i) => (
+            <div key={i} className="glass rounded-lg p-4 space-y-3">
+              <div className="skeleton h-40 w-full animate-shimmer rounded-lg" />
+              <div className="skeleton h-5 w-3/4 animate-shimmer rounded" />
+              <div className="skeleton h-4 w-1/2 animate-shimmer rounded" />
+              <div className="skeleton h-8 w-full animate-shimmer rounded" />
+            </div>
+          ))}
+        </div>
+      </div>
     );
   }
 
   if (error !== null) {
     return (
-      <Card className="glass border-border/50 bg-bg-secondary/50 backdrop-blur-sm">
+      <Card className="glass border-orange-warning/30">
         <CardContent className="flex flex-col items-center justify-center py-12 space-y-4">
-          <AlertCircle className="h-12 w-12 text-red-500" />
-          <p className="text-text-secondary">Failed to load watchlist</p>
-          <Button variant="outline" onClick={() => refetch()}>
+          <div className="p-4 rounded-full bg-orange-warning/10">
+            <AlertCircle className="h-12 w-12 text-orange-warning" />
+          </div>
+          <h3 className="text-lg font-semibold text-text-primary">Failed to load watchlist</h3>
+          <p className="text-text-secondary text-center max-w-sm">We couldn&apos;t fetch your saved products. Please try again.</p>
+          <Button 
+            variant="outline" 
+            onClick={() => refetch()}
+            className="border-orange-warning/30 text-orange-warning hover:bg-orange-warning/10 hover:border-orange-warning/50"
+          >
+            <RefreshCw className="h-4 w-4 mr-2" />
             Try Again
           </Button>
         </CardContent>
@@ -105,20 +132,23 @@ function WatchlistTabContent(): React.ReactElement {
 
   if (items.length === 0) {
     return (
-      <Card className="glass border-border/50 bg-bg-secondary/50 backdrop-blur-sm">
-        <CardContent className="flex flex-col items-center justify-center py-16 space-y-4">
-          <div className="p-4 rounded-full bg-purple-neon/10">
-            <Heart className="h-12 w-12 text-purple-neon" />
+      <Card className="glass border-border/50 border-dashed">
+        <CardContent className="empty-state py-16">
+          <div className="p-5 rounded-full bg-purple-neon/10 border border-purple-neon/20">
+            <Heart className="empty-state-icon text-purple-neon" />
           </div>
-          <h3 className="text-xl font-semibold text-text-primary">Your watchlist is empty</h3>
-          <p className="text-text-secondary text-center max-w-md">
+          <h3 className="empty-state-title">Your watchlist is empty</h3>
+          <p className="empty-state-description">
             Browse our catalog and add products to your watchlist to track them here.
           </p>
           <Link href="/catalog">
-            <Button className="mt-4 bg-gradient-to-r from-purple-neon to-cyan-glow text-white hover:opacity-90">
+            <GlowButton 
+              variant="default"
+              className="mt-6"
+            >
               <ShoppingBag className="mr-2 h-4 w-4" />
               Browse Products
-            </Button>
+            </GlowButton>
           </Link>
         </CardContent>
       </Card>
@@ -369,9 +399,34 @@ export default function ProfilePage(): React.ReactElement {
   // Loading state
   if (user === null || user === undefined) {
     return (
-      <div className="flex h-[50vh] flex-col items-center justify-center gap-3">
-        <Loader2 className="h-8 w-8 animate-spin text-cyan-glow" />
-        <p className="text-sm text-text-secondary">Loading your profile...</p>
+      <div className="container mx-auto max-w-6xl py-8 space-y-8">
+        {/* Banner Skeleton */}
+        <div className="glass rounded-xl p-8">
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div className="space-y-3">
+              <div className="skeleton h-8 w-64 animate-shimmer rounded" />
+              <div className="skeleton h-5 w-96 animate-shimmer rounded" />
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="skeleton h-8 w-32 animate-shimmer rounded-full" />
+              <div className="skeleton h-8 w-24 animate-shimmer rounded" />
+            </div>
+          </div>
+        </div>
+        {/* Stats Skeleton */}
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="glass rounded-xl p-6 space-y-3">
+              <div className="skeleton h-5 w-24 animate-shimmer rounded" />
+              <div className="skeleton h-8 w-16 animate-shimmer rounded" />
+            </div>
+          ))}
+        </div>
+        {/* Tabs Skeleton */}
+        <div className="glass rounded-xl p-1">
+          <div className="skeleton h-10 w-full animate-shimmer rounded" />
+        </div>
+        <div className="skeleton h-64 w-full animate-shimmer rounded-xl" />
       </div>
     );
   }
@@ -391,9 +446,9 @@ export default function ProfilePage(): React.ReactElement {
             <p className="text-text-secondary">Manage your profile, security, and digital keys all in one place.</p>
           </div>
           <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2 rounded-full border border-cyan-glow/30 bg-cyan-glow/10 px-4 py-1.5 backdrop-blur-sm">
-              <div className="h-2 w-2 animate-pulse rounded-full bg-green-success shadow-[0_0_8px_#39FF14]" />
-              <span className="text-sm font-medium text-cyan-glow">Account Active</span>
+            <div className="flex items-center gap-2 rounded-full border border-green-success/30 bg-green-success/10 px-4 py-1.5 backdrop-blur-sm">
+              <span className="status-dot status-dot-success" />
+              <span className="text-sm font-medium text-green-success">Account Active</span>
             </div>
             {user.role === 'admin' && (
               <Button
@@ -565,16 +620,26 @@ export default function ProfilePage(): React.ReactElement {
                             </div>
                           </div>
                           <div className="text-right">
-                            <p className="font-bold text-text-primary">
+                            <p className="crypto-amount font-bold text-text-primary">
                               €{(() => { const total = typeof order.total === 'string' ? parseFloat(order.total) : (order.total ?? 0); return typeof total === 'number' ? total.toFixed(2) : '0.00'; })()}
                             </p>
                             <Badge
                               variant={order.status === 'fulfilled' ? 'default' : 'secondary'}
                               className={order.status === 'fulfilled'
-                                ? 'bg-green-success/20 text-green-success hover:bg-green-success/30 border-green-success/20'
-                                : 'bg-orange-warning/20 text-orange-warning hover:bg-orange-warning/30 border-orange-warning/20'
+                                ? 'badge-success'
+                                : order.status === 'paid'
+                                  ? 'badge-info'
+                                  : order.status === 'failed'
+                                    ? 'badge-error'
+                                    : 'badge-warning'
                               }
                             >
+                              <span className={`status-dot mr-1.5 ${
+                                order.status === 'fulfilled' ? 'status-dot-success' 
+                                : order.status === 'paid' ? 'status-dot-info'
+                                : order.status === 'failed' ? 'status-dot-error'
+                                : 'status-dot-warning'
+                              }`} />
                               {order.status ?? 'pending'}
                             </Badge>
                           </div>
@@ -985,11 +1050,13 @@ export default function ProfilePage(): React.ReactElement {
                   <h3 className="text-xl font-bold text-text-primary mb-1">Account Secured</h3>
                   <p className="text-sm text-text-secondary mb-4">Your account has password protection enabled</p>
                   <div className="flex flex-wrap gap-2 justify-center">
-                    <Badge className="bg-green-success/20 text-green-success border-green-success/30">
+                    <Badge className="badge-success">
+                      <span className="status-dot status-dot-success mr-1" />
                       <Lock className="h-3 w-3 mr-1" /> Password Set
                     </Badge>
                     {user.emailConfirmed && (
-                      <Badge className="bg-cyan-glow/20 text-cyan-glow border-cyan-glow/30">
+                      <Badge className="badge-info">
+                        <span className="status-dot status-dot-info mr-1" />
                         <Mail className="h-3 w-3 mr-1" /> Email Verified
                       </Badge>
                     )}
@@ -1215,7 +1282,7 @@ export default function ProfilePage(): React.ReactElement {
                 <CardContent className="flex flex-col items-center justify-center p-8 text-center">
                   {/* Avatar with initials */}
                   <div className="relative mb-4">
-                    <div className="flex h-24 w-24 items-center justify-center rounded-full bg-gradient-to-br from-cyan-glow/20 to-purple-neon/20 border-2 border-cyan-glow/30 shadow-[0_0_30px_rgba(0,217,255,0.2)]">
+                    <div className="flex h-24 w-24 items-center justify-center rounded-full bg-linear-to-br from-cyan-glow/20 to-purple-neon/20 border-2 border-cyan-glow/30 shadow-[0_0_30px_rgba(0,217,255,0.2)]">
                       <span className="text-3xl font-bold text-cyan-glow">
                         {user.email.slice(0, 2).toUpperCase()}
                       </span>
@@ -1232,23 +1299,23 @@ export default function ProfilePage(): React.ReactElement {
                   <p className="text-sm text-text-secondary mb-4 font-mono">{user.email}</p>
                   <div className="flex flex-wrap gap-2 justify-center">
                     <Badge className={user.role === 'admin' 
-                      ? 'bg-purple-neon/20 text-purple-neon border-purple-neon/30' 
-                      : 'bg-cyan-glow/20 text-cyan-glow border-cyan-glow/30'
+                      ? 'badge-featured' 
+                      : 'badge-info'
                     }>
                       {user.role === 'admin' ? (
-                        <><Crown className="h-3 w-3 mr-1" /> Admin</>
+                        <><span className="status-dot mr-1" style={{ background: 'var(--pink-featured)' }} /><Crown className="h-3 w-3 mr-1" /> Admin</>
                       ) : (
-                        <><User className="h-3 w-3 mr-1" /> Member</>
+                        <><span className="status-dot status-dot-info mr-1" /><User className="h-3 w-3 mr-1" /> Member</>
                       )}
                     </Badge>
                     <Badge className={user.emailConfirmed 
-                      ? 'bg-green-success/20 text-green-success border-green-success/30' 
-                      : 'bg-orange-warning/20 text-orange-warning border-orange-warning/30'
+                      ? 'badge-success' 
+                      : 'badge-warning'
                     }>
                       {user.emailConfirmed ? (
-                        <><Check className="h-3 w-3 mr-1" /> Verified</>
+                        <><span className="status-dot status-dot-success mr-1" /><Check className="h-3 w-3 mr-1" /> Verified</>
                       ) : (
-                        <><AlertCircle className="h-3 w-3 mr-1" /> Unverified</>
+                        <><span className="status-dot status-dot-warning mr-1" /><AlertCircle className="h-3 w-3 mr-1" /> Unverified</>
                       )}
                     </Badge>
                   </div>
@@ -1289,8 +1356,8 @@ export default function ProfilePage(): React.ReactElement {
                         </div>
                       </div>
                       {user.emailConfirmed && (
-                        <Badge className="bg-green-success/20 text-green-success border-green-success/20">
-                          <Check className="h-3 w-3 mr-1" /> Verified
+                        <Badge className="badge-success">
+                          <span className="status-dot status-dot-success mr-1" /><Check className="h-3 w-3 mr-1" /> Verified
                         </Badge>
                       )}
                     </div>
@@ -1343,12 +1410,12 @@ export default function ProfilePage(): React.ReactElement {
 
                   {/* Account Stats */}
                   <div className="grid grid-cols-2 gap-3 pt-2">
-                    <div className="rounded-lg border border-border/30 bg-bg-tertiary/30 p-4 text-center">
-                      <p className="text-2xl font-bold text-cyan-glow">{totalOrders}</p>
+                    <div className="rounded-lg border border-border/30 bg-bg-tertiary/30 p-4 text-center group hover:border-cyan-glow/30 transition-colors">
+                      <p className="crypto-amount text-2xl font-bold text-cyan-glow">{totalOrders}</p>
                       <p className="text-xs text-text-muted">Total Orders</p>
                     </div>
-                    <div className="rounded-lg border border-border/30 bg-bg-tertiary/30 p-4 text-center">
-                      <p className="text-2xl font-bold text-green-success">€{totalSpent.toFixed(2)}</p>
+                    <div className="rounded-lg border border-border/30 bg-bg-tertiary/30 p-4 text-center group hover:border-green-success/30 transition-colors">
+                      <p className="crypto-amount text-2xl font-bold text-green-success">€{totalSpent.toFixed(2)}</p>
                       <p className="text-xs text-text-muted">Total Spent</p>
                     </div>
                   </div>
