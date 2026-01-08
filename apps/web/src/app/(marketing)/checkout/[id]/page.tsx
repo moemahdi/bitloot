@@ -1,62 +1,93 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import {
   Loader2,
   AlertCircle,
   Shield,
   Lock,
-  CheckCircle2,
   ArrowLeft,
-  ExternalLink,
   Sparkles,
   Zap,
   CreditCard,
+  Search,
+  ChevronDown,
+  ChevronUp,
+  Check,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { OrdersApi, PaymentsApi } from '@bitloot/sdk';
+import { OrdersApi } from '@bitloot/sdk';
 import { apiConfig } from '@/lib/api-config';
 import { Button } from '@/design-system/primitives/button';
 import { RadioGroup, RadioGroupItem } from '@/design-system/primitives/radio-group';
 import { Label } from '@/design-system/primitives/label';
 import { Badge } from '@/design-system/primitives/badge';
+import { Input } from '@/design-system/primitives/input';
+import { ScrollArea } from '@/design-system/primitives/scroll-area';
 import Link from 'next/link';
+import { EmbeddedPaymentUI } from '@/features/checkout/EmbeddedPaymentUI';
+import {
+  POPULAR_COINS,
+  STABLECOINS,
+  OTHER_CURRENCIES,
+  getCurrencyByCode,
+  type CryptoCurrency,
+} from '@/config/supported-currencies';
 
 // Initialize SDK clients
 const ordersClient = new OrdersApi(apiConfig);
-const paymentsClient = new PaymentsApi(apiConfig);
 
-// Crypto payment options with icons and details
-const CRYPTO_OPTIONS = [
+// Interface for embedded payment response
+interface EmbeddedPaymentResponse {
+  paymentId: number;
+  externalId: string;
+  orderId: string;
+  payAddress: string;
+  payAmount: number;
+  payCurrency: string;
+  priceAmount: number;
+  priceCurrency: string;
+  status: string;
+  expiresAt: string;
+  qrCodeData: string;
+  estimatedTime: string;
+}
+
+// Quick select crypto options (6 popular choices)
+const QUICK_CRYPTO_OPTIONS = [
+  {
+    id: 'usdttrc20',
+    name: 'Tether',
+    symbol: 'USDT',
+    network: 'TRC20',
+    description: 'Stablecoin • Lowest fees',
+    icon: '₮',
+    colorClass: 'from-green-success to-cyan-glow',
+    glowClass: 'shadow-glow-success',
+    borderClass: 'border-green-success',
+  },
   {
     id: 'btc',
     name: 'Bitcoin',
     symbol: 'BTC',
-    description: 'The original cryptocurrency',
+    description: 'Most secure & widely used',
     icon: '₿',
-    color: 'from-orange-500 to-amber-500',
-    glowClass: 'hover:shadow-glow-error',
+    colorClass: 'from-orange-500 to-amber-500',
+    glowClass: 'shadow-glow-error',
+    borderClass: 'border-orange-500',
   },
   {
     id: 'eth',
     name: 'Ethereum',
     symbol: 'ETH',
-    description: 'Fast & widely accepted',
+    description: 'Fast transactions',
     icon: 'Ξ',
-    color: 'from-purple-neon to-cyan-glow',
-    glowClass: 'hover:shadow-glow-purple-sm',
-  },
-  {
-    id: 'usdttrc20',
-    name: 'Tether',
-    symbol: 'USDT',
-    description: 'Stable coin (TRC20)',
-    icon: '₮',
-    color: 'from-green-success to-cyan-glow',
-    glowClass: 'hover:shadow-glow-success',
+    colorClass: 'from-purple-neon to-cyan-glow',
+    glowClass: 'shadow-glow-purple-sm',
+    borderClass: 'border-purple-neon',
   },
   {
     id: 'ltc',
@@ -64,12 +95,38 @@ const CRYPTO_OPTIONS = [
     symbol: 'LTC',
     description: 'Fast & low fees',
     icon: 'Ł',
-    color: 'from-text-secondary to-text-muted',
-    glowClass: 'hover:shadow-glow-cyan-sm',
+    colorClass: 'from-text-secondary to-text-muted',
+    glowClass: 'shadow-glow-cyan-sm',
+    borderClass: 'border-text-secondary',
   },
-] as const;
+  {
+    id: 'sol',
+    name: 'Solana',
+    symbol: 'SOL',
+    description: 'Ultra fast • Low fees',
+    icon: '◎',
+    colorClass: 'from-purple-500 to-green-400',
+    glowClass: 'shadow-glow-purple-sm',
+    borderClass: 'border-purple-500',
+  },
+  {
+    id: 'usdc',
+    name: 'USD Coin',
+    symbol: 'USDC',
+    network: 'ERC20',
+    description: 'Stablecoin',
+    icon: '$',
+    colorClass: 'from-blue-500 to-cyan-400',
+    glowClass: 'shadow-glow-cyan-sm',
+    borderClass: 'border-blue-500',
+  },
+];
 
-type CryptoId = (typeof CRYPTO_OPTIONS)[number]['id'];
+// Type for selected crypto - now accepts any string for 300+ currencies
+type CryptoId = string;
+
+// Step type for the checkout flow
+type CheckoutStep = 'select' | 'paying';
 
 export default function CheckoutPage(): React.ReactElement {
   const params = useParams();
@@ -78,6 +135,10 @@ export default function CheckoutPage(): React.ReactElement {
 
   const [selectedCrypto, setSelectedCrypto] = useState<CryptoId>('usdttrc20');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [step, setStep] = useState<CheckoutStep>('select');
+  const [embeddedPayment, setEmbeddedPayment] = useState<EmbeddedPaymentResponse | null>(null);
+  const [showAllCurrencies, setShowAllCurrencies] = useState(false);
+  const [currencySearch, setCurrencySearch] = useState('');
 
   // Fetch order details using public checkout endpoint (no JWT required)
   const {
@@ -94,30 +155,56 @@ export default function CheckoutPage(): React.ReactElement {
     retry: 2,
   });
 
-  // Create payment mutation
+  // Redirect if order is not pending (already paid, fulfilled, or failed)
+  useEffect(() => {
+    if (order !== undefined && order !== null) {
+      const status = order.status;
+      // Only allow payment for pending orders
+      if (status !== 'pending') {
+        // Redirect to appropriate page based on status
+        if (status === 'fulfilled') {
+          router.replace(`/orders/${orderId}/success`);
+        } else if (status === 'paid' || status === 'confirming') {
+          router.replace(`/orders/${orderId}`);
+        } else {
+          // For failed, expired, etc - let them retry on orders page
+          router.replace(`/orders/${orderId}`);
+        }
+      }
+    }
+  }, [order, orderId, router]);
+
+  // Create embedded payment mutation (no redirect)
   const createPaymentMutation = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (): Promise<EmbeddedPaymentResponse> => {
       if (order === null || order === undefined) throw new Error('Order not found');
 
-      const payment = await paymentsClient.paymentsControllerCreate({
-        createPaymentDto: {
+      // Call embedded payment endpoint directly
+      const response = await fetch(`${apiConfig.basePath}/payments/embedded`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
           orderId: order.id,
           priceAmount: order.total,
           priceCurrency: 'usd',
           payCurrency: selectedCrypto,
           email: order.email,
-        },
+        }),
       });
 
-      return payment;
+      if (!response.ok) {
+        const errorData = (await response.json().catch(() => ({}))) as { message?: string };
+        throw new Error(errorData.message ?? 'Failed to create payment');
+      }
+
+      return response.json() as Promise<EmbeddedPaymentResponse>;
     },
     onSuccess: (payment) => {
-      // Redirect to NOWPayments invoice
-      if (payment.invoiceUrl !== undefined && payment.invoiceUrl !== '' && payment.invoiceUrl.length > 0) {
-        window.location.href = payment.invoiceUrl;
-      } else {
-        toast.error('Payment URL not available. Please try again.');
-      }
+      // Show embedded payment UI instead of redirecting
+      setEmbeddedPayment(payment);
+      setStep('paying');
+      setIsProcessing(false);
+      toast.success('Payment created! Send crypto to the address below.');
     },
     onError: (error) => {
       console.error('Payment creation failed:', error);
@@ -131,10 +218,56 @@ export default function CheckoutPage(): React.ReactElement {
     await createPaymentMutation.mutateAsync();
   };
 
-  // Memoize selected crypto details
+  // Get selected crypto details - check quick options first, then full currency list
   const selectedCryptoDetails = useMemo(() => {
-    return CRYPTO_OPTIONS.find((c) => c.id === selectedCrypto);
+    const quickOption = QUICK_CRYPTO_OPTIONS.find((c) => c.id === selectedCrypto);
+    if (quickOption !== undefined) return quickOption;
+
+    // Fallback to full currency list
+    const currency = getCurrencyByCode(selectedCrypto);
+    if (currency !== undefined) {
+      return {
+        id: currency.code,
+        name: currency.name,
+        symbol: currency.symbol,
+        network: currency.network,
+        description: currency.network ?? currency.category,
+        icon: currency.symbol.charAt(0),
+        colorClass: 'from-cyan-glow to-purple-neon',
+        glowClass: 'shadow-glow-cyan-sm',
+        borderClass: 'border-cyan-glow',
+      };
+    }
+    return null;
   }, [selectedCrypto]);
+
+  // Filter currencies based on search
+  const filteredCurrencies = useMemo(() => {
+    if (currencySearch.length === 0) {
+      return { popular: POPULAR_COINS, stablecoins: STABLECOINS, other: OTHER_CURRENCIES };
+    }
+
+    const query = currencySearch.toLowerCase();
+    const filter = (currencies: CryptoCurrency[]) =>
+      currencies.filter(
+        (c) =>
+          c.code.toLowerCase().includes(query) ||
+          c.name.toLowerCase().includes(query) ||
+          c.symbol.toLowerCase().includes(query) ||
+          (c.network?.toLowerCase().includes(query) ?? false)
+      );
+
+    return {
+      popular: filter(POPULAR_COINS),
+      stablecoins: filter(STABLECOINS),
+      other: filter(OTHER_CURRENCIES),
+    };
+  }, [currencySearch]);
+
+  const totalFilteredResults =
+    filteredCurrencies.popular.length +
+    filteredCurrencies.stablecoins.length +
+    filteredCurrencies.other.length;
 
   // Loading state
   if (orderLoading) {
@@ -220,7 +353,30 @@ export default function CheckoutPage(): React.ReactElement {
         </motion.div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Main Payment Selection */}
+          {/* Embedded Payment UI - shown after payment is created */}
+          {step === 'paying' && embeddedPayment !== null && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="lg:col-span-3"
+            >
+              <EmbeddedPaymentUI
+                orderId={orderId}
+                paymentId={String(embeddedPayment.paymentId)}
+                payAddress={embeddedPayment.payAddress}
+                payAmount={embeddedPayment.payAmount}
+                payCurrency={embeddedPayment.payCurrency}
+                priceAmount={embeddedPayment.priceAmount}
+                priceCurrency={embeddedPayment.priceCurrency}
+                expiresAt={embeddedPayment.expiresAt}
+                qrCodeData={embeddedPayment.qrCodeData}
+                estimatedTime={embeddedPayment.estimatedTime}
+              />
+            </motion.div>
+          )}
+
+          {/* Main Payment Selection - only shown during crypto selection */}
+          {step === 'select' && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -236,88 +392,231 @@ export default function CheckoutPage(): React.ReactElement {
                   </div>
                   <div>
                     <h2 className="text-xl font-bold text-text-primary">Payment Method</h2>
-                    <p className="text-text-muted text-sm">Choose how you&apos;d like to pay</p>
+                    <p className="text-text-muted text-sm">300+ cryptocurrencies supported</p>
                   </div>
                 </div>
               </div>
 
               {/* Crypto Options */}
-              <div className="p-6 md:p-8">
-                <RadioGroup
-                  value={selectedCrypto}
-                  onValueChange={(v) => setSelectedCrypto(v as CryptoId)}
-                  className="grid grid-cols-1 sm:grid-cols-2 gap-4"
-                >
-                  {CRYPTO_OPTIONS.map((crypto) => (
-                    <motion.div
-                      key={crypto.id}
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                    >
-                      <RadioGroupItem
-                        value={crypto.id}
-                        id={crypto.id}
-                        className="peer sr-only"
-                      />
-                      <Label
-                        htmlFor={crypto.id}
-                        className={`
-                          relative flex flex-col p-5 rounded-2xl cursor-pointer transition-all duration-300
-                          bg-bg-secondary/50 backdrop-blur-md border border-border-subtle hover:border-border-accent
-                          ${crypto.glowClass}
-                          peer-data-[state=checked]:border-cyan-glow/50
-                          peer-data-[state=checked]:bg-cyan-glow/10
-                          peer-data-[state=checked]:shadow-glow-cyan-sm
-                        `}
-                      >
-                        {/* Selected indicator */}
-                        <AnimatePresence>
-                          {selectedCrypto === crypto.id && (
-                            <motion.div
-                              initial={{ opacity: 0, scale: 0 }}
-                              animate={{ opacity: 1, scale: 1 }}
-                              exit={{ opacity: 0, scale: 0 }}
-                              className="absolute top-3 right-3"
-                            >
-                              <CheckCircle2 className="h-5 w-5 text-cyan-glow" />
-                            </motion.div>
-                          )}
-                        </AnimatePresence>
+              <div className="p-6 md:p-8 space-y-6">
+                {/* Selected Currency Display */}
+                {selectedCryptoDetails != null && (
+                  <div className="p-4 rounded-xl border-2 border-cyan-glow bg-cyan-glow/5">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center text-xl font-bold bg-gradient-to-br ${selectedCryptoDetails.colorClass}`}>
+                          {selectedCryptoDetails.icon}
+                        </div>
+                        <div>
+                          <span className="font-bold text-text-primary">{selectedCryptoDetails.symbol}</span>
+                          <span className="ml-2 text-text-muted">{selectedCryptoDetails.name}</span>
+                        </div>
+                      </div>
+                      <Badge variant="default" className="bg-green-success">Selected</Badge>
+                    </div>
+                    {selectedCryptoDetails.network != null && (
+                      <p className="mt-2 text-xs text-text-muted">Network: {selectedCryptoDetails.network}</p>
+                    )}
+                  </div>
+                )}
 
-                        <div className="flex items-center gap-4">
-                          {/* Crypto Icon */}
-                          <div
-                            className={`
-                            w-12 h-12 rounded-xl flex items-center justify-center text-2xl font-bold text-bg-primary
-                            bg-linear-to-br ${crypto.color}
+                {/* Quick Select - Popular Options */}
+                <div>
+                  <Label className="mb-3 block text-sm font-medium text-text-secondary">Quick Select (Recommended)</Label>
+                  <RadioGroup
+                    value={selectedCrypto}
+                    onValueChange={(v) => setSelectedCrypto(v)}
+                    className="grid grid-cols-2 sm:grid-cols-3 gap-3"
+                  >
+                    {QUICK_CRYPTO_OPTIONS.map((crypto) => {
+                      const isSelected = selectedCrypto === crypto.id;
+                      return (
+                        <div
+                          key={crypto.id}
+                          className={`
+                            relative rounded-xl p-3 cursor-pointer transition-all duration-300
+                            ${isSelected 
+                              ? `border-2 ${crypto.borderClass} bg-gradient-to-br ${crypto.colorClass}/10 ${crypto.glowClass}` 
+                              : 'border border-border-subtle hover:border-border-accent bg-bg-tertiary/30'}
                           `}
-                          >
-                            {crypto.icon}
-                          </div>
-
-                          {/* Crypto Details */}
-                          <div className="flex-1 min-w-0">
-                            <p className="font-semibold text-text-primary">{crypto.name}</p>
-                            <p className="text-sm text-text-muted">{crypto.description}</p>
-                          </div>
+                          onClick={() => setSelectedCrypto(crypto.id)}
+                        >
+                          <RadioGroupItem value={crypto.id} id={`resume-${crypto.id}`} className="sr-only" />
+                          <Label htmlFor={`resume-${crypto.id}`} className="cursor-pointer">
+                            <div className="flex items-center gap-2">
+                              <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-lg font-bold bg-gradient-to-br ${crypto.colorClass}`}>
+                                {crypto.icon}
+                              </div>
+                              <div>
+                                <p className="font-semibold text-text-primary text-sm">{crypto.symbol}</p>
+                                <p className="text-[10px] text-text-muted">{crypto.network ?? crypto.description}</p>
+                              </div>
+                            </div>
+                            {isSelected && (
+                              <div className="absolute top-2 right-2">
+                                <div className="w-4 h-4 rounded-full bg-green-success flex items-center justify-center">
+                                  <Check className="h-2.5 w-2.5 text-white" />
+                                </div>
+                              </div>
+                            )}
+                          </Label>
                         </div>
+                      );
+                    })}
+                  </RadioGroup>
+                </div>
 
-                        {/* Symbol badge */}
-                        <div className="mt-3">
-                          <Badge
-                            variant="outline"
-                            className="text-xs border-border-subtle text-text-secondary"
-                          >
-                            {crypto.symbol}
-                          </Badge>
+                {/* Browse All Currencies */}
+                <div>
+                  <button
+                    type="button"
+                    onClick={() => setShowAllCurrencies(!showAllCurrencies)}
+                    className="w-full flex items-center justify-between px-4 py-3 rounded-xl border border-border-subtle hover:border-border-accent bg-bg-tertiary/30 transition-all"
+                  >
+                    <div className="flex items-center gap-2">
+                      <Search className="h-4 w-4 text-text-muted" />
+                      <span className="text-sm text-text-secondary">Browse all 300+ cryptocurrencies</span>
+                    </div>
+                    {showAllCurrencies ? (
+                      <ChevronUp className="h-4 w-4 text-text-muted" />
+                    ) : (
+                      <ChevronDown className="h-4 w-4 text-text-muted" />
+                    )}
+                  </button>
+
+                  {showAllCurrencies && (
+                    <div className="mt-4 p-4 rounded-xl border border-border-subtle bg-bg-secondary/50 space-y-4">
+                      {/* Search Input */}
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-text-muted" />
+                        <Input
+                          type="text"
+                          placeholder="Search by name, symbol, or network..."
+                          value={currencySearch}
+                          onChange={(e) => setCurrencySearch(e.target.value)}
+                          className="pl-10 h-10 bg-bg-tertiary border-border-primary"
+                        />
+                        <p className="mt-1 text-xs text-text-muted">{totalFilteredResults} currencies found</p>
+                      </div>
+
+                      {/* Currency Lists */}
+                      <ScrollArea className="h-[300px] pr-4">
+                        <div className="space-y-4">
+                          {/* Popular Coins */}
+                          {filteredCurrencies.popular.length > 0 && (
+                            <div>
+                              <h4 className="mb-2 text-sm font-semibold text-cyan-glow flex items-center gap-2">
+                                <Sparkles className="h-3.5 w-3.5" /> Popular Coins
+                              </h4>
+                              <div className="space-y-1">
+                                {filteredCurrencies.popular.map((currency) => (
+                                  <button
+                                    key={currency.code}
+                                    type="button"
+                                    onClick={() => {
+                                      setSelectedCrypto(currency.code);
+                                      setShowAllCurrencies(false);
+                                    }}
+                                    className={`w-full flex items-center justify-between px-3 py-2 rounded-lg transition-all ${
+                                      selectedCrypto === currency.code
+                                        ? 'bg-cyan-glow/10 border border-cyan-glow'
+                                        : 'hover:bg-bg-tertiary border border-transparent'
+                                    }`}
+                                  >
+                                    <div className="flex items-center gap-2">
+                                      <span className="font-semibold text-text-primary">{currency.symbol}</span>
+                                      <span className="text-xs text-text-muted">{currency.name}</span>
+                                    </div>
+                                    {currency.network != null && (
+                                      <Badge variant="outline" className="text-[10px]">{currency.network}</Badge>
+                                    )}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Stablecoins */}
+                          {filteredCurrencies.stablecoins.length > 0 && (
+                            <div>
+                              <h4 className="mb-2 text-sm font-semibold text-green-success flex items-center gap-2">
+                                💵 Stablecoins ({filteredCurrencies.stablecoins.length})
+                              </h4>
+                              <div className="space-y-1">
+                                {filteredCurrencies.stablecoins.map((currency) => (
+                                  <button
+                                    key={currency.code}
+                                    type="button"
+                                    onClick={() => {
+                                      setSelectedCrypto(currency.code);
+                                      setShowAllCurrencies(false);
+                                    }}
+                                    className={`w-full flex items-center justify-between px-3 py-2 rounded-lg transition-all ${
+                                      selectedCrypto === currency.code
+                                        ? 'bg-green-success/10 border border-green-success'
+                                        : 'hover:bg-bg-tertiary border border-transparent'
+                                    }`}
+                                  >
+                                    <div className="flex items-center gap-2">
+                                      <span className="font-semibold text-text-primary">{currency.symbol}</span>
+                                      <span className="text-xs text-text-muted">{currency.name}</span>
+                                    </div>
+                                    {currency.network != null && (
+                                      <Badge variant="outline" className="text-[10px]">{currency.network}</Badge>
+                                    )}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Other Currencies */}
+                          {filteredCurrencies.other.length > 0 && (
+                            <div>
+                              <h4 className="mb-2 text-sm font-semibold text-text-muted">
+                                🪙 Other ({filteredCurrencies.other.length})
+                              </h4>
+                              <div className="space-y-1">
+                                {filteredCurrencies.other.map((currency) => (
+                                  <button
+                                    key={currency.code}
+                                    type="button"
+                                    onClick={() => {
+                                      setSelectedCrypto(currency.code);
+                                      setShowAllCurrencies(false);
+                                    }}
+                                    className={`w-full flex items-center justify-between px-3 py-2 rounded-lg transition-all ${
+                                      selectedCrypto === currency.code
+                                        ? 'bg-purple-neon/10 border border-purple-neon'
+                                        : 'hover:bg-bg-tertiary border border-transparent'
+                                    }`}
+                                  >
+                                    <div className="flex items-center gap-2">
+                                      <span className="font-semibold text-text-primary">{currency.symbol}</span>
+                                      <span className="text-xs text-text-muted">{currency.name}</span>
+                                    </div>
+                                    {currency.network != null && (
+                                      <Badge variant="outline" className="text-[10px]">{currency.network}</Badge>
+                                    )}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {totalFilteredResults === 0 && (
+                            <p className="text-center text-text-muted py-8">
+                              No currencies found matching &quot;{currencySearch}&quot;
+                            </p>
+                          )}
                         </div>
-                      </Label>
-                    </motion.div>
-                  ))}
-                </RadioGroup>
+                      </ScrollArea>
+                    </div>
+                  )}
+                </div>
 
                 {/* Security note */}
-                <div className="mt-8 p-4 rounded-xl bg-green-success/5 border border-green-success/20">
+                <div className="p-4 rounded-xl bg-green-success/5 border border-green-success/20">
                   <div className="flex items-start gap-3">
                     <Shield className="h-5 w-5 text-green-success mt-0.5 shrink-0" />
                     <div>
@@ -332,8 +631,10 @@ export default function CheckoutPage(): React.ReactElement {
               </div>
             </div>
           </motion.div>
+          )}
 
-          {/* Order Summary Sidebar */}
+          {/* Order Summary Sidebar - only shown during crypto selection */}
+          {step === 'select' && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -381,7 +682,7 @@ export default function CheckoutPage(): React.ReactElement {
                     <p className="text-2xl font-bold text-text-primary">
                       ${Number(order.total).toFixed(2)}
                     </p>
-                    {selectedCryptoDetails !== undefined && (
+                    {selectedCryptoDetails != null && (
                       <p className="text-xs text-text-muted">
                         Pay with {selectedCryptoDetails.symbol}
                       </p>
@@ -405,19 +706,20 @@ export default function CheckoutPage(): React.ReactElement {
                   ) : (
                     <>
                       <Zap className="h-5 w-5 mr-2" />
-                      Pay with {selectedCryptoDetails?.symbol}
+                      Pay with {selectedCryptoDetails?.symbol ?? selectedCrypto.toUpperCase()}
                     </>
                   )}
                 </Button>
 
-                {/* Payment redirect note */}
+                {/* Payment note - no redirect now! */}
                 <p className="text-xs text-center text-text-muted mt-4 flex items-center justify-center gap-1">
-                  <ExternalLink className="h-3 w-3" />
-                  You&apos;ll be redirected to complete payment
+                  <Shield className="h-3 w-3" />
+                  Secure payment on our platform
                 </p>
               </div>
             </div>
           </motion.div>
+          )}
         </div>
 
         {/* Footer note */}

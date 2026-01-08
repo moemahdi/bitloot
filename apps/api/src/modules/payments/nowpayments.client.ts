@@ -345,4 +345,68 @@ export class NowPaymentsClient {
       return false;
     }
   }
+
+  /**
+   * Create a direct payment (for embedded payment flow)
+   *
+   * Unlike createInvoice which redirects to NOWPayments hosted page,
+   * this returns a wallet address and amount that can be displayed
+   * directly in your own UI (QR code, copy address, etc.)
+   *
+   * @param params - Payment creation parameters
+   * @returns Payment response with pay_address and pay_amount
+   * @throws Error if API call fails
+   *
+   * @example
+   * ```typescript
+   * const payment = await client.createPayment({
+   *   price_amount: 49.99,
+   *   price_currency: 'eur',
+   *   pay_currency: 'btc',
+   *   order_id: 'order-123',
+   *   ipn_callback_url: 'https://example.com/api/payments/ipn',
+   * });
+   * // Returns: { payment_id, pay_address, pay_amount, ... }
+   * // Display pay_address as QR code, show pay_amount to user
+   * ```
+   */
+  async createPayment(params: {
+    price_amount: number;
+    price_currency: string;
+    pay_currency: string;
+    order_id: string;
+    order_description?: string;
+    ipn_callback_url: string;
+  }): Promise<PaymentStatusResponse> {
+    try {
+      this.logger.log(
+        `Creating NOWPayments direct payment: orderId=${params.order_id}, amount=${params.price_amount} ${params.price_currency} → ${params.pay_currency}`,
+      );
+
+      const response = await this.axios.post<PaymentStatusResponse>('/payment', {
+        price_amount: params.price_amount,
+        price_currency: params.price_currency.toLowerCase(),
+        pay_currency: params.pay_currency.toLowerCase(),
+        order_id: params.order_id,
+        order_description: params.order_description,
+        ipn_callback_url: params.ipn_callback_url,
+        // Note: NO success_url/cancel_url = embedded flow (no redirect)
+      });
+
+      this.logger.log(
+        `✅ Direct payment created: paymentId=${response.data.payment_id}, payAddress=${response.data.pay_address}, payAmount=${response.data.pay_amount} ${response.data.pay_currency}`,
+      );
+
+      return response.data;
+    } catch (error) {
+      const errorMsg = this.extractErrorMessage(error);
+      const statusCode = axios.isAxiosError(error) ? error.response?.status : 'UNKNOWN';
+      this.logger.error(
+        `Failed to create NOWPayments payment: ${statusCode} - ${errorMsg}`,
+        axios.isAxiosError(error) ? error.stack : undefined,
+      );
+
+      throw new Error(`NOWPayments API Error: ${errorMsg} (${statusCode})`);
+    }
+  }
 }

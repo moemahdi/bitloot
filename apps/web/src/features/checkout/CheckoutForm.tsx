@@ -18,13 +18,30 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { PaymentMethodForm, type PaymentMethodFormData } from './PaymentMethodForm';
+import { EmbeddedPaymentUI } from './EmbeddedPaymentUI';
 
-// Define Zod schema for validation
+// Interface for embedded payment response
+interface EmbeddedPaymentResponse {
+  paymentId: number;
+  externalId: string;
+  orderId: string;
+  payAddress: string;
+  payAmount: number;
+  payCurrency: string;
+  priceAmount: number;
+  priceCurrency: string;
+  status: string;
+  expiresAt: string;
+  qrCodeData: string;
+  estimatedTime: string;
+}
+
+// Define Zod schema for validation - accepts any currency string (300+ supported)
 const checkoutSchema = z.object({
   email: z.string().min(1, 'Email is required').email('Invalid email address'),
-  payCurrency: z.enum(['btc', 'eth', 'usdttrc20', 'ltc'], {
+  payCurrency: z.string({
     required_error: 'Please select a cryptocurrency',
-  }),
+  }).min(1, 'Please select a cryptocurrency'),
 });
 
 type CheckoutFormData = z.infer<typeof checkoutSchema>;
@@ -32,7 +49,7 @@ type CheckoutFormData = z.infer<typeof checkoutSchema>;
 import { apiConfig } from '@/lib/api-config';
 
 const ordersClient = new OrdersApi(apiConfig);
-const paymentsClient = new PaymentsApi(apiConfig);
+const _paymentsClient = new PaymentsApi(apiConfig);
 
 type JobStatus = 'pending' | 'processing' | 'completed' | 'failed';
 
@@ -48,9 +65,10 @@ export default function CheckoutForm(): React.ReactElement {
   const params = useParams();
   const productId = String(params.id ?? 'demo-product');
 
-  // State for wizard steps
-  const [step, setStep] = useState<'email' | 'payment'>('email');
+  // State for wizard steps - now includes 'paying' for embedded payment UI
+  const [step, setStep] = useState<'email' | 'payment' | 'paying'>('email');
   const [order, setOrder] = useState<OrderResponseDto | null>(null);
+  const [embeddedPayment, setEmbeddedPayment] = useState<EmbeddedPaymentResponse | null>(null);
 
   // React Hook Form setup
   const {
@@ -69,7 +87,7 @@ export default function CheckoutForm(): React.ReactElement {
   const turnstileRef = useRef<TurnstileInstance | undefined>(undefined);
 
   // Job polling state
-  const [jobId, setJobId] = useState<string | null>(null);
+  const [jobId, _setJobId] = useState<string | null>(null);
   const [jobStatus, setJobStatus] = useState<JobStatus>('pending');
   const [jobProgress, setJobProgress] = useState<number>(0);
   const [jobError, setJobError] = useState<string | null>(null);
@@ -84,18 +102,28 @@ export default function CheckoutForm(): React.ReactElement {
     },
   });
 
-  // Mutation to create payment
+  // Mutation to create embedded payment (no redirect)
   const createPaymentMutation = useMutation({
-    mutationFn: async ({ order, data }: { order: OrderResponseDto; data: PaymentMethodFormData }) => {
-      return paymentsClient.paymentsControllerCreate({
-        createPaymentDto: {
+    mutationFn: async ({ order, data }: { order: OrderResponseDto; data: PaymentMethodFormData }): Promise<EmbeddedPaymentResponse> => {
+      // Call embedded payment endpoint directly (not yet in SDK, use fetch)
+      const response = await fetch(`${apiConfig.basePath}/payments/embedded`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
           orderId: order.id,
-          priceAmount: order.total, // Use dynamic price from order
+          priceAmount: order.total,
           priceCurrency: 'eur',
           payCurrency: data.payCurrency,
-          email: order.email, // Use email from order
-        },
+          email: order.email,
+        }),
       });
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({})) as { message?: string };
+        throw new Error(errorData.message ?? 'Failed to create payment');
+      }
+      
+      return response.json() as Promise<EmbeddedPaymentResponse>;
     },
   });
 
@@ -169,20 +197,12 @@ export default function CheckoutForm(): React.ReactElement {
     if (order === null) return;
 
     try {
-      // Step 2: Create payment
+      // Step 2: Create embedded payment (no redirect - stays on our platform)
       const payment = await createPaymentMutation.mutateAsync({ order, data });
 
-      // Step 3: Start job polling (fulfillment job queued after payment confirmed)
-      const generatedJobId = `fulfill-${order.id}`;
-      setJobId(generatedJobId);
-      setJobStatus('pending');
-      setJobProgress(0);
-      setJobError(null);
-
-      // Step 4: Navigate to payment page to let user complete payment
-      if (payment.invoiceUrl.length > 0) {
-        router.push(payment.invoiceUrl);
-      }
+      // Step 3: Show embedded payment UI instead of redirecting
+      setEmbeddedPayment(payment);
+      setStep('paying');
     } catch (error) {
       const checkoutError = extractCheckoutError(error);
       console.error('Payment creation failed:', checkoutError.message);
@@ -198,12 +218,28 @@ export default function CheckoutForm(): React.ReactElement {
       <CardHeader>
         <CardTitle>Quick Checkout</CardTitle>
         <CardDescription>
-          {step === 'email' ? 'Enter your email to start' : 'Select payment method'}
+          {step === 'email' ? 'Enter your email to start' : step === 'payment' ? 'Select payment method' : 'Complete your payment'}
         </CardDescription>
       </CardHeader>
       <CardContent>
+        {/* Embedded Payment UI - shown after payment is created */}
+        {step === 'paying' && embeddedPayment !== null && order !== null && (
+          <EmbeddedPaymentUI
+            orderId={order.id}
+            paymentId={String(embeddedPayment.paymentId)}
+            payAddress={embeddedPayment.payAddress}
+            payAmount={embeddedPayment.payAmount}
+            payCurrency={embeddedPayment.payCurrency}
+            priceAmount={embeddedPayment.priceAmount}
+            priceCurrency={embeddedPayment.priceCurrency}
+            expiresAt={embeddedPayment.expiresAt}
+            qrCodeData={embeddedPayment.qrCodeData}
+            estimatedTime={embeddedPayment.estimatedTime}
+          />
+        )}
+
         {/* Job Status Polling Display */}
-        {isPolling && (
+        {isPolling && step !== 'paying' && (
           <Alert className="mb-6">
             <Loader2 className="h-4 w-4 animate-spin" />
             <AlertTitle>Processing Payment</AlertTitle>
@@ -277,7 +313,7 @@ export default function CheckoutForm(): React.ReactElement {
               {isLoading ? 'Processing...' : 'Continue'}
             </Button>
           </form>
-        ) : (
+        ) : step === 'payment' ? (
           <div className="space-y-6">
             <div className="rounded-md bg-muted p-4">
               <p className="text-sm font-medium">Order for: {order?.email}</p>
@@ -298,7 +334,7 @@ export default function CheckoutForm(): React.ReactElement {
               Back to Email
             </Button>
           </div>
-        )}
+        ) : null}
 
         {/* Error Messages */}
         {createOrderMutation.isError && (

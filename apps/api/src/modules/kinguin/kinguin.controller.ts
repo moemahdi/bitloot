@@ -319,7 +319,7 @@ export class KinguinController {
       },
     });
 
-    if (existingLog) {
+    if (existingLog !== null && existingLog !== undefined) {
       this.logStructured('info', 'handleProductUpdate:duplicate', 'already_processed', {
         kinguinId,
         productId,

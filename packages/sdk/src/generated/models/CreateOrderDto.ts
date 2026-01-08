@@ -13,6 +13,14 @@
  */
 
 import { mapValues } from '../runtime';
+import type { CreateOrderItemDto } from './CreateOrderItemDto';
+import {
+    CreateOrderItemDtoFromJSON,
+    CreateOrderItemDtoFromJSONTyped,
+    CreateOrderItemDtoToJSON,
+    CreateOrderItemDtoToJSONTyped,
+} from './CreateOrderItemDto';
+
 /**
  * 
  * @export
@@ -26,11 +34,17 @@ export interface CreateOrderDto {
      */
     email: string;
     /**
-     * 
+     * Single product ID (for backward compatibility)
      * @type {string}
      * @memberof CreateOrderDto
      */
-    productId: string;
+    productId?: string;
+    /**
+     * Array of items to order (use this for multi-item orders)
+     * @type {Array<CreateOrderItemDto>}
+     * @memberof CreateOrderDto
+     */
+    items?: Array<CreateOrderItemDto>;
     /**
      * 
      * @type {string}
@@ -50,7 +64,6 @@ export interface CreateOrderDto {
  */
 export function instanceOfCreateOrderDto(value: object): value is CreateOrderDto {
     if (!('email' in value) || value['email'] === undefined) return false;
-    if (!('productId' in value) || value['productId'] === undefined) return false;
     return true;
 }
 
@@ -65,7 +78,8 @@ export function CreateOrderDtoFromJSONTyped(json: any, ignoreDiscriminator: bool
     return {
         
         'email': json['email'],
-        'productId': json['productId'],
+        'productId': json['productId'] == null ? undefined : json['productId'],
+        'items': json['items'] == null ? undefined : ((json['items'] as Array<any>).map(CreateOrderItemDtoFromJSON)),
         'note': json['note'] == null ? undefined : json['note'],
         'captchaToken': json['captchaToken'] == null ? undefined : json['captchaToken'],
     };
@@ -84,6 +98,7 @@ export function CreateOrderDtoToJSONTyped(value?: CreateOrderDto | null, ignoreD
         
         'email': value['email'],
         'productId': value['productId'],
+        'items': value['items'] == null ? undefined : ((value['items'] as Array<any>).map(CreateOrderItemDtoToJSON)),
         'note': value['note'],
         'captchaToken': value['captchaToken'],
     };

@@ -244,9 +244,10 @@ export class DeliveryService {
         contentType = keyEntity.encryptionKey.substring(4); // Extract content type after 'raw:'
         this.logger.debug(`[DELIVERY] Detected raw key with content type: ${contentType}`);
 
-        // Fetch raw key content from R2
+        // Fetch raw key content from R2 (using itemId for multi-item orders)
         const rawKeyResult = await this.r2StorageClient.getRawKeyFromR2({
           orderId,
+          orderItemId: itemId,
           contentType,
         });
 
@@ -256,6 +257,7 @@ export class DeliveryService {
         // Generate a fresh signed URL for direct download (3 hours)
         signedUrl = await this.r2StorageClient.generateSignedUrlForRawKey({
           orderId,
+          orderItemId: itemId,
           contentType,
           expiresInSeconds: 3 * 60 * 60, // 3 hours
         });

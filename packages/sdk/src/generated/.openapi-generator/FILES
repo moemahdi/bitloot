@@ -86,6 +86,7 @@ docs/CategoryDto.md
 docs/CheckWatchlistResponseDto.md
 docs/CreateAuditLogDto.md
 docs/CreateOrderDto.md
+docs/CreateOrderItemDto.md
 docs/CreatePaymentDto.md
 docs/CreatePricingRuleDto.md
 docs/CreateProductDto.md
@@ -95,6 +96,7 @@ docs/DashboardStatsDto.md
 docs/DashboardStatsDtoRevenueHistoryInner.md
 docs/DeliveryLinkDto.md
 docs/EmailsApi.md
+docs/EmbeddedPaymentResponseDto.md
 docs/FeaturedCategoryDto.md
 docs/FiltersResponseDto.md
 docs/ForgotPasswordDto.md
@@ -136,6 +138,7 @@ docs/PaymentResponseDto.md
 docs/PaymentsApi.md
 docs/PaymentsControllerAdminListPayments200Response.md
 docs/PaymentsControllerAdminListPayments200ResponseDataInner.md
+docs/PaymentsControllerPollPaymentStatus200Response.md
 docs/PlatformFilterDto.md
 docs/PriceRangeDto.md
 docs/ProductGroupListResponseDto.md
@@ -226,6 +229,7 @@ models/CategoryDto.ts
 models/CheckWatchlistResponseDto.ts
 models/CreateAuditLogDto.ts
 models/CreateOrderDto.ts
+models/CreateOrderItemDto.ts
 models/CreatePaymentDto.ts
 models/CreatePricingRuleDto.ts
 models/CreateProductDto.ts
@@ -234,6 +238,7 @@ models/CreateReviewDto.ts
 models/DashboardStatsDto.ts
 models/DashboardStatsDtoRevenueHistoryInner.ts
 models/DeliveryLinkDto.ts
+models/EmbeddedPaymentResponseDto.ts
 models/FeaturedCategoryDto.ts
 models/FiltersResponseDto.ts
 models/ForgotPasswordDto.ts
@@ -269,6 +274,7 @@ models/PaginatedWatchlistResponseDto.ts
 models/PaymentResponseDto.ts
 models/PaymentsControllerAdminListPayments200Response.ts
 models/PaymentsControllerAdminListPayments200ResponseDataInner.ts
+models/PaymentsControllerPollPaymentStatus200Response.ts
 models/PlatformFilterDto.ts
 models/PriceRangeDto.ts
 models/ProductGroupListResponseDto.ts

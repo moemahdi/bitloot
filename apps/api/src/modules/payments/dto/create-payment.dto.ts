@@ -189,3 +189,83 @@ export class IpnResponseDto {
   @IsOptional()
   message?: string;
 }
+
+/**
+ * Embedded Payment Response DTO
+ *
+ * Returned when creating an embedded payment (no redirect).
+ * Contains wallet address and amount for in-app display (QR code, copy).
+ */
+export class EmbeddedPaymentResponseDto {
+  @ApiProperty({
+    description: 'Internal payment ID (UUID)',
+    example: '550e8400-e29b-41d4-a716-446655440000',
+  })
+  paymentId!: string;
+
+  @ApiProperty({
+    description: 'NOWPayments external payment ID',
+    example: '839217',
+  })
+  externalId!: string;
+
+  @ApiProperty({
+    description: 'Order ID',
+    example: '550e8400-e29b-41d4-a716-446655440000',
+  })
+  orderId!: string;
+
+  @ApiProperty({
+    description: 'Wallet address to send crypto to',
+    example: 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh',
+  })
+  payAddress!: string;
+
+  @ApiProperty({
+    description: 'Amount to pay in crypto',
+    example: 0.001234,
+  })
+  payAmount!: number;
+
+  @ApiProperty({
+    description: 'Cryptocurrency code (lowercase)',
+    example: 'btc',
+  })
+  payCurrency!: string;
+
+  @ApiProperty({
+    description: 'Amount in fiat currency',
+    example: 49.99,
+  })
+  priceAmount!: number;
+
+  @ApiProperty({
+    description: 'Fiat currency code',
+    example: 'eur',
+  })
+  priceCurrency!: string;
+
+  @ApiProperty({
+    description: 'Payment status',
+    example: 'waiting',
+  })
+  status!: string;
+
+  @ApiProperty({
+    description: 'Payment expiration date (ISO string)',
+    example: '2025-01-08T23:59:59Z',
+  })
+  expiresAt!: string;
+
+  @ApiProperty({
+    description: 'QR code data URI for wallet apps (format: bitcoin:address?amount=X)',
+    example: 'bitcoin:bc1qxy2...?amount=0.001234',
+  })
+  qrCodeData!: string;
+
+  @ApiProperty({
+    description: 'Estimated time for payment confirmation',
+    example: '10-30 minutes',
+  })
+  estimatedTime!: string;
+}

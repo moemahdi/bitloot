@@ -228,20 +228,121 @@ export class FulfillmentService {
       this.logger.debug(`[FULFILLMENT:KINGUIN] Created reservation: ${reservation.reservationId}`);
     }
 
-    // Step 2: For now, simulate key fetch (in production, would poll or use webhook)
+    // Step 2: Fetch ALL keys from Kinguin at once (they return all keys for the order)
+    let kinguinReservationId = order.kinguinReservationId;
+    if ((kinguinReservationId === null || kinguinReservationId === undefined || kinguinReservationId.length === 0)) {
+      // Re-fetch order to get the reservation ID after startReservation
+      const refreshedOrder = await this.orderRepo.findOne({ where: { id: order.id } });
+      if ((refreshedOrder?.kinguinReservationId === null || refreshedOrder?.kinguinReservationId === undefined || (refreshedOrder?.kinguinReservationId?.length ?? 0) === 0)) {
+        throw new BadRequestException(`Order ${order.id} has no Kinguin reservation ID`);
+      }
+      kinguinReservationId = refreshedOrder.kinguinReservationId;
+    }
+
+    this.logger.debug(`[FULFILLMENT:KINGUIN] Fetching all keys from Kinguin for reservation: ${kinguinReservationId}`);
+    const allKeys = await this.kinguinClient.getKeysV2(kinguinReservationId);
+    this.logger.debug(`[FULFILLMENT:KINGUIN] Retrieved ${allKeys.length} keys from Kinguin`);
+
+    if (allKeys.length === 0) {
+      throw new BadRequestException(`No keys returned from Kinguin for order ${order.id}`);
+    }
+
+    // Step 3: Fetch products for matching keys to items
+    const productIds = order.items.map((item) => item.productId);
+    const products = await this.productRepo.find({
+      where: productIds.map((id) => ({ id })),
+    });
+    const productMap = new Map(products.map((p) => [p.id, p]));
+
+    // Step 4: Match and fulfill each item with its corresponding key
     const results: ItemFulfillmentResult[] = [];
+    const usedKeyIndices = new Set<number>();
 
     for (const item of order.items) {
       this.logger.debug(`[FULFILLMENT:KINGUIN] Processing item: ${item.id} (product: ${item.productId})`);
 
-      try {
-        const itemResult = await this.fulfillKinguinItem(order.id, item, order.email);
-        results.push(itemResult);
-      } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
-        this.logger.error(`[FULFILLMENT:KINGUIN] Failed to fulfill item ${item.id}: ${message}`);
-        throw error;
+      const product = productMap.get(item.productId);
+      if (product === undefined) {
+        throw new BadRequestException(`Product ${item.productId} not found for item ${item.id}`);
       }
+
+      // Find a matching key by kinguinProductId (Kinguin's productId in key matches our product's kinguinProductId)
+      let matchedKey: (typeof allKeys)[0] | undefined;
+      let matchedIndex = -1;
+
+      for (let i = 0; i < allKeys.length; i++) {
+        if (usedKeyIndices.has(i)) continue; // Skip already used keys
+
+        const key = allKeys[i];
+        if (key === undefined) continue;
+
+        // Match by Kinguin productId (our product.kinguinProductId === key.productId)
+        if (key.productId === product.kinguinProductId) {
+          matchedKey = key;
+          matchedIndex = i;
+          break;
+        }
+      }
+
+      if (matchedKey === undefined || matchedIndex === -1) {
+        throw new BadRequestException(
+          `No matching key found for item ${item.id} (product: ${product.kinguinProductId})`,
+        );
+      }
+
+      usedKeyIndices.add(matchedIndex);
+      this.logger.debug(
+        `[FULFILLMENT:KINGUIN] Matched key for item ${item.id}: ${matchedKey.serial.length} chars, type: ${matchedKey.type}`,
+      );
+
+      // Upload this item's key to R2 with unique path (includes orderItemId)
+      const uploadResult = await this.r2StorageClient.uploadRawKey({
+        orderId: order.id,
+        orderItemId: item.id,
+        content: matchedKey.serial,
+        contentType: matchedKey.type,
+        filename: matchedKey.name,
+        metadata: {
+          'order-item-id': item.id,
+          'kinguin-reservation-id': kinguinReservationId,
+          'kinguin-product-id': matchedKey.productId,
+        },
+      });
+      this.logger.debug(`[FULFILLMENT:KINGUIN] Uploaded key to R2: ${uploadResult.objectKey}`);
+
+      // Generate signed URL for this specific item
+      const signedUrl = await this.r2StorageClient.generateSignedUrlForRawKey({
+        orderId: order.id,
+        orderItemId: item.id,
+        contentType: matchedKey.type,
+        expiresInSeconds: 3 * 60 * 60, // 3 hours
+      });
+      this.logger.debug(`[FULFILLMENT:KINGUIN] Generated signed URL for item ${item.id}`);
+
+      // Update order item with signed URL
+      await this.orderItemRepo.update(
+        { id: item.id },
+        {
+          signedUrl,
+          updatedAt: new Date(),
+        },
+      );
+
+      // Create a Key record for audit
+      const keyEntity = this.keyRepo.create({
+        orderItemId: item.id,
+        storageRef: uploadResult.objectKey,
+        encryptionKey: `raw:${matchedKey.type}`,
+      });
+      await this.keyRepo.save(keyEntity);
+
+      results.push({
+        itemId: item.id,
+        productId: item.productId,
+        signedUrl,
+        encryptionKeySize: 0,
+        status: 'fulfilled',
+      });
     }
 
     // Update order status to fulfilled
@@ -390,6 +491,9 @@ export class FulfillmentService {
    * Saves reservation ID on the order for tracking
    * 
    * Uses Kinguin v2 API with productId (offerId) and price from product.cost
+   * Supports multi-item orders with multiple different products
+   * 
+   * IDEMPOTENT: If order already has a kinguinReservationId, returns existing reservation
    */
   async startReservation(orderId: string): Promise<{ reservationId: string; status: string }> {
     const order = await this.orderRepo.findOne({ where: { id: orderId }, relations: ['items'] });
@@ -400,53 +504,76 @@ export class FulfillmentService {
       throw new BadRequestException(`Order has no items: ${orderId}`);
     }
 
-    // Look up the product to get the kinguinOfferId and cost
-    const firstItem = order.items[0];
-    if (firstItem === undefined) {
-      throw new BadRequestException(`Order has no items: ${orderId}`);
+    // IDEMPOTENCY CHECK: If reservation already exists, return it instead of creating a new one
+    if (order.kinguinReservationId !== null && order.kinguinReservationId !== undefined && order.kinguinReservationId !== '') {
+      this.logger.log(
+        `[FULFILLMENT] Reservation already exists for order ${orderId}: ${order.kinguinReservationId} (idempotent)`,
+      );
+      return { reservationId: order.kinguinReservationId, status: 'existing' };
     }
-    
-    const product = await this.productRepo.findOne({ where: { id: firstItem.productId } });
-    if (product === null) {
-      throw new BadRequestException(`Product not found: ${firstItem.productId}`);
+
+    // Aggregate items by productId to handle multiple different products
+    // Each productId can appear multiple times (for quantity > 1)
+    const productQuantities = new Map<string, number>();
+    for (const item of order.items) {
+      const current = productQuantities.get(item.productId) ?? 0;
+      productQuantities.set(item.productId, current + 1);
     }
-    
-    // Verify this is a Kinguin product with valid product ID
-    if (product.sourceType !== 'kinguin') {
-      throw new BadRequestException(`Product ${product.id} is not a Kinguin product`);
+
+    // Fetch all unique products
+    const productIds = Array.from(productQuantities.keys());
+    const products = await this.productRepo.find({
+      where: productIds.map((id) => ({ id })),
+    });
+
+    // Build products array for Kinguin API
+    const kinguinProducts: Array<{
+      productId: string;
+      qty: number;
+      price: number;
+      offerId?: string;
+    }> = [];
+
+    for (const product of products) {
+      // Verify this is a Kinguin product with valid product ID
+      if (product.sourceType !== 'kinguin') {
+        throw new BadRequestException(`Product ${product.id} is not a Kinguin product`);
+      }
+      
+      // Get the Kinguin productId (required for v2 API)
+      const kinguinProductId = product.kinguinProductId;
+      if (kinguinProductId === null || kinguinProductId === undefined || kinguinProductId === '') {
+        throw new BadRequestException(`Product ${product.id} has no Kinguin product ID configured`);
+      }
+      
+      // Get the cost price for the API call
+      const cost = parseFloat(product.cost);
+      if (isNaN(cost) || cost <= 0) {
+        throw new BadRequestException(`Product ${product.id} has invalid cost: ${product.cost}`);
+      }
+      
+      const quantity = productQuantities.get(product.id) ?? 1;
+      const offerId = product.kinguinOfferId;
+
+      this.logger.debug(
+        `[FULFILLMENT] Adding to reservation: productId=${kinguinProductId}, offerId=${offerId ?? 'none'}, cost=${cost}, qty=${quantity}`,
+      );
+
+      kinguinProducts.push({
+        productId: kinguinProductId,
+        qty: quantity,
+        price: cost,
+        ...(offerId !== null && offerId !== undefined && offerId !== '' ? { offerId } : {}),
+      });
     }
-    
-    // Get the Kinguin productId (required for v2 API)
-    const kinguinProductId = product.kinguinProductId;
-    if (kinguinProductId === null || kinguinProductId === undefined || kinguinProductId === '') {
-      throw new BadRequestException(`Product ${product.id} has no Kinguin product ID configured`);
-    }
-    
-    // Get the Kinguin offerId (optional, for specifying exact offer)
-    const offerId = product.kinguinOfferId;
-    
-    // Get the cost price for the API call
-    const cost = parseFloat(product.cost);
-    if (isNaN(cost) || cost <= 0) {
-      throw new BadRequestException(`Product ${product.id} has invalid cost: ${product.cost}`);
-    }
-    
-    const quantity = order.items.length;
 
     this.logger.debug(
-      `[FULFILLMENT] Starting reservation: order=${orderId}, productId=${kinguinProductId}, offerId=${offerId ?? 'none'}, cost=${cost}, qty=${quantity}`,
+      `[FULFILLMENT] Starting reservation: order=${orderId}, ${kinguinProducts.length} product(s), total items=${order.items.length}`,
     );
     
-    // Use placeOrderV2 with correct field mapping:
-    // - productId: The Kinguin Product ID (e.g., "5c9b5eab2539a4e8f1721448")
-    // - offerId: Optional specific offer ID (e.g., "680e12531e0ffc008bd66f2e")
+    // Use placeOrderV2 with all products in a single Kinguin order
     const kinguinOrder = await this.kinguinClient.placeOrderV2({
-      products: [{
-        productId: kinguinProductId, // Kinguin Product ID
-        qty: quantity,
-        price: cost,                 // Use the actual product cost from Kinguin
-        ...(offerId !== null && offerId !== undefined && offerId !== '' ? { offerId } : {}), // Optional: specific offer
-      }],
+      products: kinguinProducts,
       orderExternalId: orderId, // Link to our order for tracking
     });
 
@@ -708,7 +835,7 @@ export class FulfillmentService {
           this.logger.log(`[RECOVERY] Delivery email sent for order ${orderId}`);
         }
       } catch (emailError) {
-        this.logger.warn(`[RECOVERY] Failed to send delivery email: ${emailError}`);
+        this.logger.warn(`[RECOVERY] Failed to send delivery email: ${String(emailError)}`);
       }
     }
 

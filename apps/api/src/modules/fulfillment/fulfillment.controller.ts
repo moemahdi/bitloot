@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Param, UseGuards, Request, HttpException, HttpStatus } from '@nestjs/common';
+import { Controller, Get, Post, Param, UseGuards, Request, HttpException, HttpStatus, Logger } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import type { Request as ExpressRequest } from 'express';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -31,6 +31,8 @@ interface AuthenticatedRequest extends ExpressRequest {
 @ApiTags('Fulfillment')
 @Controller('fulfillment')
 export class FulfillmentController {
+  private readonly logger = new Logger(FulfillmentController.name);
+
   constructor(
     private readonly fulfillmentService: FulfillmentService,
     private readonly deliveryService: DeliveryService,
@@ -323,5 +325,93 @@ export class FulfillmentController {
       timestamp: result.timestamp,
       error: result.error,
     };
+  }
+
+  /**
+   * SANDBOX ONLY: Manually trigger fulfillment for testing
+   * 
+   * In sandbox mode, NOWPayments doesn't send real IPN webhooks,
+   * so we need a way to manually trigger fulfillment after payment.
+   * 
+   * This endpoint:
+   * 1. Checks if the order exists and is in 'paid' or 'confirming' status
+   * 2. Updates order status to 'paid' if needed
+   * 3. Triggers the fulfillment process
+   * 
+   * SECURITY: Only works when NODE_ENV is 'development' or SANDBOX_MODE is enabled
+   * 
+   * @param id Order ID to fulfill
+   * @returns Fulfillment result with signed URLs
+   */
+  @Post(':id/trigger-fulfillment')
+  @ApiOperation({ summary: 'SANDBOX: Manually trigger fulfillment for testing' })
+  @ApiResponse({ status: 200, description: 'Fulfillment triggered successfully' })
+  @ApiResponse({ status: 400, description: 'Order not in correct state or sandbox mode disabled' })
+  @ApiResponse({ status: 404, description: 'Order not found' })
+  async triggerFulfillment(
+    @Param('id') id: string,
+  ): Promise<{ success: boolean; orderId: string; status: string; message: string }> {
+    // SECURITY: Only allow in development/sandbox mode
+    const isDev = process.env.NODE_ENV === 'development';
+    const isSandbox = process.env.NOWPAYMENTS_API_URL?.includes('sandbox') ?? false;
+    
+    if (!isDev && !isSandbox) {
+      throw new HttpException(
+        'Sandbox fulfillment trigger is only available in development mode',
+        HttpStatus.FORBIDDEN,
+      );
+    }
+
+    try {
+      // Get order
+      const order = await this.ordersService.get(id);
+      if (order === null || order === undefined) {
+        throw new HttpException('Order not found', HttpStatus.NOT_FOUND);
+      }
+
+      // Check if already fulfilled
+      if (order.status === 'fulfilled') {
+        return {
+          success: true,
+          orderId: id,
+          status: 'fulfilled',
+          message: 'Order already fulfilled',
+        };
+      }
+
+      // Allow trigger if order is in any payment-related state
+      const validStates = ['waiting', 'confirming', 'confirmed', 'sending', 'paid', 'partially_paid', 'finished'];
+      if (!validStates.includes(order.status)) {
+        throw new HttpException(
+          `Order status '${order.status}' is not valid for fulfillment trigger. Expected: ${validStates.join(', ')}`,
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+
+      // Update order status to 'paid' if not already
+      if (order.status !== 'paid' && order.status !== 'fulfilled') {
+        await this.ordersService.markPaid(id);
+        this.logger.log(`[SANDBOX] Updated order ${id} status to 'paid'`);
+      }
+
+      // Trigger fulfillment
+      this.logger.log(`[SANDBOX] Triggering fulfillment for order: ${id}`);
+      const result = await this.fulfillmentService.fulfillOrder(id);
+
+      return {
+        success: true,
+        orderId: id,
+        status: result.status,
+        message: 'Fulfillment triggered successfully',
+      };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to trigger fulfillment';
+      this.logger.error(`[SANDBOX] Fulfillment trigger failed: ${message}`);
+      
+      if (error instanceof HttpException) {
+        throw error;
+      }
+      throw new HttpException(message, HttpStatus.BAD_REQUEST);
+    }
   }
 }

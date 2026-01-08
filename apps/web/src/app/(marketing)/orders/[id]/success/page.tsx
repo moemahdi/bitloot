@@ -1,8 +1,8 @@
 'use client';
 
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useParams, useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import {
@@ -45,8 +45,10 @@ const ordersClient = new OrdersApi(apiConfig);
 export default function OrderSuccessPage(): React.ReactElement {
   const params = useParams();
   const router = useRouter();
+  const queryClient = useQueryClient();
   const orderId = String(params.id);
-  const [showConfetti, setShowConfetti] = useState(true);
+  const [showConfetti, _setShowConfetti] = useState(true);
+  const fulfillmentTriggered = useRef(false);
 
   const { data, isError, isPending } = useQuery<OrderResponseDto>({
     queryKey: ['order', orderId],
@@ -54,7 +56,58 @@ export default function OrderSuccessPage(): React.ReactElement {
       const order = await ordersClient.ordersControllerGet({ id: orderId });
       return order;
     },
+    // Poll every 5 seconds for orders waiting for fulfillment (paid but not fulfilled)
+    refetchInterval: (query) => {
+      const status = query.state.data?.status;
+      if (status === 'paid' || status === 'confirming') {
+        return 5000;
+      }
+      // Stop polling once fulfilled or in terminal state
+      return false;
+    },
   });
+
+  // Sandbox fulfillment trigger mutation
+  const triggerFulfillmentMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
+      const res = await fetch(`${apiUrl}/fulfillment/${id}/trigger-fulfillment`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      if (!res.ok) {
+        const errorText = await res.text();
+        throw new Error(`Failed to trigger fulfillment: ${errorText}`);
+      }
+      return res.json() as Promise<{ success: boolean; status: string; message: string }>;
+    },
+    onSuccess: (result) => {
+      console.info('[SANDBOX] Fulfillment triggered:', result);
+      // Refetch order to get updated status
+      void queryClient.invalidateQueries({ queryKey: ['order', orderId] });
+      if (result.status === 'fulfilled') {
+        toast.success('Keys are ready!');
+      }
+    },
+    onError: (error) => {
+      console.error('[SANDBOX] Fulfillment trigger failed:', error);
+      // Don't show error toast to user - this is expected to fail in production
+    },
+  });
+
+  // Auto-trigger fulfillment in sandbox mode when order is 'paid' but not 'fulfilled'
+  useEffect(() => {
+    const shouldTrigger = 
+      data?.status === 'paid' && 
+      !fulfillmentTriggered.current &&
+      !triggerFulfillmentMutation.isPending;
+    
+    if (shouldTrigger) {
+      fulfillmentTriggered.current = true;
+      console.info('[SANDBOX] Auto-triggering fulfillment for paid order:', orderId);
+      triggerFulfillmentMutation.mutate(orderId);
+    }
+  }, [data?.status, orderId, triggerFulfillmentMutation]);
 
   const copyOrderId = (text: string): void => {
     void navigator.clipboard.writeText(text);
@@ -205,6 +258,21 @@ export default function OrderSuccessPage(): React.ReactElement {
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.5, delay: 0.2 }}
             >
+              {/* Preparing Order Message - Shown when paid but not fulfilled */}
+              {(orderData.status === 'paid' || orderData.status === 'confirming') && (
+                <Alert className="border-[hsl(var(--orange-warning))]/20 bg-[hsl(var(--orange-warning))]/5">
+                  <div className="flex items-center gap-3">
+                    <div className="h-5 w-5 animate-spin rounded-full border-2 border-[hsl(var(--orange-warning))] border-t-transparent" />
+                    <div>
+                      <AlertTitle className="text-[hsl(var(--orange-warning))]">Preparing Your Order</AlertTitle>
+                      <AlertDescription className="text-[hsl(var(--orange-warning))]/70">
+                        Your payment is confirmed! We&apos;re now preparing your digital keys. This usually takes less than a minute.
+                      </AlertDescription>
+                    </div>
+                  </div>
+                </Alert>
+              )}
+
               {/* Digital Keys - Using KeyReveal Component */}
               {orderItems.length > 0 && (
                 <KeyReveal 

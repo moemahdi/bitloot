@@ -54,7 +54,7 @@ export class OrdersController {
           total: order.total,
           currency: 'EUR', // Placeholder - will be set per order in Level 6
           items: order.items?.map((item) => ({ name: `Product ${item.productId}` })) ?? [],
-          paymentLink: `${process.env.FRONTEND_URL ?? 'http://localhost:3000'}/pay/${order.id}`,
+          paymentLink: `${process.env.FRONTEND_URL ?? 'http://localhost:3000'}/orders/${order.id}`,
         });
       }
     } catch (emailError) {

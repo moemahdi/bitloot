@@ -10,6 +10,7 @@ All URIs are relative to *http://localhost*
 | [**fulfillmentControllerRecoverOrder**](FulfillmentApi.md#fulfillmentcontrollerrecoverorder) | **POST** /fulfillment/{id}/recover | Recover signed URLs for orders with keys in R2 (requires ownership) |
 | [**fulfillmentControllerRevealKey**](FulfillmentApi.md#fulfillmentcontrollerrevealkey) | **POST** /fulfillment/{id}/reveal-key/{itemId} | Admin: Reveal encrypted key (requires admin role) |
 | [**fulfillmentControllerRevealMyKey**](FulfillmentApi.md#fulfillmentcontrollerrevealmykey) | **POST** /fulfillment/{id}/reveal/{itemId} | Reveal encrypted key (requires ownership) |
+| [**fulfillmentControllerTriggerFulfillment**](FulfillmentApi.md#fulfillmentcontrollertriggerfulfillment) | **POST** /fulfillment/{id}/trigger-fulfillment | SANDBOX: Manually trigger fulfillment for testing |
 
 
 
@@ -433,6 +434,73 @@ example().catch(console.error);
 | **401** | Unauthorized |  -  |
 | **403** | Forbidden |  -  |
 | **404** | Order or item not found |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## fulfillmentControllerTriggerFulfillment
+
+> fulfillmentControllerTriggerFulfillment(id)
+
+SANDBOX: Manually trigger fulfillment for testing
+
+### Example
+
+```ts
+import {
+  Configuration,
+  FulfillmentApi,
+} from '';
+import type { FulfillmentControllerTriggerFulfillmentRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new FulfillmentApi();
+
+  const body = {
+    // string
+    id: id_example,
+  } satisfies FulfillmentControllerTriggerFulfillmentRequest;
+
+  try {
+    const data = await api.fulfillmentControllerTriggerFulfillment(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **id** | `string` |  | [Defaults to `undefined`] |
+
+### Return type
+
+`void` (Empty response body)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: Not defined
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Fulfillment triggered successfully |  -  |
+| **400** | Order not in correct state or sandbox mode disabled |  -  |
+| **404** | Order not found |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 

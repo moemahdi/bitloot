@@ -347,14 +347,15 @@ export class KinguinClient {
         }
       }
 
-      this.logger.debug(
-        `Creating Kinguin order v2 for ${products.length} product(s), external: ${orderExternalId ?? 'none'}`,
-      );
-
       const payload: PlaceOrderRequestV2 = { products };
       if (orderExternalId !== undefined && orderExternalId !== null && orderExternalId !== '') {
         payload.orderExternalId = orderExternalId;
       }
+
+      this.logger.debug(
+        `Creating Kinguin order v2 for ${products.length} product(s), external: ${orderExternalId ?? 'none'}`,
+      );
+      this.logger.debug(`[Kinguin V2] Request payload: ${JSON.stringify(payload, null, 2)}`);
 
       const response = await this.httpClient.post<KinguinOrderObject>('/v2/order', payload);
 
@@ -368,6 +369,14 @@ export class KinguinClient {
 
       return response.data;
     } catch (error: unknown) {
+      // Enhanced error logging for debugging
+      if (axios.isAxiosError(error)) {
+        const axiosError = error as AxiosError;
+        this.logger.error(
+          `[Kinguin V2] API Error - Status: ${axiosError.response?.status}, Body: ${JSON.stringify(axiosError.response?.data ?? 'no body')}`,
+        );
+      }
+
       const message = this.extractErrorMessage(error);
       this.logger.error(
         `❌ Failed to create Kinguin order v2: ${message}`,

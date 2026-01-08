@@ -285,7 +285,8 @@ export class IpnHandlerService {
     }
 
     // Check if signature is missing or empty
-    if (!signature || signature.length === 0) {
+    const signatureStr = String(signature ?? '');
+    if (signatureStr === null || signatureStr === undefined || signatureStr === '') {
       this.logger.error('[IPN] No signature provided in request headers');
       this.metrics.incrementInvalidHmac('nowpayments');
       return false;
@@ -307,8 +308,10 @@ export class IpnHandlerService {
       this.logger.log(`[IPN] Expected signature length: ${hmac.length}, received: ${signature.length}`);
       
       // If lengths differ, signatures cannot match (timingSafeEqual will throw)
-      if (hmac.length !== signature.length) {
-        this.logger.warn(`[IPN] Signature length mismatch: expected ${hmac.length}, got ${signature.length}`);
+      const signatureStr = String(signature ?? '');
+      const signatureLength = signatureStr === null || signatureStr === undefined ? 0 : signatureStr.length;
+      if (hmac.length !== signatureLength) {
+        this.logger.warn(`[IPN] Signature length mismatch: expected ${hmac.length}, got ${signatureStr.length}`);
         this.metrics.incrementInvalidHmac('nowpayments');
         return false;
       }
@@ -343,7 +346,7 @@ export class IpnHandlerService {
       .sort()
       .reduce((result: Record<string, unknown>, key: string) => {
         const value = obj[key];
-        result[key] = value && typeof value === 'object' && !Array.isArray(value)
+        result[key] = (value !== null && value !== undefined) && typeof value === 'object' && !Array.isArray(value)
           ? this.sortObject(value as Record<string, unknown>)
           : value;
         return result;

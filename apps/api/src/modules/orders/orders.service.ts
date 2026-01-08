@@ -6,6 +6,7 @@ import { OrderItem } from './order-item.entity';
 import { CreateOrderDto, OrderResponseDto, OrderItemResponseDto } from './dto/create-order.dto';
 import { EmailsService } from '../emails/emails.service';
 import { CatalogService } from '../catalog/catalog.service';
+import { Product } from '../catalog/entities/product.entity';
 
 @Injectable()
 export class OrdersService {
@@ -19,34 +20,89 @@ export class OrdersService {
   ) { }
 
   async create(dto: CreateOrderDto, userId?: string): Promise<OrderResponseDto> {
-    const product = await this.catalogService.getProductById(dto.productId);
-    if (product === null || product === undefined) {
-      throw new NotFoundException(`Product not found: ${dto.productId}`);
+    // Normalize items: support both single productId and items array
+    let itemsToCreate: Array<{ productId: string; quantity: number }> = [];
+    
+    if (dto.items !== undefined && dto.items.length > 0) {
+      // Multi-item order
+      itemsToCreate = dto.items.map((item) => ({
+        productId: item.productId,
+        quantity: item.quantity ?? 1,
+      }));
+    } else if (dto.productId !== undefined) {
+      // Single item (backward compatibility)
+      itemsToCreate = [{ productId: dto.productId, quantity: 1 }];
+    } else {
+      throw new BadRequestException('Either productId or items array is required');
     }
 
-    // Determine source type from product (kinguin or custom)
-    const sourceType = product.sourceType ?? 'custom';
-    this.logger.log(`Creating order for product ${dto.productId} with sourceType: ${sourceType}${userId ? `, userId: ${userId}` : ' (guest)'}`);
+    // Fetch all products
+    const productIds = itemsToCreate.map((item) => item.productId);
+    const productsMap = await this.catalogService.getProductsBySlugs(productIds);
+    
+    // Validate all products exist
+    const notFound: string[] = [];
+    const products: Product[] = [];
+    for (const item of itemsToCreate) {
+      const product = productsMap.get(item.productId);
+      if (product === undefined || product === null) {
+        notFound.push(item.productId);
+      } else {
+        products.push(product);
+      }
+    }
+    
+    if (notFound.length > 0) {
+      throw new NotFoundException(`Products not found: ${notFound.join(', ')}`);
+    }
 
+    // Calculate total price
+    let totalPrice = 0;
+    for (let i = 0; i < itemsToCreate.length; i++) {
+      const item = itemsToCreate[i];
+      const product = products[i];
+      if (item !== undefined && product !== undefined) {
+        totalPrice += parseFloat(product.price) * item.quantity;
+      }
+    }
+
+    // Determine overall source type (if any item is kinguin, order is kinguin)
+    const hasKinguinProduct = products.some((p) => p.sourceType === 'kinguin');
+    const sourceType = hasKinguinProduct ? 'kinguin' : 'custom';
+
+    this.logger.log(`Creating order with ${itemsToCreate.length} item(s), total: €${totalPrice.toFixed(2)}, sourceType: ${sourceType}${userId !== null && userId !== undefined && userId !== '' ? `, userId: ${userId}` : ' (guest)'}`);
+
+    // Create order
     const order = this.ordersRepo.create({
       email: dto.email,
       status: 'created',
-      totalCrypto: product.price,
+      totalCrypto: totalPrice.toFixed(8),
       sourceType: sourceType,
       userId: userId ?? undefined,
     });
     const savedOrder = await this.ordersRepo.save(order);
 
-    // Create order item with product's source type
-    const item = this.itemsRepo.create({
-      order: savedOrder,
-      productId: dto.productId,
-      productSourceType: sourceType,
-      signedUrl: null,
-    });
-    const savedItem = await this.itemsRepo.save(item);
+    // Create order items
+    const savedItems: OrderItem[] = [];
+    for (let i = 0; i < itemsToCreate.length; i++) {
+      const itemData = itemsToCreate[i];
+      const product = products[i];
+      if (itemData !== undefined && product !== undefined) {
+        // For quantity > 1, create multiple order items (each gets a separate key)
+        for (let q = 0; q < itemData.quantity; q++) {
+          const item = this.itemsRepo.create({
+            order: savedOrder,
+            productId: itemData.productId,
+            productSourceType: product.sourceType ?? 'custom',
+            signedUrl: null,
+          });
+          const savedItem = await this.itemsRepo.save(item);
+          savedItems.push(savedItem);
+        }
+      }
+    }
 
-    return await this.mapToResponse(savedOrder, [savedItem]);
+    return await this.mapToResponse(savedOrder, savedItems);
   }
 
   /**

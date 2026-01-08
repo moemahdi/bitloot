@@ -156,7 +156,7 @@ export class IpnHandlerController {
     // Log headers for debugging (temporary)
     const logger = new Logger('IpnController');
     logger.log(`[IPN] Received headers: ${JSON.stringify(Object.keys(allHeaders))}`);
-    logger.log(`[IPN] Signature header value exists: ${!!sig}, length: ${sig?.length ?? 0}`);
+    logger.log(`[IPN] Signature header value exists: ${Boolean(sig)}, length: ${sig?.length ?? 0}`);
 
     return this.ipnHandlerService.handleIpn(payload, sig);
   }

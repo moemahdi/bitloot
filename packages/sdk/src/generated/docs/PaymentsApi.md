@@ -5,9 +5,11 @@ All URIs are relative to *http://localhost*
 | Method | HTTP request | Description |
 |------------- | ------------- | -------------|
 | [**paymentsControllerAdminListPayments**](PaymentsApi.md#paymentscontrolleradminlistpayments) | **GET** /payments/admin/list | [ADMIN] List all payments with pagination |
-| [**paymentsControllerCreate**](PaymentsApi.md#paymentscontrollercreate) | **POST** /payments/create | Create payment invoice |
+| [**paymentsControllerCreate**](PaymentsApi.md#paymentscontrollercreate) | **POST** /payments/create | Create payment invoice (redirect flow) |
+| [**paymentsControllerCreateEmbedded**](PaymentsApi.md#paymentscontrollercreateembedded) | **POST** /payments/embedded | Create embedded payment (no redirect) |
 | [**paymentsControllerGetJobStatus**](PaymentsApi.md#paymentscontrollergetjobstatus) | **GET** /payments/jobs/{jobId}/status | Get payment job status |
 | [**paymentsControllerIpn**](PaymentsApi.md#paymentscontrolleripn) | **POST** /payments/ipn | NOWPayments IPN webhook |
+| [**paymentsControllerPollPaymentStatus**](PaymentsApi.md#paymentscontrollerpollpaymentstatus) | **GET** /payments/poll/{paymentId} | Poll payment status from NOWPayments |
 
 
 
@@ -100,7 +102,7 @@ example().catch(console.error);
 
 > PaymentResponseDto paymentsControllerCreate(createPaymentDto)
 
-Create payment invoice
+Create payment invoice (redirect flow)
 
 ### Example
 
@@ -157,6 +159,74 @@ No authorization required
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
 | **201** |  |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## paymentsControllerCreateEmbedded
+
+> EmbeddedPaymentResponseDto paymentsControllerCreateEmbedded(createPaymentDto)
+
+Create embedded payment (no redirect)
+
+Creates a payment and returns wallet address + amount for in-app display. No redirect to NOWPayments.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  PaymentsApi,
+} from '';
+import type { PaymentsControllerCreateEmbeddedRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new PaymentsApi();
+
+  const body = {
+    // CreatePaymentDto
+    createPaymentDto: ...,
+  } satisfies PaymentsControllerCreateEmbeddedRequest;
+
+  try {
+    const data = await api.paymentsControllerCreateEmbedded(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **createPaymentDto** | [CreatePaymentDto](CreatePaymentDto.md) |  | |
+
+### Return type
+
+[**EmbeddedPaymentResponseDto**](EmbeddedPaymentResponseDto.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: `application/json`
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **201** |  |  -  |
+| **400** | payCurrency is required for embedded payments |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
@@ -292,6 +362,74 @@ No authorization required
 | **200** | Webhook processed successfully |  -  |
 | **400** | Invalid request body |  -  |
 | **401** | Invalid HMAC signature |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## paymentsControllerPollPaymentStatus
+
+> PaymentsControllerPollPaymentStatus200Response paymentsControllerPollPaymentStatus(paymentId)
+
+Poll payment status from NOWPayments
+
+Directly polls NOWPayments API for payment status and updates order if needed. Useful when IPN is delayed.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  PaymentsApi,
+} from '';
+import type { PaymentsControllerPollPaymentStatusRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new PaymentsApi();
+
+  const body = {
+    // string
+    paymentId: paymentId_example,
+  } satisfies PaymentsControllerPollPaymentStatusRequest;
+
+  try {
+    const data = await api.paymentsControllerPollPaymentStatus(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **paymentId** | `string` |  | [Defaults to `undefined`] |
+
+### Return type
+
+[**PaymentsControllerPollPaymentStatus200Response**](PaymentsControllerPollPaymentStatus200Response.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Payment status from NOWPayments |  -  |
+| **404** | Payment not found |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 

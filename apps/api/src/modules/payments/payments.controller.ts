@@ -21,6 +21,7 @@ import {
   PaymentResponseDto,
   IpnRequestDto,
   IpnResponseDto,
+  EmbeddedPaymentResponseDto,
 } from './dto/create-payment.dto';
 import { PaymentsService } from './payments.service';
 import { verifyNowPaymentsSignature } from './hmac-verification.util';
@@ -40,10 +41,79 @@ export class PaymentsController {
    * Level 2+ (real): calls NOWPayments API via create()
    */
   @Post('create')
-  @ApiOperation({ summary: 'Create payment invoice' })
+  @ApiOperation({ summary: 'Create payment invoice (redirect flow)' })
   @ApiResponse({ status: 201, type: PaymentResponseDto })
   async create(@Body() dto: CreatePaymentDto): Promise<PaymentResponseDto> {
     return this.payments.create(dto);
+  }
+
+  /**
+   * Create an embedded payment (no redirect)
+   *
+   * Uses NOWPayments Payment API to create a payment that returns
+   * wallet address and amount for in-app display. Customer pays
+   * directly from their wallet without leaving your site.
+   *
+   * Frontend should:
+   * 1. Display QR code using qrCodeData
+   * 2. Show payAddress with copy button
+   * 3. Display payAmount in payCurrency
+   * 4. Poll GET /payments/:id/status every 5 seconds
+   * 5. Show countdown timer using expiresAt
+   */
+  @Post('embedded')
+  @ApiOperation({
+    summary: 'Create embedded payment (no redirect)',
+    description:
+      'Creates a payment and returns wallet address + amount for in-app display. No redirect to NOWPayments.',
+  })
+  @ApiResponse({ status: 201, type: EmbeddedPaymentResponseDto })
+  @ApiResponse({ status: 400, description: 'payCurrency is required for embedded payments' })
+  async createEmbedded(@Body() dto: CreatePaymentDto): Promise<EmbeddedPaymentResponseDto> {
+    return this.payments.createEmbedded(dto);
+  }
+
+  /**
+   * Poll payment status directly from NOWPayments
+   *
+   * This endpoint polls NOWPayments API directly to get the current
+   * payment status. If status has changed to a terminal state (finished,
+   * failed, etc.), it updates the order and triggers fulfillment if needed.
+   *
+   * Use this when IPN webhooks aren't reliably received (e.g., sandbox mode).
+   *
+   * @param paymentId NOWPayments payment ID (external ID)
+   * @returns Current payment status and order state
+   */
+  @Get('poll/:paymentId')
+  @ApiOperation({
+    summary: 'Poll payment status from NOWPayments',
+    description:
+      'Directly polls NOWPayments API for payment status and updates order if needed. Useful when IPN is delayed.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Payment status from NOWPayments',
+    schema: {
+      type: 'object',
+      properties: {
+        paymentId: { type: 'string' },
+        paymentStatus: { type: 'string', enum: ['waiting', 'confirming', 'confirmed', 'sending', 'partially_paid', 'finished', 'failed', 'refunded', 'expired'] },
+        orderId: { type: 'string' },
+        orderStatus: { type: 'string' },
+        fulfillmentTriggered: { type: 'boolean' },
+      },
+    },
+  })
+  @ApiResponse({ status: 404, description: 'Payment not found' })
+  async pollPaymentStatus(@Param('paymentId') paymentId: string): Promise<{
+    paymentId: string;
+    paymentStatus: string;
+    orderId: string | null;
+    orderStatus: string | null;
+    fulfillmentTriggered: boolean;
+  }> {
+    return this.payments.pollAndUpdatePaymentStatus(paymentId);
   }
 
   /**

@@ -16,14 +16,18 @@
 import * as runtime from '../runtime';
 import type {
   CreatePaymentDto,
+  EmbeddedPaymentResponseDto,
   IpnRequestDto,
   IpnResponseDto,
   PaymentResponseDto,
   PaymentsControllerAdminListPayments200Response,
+  PaymentsControllerPollPaymentStatus200Response,
 } from '../models/index';
 import {
     CreatePaymentDtoFromJSON,
     CreatePaymentDtoToJSON,
+    EmbeddedPaymentResponseDtoFromJSON,
+    EmbeddedPaymentResponseDtoToJSON,
     IpnRequestDtoFromJSON,
     IpnRequestDtoToJSON,
     IpnResponseDtoFromJSON,
@@ -32,6 +36,8 @@ import {
     PaymentResponseDtoToJSON,
     PaymentsControllerAdminListPayments200ResponseFromJSON,
     PaymentsControllerAdminListPayments200ResponseToJSON,
+    PaymentsControllerPollPaymentStatus200ResponseFromJSON,
+    PaymentsControllerPollPaymentStatus200ResponseToJSON,
 } from '../models/index';
 
 export interface PaymentsControllerAdminListPaymentsRequest {
@@ -46,12 +52,20 @@ export interface PaymentsControllerCreateRequest {
     createPaymentDto: CreatePaymentDto;
 }
 
+export interface PaymentsControllerCreateEmbeddedRequest {
+    createPaymentDto: CreatePaymentDto;
+}
+
 export interface PaymentsControllerGetJobStatusRequest {
     jobId: string;
 }
 
 export interface PaymentsControllerIpnRequest {
     ipnRequestDto: IpnRequestDto;
+}
+
+export interface PaymentsControllerPollPaymentStatusRequest {
+    paymentId: string;
 }
 
 /**
@@ -154,7 +168,7 @@ export class PaymentsApi extends runtime.BaseAPI {
     }
 
     /**
-     * Create payment invoice
+     * Create payment invoice (redirect flow)
      */
     async paymentsControllerCreateRaw(requestParameters: PaymentsControllerCreateRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<PaymentResponseDto>> {
         if (requestParameters['createPaymentDto'] == null) {
@@ -185,10 +199,51 @@ export class PaymentsApi extends runtime.BaseAPI {
     }
 
     /**
-     * Create payment invoice
+     * Create payment invoice (redirect flow)
      */
     async paymentsControllerCreate(requestParameters: PaymentsControllerCreateRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PaymentResponseDto> {
         const response = await this.paymentsControllerCreateRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Creates a payment and returns wallet address + amount for in-app display. No redirect to NOWPayments.
+     * Create embedded payment (no redirect)
+     */
+    async paymentsControllerCreateEmbeddedRaw(requestParameters: PaymentsControllerCreateEmbeddedRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<EmbeddedPaymentResponseDto>> {
+        if (requestParameters['createPaymentDto'] == null) {
+            throw new runtime.RequiredError(
+                'createPaymentDto',
+                'Required parameter "createPaymentDto" was null or undefined when calling paymentsControllerCreateEmbedded().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+
+        let urlPath = `/payments/embedded`;
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+            body: CreatePaymentDtoToJSON(requestParameters['createPaymentDto']),
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => EmbeddedPaymentResponseDtoFromJSON(jsonValue));
+    }
+
+    /**
+     * Creates a payment and returns wallet address + amount for in-app display. No redirect to NOWPayments.
+     * Create embedded payment (no redirect)
+     */
+    async paymentsControllerCreateEmbedded(requestParameters: PaymentsControllerCreateEmbeddedRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<EmbeddedPaymentResponseDto> {
+        const response = await this.paymentsControllerCreateEmbeddedRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
@@ -266,6 +321,45 @@ export class PaymentsApi extends runtime.BaseAPI {
      */
     async paymentsControllerIpn(requestParameters: PaymentsControllerIpnRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<IpnResponseDto> {
         const response = await this.paymentsControllerIpnRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Directly polls NOWPayments API for payment status and updates order if needed. Useful when IPN is delayed.
+     * Poll payment status from NOWPayments
+     */
+    async paymentsControllerPollPaymentStatusRaw(requestParameters: PaymentsControllerPollPaymentStatusRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<PaymentsControllerPollPaymentStatus200Response>> {
+        if (requestParameters['paymentId'] == null) {
+            throw new runtime.RequiredError(
+                'paymentId',
+                'Required parameter "paymentId" was null or undefined when calling paymentsControllerPollPaymentStatus().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/payments/poll/{paymentId}`;
+        urlPath = urlPath.replace(`{${"paymentId"}}`, encodeURIComponent(String(requestParameters['paymentId'])));
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => PaymentsControllerPollPaymentStatus200ResponseFromJSON(jsonValue));
+    }
+
+    /**
+     * Directly polls NOWPayments API for payment status and updates order if needed. Useful when IPN is delayed.
+     * Poll payment status from NOWPayments
+     */
+    async paymentsControllerPollPaymentStatus(requestParameters: PaymentsControllerPollPaymentStatusRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PaymentsControllerPollPaymentStatus200Response> {
+        const response = await this.paymentsControllerPollPaymentStatusRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

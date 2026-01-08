@@ -1,30 +1,24 @@
 
-# CreateOrderDto
+# CreateOrderItemDto
 
 
 ## Properties
 
 Name | Type
 ------------ | -------------
-`email` | string
 `productId` | string
-`items` | [Array&lt;CreateOrderItemDto&gt;](CreateOrderItemDto.md)
-`note` | string
-`captchaToken` | string
+`quantity` | number
 
 ## Example
 
 ```typescript
-import type { CreateOrderDto } from ''
+import type { CreateOrderItemDto } from ''
 
 // TODO: Update the object below with actual values
 const example = {
-  "email": user@example.com,
-  "productId": demo-product,
-  "items": null,
-  "note": Demo order,
-  "captchaToken": null,
-} satisfies CreateOrderDto
+  "productId": 52b45262-731b-4730-a409-709e1bd16797,
+  "quantity": 1,
+} satisfies CreateOrderItemDto
 
 console.log(example)
 
@@ -33,7 +27,7 @@ const exampleJSON: string = JSON.stringify(example)
 console.log(exampleJSON)
 
 // Parse the JSON string back to an object
-const exampleParsed = JSON.parse(exampleJSON) as CreateOrderDto
+const exampleParsed = JSON.parse(exampleJSON) as CreateOrderItemDto
 console.log(exampleParsed)
 ```
 

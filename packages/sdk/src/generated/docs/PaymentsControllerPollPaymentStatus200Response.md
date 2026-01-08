@@ -1,30 +1,30 @@
 
-# CreateOrderDto
+# PaymentsControllerPollPaymentStatus200Response
 
 
 ## Properties
 
 Name | Type
 ------------ | -------------
-`email` | string
-`productId` | string
-`items` | [Array&lt;CreateOrderItemDto&gt;](CreateOrderItemDto.md)
-`note` | string
-`captchaToken` | string
+`paymentId` | string
+`paymentStatus` | string
+`orderId` | string
+`orderStatus` | string
+`fulfillmentTriggered` | boolean
 
 ## Example
 
 ```typescript
-import type { CreateOrderDto } from ''
+import type { PaymentsControllerPollPaymentStatus200Response } from ''
 
 // TODO: Update the object below with actual values
 const example = {
-  "email": user@example.com,
-  "productId": demo-product,
-  "items": null,
-  "note": Demo order,
-  "captchaToken": null,
-} satisfies CreateOrderDto
+  "paymentId": null,
+  "paymentStatus": null,
+  "orderId": null,
+  "orderStatus": null,
+  "fulfillmentTriggered": null,
+} satisfies PaymentsControllerPollPaymentStatus200Response
 
 console.log(example)
 
@@ -33,7 +33,7 @@ const exampleJSON: string = JSON.stringify(example)
 console.log(exampleJSON)
 
 // Parse the JSON string back to an object
-const exampleParsed = JSON.parse(exampleJSON) as CreateOrderDto
+const exampleParsed = JSON.parse(exampleJSON) as PaymentsControllerPollPaymentStatus200Response
 console.log(exampleParsed)
 ```
 

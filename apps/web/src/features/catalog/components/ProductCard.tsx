@@ -69,10 +69,11 @@ export function ProductCard({
     const [isHovered, setIsHovered] = useState(false);
     const [imageError, setImageError] = useState(false);
     
-    const isOutOfStock = product.stock !== undefined && product.stock <= 0;
+    const isOutOfStock = typeof product.stock === 'number' && product.stock <= 0;
     const isFeatured = variant === 'featured' || product.isFeatured;
     const rawRating = product.rating ?? 4.8;
-    const displayRating = typeof rawRating === 'number' ? rawRating : parseFloat(String(rawRating)) || 4.8;
+    const parsedRating = typeof rawRating === 'number' ? rawRating : parseFloat(String(rawRating));
+    const displayRating = Number.isNaN(parsedRating) ? 4.8 : parsedRating;
     
     // Calculate original price if discount exists
     const currentPrice = parseFloat(product.price);

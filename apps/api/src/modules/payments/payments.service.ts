@@ -9,7 +9,7 @@ import { Repository } from 'typeorm';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 
-import { CreatePaymentDto, PaymentResponseDto, IpnRequestDto } from './dto/create-payment.dto';
+import { CreatePaymentDto, PaymentResponseDto, IpnRequestDto, EmbeddedPaymentResponseDto } from './dto/create-payment.dto';
 import { NowPaymentsClient } from './nowpayments.client';
 import { Payment } from './payment.entity';
 import { WebhookLog } from '../../database/entities/webhook-log.entity';
@@ -490,6 +490,258 @@ export class PaymentsService {
       throw new BadRequestException(
         `Failed to list payments: ${error instanceof Error ? error.message : 'unknown error'}`,
       );
+    }
+  }
+
+  /**
+   * Create an embedded payment (no redirect to NOWPayments)
+   *
+   * Uses the NOWPayments Payment API (not Invoice API) to create a payment
+   * that returns wallet address and amount for in-app display.
+   * Customer pays from their wallet directly without leaving your site.
+   *
+   * @param dto CreatePaymentDto with orderId, email, price, and payCurrency (required for embedded)
+   * @returns EmbeddedPaymentResponseDto with wallet address, amount, QR code data
+   * @throws BadRequestException if payCurrency not specified
+   */
+  async createEmbedded(dto: CreatePaymentDto): Promise<EmbeddedPaymentResponseDto> {
+    this.logger.debug(`Creating embedded payment for order ${dto.orderId}, currency: ${dto.payCurrency}`);
+
+    // For embedded flow, payCurrency is required (user must select crypto first)
+    const paymentCurrency = dto.payCurrency ?? '';
+    if (paymentCurrency === null || paymentCurrency === undefined || paymentCurrency === '') {
+      throw new BadRequestException('payCurrency is required for embedded payments');
+    }
+
+    try {
+      // Call NOWPayments Payment API (not Invoice API)
+      const npPayment = await this.npClient.createPayment({
+        price_amount: parseFloat(dto.priceAmount),
+        price_currency: dto.priceCurrency,
+        pay_currency: paymentCurrency,
+        order_id: dto.orderId,
+        order_description: `BitLoot Order #${dto.orderId.substring(0, 8)}`,
+        ipn_callback_url: `${process.env.WEBHOOK_BASE_URL ?? 'http://localhost:4000'}/webhooks/nowpayments/ipn`,
+        // NO success_url / cancel_url = embedded flow (no redirect)
+      });
+
+      // Create Payment record for tracking
+      const payment = this.paymentsRepo.create({
+        externalId: npPayment.payment_id.toString(),
+        orderId: dto.orderId,
+        provider: 'nowpayments',
+        status: 'waiting',
+        priceAmount: npPayment.price_amount.toString(),
+        priceCurrency: npPayment.price_currency,
+        payAmount: npPayment.pay_amount.toString(),
+        payCurrency: npPayment.pay_currency,
+        rawPayload: npPayment as unknown as Record<string, string | number | boolean | null>,
+      });
+      await this.paymentsRepo.save(payment);
+
+      this.logger.log(
+        `Embedded payment created: NP ID ${npPayment.payment_id}, order ${dto.orderId}, amount ${npPayment.pay_amount} ${npPayment.pay_currency}`,
+      );
+
+      // Generate QR code data URI for wallet apps
+      const qrCodeData = this.generateQrCodeData(
+        npPayment.pay_currency,
+        npPayment.pay_address,
+        npPayment.pay_amount,
+      );
+
+      // Calculate expiration (NOWPayments payments typically expire in 1 hour)
+      const expiresAt = npPayment.expiration_date ?? new Date(Date.now() + 60 * 60 * 1000).toISOString();
+
+      return {
+        paymentId: payment.id,
+        externalId: npPayment.payment_id.toString(),
+        orderId: dto.orderId,
+        payAddress: npPayment.pay_address,
+        payAmount: npPayment.pay_amount,
+        payCurrency: npPayment.pay_currency,
+        priceAmount: npPayment.price_amount,
+        priceCurrency: npPayment.price_currency,
+        status: npPayment.payment_status,
+        expiresAt,
+        qrCodeData,
+        estimatedTime: this.getEstimatedConfirmationTime(paymentCurrency),
+      };
+    } catch (error) {
+      this.logger.error(`Failed to create embedded payment for order ${dto.orderId}:`, error);
+      throw new InternalServerErrorException(
+        `Failed to create payment: ${error instanceof Error ? error.message : 'unknown error'}`,
+      );
+    }
+  }
+
+  /**
+   * Generate QR code data URI for crypto wallet apps
+   * Uses BIP-21 format for Bitcoin, EIP-681 for Ethereum, etc.
+   */
+  private generateQrCodeData(currency: string, address: string, amount: number): string {
+    const currencyLower = currency.toLowerCase();
+
+    // BIP-21 format for Bitcoin
+    if (currencyLower === 'btc') {
+      return `bitcoin:${address}?amount=${amount}`;
+    }
+
+    // EIP-681 for Ethereum
+    if (currencyLower === 'eth') {
+      return `ethereum:${address}?value=${amount}`;
+    }
+
+    // Litecoin
+    if (currencyLower === 'ltc') {
+      return `litecoin:${address}?amount=${amount}`;
+    }
+
+    // USDT TRC20 (Tron network)
+    if (currencyLower === 'usdttrc20' || currencyLower === 'trx') {
+      return `tron:${address}?amount=${amount}`;
+    }
+
+    // USDT ERC20
+    if (currencyLower === 'usdterc20') {
+      return `ethereum:${address}?value=${amount}`;
+    }
+
+    // Generic fallback: just the address
+    return address;
+  }
+
+  /**
+   * Get estimated confirmation time based on cryptocurrency
+   */
+  private getEstimatedConfirmationTime(currency: string): string {
+    const currencyLower = currency.toLowerCase();
+
+    const times: Record<string, string> = {
+      btc: '10-60 minutes',
+      eth: '2-5 minutes',
+      ltc: '2-10 minutes',
+      usdttrc20: '1-3 minutes',
+      usdterc20: '2-5 minutes',
+      trx: '1-2 minutes',
+      bnb: '1-3 minutes',
+      sol: '< 1 minute',
+      doge: '10-30 minutes',
+    };
+
+    return times[currencyLower] ?? '5-30 minutes';
+  }
+
+  /**
+   * Poll NOWPayments directly for payment status and update order if needed
+   * 
+   * This is useful when IPN webhooks are delayed or not received (common in sandbox).
+   * It polls the NOWPayments API, updates the local payment record, and triggers
+   * fulfillment if the payment is finished.
+   * 
+   * @param paymentId Our internal payment UUID
+   * @returns Current payment status and order state
+   */
+  async pollAndUpdatePaymentStatus(paymentId: string): Promise<{
+    paymentId: string;
+    paymentStatus: string;
+    orderId: string | null;
+    orderStatus: string | null;
+    fulfillmentTriggered: boolean;
+  }> {
+    this.logger.debug(`Polling payment status for internal ID: ${paymentId}`);
+
+    // 1. Find our local payment record by internal UUID
+    const payment = await this.paymentsRepo.findOne({
+      where: { id: paymentId },
+    });
+
+    if (payment === null) {
+      this.logger.warn(`No local payment found for ID: ${paymentId}`);
+      return {
+        paymentId,
+        paymentStatus: 'unknown',
+        orderId: null,
+        orderStatus: null,
+        fulfillmentTriggered: false,
+      };
+    }
+
+    // 2. Use the external ID (NOWPayments numeric ID) to poll NOWPayments
+    const externalId = payment.externalId;
+    this.logger.debug(`Polling NOWPayments with external ID: ${externalId}`);
+
+    const npStatus = await this.npClient.getPaymentStatus(externalId);
+    const paymentStatus = npStatus.payment_status;
+    
+    this.logger.log(`NOWPayments status for ${externalId}: ${paymentStatus}`);
+
+    const orderId = payment.orderId;
+    let fulfillmentTriggered = false;
+
+    // 3. Check if status changed and needs processing
+    if (payment.status !== paymentStatus) {
+      this.logger.log(`Payment ${paymentId} status changed: ${payment.status} → ${paymentStatus}`);
+      
+      // Update local payment status - cast to valid status type
+      const validStatuses = ['created', 'waiting', 'confirmed', 'finished', 'underpaid', 'failed'] as const;
+      type PaymentStatus = typeof validStatuses[number];
+      
+      if (validStatuses.includes(paymentStatus as PaymentStatus)) {
+        payment.status = paymentStatus as PaymentStatus;
+      }
+      
+      // Store raw response as record (convert to flat object for storage)
+      payment.rawPayload = npStatus as unknown as Record<string, string | number | boolean | null>;
+      await this.paymentsRepo.save(payment);
+
+      // Handle terminal states
+      if (paymentStatus === 'finished' || paymentStatus === 'confirmed') {
+        // Mark order as paid
+        const order = await this.ordersService.markPaid(orderId);
+        this.logger.log(`Order ${orderId} marked as paid via polling`);
+
+        // Queue fulfillment job
+        const job = await this.fulfillmentQueue.add(
+          'fulfill',
+          { orderId, paymentId },
+          { 
+            jobId: `fulfill-${orderId}`,
+            removeOnComplete: true,
+            removeOnFail: false,
+          },
+        );
+        this.logger.log(`Fulfillment job queued for order ${orderId}: ${job.id}`);
+        fulfillmentTriggered = true;
+
+        return {
+          paymentId,
+          paymentStatus,
+          orderId,
+          orderStatus: order.status,
+          fulfillmentTriggered,
+        };
+      }
+    }
+
+    // 4. Get current order status
+    try {
+      const order = await this.ordersService.get(orderId);
+      return {
+        paymentId,
+        paymentStatus,
+        orderId,
+        orderStatus: order?.status ?? null,
+        fulfillmentTriggered,
+      };
+    } catch {
+      return {
+        paymentId,
+        paymentStatus,
+        orderId,
+        orderStatus: null,
+        fulfillmentTriggered,
+      };
     }
   }
 }

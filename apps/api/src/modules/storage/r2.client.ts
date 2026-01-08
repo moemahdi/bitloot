@@ -200,6 +200,7 @@ export class R2StorageClient {
    */
   async uploadRawKey(params: {
     orderId: string;
+    orderItemId?: string; // Optional: for multi-item orders, creates unique file per item
     content: string | Buffer;
     contentType: string;
     filename?: string;
@@ -219,7 +220,11 @@ export class R2StorageClient {
       'application/octet-stream': 'bin',
     };
     const extension = extensionMap[params.contentType] ?? 'txt';
-    const objectKey = `orders/${params.orderId}/key.${extension}`;
+    // Use orderItemId in path for multi-item orders to avoid overwrites
+    const itemSuffix = params.orderItemId !== null && params.orderItemId !== undefined && params.orderItemId !== '' 
+      ? `-${params.orderItemId.slice(0, 8)}` 
+      : '';
+    const objectKey = `orders/${params.orderId}/key${itemSuffix}.${extension}`;
 
     try {
       this.logger.debug(`Uploading raw key to R2: ${objectKey} (${params.contentType})`);
@@ -265,6 +270,7 @@ export class R2StorageClient {
    */
   async generateSignedUrlForRawKey(params: {
     orderId: string;
+    orderItemId?: string; // Optional: for multi-item orders, matches the uploaded file
     contentType: string;
     expiresInSeconds?: number;
   }): Promise<string> {
@@ -284,8 +290,12 @@ export class R2StorageClient {
       'application/octet-stream': 'bin',
     };
     const extension = extensionMap[params.contentType] ?? 'txt';
-    const objectKey = `orders/${params.orderId}/key.${extension}`;
-    const filename = `bitloot-key-${params.orderId}.${extension}`;
+    // Use orderItemId in path for multi-item orders to match the uploaded file
+    const itemSuffix = params.orderItemId !== null && params.orderItemId !== undefined && params.orderItemId !== '' 
+      ? `-${params.orderItemId.slice(0, 8)}` 
+      : '';
+    const objectKey = `orders/${params.orderId}/key${itemSuffix}.${extension}`;
+    const filename = `bitloot-key-${params.orderId}${itemSuffix}.${extension}`;
 
     try {
       this.logger.debug(
@@ -334,6 +344,7 @@ export class R2StorageClient {
    */
   async getRawKeyFromR2(params: {
     orderId: string;
+    orderItemId?: string; // Optional: for multi-item orders, matches the uploaded file
     contentType: string;
   }): Promise<{ content: string; contentType: string; isBase64: boolean }> {
     // Validate orderId
@@ -350,7 +361,11 @@ export class R2StorageClient {
       'application/octet-stream': 'bin',
     };
     const extension = extensionMap[params.contentType] ?? 'txt';
-    const objectKey = `orders/${params.orderId}/key.${extension}`;
+    // Use orderItemId in path for multi-item orders to match the uploaded file
+    const itemSuffix = params.orderItemId !== null && params.orderItemId !== undefined && params.orderItemId !== '' 
+      ? `-${params.orderItemId.slice(0, 8)}` 
+      : '';
+    const objectKey = `orders/${params.orderId}/key${itemSuffix}.${extension}`;
 
     try {
       this.logger.debug(`Fetching raw key from R2: ${objectKey}`);

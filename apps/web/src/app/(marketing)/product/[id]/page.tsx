@@ -1,6 +1,6 @@
 'use client';
 
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { CatalogApi } from '@bitloot/sdk';
 import { apiConfig } from '@/lib/api-config';
@@ -23,8 +23,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { AddToCartButton } from '@/features/product/components/AddToCartButton';
 import { ProductReviews } from '@/features/reviews';
 import { WatchlistButton } from '@/features/watchlist';
-import { EmailEntryModal } from '@/features/checkout/EmailEntryModal';
 import { useAuth } from '@/hooks/useAuth';
+import { useCart } from '@/context/CartContext';
 import { useState, useCallback, useEffect } from 'react';
 
 // ========== Design Constants & Utilities (BitLoot Design System) ==========
@@ -740,11 +740,12 @@ function ProductErrorState({ onRetry }: { onRetry?: () => void }): React.ReactEl
 
 export default function ProductPage(): React.ReactElement {
   const params = useParams();
+  const router = useRouter();
   const slug = params.id as string;
   const catalogClient = new CatalogApi(apiConfig);
   const [copied, setCopied] = useState(false);
-  const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
-  const { user, isAuthenticated } = useAuth();
+  const { user: _user, isAuthenticated: _isAuthenticated } = useAuth();
+  const { buyNow } = useCart();
 
   const { data: product, isLoading, isError, refetch } = useQuery<ProductResponseDto>({
     queryKey: ['product', slug],
@@ -909,7 +910,16 @@ export default function ProductPage(): React.ReactElement {
                     <Button 
                       size="lg" 
                       className="w-full h-12 text-base font-bold bg-linear-to-r from-cyan-glow to-purple-neon hover:from-cyan-glow/90 hover:to-purple-neon/90 text-white shadow-lg shadow-cyan-glow/25 border-0 transition-all hover:scale-[1.02] active:scale-[0.98]"
-                      onClick={() => setIsEmailModalOpen(true)}
+                      onClick={() => {
+                        buyNow({
+                          productId: product.id ?? '',
+                          title: product.title ?? 'Product',
+                          price: priceInDollars,
+                          quantity: 1,
+                          image: product.imageUrl,
+                        });
+                        router.push('/checkout');
+                      }}
                     >
                       <Bitcoin className="h-5 w-5 mr-2" />
                       Buy Now
@@ -1024,17 +1034,6 @@ export default function ProductPage(): React.ReactElement {
           </div>
         </div>
       </div>
-
-      {/* Email Entry Modal */}
-      <EmailEntryModal
-        isOpen={isEmailModalOpen}
-        onClose={() => setIsEmailModalOpen(false)}
-        productId={product.id ?? ''}
-        productTitle={product.title ?? 'Product'}
-        productPrice={priceInDollars.toFixed(2)}
-        userEmail={user?.email}
-        isAuthenticated={isAuthenticated}
-      />
     </div>
   );
 }

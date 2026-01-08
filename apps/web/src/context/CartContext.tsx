@@ -17,6 +17,7 @@ interface CartContextType {
   removeItem: (productId: string) => void;
   updateQuantity: (productId: string, quantity: number) => void;
   clearCart: () => void;
+  buyNow: (item: CartItem) => void; // Clear cart + add single item for instant checkout
   total: number;
   itemCount: number;
   promoCode: string;
@@ -92,6 +93,12 @@ export function CartProvider({ children }: { children: ReactNode }): React.React
     setPromoCode('');
   };
 
+  // Buy Now: Clear cart and add single item for instant checkout
+  const buyNow = (item: CartItem): void => {
+    setItems([{ ...item, quantity: 1 }]);
+    setPromoCode('');
+  };
+
   const total = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const itemCount = items.reduce((count, item) => count + item.quantity, 0);
 
@@ -101,6 +108,7 @@ export function CartProvider({ children }: { children: ReactNode }): React.React
     removeItem,
     updateQuantity,
     clearCart,
+    buyNow,
     total,
     itemCount,
     promoCode,

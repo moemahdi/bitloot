@@ -81,7 +81,7 @@ import { FulfillmentGateway } from './fulfillment.gateway';
     {
       provide: KinguinClient,
       useFactory: () => {
-        const logger = new (require('@nestjs/common').Logger)('FulfillmentModule');
+        const logger = new Logger('FulfillmentModule');
         const apiKey = process.env.KINGUIN_API_KEY ?? '';
         const baseUrl = process.env.KINGUIN_BASE_URL ?? 'https://gateway.kinguin.net/esa/api/v2';
 

@@ -313,15 +313,15 @@ export class KinguinCatalogClient {
 
         const queryLower = query.toLowerCase();
         const filteredResults = (response.data.results ?? []).filter((product) => {
-          const nameMatch = product.name?.toLowerCase().includes(queryLower);
+          const nameMatch = product.name?.toLowerCase().includes(queryLower) ?? false;
           const platformMatch =
-            !options?.platform ||
-            options.platform === '' ||
-            product.platform?.toLowerCase() === options.platform.toLowerCase();
+            (options?.platform === undefined || options.platform === null ||
+            options.platform.length === 0) ||
+            (product.platform?.toLowerCase() ?? '') === (options.platform?.toLowerCase() ?? '');
           const genreMatch =
-            !options?.genre ||
-            options.genre === '' ||
-            product.genres?.some((g) => g.toLowerCase().includes(options.genre?.toLowerCase() ?? ''));
+            (options?.genre === undefined || options.genre === null ||
+            options.genre.length === 0) ||
+            (product.genres?.some((g) => g.toLowerCase().includes(options.genre?.toLowerCase() ?? '')) ?? false);
 
           return nameMatch && platformMatch && genreMatch;
         });

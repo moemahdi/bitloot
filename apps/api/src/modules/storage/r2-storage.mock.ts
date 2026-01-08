@@ -137,7 +137,7 @@ export class MockR2StorageClient {
 
     // Check both in-memory storage and simulated paths
     const exists = this.storage.has(path);
-    console.log(`[MockR2] exists(${path}): ${exists}`);
+    console.warn(`[MockR2] exists(${path}): ${exists}`);
     return exists;
   }
 
@@ -171,7 +171,7 @@ export class MockR2StorageClient {
       .toISOString()
       .replace(/[:-]/g, '')}`;
 
-    console.log(`[MockR2] generateSignedUrlForPath(${params.path}): ${url}`);
+    console.warn(`[MockR2] generateSignedUrlForPath(${params.path}): ${url}`);
     return url;
   }
 
@@ -204,7 +204,7 @@ export class MockR2StorageClient {
     });
 
     const etag = `"mock-etag-${Date.now()}"`;
-    console.log(`[MockR2] uploadToPath(${params.path}): ${etag}`);
+    console.warn(`[MockR2] uploadToPath(${params.path}): ${etag}`);
     return etag;
   }
 

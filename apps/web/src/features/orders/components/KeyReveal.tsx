@@ -204,7 +204,7 @@ export function KeyReveal({
                     </p>
                   </div>
                 </div>
-                {revealedKey && (
+                {revealedKey !== null && revealedKey !== undefined && (
                   <Badge 
                     variant="outline" 
                     className={cn(
@@ -218,7 +218,7 @@ export function KeyReveal({
                 )}
               </div>
               
-              {!revealedKey ? (
+              {revealedKey === null || revealedKey === undefined ? (
                 <Button 
                   onClick={() => handleRevealKey(itemId)} 
                   disabled={isRevealing}
@@ -239,13 +239,14 @@ export function KeyReveal({
                 </Button>
               ) : (
                 <div className="space-y-3">
-                  {isImage ? (
+                  {isImage === true ? (
                     <div className="space-y-3">
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
                         <ImageIcon className="h-4 w-4" />
                         <span>Image Key ({revealedKey.contentType})</span>
                       </div>
                       <div className="relative rounded-lg overflow-hidden border bg-muted/30">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img 
                           src={`data:${revealedKey.contentType};base64,${revealedKey.plainKey}`}
                           alt="Product Key"

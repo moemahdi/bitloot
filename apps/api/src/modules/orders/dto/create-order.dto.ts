@@ -1,16 +1,48 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEmail, IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import { IsEmail, IsNotEmpty, IsOptional, IsString, IsArray, ValidateNested, IsInt, Min, IsUUID } from 'class-validator';
 import { Type } from 'class-transformer';
+
+/**
+ * Item in order creation request
+ */
+export class CreateOrderItemDto {
+  @ApiProperty({ description: 'Product ID (UUID)', example: '52b45262-731b-4730-a409-709e1bd16797' })
+  @IsUUID()
+  productId!: string;
+
+  @ApiProperty({ description: 'Quantity (default: 1)', example: 1, default: 1, required: false })
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  quantity?: number;
+}
 
 export class CreateOrderDto {
   @ApiProperty({ example: 'user@example.com' })
   @IsEmail()
   email!: string;
 
-  @ApiProperty({ default: 'demo-product', example: 'demo-product' })
+  @ApiProperty({ 
+    description: 'Single product ID (for backward compatibility)',
+    default: 'demo-product', 
+    example: 'demo-product',
+    required: false,
+  })
+  @IsOptional()
   @IsString()
   @IsNotEmpty()
-  productId!: string;
+  productId?: string;
+
+  @ApiProperty({
+    description: 'Array of items to order (use this for multi-item orders)',
+    type: [CreateOrderItemDto],
+    required: false,
+  })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => CreateOrderItemDto)
+  items?: CreateOrderItemDto[];
 
   @ApiProperty({ required: false, example: 'Demo order' })
   @IsOptional()

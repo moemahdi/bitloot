@@ -493,21 +493,21 @@ export class CatalogService {
   }
 
   /**
-   * Get multiple products by their slugs (productId in order items)
+   * Get multiple products by their IDs
    * Returns a Map for O(1) lookup of product titles
    */
-  async getProductsBySlugs(slugs: string[]): Promise<Map<string, Product>> {
-    if (slugs.length === 0) {
+  async getProductsBySlugs(productIds: string[]): Promise<Map<string, Product>> {
+    if (productIds.length === 0) {
       return new Map();
     }
 
     const products = await this.productRepo.find({
-      where: slugs.map((slug) => ({ slug })),
+      where: productIds.map((id) => ({ id })),
     });
 
     const productMap = new Map<string, Product>();
     for (const product of products) {
-      productMap.set(product.slug, product);
+      productMap.set(product.id, product);
     }
     return productMap;
   }

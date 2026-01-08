@@ -68,7 +68,7 @@ export function EmailEntryModal({
 
   // Pre-fill email when user is authenticated
   useState(() => {
-    if (userEmail) {
+    if (userEmail !== undefined && userEmail !== null && userEmail !== '') {
       setValue('email', userEmail);
     }
   });
@@ -91,7 +91,7 @@ export function EmailEntryModal({
     setError(null);
 
     // Check for CAPTCHA if enabled (only for non-authenticated users)
-    if (!isAuthenticated && process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && !captchaToken) {
+    if (!isAuthenticated && typeof process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY === 'string' && process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY !== '' && (captchaToken === null || captchaToken === '')) {
       setError('Please complete the CAPTCHA verification');
       return;
     }
@@ -107,7 +107,7 @@ export function EmailEntryModal({
   };
 
   const handleContinue = async (): Promise<void> => {
-    if (isAuthenticated && userEmail) {
+    if (isAuthenticated && userEmail !== undefined && userEmail !== null && userEmail !== '') {
       await onSubmit({ email: userEmail });
     }
   };
@@ -171,7 +171,7 @@ export function EmailEntryModal({
               </div>
 
               {/* Product Summary */}
-              {(productTitle || productPrice) && (
+              {((productTitle !== undefined && productTitle !== null && productTitle !== '') || (productPrice !== undefined && productPrice !== null && productPrice !== '')) && (
                 <div className={`mx-6 mb-4 rounded-xl p-4 ${GLASS_CARD}`}>
                   <div className="flex justify-between items-center">
                     <div>
@@ -180,7 +180,7 @@ export function EmailEntryModal({
                         {productTitle ?? 'Product'}
                       </p>
                     </div>
-                    {productPrice && (
+                    {productPrice !== undefined && productPrice !== null && productPrice !== '' && (
                       <div className="text-right">
                         <p className="text-sm text-white/60">Total</p>
                         <p className="text-lg font-bold text-cyan-400">{productPrice}</p>
@@ -192,7 +192,7 @@ export function EmailEntryModal({
 
               {/* Content */}
               <div className="px-6 pb-6">
-                {isAuthenticated && userEmail ? (
+                {isAuthenticated && userEmail !== undefined && userEmail !== null && userEmail !== '' ? (
                   /* Authenticated User Flow */
                   <div className="space-y-4">
                     <div className={`rounded-xl p-4 ${GLASS_CARD}`}>
@@ -210,7 +210,7 @@ export function EmailEntryModal({
                       </div>
                     </div>
 
-                    {error && (
+                    {error !== null && error !== '' && (
                       <div className="rounded-lg bg-red-500/10 border border-red-500/30 p-3">
                         <p className="text-sm text-red-400">{error}</p>
                       </div>
@@ -249,13 +249,13 @@ export function EmailEntryModal({
                         className="h-12 bg-white/5 border-white/10 text-white placeholder:text-white/40 focus:border-cyan-500/50 focus:ring-cyan-500/20"
                         {...register('email')}
                       />
-                      {errors.email && (
+                      {errors.email !== undefined && errors.email !== null && (
                         <p className="text-sm text-red-400">{errors.email.message}</p>
                       )}
                     </div>
 
                     {/* CAPTCHA */}
-                    {process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && (
+                    {typeof process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY === 'string' && process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY !== '' && (
                       <div className="flex justify-center">
                         <Turnstile
                           ref={turnstileRef}
@@ -273,7 +273,7 @@ export function EmailEntryModal({
                       </div>
                     )}
 
-                    {error && (
+                    {error !== null && error !== '' && (
                       <div className="rounded-lg bg-red-500/10 border border-red-500/30 p-3">
                         <p className="text-sm text-red-400">{error}</p>
                       </div>

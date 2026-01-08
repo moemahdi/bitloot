@@ -53,6 +53,10 @@ export interface FulfillmentControllerRevealMyKeyRequest {
     itemId: string;
 }
 
+export interface FulfillmentControllerTriggerFulfillmentRequest {
+    id: string;
+}
+
 /**
  * 
  */
@@ -325,6 +329,42 @@ export class FulfillmentApi extends runtime.BaseAPI {
     async fulfillmentControllerRevealMyKey(requestParameters: FulfillmentControllerRevealMyKeyRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<RevealedKeyDto> {
         const response = await this.fulfillmentControllerRevealMyKeyRaw(requestParameters, initOverrides);
         return await response.value();
+    }
+
+    /**
+     * SANDBOX: Manually trigger fulfillment for testing
+     */
+    async fulfillmentControllerTriggerFulfillmentRaw(requestParameters: FulfillmentControllerTriggerFulfillmentRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<void>> {
+        if (requestParameters['id'] == null) {
+            throw new runtime.RequiredError(
+                'id',
+                'Required parameter "id" was null or undefined when calling fulfillmentControllerTriggerFulfillment().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/fulfillment/{id}/trigger-fulfillment`;
+        urlPath = urlPath.replace(`{${"id"}}`, encodeURIComponent(String(requestParameters['id'])));
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.VoidApiResponse(response);
+    }
+
+    /**
+     * SANDBOX: Manually trigger fulfillment for testing
+     */
+    async fulfillmentControllerTriggerFulfillment(requestParameters: FulfillmentControllerTriggerFulfillmentRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<void> {
+        await this.fulfillmentControllerTriggerFulfillmentRaw(requestParameters, initOverrides);
     }
 
 }

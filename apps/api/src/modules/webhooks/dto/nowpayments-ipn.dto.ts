@@ -81,7 +81,7 @@ export class NowpaymentsIpnRequestDto {
     example: 5284800572,
     oneOf: [{ type: 'number' }, { type: 'string' }],
   })
-  @ValidateIf((o) => o.payment_id !== undefined)
+  @ValidateIf((o: unknown) => (o as Record<string, unknown>)?.payment_id !== undefined && (typeof (o as Record<string, unknown>).payment_id === 'number' || typeof (o as Record<string, unknown>).payment_id === 'string'))
   @IsNotEmpty()
   payment_id!: number | string;
 
@@ -94,7 +94,7 @@ export class NowpaymentsIpnRequestDto {
     example: 5208745935,
     oneOf: [{ type: 'number' }, { type: 'string' }],
   })
-  @ValidateIf((o) => o.invoice_id !== undefined)
+  @ValidateIf((o: unknown) => (o as Record<string, unknown>)?.invoice_id !== undefined && (typeof (o as Record<string, unknown>).invoice_id === 'number' || typeof (o as Record<string, unknown>).invoice_id === 'string'))
   @IsOptional()
   invoice_id?: number | string;
 
