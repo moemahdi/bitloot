@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { useCart } from '@/context/CartContext';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
@@ -9,16 +9,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/design-system/primitives/button';
 import { Input } from '@/design-system/primitives/input';
 import { Label } from '@/design-system/primitives/label';
-import { RadioGroup, RadioGroupItem } from '@/design-system/primitives/radio-group';
-import { ScrollArea } from '@/design-system/primitives/scroll-area';
 import { Badge } from '@/design-system/primitives/badge';
-import {
-  POPULAR_COINS,
-  STABLECOINS,
-  OTHER_CURRENCIES,
-  getCurrencyByCode,
-  type CryptoCurrency,
-} from '@/config/supported-currencies';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -34,18 +25,17 @@ import {
   Shield,
   Check,
   Mail,
-  CreditCard,
-  Wallet,
-  Search,
-  ChevronDown,
   Clock,
-  Gift
+  Gift,
+  CreditCard,
+  Wallet
 } from 'lucide-react';
 import { useMutation } from '@tanstack/react-query';
 import { OrdersApi } from '@bitloot/sdk';
 import { apiConfig } from '@/lib/api-config';
 import type { OrderResponseDto } from '@bitloot/sdk';
 import { EmbeddedPaymentUI } from '@/features/checkout/EmbeddedPaymentUI';
+import { PaymentMethodForm, type PaymentMethodFormData } from '@/features/checkout/PaymentMethodForm';
 
 // Interface for embedded payment response
 interface EmbeddedPaymentResponse {
@@ -71,75 +61,6 @@ const emailSchema = z.object({
 type EmailFormData = z.infer<typeof emailSchema>;
 
 type CheckoutStep = 'email' | 'payment' | 'paying';
-
-// ========== Crypto Quick Select Options (Popular) ==========
-const QUICK_CRYPTO_OPTIONS = [
-  {
-    id: 'usdttrc20',
-    name: 'Tether',
-    symbol: 'USDT',
-    network: 'TRC20',
-    description: 'Stablecoin • Lowest fees',
-    icon: '₮',
-    colorClass: 'from-green-success to-cyan-glow',
-    glowClass: 'shadow-glow-success',
-    borderClass: 'border-green-success',
-  },
-  {
-    id: 'btc',
-    name: 'Bitcoin',
-    symbol: 'BTC',
-    description: 'Most secure & widely used',
-    icon: '₿',
-    colorClass: 'from-orange-500 to-amber-500',
-    glowClass: 'shadow-glow-error',
-    borderClass: 'border-orange-500',
-  },
-  {
-    id: 'eth',
-    name: 'Ethereum',
-    symbol: 'ETH',
-    description: 'Fast transactions',
-    icon: 'Ξ',
-    colorClass: 'from-purple-neon to-cyan-glow',
-    glowClass: 'shadow-glow-purple-sm',
-    borderClass: 'border-purple-neon',
-  },
-  {
-    id: 'ltc',
-    name: 'Litecoin',
-    symbol: 'LTC',
-    description: 'Fast & low fees',
-    icon: 'Ł',
-    colorClass: 'from-text-secondary to-text-muted',
-    glowClass: 'shadow-glow-cyan-sm',
-    borderClass: 'border-text-secondary',
-  },
-  {
-    id: 'sol',
-    name: 'Solana',
-    symbol: 'SOL',
-    description: 'Ultra fast • Low fees',
-    icon: '◎',
-    colorClass: 'from-purple-500 to-green-400',
-    glowClass: 'shadow-glow-purple-sm',
-    borderClass: 'border-purple-500',
-  },
-  {
-    id: 'usdc',
-    name: 'USD Coin',
-    symbol: 'USDC',
-    network: 'ERC20',
-    description: 'Stablecoin',
-    icon: '$',
-    colorClass: 'from-blue-500 to-cyan-400',
-    glowClass: 'shadow-glow-cyan-sm',
-    borderClass: 'border-blue-500',
-  },
-];
-
-// Type for selected crypto - now accepts any string for 300+ currencies
-type CryptoId = string;
 
 // ========== SDK Clients ==========
 const ordersClient = new OrdersApi(apiConfig);
@@ -244,12 +165,9 @@ export default function CheckoutPage(): React.ReactElement {
   
   const [currentStep, setCurrentStep] = useState<CheckoutStep>('email');
   const [email, setEmail] = useState(user?.email ?? '');
-  const [selectedCrypto, setSelectedCrypto] = useState<CryptoId>('usdttrc20');
   const [isProcessing, setIsProcessing] = useState(false);
   const [embeddedPayment, setEmbeddedPayment] = useState<EmbeddedPaymentResponse | null>(null);
   const [createdOrderId, setCreatedOrderId] = useState<string | null>(null);
-  const [showAllCurrencies, setShowAllCurrencies] = useState(false);
-  const [currencySearch, setCurrencySearch] = useState('');
 
   const {
     register,
@@ -263,60 +181,9 @@ export default function CheckoutPage(): React.ReactElement {
   // Calculate totals
   const subtotal = total;
 
-  // Get selected crypto details - check quick options first, then full currency list
-  const selectedCryptoDetails = useMemo(() => {
-    const quickOption = QUICK_CRYPTO_OPTIONS.find((c) => c.id === selectedCrypto);
-    if (quickOption !== undefined) return quickOption;
-    
-    // Fallback to full currency list
-    const currency = getCurrencyByCode(selectedCrypto);
-    if (currency !== undefined) {
-      return {
-        id: currency.code,
-        name: currency.name,
-        symbol: currency.symbol,
-        network: currency.network,
-        description: currency.network ?? currency.category,
-        icon: currency.symbol.charAt(0),
-        colorClass: 'from-cyan-glow to-purple-neon',
-        glowClass: 'shadow-glow-cyan-sm',
-        borderClass: 'border-cyan-glow',
-      };
-    }
-    return null;
-  }, [selectedCrypto]);
-
-  // Filter currencies based on search
-  const filteredCurrencies = useMemo(() => {
-    if (currencySearch.length === 0) {
-      return { popular: POPULAR_COINS, stablecoins: STABLECOINS, other: OTHER_CURRENCIES };
-    }
-
-    const query = currencySearch.toLowerCase();
-    const filter = (currencies: CryptoCurrency[]) =>
-      currencies.filter(
-        (c) =>
-          c.code.toLowerCase().includes(query) ||
-          c.name.toLowerCase().includes(query) ||
-          c.symbol.toLowerCase().includes(query) ||
-          (c.network?.toLowerCase().includes(query) ?? false)
-      );
-
-    return {
-      popular: filter(POPULAR_COINS),
-      stablecoins: filter(STABLECOINS),
-      other: filter(OTHER_CURRENCIES),
-    };
-  }, [currencySearch]);
-
-  const totalFilteredResults =
-    filteredCurrencies.popular.length +
-    filteredCurrencies.stablecoins.length +
-    filteredCurrencies.other.length;
-
   // Create order and embedded payment mutation (no redirect)
   const createOrderMutation = useMutation({
-    mutationFn: async (): Promise<{ order: OrderResponseDto; payment: EmbeddedPaymentResponse }> => {
+    mutationFn: async (payCurrency: string): Promise<{ order: OrderResponseDto; payment: EmbeddedPaymentResponse }> => {
       if (items.length === 0) throw new Error('Cart is empty');
 
       // Build items array for multi-item order support
@@ -347,7 +214,7 @@ export default function CheckoutPage(): React.ReactElement {
           orderId: order.id,
           priceAmount: order.total, // Use backend-calculated total
           priceCurrency: 'eur',
-          payCurrency: selectedCrypto,
+          payCurrency,
           email,
         }),
       });
@@ -381,9 +248,9 @@ export default function CheckoutPage(): React.ReactElement {
     setCurrentStep('payment');
   };
 
-  const handlePaymentSubmit = async (): Promise<void> => {
+  const handlePaymentSubmit = async (data: PaymentMethodFormData): Promise<void> => {
     setIsProcessing(true);
-    await createOrderMutation.mutateAsync();
+    await createOrderMutation.mutateAsync(data.payCurrency);
   };
 
   const handleBack = (): void => {
@@ -613,16 +480,22 @@ export default function CheckoutPage(): React.ReactElement {
                             </div>
                           </motion.div>
                           
-                          <Button
-                            onClick={() => {
-                              setEmail(user.email);
-                              setCurrentStep('payment');
-                            }}
-                            className="w-full h-14 bg-gradient-to-r from-cyan-glow to-purple-neon text-bg-primary hover:shadow-glow-cyan font-bold text-lg transition-all duration-300 hover:scale-[1.02]"
+                          <motion.div
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                            transition={{ type: 'spring', stiffness: 400, damping: 17 }}
                           >
-                            Continue to Payment
-                            <ArrowRight className="ml-2 h-5 w-5" />
-                          </Button>
+                            <Button
+                              onClick={() => {
+                                setEmail(user.email);
+                                setCurrentStep('payment');
+                              }}
+                              className="w-full h-14 bg-gradient-to-r from-cyan-glow to-purple-neon text-bg-primary hover:shadow-glow-cyan-lg font-bold text-lg transition-all duration-200 group"
+                            >
+                              Continue to Payment
+                              <ArrowRight className="ml-2 h-5 w-5 transition-transform duration-200 group-hover:translate-x-1" />
+                            </Button>
+                          </motion.div>
                         </div>
                       ) : (
                         // Guest user - email form
@@ -637,7 +510,7 @@ export default function CheckoutPage(): React.ReactElement {
                                 type="email"
                                 id="email"
                                 placeholder="your@email.com"
-                                className="h-14 pl-12 bg-bg-secondary border-border-subtle text-text-primary text-lg placeholder:text-text-muted focus:border-cyan-glow/50 focus:ring-2 focus:ring-cyan-glow/20 rounded-xl transition-all duration-200"
+                                className="h-14 pl-12 bg-bg-secondary border-border-subtle text-text-primary text-lg placeholder:text-text-muted focus:border-cyan-glow focus:ring-2 focus:ring-cyan-glow/30 focus:shadow-glow-cyan-sm rounded-xl transition-all duration-200"
                                 {...register('email')}
                               />
                             </div>
@@ -664,13 +537,19 @@ export default function CheckoutPage(): React.ReactElement {
                             </div>
                           </div>
 
-                          <Button
-                            type="submit"
-                            className="w-full h-14 bg-gradient-to-r from-cyan-glow to-purple-neon text-bg-primary hover:shadow-glow-cyan font-bold text-lg transition-all duration-300 hover:scale-[1.02]"
+                          <motion.div
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                            transition={{ type: 'spring', stiffness: 400, damping: 17 }}
                           >
-                            Continue to Payment
-                            <ArrowRight className="ml-2 h-5 w-5" />
-                          </Button>
+                            <Button
+                              type="submit"
+                              className="w-full h-14 bg-gradient-to-r from-cyan-glow to-purple-neon text-bg-primary hover:shadow-glow-cyan-lg font-bold text-lg transition-all duration-200 group"
+                            >
+                              Continue to Payment
+                              <ArrowRight className="ml-2 h-5 w-5 transition-transform duration-200 group-hover:translate-x-1" />
+                            </Button>
+                          </motion.div>
                           
                           {/* Trust indicators */}
                           <div className="flex items-center justify-center gap-6 pt-2">
@@ -703,350 +582,10 @@ export default function CheckoutPage(): React.ReactElement {
                   exit={{ opacity: 0, y: -20 }}
                   transition={{ duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }}
                 >
-                  <div className="relative glass-strong rounded-3xl overflow-hidden shadow-card-lg border border-border-subtle">
-                    {/* Gradient border accent */}
-                    <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-purple-neon via-cyan-glow to-purple-neon" />
-                    
-                    <div className="p-6 md:p-8 border-b border-border-subtle bg-gradient-to-r from-purple-neon/5 to-transparent">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-4">
-                          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-neon/20 to-cyan-glow/10 flex items-center justify-center border border-purple-neon/30 shadow-glow-purple-sm">
-                            <Wallet className="h-6 w-6 text-purple-neon" />
-                          </div>
-                          <div>
-                            <h2 className="text-xl sm:text-2xl font-bold text-text-primary tracking-tight">Select Payment Method</h2>
-                            <p className="text-sm text-text-muted">300+ cryptocurrencies supported</p>
-                          </div>
-                        </div>
-                        <Badge variant="outline" className="hidden sm:flex border-purple-neon/30 text-purple-neon gap-1">
-                          <Sparkles className="h-3 w-3" /> Crypto Only
-                        </Badge>
-                      </div>
-                    </div>
-
-                    <div className="p-6 md:p-8 space-y-6">
-                      {/* Selected Currency Display - Enhanced */}
-                      {selectedCryptoDetails != null && (
-                        <motion.div 
-                          initial={{ scale: 0.98, opacity: 0 }}
-                          animate={{ scale: 1, opacity: 1 }}
-                          key={selectedCrypto}
-                          className="p-5 rounded-2xl border-2 border-cyan-glow bg-gradient-to-r from-cyan-glow/10 to-purple-neon/5 shadow-glow-cyan-sm"
-                        >
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-4">
-                              <div className={`w-14 h-14 rounded-xl flex items-center justify-center text-2xl font-bold bg-gradient-to-br ${selectedCryptoDetails.colorClass} shadow-lg`}>
-                                {selectedCryptoDetails.icon}
-                              </div>
-                              <div>
-                                <div className="flex items-center gap-2">
-                                  <span className="font-bold text-xl text-text-primary">{selectedCryptoDetails.symbol}</span>
-                                  <span className="text-text-muted">{selectedCryptoDetails.name}</span>
-                                </div>
-                                {selectedCryptoDetails.network != null && (
-                                  <p className="text-xs text-text-muted mt-0.5">Network: <span className="text-cyan-glow">{selectedCryptoDetails.network}</span></p>
-                                )}
-                              </div>
-                            </div>
-                            <Badge className="bg-green-success/20 text-green-success border-green-success/30 shadow-glow-success">
-                              <Check className="h-3 w-3 mr-1" /> Selected
-                            </Badge>
-                          </div>
-                        </motion.div>
-                      )}
-
-                      {/* Quick Select - Popular Options - Enhanced */}
-                      <div>
-                        <Label className="mb-4 flex items-center gap-2 text-sm font-semibold text-text-secondary">
-                          <Zap className="h-4 w-4 text-cyan-glow" />
-                          Quick Select (Recommended)
-                        </Label>
-                        <RadioGroup
-                          value={selectedCrypto}
-                          onValueChange={(v) => setSelectedCrypto(v)}
-                          className="grid grid-cols-2 sm:grid-cols-3 gap-3"
-                        >
-                          {QUICK_CRYPTO_OPTIONS.map((crypto, index) => {
-                            const isSelected = selectedCrypto === crypto.id;
-                            return (
-                              <motion.div
-                                key={crypto.id}
-                                initial={{ opacity: 0, y: 10 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: index * 0.05, duration: 0.2 }}
-                                className={`
-                                  relative rounded-2xl p-4 cursor-pointer transition-all duration-300
-                                  ${isSelected 
-                                    ? `border-2 ${crypto.borderClass} bg-gradient-to-br ${crypto.colorClass}/10 ${crypto.glowClass}` 
-                                    : 'border border-border-subtle hover:border-border-accent hover:bg-bg-tertiary/50 bg-bg-tertiary/30'}
-                                `}
-                                onClick={() => setSelectedCrypto(crypto.id)}
-                              >
-                                <RadioGroupItem value={crypto.id} id={crypto.id} className="sr-only" />
-                                <Label htmlFor={crypto.id} className="cursor-pointer">
-                                  <div className="flex items-center gap-3">
-                                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl font-bold bg-gradient-to-br ${crypto.colorClass} shadow-md`}>
-                                      {crypto.icon}
-                                    </div>
-                                    <div>
-                                      <p className="font-bold text-text-primary">{crypto.symbol}</p>
-                                      <p className="text-[11px] text-text-muted leading-tight">{crypto.network ?? crypto.description}</p>
-                                    </div>
-                                  </div>
-                                  {isSelected && (
-                                    <motion.div 
-                                      initial={{ scale: 0 }}
-                                      animate={{ scale: 1 }}
-                                      className="absolute top-3 right-3"
-                                    >
-                                      <div className="w-5 h-5 rounded-full bg-green-success flex items-center justify-center shadow-glow-success">
-                                        <Check className="h-3 w-3 text-white" />
-                                      </div>
-                                    </motion.div>
-                                  )}
-                                </Label>
-                              </motion.div>
-                            );
-                          })}
-                        </RadioGroup>
-                      </div>
-
-                      {/* Browse All Currencies - Enhanced */}
-                      <div>
-                        <button
-                          type="button"
-                          onClick={() => setShowAllCurrencies(!showAllCurrencies)}
-                          className={`
-                            w-full flex items-center justify-between px-5 py-4 rounded-2xl border transition-all duration-300 group
-                            ${showAllCurrencies 
-                              ? 'border-purple-neon bg-purple-neon/10 shadow-glow-purple-sm' 
-                              : 'border-border-subtle hover:border-purple-neon/50 bg-bg-tertiary/30 hover:bg-bg-tertiary/50'}
-                          `}
-                        >
-                          <div className="flex items-center gap-3">
-                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${showAllCurrencies ? 'bg-purple-neon/20' : 'bg-bg-secondary group-hover:bg-purple-neon/10'}`}>
-                              <Search className={`h-4 w-4 transition-colors ${showAllCurrencies ? 'text-purple-neon' : 'text-text-muted group-hover:text-purple-neon'}`} />
-                            </div>
-                            <span className={`text-sm font-medium transition-colors ${showAllCurrencies ? 'text-purple-neon' : 'text-text-secondary group-hover:text-text-primary'}`}>
-                              Browse all 300+ cryptocurrencies
-                            </span>
-                          </div>
-                          <motion.div
-                            animate={{ rotate: showAllCurrencies ? 180 : 0 }}
-                            transition={{ duration: 0.2 }}
-                          >
-                            <ChevronDown className={`h-5 w-5 transition-colors ${showAllCurrencies ? 'text-purple-neon' : 'text-text-muted'}`} />
-                          </motion.div>
-                        </button>
-
-                        <AnimatePresence>
-                          {showAllCurrencies && (
-                            <motion.div
-                              initial={{ height: 0, opacity: 0 }}
-                              animate={{ height: 'auto', opacity: 1 }}
-                              exit={{ height: 0, opacity: 0 }}
-                              transition={{ duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }}
-                              className="overflow-hidden"
-                            >
-                              <div className="mt-4 p-5 rounded-2xl border border-border-subtle bg-gradient-to-b from-bg-secondary/80 to-bg-tertiary/50 space-y-4">
-                                {/* Search Input - Enhanced */}
-                                <div className="relative">
-                                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-text-muted" />
-                                  <Input
-                                    type="text"
-                                    placeholder="Search by name, symbol, or network..."
-                                    value={currencySearch}
-                                    onChange={(e) => setCurrencySearch(e.target.value)}
-                                    className="pl-11 h-12 bg-bg-tertiary border-border-subtle focus:border-purple-neon/50 focus:ring-2 focus:ring-purple-neon/20 rounded-xl"
-                                  />
-                                  <Badge variant="outline" className="absolute right-3 top-1/2 -translate-y-1/2 text-xs border-border-subtle">
-                                    {totalFilteredResults} found
-                                  </Badge>
-                                </div>
-
-                                {/* Currency Lists - Enhanced */}
-                                <ScrollArea className="h-[320px] pr-4">
-                                  <div className="space-y-5">
-                                    {/* Popular Coins */}
-                                    {filteredCurrencies.popular.length > 0 && (
-                                      <div>
-                                        <h4 className="mb-3 text-sm font-bold text-cyan-glow flex items-center gap-2 sticky top-0 bg-bg-secondary/90 backdrop-blur-sm py-2 -mt-2 rounded-lg px-2">
-                                          <Sparkles className="h-4 w-4" /> Popular Coins
-                                          <Badge className="ml-auto bg-cyan-glow/10 text-cyan-glow border-cyan-glow/30">{filteredCurrencies.popular.length}</Badge>
-                                        </h4>
-                                        <div className="space-y-1.5">
-                                          {filteredCurrencies.popular.map((currency) => (
-                                            <button
-                                              key={currency.code}
-                                              type="button"
-                                              onClick={() => {
-                                                setSelectedCrypto(currency.code);
-                                                setShowAllCurrencies(false);
-                                              }}
-                                              className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all duration-200 ${
-                                                selectedCrypto === currency.code
-                                                  ? 'bg-cyan-glow/10 border-2 border-cyan-glow shadow-glow-cyan-sm'
-                                                  : 'hover:bg-bg-tertiary border border-transparent hover:border-border-subtle'
-                                              }`}
-                                            >
-                                              <div className="flex items-center gap-3">
-                                                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-cyan-glow/20 to-purple-neon/10 flex items-center justify-center text-sm font-bold text-cyan-glow">
-                                                  {currency.symbol.charAt(0)}
-                                                </div>
-                                                <div className="text-left">
-                                                  <span className="font-bold text-text-primary">{currency.symbol}</span>
-                                                  <span className="ml-2 text-xs text-text-muted">{currency.name}</span>
-                                                </div>
-                                              </div>
-                                              {currency.network != null && (
-                                                <Badge variant="outline" className="text-[10px] border-border-subtle">{currency.network}</Badge>
-                                              )}
-                                            </button>
-                                          ))}
-                                        </div>
-                                      </div>
-                                    )}
-
-                                    {/* Stablecoins */}
-                                    {filteredCurrencies.stablecoins.length > 0 && (
-                                      <div>
-                                        <h4 className="mb-3 text-sm font-bold text-green-success flex items-center gap-2 sticky top-0 bg-bg-secondary/90 backdrop-blur-sm py-2 -mt-2 rounded-lg px-2">
-                                          💵 Stablecoins
-                                          <Badge className="ml-auto bg-green-success/10 text-green-success border-green-success/30">{filteredCurrencies.stablecoins.length}</Badge>
-                                        </h4>
-                                        <div className="space-y-1.5">
-                                          {filteredCurrencies.stablecoins.map((currency) => (
-                                            <button
-                                              key={currency.code}
-                                              type="button"
-                                              onClick={() => {
-                                                setSelectedCrypto(currency.code);
-                                                setShowAllCurrencies(false);
-                                              }}
-                                              className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all duration-200 ${
-                                                selectedCrypto === currency.code
-                                                  ? 'bg-green-success/10 border-2 border-green-success shadow-glow-success'
-                                                  : 'hover:bg-bg-tertiary border border-transparent hover:border-border-subtle'
-                                              }`}
-                                            >
-                                              <div className="flex items-center gap-3">
-                                                <div className="w-8 h-8 rounded-lg bg-green-success/10 flex items-center justify-center text-sm font-bold text-green-success">
-                                                  $
-                                                </div>
-                                                <div className="text-left">
-                                                  <span className="font-bold text-text-primary">{currency.symbol}</span>
-                                                  <span className="ml-2 text-xs text-text-muted">{currency.name}</span>
-                                                </div>
-                                              </div>
-                                              {currency.network != null && (
-                                                <Badge variant="outline" className="text-[10px] border-border-subtle">{currency.network}</Badge>
-                                              )}
-                                            </button>
-                                          ))}
-                                        </div>
-                                      </div>
-                                    )}
-
-                                    {/* Other Currencies */}
-                                    {filteredCurrencies.other.length > 0 && (
-                                      <div>
-                                        <h4 className="mb-3 text-sm font-bold text-text-secondary flex items-center gap-2 sticky top-0 bg-bg-secondary/90 backdrop-blur-sm py-2 -mt-2 rounded-lg px-2">
-                                          🪙 Other Currencies
-                                          <Badge className="ml-auto bg-bg-tertiary text-text-muted border-border-subtle">{filteredCurrencies.other.length}</Badge>
-                                        </h4>
-                                        <div className="space-y-1.5">
-                                          {filteredCurrencies.other.map((currency) => (
-                                            <button
-                                              key={currency.code}
-                                              type="button"
-                                              onClick={() => {
-                                                setSelectedCrypto(currency.code);
-                                                setShowAllCurrencies(false);
-                                              }}
-                                              className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all duration-200 ${
-                                                selectedCrypto === currency.code
-                                                  ? 'bg-purple-neon/10 border-2 border-purple-neon shadow-glow-purple-sm'
-                                                  : 'hover:bg-bg-tertiary border border-transparent hover:border-border-subtle'
-                                              }`}
-                                            >
-                                              <div className="flex items-center gap-3">
-                                                <div className="w-8 h-8 rounded-lg bg-purple-neon/10 flex items-center justify-center text-sm font-bold text-purple-neon">
-                                                  {currency.symbol.charAt(0)}
-                                                </div>
-                                                <div className="text-left">
-                                                  <span className="font-bold text-text-primary">{currency.symbol}</span>
-                                                  <span className="ml-2 text-xs text-text-muted">{currency.name}</span>
-                                                </div>
-                                              </div>
-                                              {currency.network != null && (
-                                                <Badge variant="outline" className="text-[10px] border-border-subtle">{currency.network}</Badge>
-                                              )}
-                                            </button>
-                                          ))}
-                                        </div>
-                                      </div>
-                                    )}
-
-                                    {totalFilteredResults === 0 && (
-                                      <div className="text-center py-12">
-                                        <Search className="h-12 w-12 text-text-muted mx-auto mb-4 opacity-50" />
-                                        <p className="text-text-muted font-medium">
-                                          No currencies found matching &quot;{currencySearch}&quot;
-                                        </p>
-                                        <p className="text-xs text-text-muted mt-1">Try a different search term</p>
-                                      </div>
-                                    )}
-                                  </div>
-                                </ScrollArea>
-                              </div>
-                            </motion.div>
-                          )}
-                        </AnimatePresence>
-                      </div>
-
-                      {/* How it works - Enhanced */}
-                      <div className="p-5 rounded-2xl bg-gradient-to-r from-cyan-glow/10 to-purple-neon/5 border border-cyan-glow/30">
-                        <div className="flex items-center gap-2 mb-3">
-                          <Zap className="h-4 w-4 text-cyan-glow" />
-                          <p className="text-sm font-bold text-cyan-glow">How it works</p>
-                        </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                          <div className="flex items-start gap-3">
-                            <div className="w-6 h-6 rounded-full bg-cyan-glow/20 flex items-center justify-center text-xs font-bold text-cyan-glow flex-shrink-0">1</div>
-                            <p className="text-xs text-text-secondary leading-relaxed">Click &quot;Pay Now&quot; to generate your payment address</p>
-                          </div>
-                          <div className="flex items-start gap-3">
-                            <div className="w-6 h-6 rounded-full bg-purple-neon/20 flex items-center justify-center text-xs font-bold text-purple-neon flex-shrink-0">2</div>
-                            <p className="text-xs text-text-secondary leading-relaxed">Send the exact amount to the provided address</p>
-                          </div>
-                          <div className="flex items-start gap-3">
-                            <div className="w-6 h-6 rounded-full bg-green-success/20 flex items-center justify-center text-xs font-bold text-green-success flex-shrink-0">3</div>
-                            <p className="text-xs text-text-secondary leading-relaxed">Keys delivered instantly after confirmation</p>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Pay Button - Enhanced */}
-                      <Button
-                        onClick={handlePaymentSubmit}
-                        disabled={isProcessing}
-                        className="w-full h-16 bg-gradient-to-r from-cyan-glow via-purple-neon to-cyan-glow bg-[length:200%_100%] text-bg-primary hover:shadow-glow-cyan font-bold text-lg transition-all duration-500 hover:bg-right disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        {isProcessing ? (
-                          <>
-                            <Loader2 className="mr-3 h-6 w-6 animate-spin" />
-                            Creating Payment...
-                          </>
-                        ) : (
-                          <>
-                            <Lock className="mr-2 h-5 w-5" />
-                            Pay €{subtotal.toFixed(2)} with {selectedCryptoDetails?.symbol ?? selectedCrypto.toUpperCase()}
-                            <ArrowRight className="ml-3 h-5 w-5" />
-                          </>
-                        )}
-                      </Button>
-                    </div>
-                  </div>
+                  <PaymentMethodForm
+                    onSubmit={handlePaymentSubmit}
+                    isLoading={isProcessing}
+                  />
                 </motion.div>
               )}
 
@@ -1105,8 +644,9 @@ export default function CheckoutPage(): React.ReactElement {
                       key={item.productId} 
                       initial={{ opacity: 0, x: 20 }}
                       animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: index * 0.1 }}
-                      className="flex justify-between items-start gap-3 p-3 rounded-xl bg-bg-tertiary/30 border border-border-subtle/50 hover:border-border-subtle transition-colors"
+                      whileHover={{ x: 2, borderColor: 'rgba(0, 255, 255, 0.3)' }}
+                      transition={{ delay: index * 0.1, duration: 0.2 }}
+                      className="flex justify-between items-start gap-3 p-3 rounded-xl bg-bg-tertiary/30 border border-border-subtle/50 hover:bg-bg-tertiary/50 transition-colors cursor-default"
                     >
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-semibold text-text-primary truncate">{item.title}</p>
@@ -1119,7 +659,7 @@ export default function CheckoutPage(): React.ReactElement {
                           </Badge>
                         </div>
                       </div>
-                      <p className="text-sm font-bold text-cyan-glow whitespace-nowrap">
+                      <p className="text-sm font-bold text-cyan-glow whitespace-nowrap font-mono tracking-tight">
                         €{(item.price * item.quantity).toFixed(2)}
                       </p>
                     </motion.div>
@@ -1143,17 +683,21 @@ export default function CheckoutPage(): React.ReactElement {
                 )}
 
                 {/* Total - Enhanced */}
-                <div className="p-4 rounded-2xl bg-gradient-to-br from-cyan-glow/10 to-purple-neon/5 border border-cyan-glow/20">
+                <motion.div 
+                  animate={{ boxShadow: ['0 0 20px rgba(0, 255, 255, 0.1)', '0 0 30px rgba(0, 255, 255, 0.2)', '0 0 20px rgba(0, 255, 255, 0.1)'] }}
+                  transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+                  className="p-4 rounded-2xl bg-gradient-to-br from-cyan-glow/10 to-purple-neon/5 border border-cyan-glow/30"
+                >
                   <div className="flex justify-between items-center">
                     <span className="text-lg font-bold text-text-primary">Total</span>
                     <div className="text-right">
-                      <span className="text-3xl font-bold bg-gradient-to-r from-cyan-glow to-purple-neon bg-clip-text text-transparent">
+                      <span className="text-3xl font-bold font-mono tracking-tight bg-gradient-to-r from-cyan-glow to-purple-neon bg-clip-text text-transparent">
                         €{subtotal.toFixed(2)}
                       </span>
                       <p className="text-xs text-text-muted mt-0.5">VAT included</p>
                     </div>
                   </div>
-                </div>
+                </motion.div>
 
                 {/* Trust Signals - Enhanced */}
                 <div className="pt-2 space-y-3">

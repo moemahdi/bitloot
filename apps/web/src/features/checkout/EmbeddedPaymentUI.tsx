@@ -16,6 +16,8 @@ import {
   Wallet,
   Shield,
   Timer,
+  Sparkles,
+  Zap,
 } from 'lucide-react';
 import { OrdersApi, PaymentsApi } from '@bitloot/sdk';
 import type { OrderResponseDto } from '@bitloot/sdk';
@@ -24,6 +26,7 @@ import { Badge } from '@/design-system/primitives/badge';
 import { Progress } from '@/design-system/primitives/progress';
 import { toast } from 'sonner';
 import { apiConfig } from '@/lib/api-config';
+import { CryptoIcon } from '@/components/crypto-icons';
 
 const ordersClient = new OrdersApi(apiConfig);
 const paymentsClient = new PaymentsApi(apiConfig);
@@ -44,19 +47,6 @@ interface EmbeddedPaymentProps {
 
 type PaymentStatus = 'waiting' | 'confirming' | 'confirmed' | 'finished' | 'failed' | 'expired';
 
-// ========== Currency Icons ==========
-const CURRENCY_ICONS: Record<string, string> = {
-  btc: '₿',
-  eth: 'Ξ',
-  ltc: 'Ł',
-  usdttrc20: '₮',
-  usdterc20: '₮',
-  trx: '◈',
-  bnb: '◆',
-  sol: '◎',
-  doge: 'Ð',
-};
-
 // ========== Status Config ==========
 const STATUS_CONFIG: Record<PaymentStatus, {
   label: string;
@@ -75,7 +65,7 @@ const STATUS_CONFIG: Record<PaymentStatus, {
   confirming: {
     label: 'Confirming on Blockchain',
     description: 'Transaction detected, waiting for confirmations...',
-    icon: <Loader2 className="h-5 w-5 animate-spin" />,
+    icon: <Loader2 className="h-5 w-5 animate-spin-glow" />,
     color: 'text-cyan-glow',
     bgColor: 'bg-cyan-glow/10',
   },
@@ -144,18 +134,36 @@ function CountdownTimer({ expiresAt, onExpired }: { expiresAt: string; onExpired
   }, [expiresAt, onExpired]);
 
   if (timeLeft === null) {
-    return <span className="text-red-500 font-mono text-lg">Expired</span>;
+    return (
+      <motion.span 
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className="text-destructive font-mono text-lg font-bold"
+      >
+        Expired
+      </motion.span>
+    );
   }
 
   const isLow = timeLeft.minutes < 5;
+  const isCritical = timeLeft.minutes < 2;
 
   return (
-    <div className={`flex items-center gap-2 ${isLow ? 'text-orange-warning' : 'text-text-secondary'}`}>
-      <Timer className="h-4 w-4" />
-      <span className="font-mono text-lg font-semibold">
+    <motion.div 
+      animate={isCritical ? { scale: [1, 1.02, 1] } : {}}
+      transition={{ duration: 1, repeat: Infinity }}
+      className={`flex items-center gap-2 ${isCritical ? 'text-destructive' : isLow ? 'text-orange-warning' : 'text-text-secondary'}`}
+    >
+      <motion.div
+        animate={isLow ? { rotate: [0, -10, 10, 0] } : {}}
+        transition={{ duration: 0.5, repeat: Infinity, repeatDelay: 2 }}
+      >
+        <Timer className="h-4 w-4" />
+      </motion.div>
+      <span className={`font-mono text-lg font-semibold tabular-nums ${isCritical ? 'animate-pulse' : ''}`}>
         {String(timeLeft.minutes).padStart(2, '0')}:{String(timeLeft.seconds).padStart(2, '0')}
       </span>
-    </div>
+    </motion.div>
   );
 }
 
@@ -268,27 +276,57 @@ export function EmbeddedPaymentUI({
     setTimeout(() => setCopied(null), 2000);
   };
 
-  const currencyIcon = CURRENCY_ICONS[payCurrency.toLowerCase()] ?? payCurrency.toUpperCase();
-
   // Success state - redirect happening
   if (paymentStatus === 'finished') {
     return (
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="glass-strong rounded-3xl p-8 text-center shadow-glow-success"
+        className="relative glass-strong rounded-3xl p-10 text-center shadow-glow-success overflow-hidden"
       >
+        {/* Animated background gradient */}
+        <div className="absolute inset-0 bg-gradient-to-br from-green-success/10 via-transparent to-cyan-glow/5" />
+        
         <motion.div
-          initial={{ scale: 0 }}
-          animate={{ scale: 1 }}
-          transition={{ type: 'spring', stiffness: 200 }}
-          className="mx-auto mb-6 h-20 w-20 rounded-full bg-green-success/20 flex items-center justify-center"
+          initial={{ scale: 0, rotate: -180 }}
+          animate={{ scale: 1, rotate: 0 }}
+          transition={{ type: 'spring', stiffness: 200, damping: 15 }}
+          className="relative mx-auto mb-6 h-24 w-24 rounded-full bg-gradient-to-br from-green-success/30 to-green-success/10 flex items-center justify-center shadow-glow-success border-2 border-green-success/50"
         >
-          <CheckCircle2 className="h-10 w-10 text-green-success" />
+          <CheckCircle2 className="h-12 w-12 text-green-success" />
+          <motion.div
+            className="absolute inset-0 rounded-full bg-green-success/20"
+            animate={{ scale: [1, 1.3, 1], opacity: [0.5, 0, 0.5] }}
+            transition={{ duration: 2, repeat: Infinity }}
+          />
         </motion.div>
-        <h2 className="text-2xl font-bold text-green-success mb-2">Payment Confirmed!</h2>
-        <p className="text-text-muted mb-4">Redirecting to your order...</p>
-        <Loader2 className="h-6 w-6 animate-spin text-cyan-glow mx-auto" />
+        
+        <motion.h2 
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="text-3xl font-bold text-green-success mb-3"
+        >
+          Payment Confirmed!
+        </motion.h2>
+        <motion.p 
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          className="text-text-muted mb-6"
+        >
+          Your order is being prepared. Redirecting...
+        </motion.p>
+        
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.4 }}
+          className="flex items-center justify-center gap-2 text-cyan-glow"
+        >
+          <Loader2 className="h-5 w-5 animate-spin" />
+          <span className="text-sm font-medium">Redirecting to order details...</span>
+        </motion.div>
       </motion.div>
     );
   }
@@ -299,20 +337,36 @@ export function EmbeddedPaymentUI({
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="glass-strong rounded-3xl p-8 text-center"
+        className="relative glass-strong rounded-3xl p-10 text-center overflow-hidden"
       >
-        <div className={`mx-auto mb-6 h-16 w-16 rounded-full ${statusConfig.bgColor} flex items-center justify-center`}>
-          <div className={statusConfig.color}>{statusConfig.icon}</div>
-        </div>
-        <h2 className={`text-xl font-bold mb-2 ${statusConfig.color}`}>{statusConfig.label}</h2>
-        <p className="text-text-muted mb-6">{statusConfig.description}</p>
-        <Button
-          onClick={() => router.push(`/checkout/${orderId}`)}
-          className="bg-cyan-glow text-bg-primary hover:shadow-glow-cyan"
+        {/* Background gradient */}
+        <div className={`absolute inset-0 ${paymentStatus === 'expired' ? 'bg-gradient-to-br from-orange-warning/10 via-transparent to-transparent' : 'bg-gradient-to-br from-red-500/10 via-transparent to-transparent'}`} />
+        
+        <motion.div 
+          initial={{ scale: 0 }}
+          animate={{ scale: 1 }}
+          transition={{ type: 'spring', stiffness: 200 }}
+          className={`relative mx-auto mb-6 h-20 w-20 rounded-2xl ${statusConfig.bgColor} flex items-center justify-center border-2 ${paymentStatus === 'expired' ? 'border-orange-warning/50' : 'border-red-500/50'}`}
         >
-          <RefreshCw className="h-4 w-4 mr-2" />
-          Try Again
-        </Button>
+          <div className={statusConfig.color}>{statusConfig.icon}</div>
+        </motion.div>
+        
+        <h2 className={`text-2xl font-bold mb-3 ${statusConfig.color}`}>{statusConfig.label}</h2>
+        <p className="text-text-muted mb-8 max-w-sm mx-auto">{statusConfig.description}</p>
+        
+        <motion.div
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          transition={{ type: 'spring', stiffness: 400, damping: 17 }}
+        >
+          <Button
+            onClick={() => router.push('/checkout')}
+            className="h-14 px-8 bg-gradient-to-r from-cyan-glow to-purple-neon text-bg-primary hover:shadow-glow-cyan-lg font-bold text-lg group"
+          >
+            <RefreshCw className="h-5 w-5 mr-2 transition-transform duration-200 group-hover:rotate-180" />
+            Start New Payment
+          </Button>
+        </motion.div>
       </motion.div>
     );
   }
@@ -321,34 +375,58 @@ export function EmbeddedPaymentUI({
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="glass-strong rounded-3xl overflow-hidden shadow-card-lg"
+      className="relative glass-strong rounded-3xl overflow-hidden shadow-card-lg border border-border-subtle"
     >
+      {/* Animated glow border when waiting */}
+      {paymentStatus === 'waiting' && (
+        <motion.div
+          className="absolute inset-0 rounded-3xl pointer-events-none"
+          animate={{ 
+            boxShadow: ['0 0 20px rgba(0, 255, 255, 0.1)', '0 0 40px rgba(0, 255, 255, 0.2)', '0 0 20px rgba(0, 255, 255, 0.1)']
+          }}
+          transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+        />
+      )}
+      
+      {/* Gradient border accent */}
+      <motion.div 
+        className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-cyan-glow via-purple-neon to-cyan-glow"
+        animate={paymentStatus === 'confirming' ? { opacity: [1, 0.5, 1] } : {}}
+        transition={{ duration: 1.5, repeat: Infinity }}
+      />
+
       {/* Header with Status */}
       <div className={`p-6 border-b border-border-subtle ${statusConfig.bgColor}`}>
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className={`p-2 rounded-xl bg-bg-primary/50 ${statusConfig.color}`}>
+          <div className="flex items-center gap-4">
+            <div className={`p-3 rounded-2xl bg-bg-primary/50 ${statusConfig.color} border border-border-subtle`}>
               {statusConfig.icon}
             </div>
             <div>
-              <h3 className={`font-semibold ${statusConfig.color}`}>{statusConfig.label}</h3>
+              <h3 className={`font-bold text-lg ${statusConfig.color}`}>{statusConfig.label}</h3>
               <p className="text-sm text-text-muted">{statusConfig.description}</p>
             </div>
           </div>
-          <button
+          <motion.button
             onClick={() => void refetch()}
-            className="p-2 rounded-lg hover:bg-bg-tertiary transition-colors text-text-muted hover:text-cyan-glow"
+            whileHover={{ scale: 1.05, rotate: 180 }}
+            whileTap={{ scale: 0.95 }}
+            transition={{ type: 'spring', stiffness: 400, damping: 17 }}
+            className="p-2.5 rounded-xl hover:bg-bg-tertiary transition-colors duration-200 text-text-muted hover:text-cyan-glow border border-transparent hover:border-cyan-glow/30 hover:shadow-glow-cyan-sm"
             title="Refresh status"
           >
             <RefreshCw className="h-4 w-4" />
-          </button>
+          </motion.button>
         </div>
 
         {/* Progress indicator for confirming */}
         {paymentStatus === 'confirming' && (
           <div className="mt-4">
-            <Progress value={50} className="h-1.5" />
-            <p className="text-xs text-text-muted mt-1">Waiting for blockchain confirmations...</p>
+            <div className="flex items-center justify-between text-xs text-text-muted mb-1.5">
+              <span>Confirming on blockchain...</span>
+              <span className="text-cyan-glow">~50%</span>
+            </div>
+            <Progress value={50} className="h-2" />
           </div>
         )}
       </div>
@@ -356,105 +434,192 @@ export function EmbeddedPaymentUI({
       {/* Payment Details */}
       <div className="p-6 space-y-6">
         {/* Timer */}
-        <div className="flex items-center justify-between p-4 rounded-xl bg-bg-tertiary border border-border-subtle">
-          <span className="text-text-muted">Time remaining</span>
+        <div className="flex items-center justify-between p-4 rounded-2xl bg-gradient-to-r from-bg-tertiary to-bg-secondary border border-border-subtle">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-xl bg-orange-warning/10 border border-orange-warning/20">
+              <Clock className="h-4 w-4 text-orange-warning" />
+            </div>
+            <span className="text-text-muted font-medium">Time remaining</span>
+          </div>
           <CountdownTimer expiresAt={expiresAt} onExpired={() => setIsExpired(true)} />
         </div>
 
-        {/* QR Code */}
-        <div className="flex justify-center">
-          <div className="p-4 bg-white rounded-2xl shadow-lg">
-            <QRCodeSVG
-              value={qrCodeData}
-              size={180}
-              level="H"
-              includeMargin={true}
-              style={{ display: 'block' }}
+        {/* QR Code Section */}
+        <div className="flex flex-col items-center gap-4">
+          <motion.div 
+            className="relative group"
+            whileHover={{ scale: 1.02 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+          >
+            {/* Animated glow ring */}
+            <motion.div 
+              className="absolute -inset-3 bg-gradient-to-r from-cyan-glow/30 via-purple-neon/30 to-cyan-glow/30 rounded-3xl blur-xl"
+              animate={{ opacity: [0.3, 0.6, 0.3] }}
+              transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
             />
-          </div>
+            <div className="absolute -inset-2 bg-gradient-to-r from-cyan-glow/20 via-purple-neon/20 to-cyan-glow/20 rounded-3xl blur-lg opacity-50 group-hover:opacity-75 transition-opacity" />
+            <div className="relative p-5 bg-white rounded-2xl shadow-xl border-2 border-white/50">
+              <QRCodeSVG
+                value={qrCodeData}
+                size={200}
+                level="H"
+                includeMargin={true}
+                style={{ display: 'block' }}
+              />
+            </div>
+          </motion.div>
+          <motion.p 
+            initial={{ opacity: 0, y: 5 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="text-xs text-text-muted flex items-center gap-1.5"
+          >
+            <Sparkles className="h-3.5 w-3.5 text-cyan-glow animate-pulse" />
+            Scan with your wallet app
+          </motion.p>
         </div>
 
         {/* Amount to Send */}
-        <div className="p-4 rounded-xl bg-bg-tertiary border border-border-subtle">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-text-muted text-sm">Send exactly</span>
-            <Badge variant="outline" className="text-xs">
-              {payCurrency.toUpperCase()}
-            </Badge>
-          </div>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="text-2xl">{currencyIcon}</span>
-              <span className="text-2xl font-bold text-text-primary font-mono">
-                {payAmount}
+        <div className="relative p-5 rounded-2xl bg-gradient-to-br from-bg-tertiary via-bg-secondary to-bg-tertiary border border-border-subtle overflow-hidden group hover:border-cyan-glow/30 transition-colors">
+          {/* Subtle glow effect */}
+          <div className="absolute inset-0 bg-gradient-to-r from-cyan-glow/5 to-purple-neon/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+          
+          <div className="relative">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-text-muted text-sm font-medium flex items-center gap-2">
+                <Zap className="h-4 w-4 text-cyan-glow" />
+                Send exactly
               </span>
+              <Badge className="bg-cyan-glow/10 text-cyan-glow border-cyan-glow/30 font-semibold">
+                {payCurrency.toUpperCase()}
+              </Badge>
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => void copyToClipboard(payAmount.toString(), 'amount')}
-              className="shrink-0"
-            >
-              {copied === 'amount' ? (
-                <CheckCircle2 className="h-4 w-4 text-green-success" />
-              ) : (
-                <Copy className="h-4 w-4" />
-              )}
-            </Button>
+            
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-xl bg-bg-primary/80 border border-border-subtle">
+                  <CryptoIcon code={payCurrency} size={32} />
+                </div>
+                <div>
+                  <span className="text-3xl font-bold text-text-primary font-mono tracking-tight tabular-nums">
+                    {payAmount}
+                  </span>
+                  <p className="text-sm text-text-muted mt-0.5 font-mono tabular-nums">
+                    ≈ ${priceAmount} {priceCurrency.toUpperCase()}
+                  </p>
+                </div>
+              </div>
+              <motion.div
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                transition={{ type: 'spring', stiffness: 400, damping: 17 }}
+              >
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => void copyToClipboard(payAmount.toString(), 'amount')}
+                  className={`h-11 w-11 rounded-xl border-border-subtle hover:border-cyan-glow hover:text-cyan-glow hover:shadow-glow-cyan-sm transition-all duration-200 ${copied === 'amount' ? 'border-green-success shadow-glow-success' : ''}`}
+                >
+                  {copied === 'amount' ? (
+                    <motion.div
+                      initial={{ scale: 0, rotate: -180 }}
+                      animate={{ scale: 1, rotate: 0 }}
+                      transition={{ type: 'spring', stiffness: 200, damping: 15 }}
+                    >
+                      <CheckCircle2 className="h-5 w-5 text-green-success" />
+                    </motion.div>
+                  ) : (
+                    <Copy className="h-5 w-5" />
+                  )}
+                </Button>
+              </motion.div>
+            </div>
           </div>
-          <p className="text-xs text-text-muted mt-2">
-            ≈ {priceAmount} {priceCurrency.toUpperCase()}
-          </p>
         </div>
 
         {/* Wallet Address */}
-        <div className="p-4 rounded-xl bg-bg-tertiary border border-border-subtle">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-text-muted text-sm">To this address</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <code className="flex-1 text-sm font-mono text-text-secondary break-all bg-bg-primary p-3 rounded-lg">
-              {payAddress}
-            </code>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => void copyToClipboard(payAddress, 'address')}
-              className="shrink-0"
-            >
-              {copied === 'address' ? (
-                <CheckCircle2 className="h-4 w-4 text-green-success" />
-              ) : (
-                <Copy className="h-4 w-4" />
-              )}
-            </Button>
+        <div className="relative p-5 rounded-2xl bg-gradient-to-br from-bg-tertiary via-bg-secondary to-bg-tertiary border border-border-subtle overflow-hidden group hover:border-purple-neon/30 transition-colors">
+          {/* Subtle glow effect */}
+          <div className="absolute inset-0 bg-gradient-to-r from-purple-neon/5 to-cyan-glow/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+          
+          <div className="relative">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-text-muted text-sm font-medium flex items-center gap-2">
+                <ExternalLink className="h-4 w-4 text-purple-neon" />
+                To this address
+              </span>
+            </div>
+            <div className="flex items-center gap-3">
+              <code className="flex-1 text-sm font-mono text-text-secondary break-all bg-bg-primary/80 p-4 rounded-xl border border-border-subtle">
+                {payAddress}
+              </code>
+              <motion.div
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                transition={{ type: 'spring', stiffness: 400, damping: 17 }}
+                className="shrink-0"
+              >
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => void copyToClipboard(payAddress, 'address')}
+                  className={`h-11 w-11 rounded-xl border-border-subtle hover:border-purple-neon hover:text-purple-neon hover:shadow-glow-purple-sm transition-all duration-200 ${copied === 'address' ? 'border-green-success shadow-glow-success' : ''}`}
+                >
+                  {copied === 'address' ? (
+                    <motion.div
+                      initial={{ scale: 0, rotate: -180 }}
+                      animate={{ scale: 1, rotate: 0 }}
+                      transition={{ type: 'spring', stiffness: 200, damping: 15 }}
+                    >
+                      <CheckCircle2 className="h-5 w-5 text-green-success" />
+                    </motion.div>
+                  ) : (
+                    <Copy className="h-5 w-5" />
+                  )}
+                </Button>
+              </motion.div>
+            </div>
           </div>
         </div>
 
         {/* Estimated Time */}
-        <div className="flex items-center justify-center gap-2 text-sm text-text-muted">
-          <Clock className="h-4 w-4" />
-          <span>Estimated confirmation time: {estimatedTime}</span>
+        <div className="flex items-center justify-center gap-2.5 py-3 px-4 rounded-xl bg-bg-tertiary/50 border border-border-subtle text-sm text-text-muted">
+          <Clock className="h-4 w-4 text-cyan-glow" />
+          <span>Estimated confirmation: <span className="text-text-secondary font-medium">{estimatedTime}</span></span>
         </div>
 
         {/* Security Note */}
-        <div className="flex items-center gap-2 p-3 rounded-xl bg-green-success/5 border border-green-success/20">
-          <Shield className="h-4 w-4 text-green-success shrink-0" />
-          <p className="text-xs text-green-success">
+        <motion.div 
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          className="flex items-center gap-3 p-4 rounded-2xl bg-gradient-to-r from-green-success/5 to-green-success/10 border border-green-success/30 shadow-glow-success/20"
+        >
+          <div className="p-2.5 rounded-xl bg-green-success/10 border border-green-success/20">
+            <Shield className="h-5 w-5 text-green-success" />
+          </div>
+          <p className="text-sm text-green-success font-medium">
             Secure blockchain payment. Your order will be processed automatically once confirmed.
           </p>
-        </div>
+        </motion.div>
 
         {/* View Order Link */}
-        <div className="text-center">
-          <button
+        <motion.div 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.4 }}
+          className="text-center"
+        >
+          <motion.button
             onClick={() => router.push(`/orders/${orderId}`)}
-            className="text-sm text-cyan-glow hover:underline inline-flex items-center gap-1"
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            className="text-sm text-cyan-glow hover:text-pink-featured hover:underline inline-flex items-center gap-1.5 transition-colors duration-200 group"
           >
             View order details
-            <ExternalLink className="h-3 w-3" />
-          </button>
-        </div>
+            <ExternalLink className="h-3 w-3 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+          </motion.button>
+        </motion.div>
       </div>
     </motion.div>
   );
