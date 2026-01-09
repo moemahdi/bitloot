@@ -7,6 +7,21 @@ import { RetryService } from './retry.service';
 import { randomUUID } from 'crypto';
 import { firstValueFrom } from 'rxjs';
 
+// ========== EMAIL DEDUPLICATION CACHE ==========
+// Prevents duplicate order confirmation emails within a short window
+const emailDeduplicationCache = new Map<string, { sentAt: number }>();
+
+// Cleanup expired entries every 5 minutes
+setInterval(() => {
+  const now = Date.now();
+  const EXPIRY_MS = 5 * 60 * 1000; // 5 minutes
+  for (const [key, value] of emailDeduplicationCache.entries()) {
+    if (now - value.sentAt > EXPIRY_MS) {
+      emailDeduplicationCache.delete(key);
+    }
+  }
+}, 5 * 60 * 1000);
+
 /**
  * Email headers for enhanced deliverability and standards compliance
  * Used by Resend API when sending transactional emails
@@ -305,6 +320,16 @@ export class EmailsService {
   ): Promise<void> {
     const { orderId, total, currency, items, paymentLink } = data;
     const shortOrderId = orderId.substring(0, 8);
+    
+    // ========== EMAIL DEDUPLICATION CHECK ==========
+    // Prevent duplicate confirmation emails for the same order
+    const dedupeKey = `order-confirmation:${orderId}`;
+    const cached = emailDeduplicationCache.get(dedupeKey);
+    if (cached !== undefined) {
+      this.logger.log(`⏭️  Skipping duplicate order confirmation email for order ${shortOrderId} (sent ${Math.round((Date.now() - cached.sentAt) / 1000)}s ago)`);
+      return;
+    }
+    
     const itemsList = items
       .map((item) => {
         const price = item.price ?? null;
@@ -369,6 +394,8 @@ export class EmailsService {
       this.logger.debug(`[MOCK EMAIL] Total: ${total} ${currency}`);
       this.logger.debug(`[MOCK EMAIL] Items: ${items.length}`);
       this.logger.debug(`[MOCK EMAIL] Idempotency-Key: ${idempotencyKey}`);
+      // Cache even in mock mode to prevent duplicates
+      emailDeduplicationCache.set(dedupeKey, { sentAt: Date.now() });
       return;
     }
 
@@ -391,6 +418,9 @@ export class EmailsService {
           },
         }),
       );
+
+      // Cache successful send to prevent duplicates
+      emailDeduplicationCache.set(dedupeKey, { sentAt: Date.now() });
 
       this.metricsService.incrementEmailSendSuccess('payment_created');
       // Safe due to optional chaining and type cast
@@ -609,6 +639,8 @@ export class EmailsService {
     data: { orderId: string; amountSent?: string; amountRequired?: string },
   ): Promise<void> {
     const { orderId, amountSent, amountRequired } = data;
+    const frontendUrl = process.env.FRONTEND_URL ?? 'http://localhost:3000';
+    const orderStatusUrl = `${frontendUrl}/orders/${orderId}/cancel`;
 
     const html = `
       <h2>BitLoot Payment Underpaid — Non-Refundable</h2>
@@ -632,6 +664,10 @@ export class EmailsService {
         <li>If you need assistance, please contact our support team</li>
         <li>To place a new order, please start fresh and send the exact amount</li>
       </ol>
+      
+      <p style="margin: 24px 0;">
+        <a href="${orderStatusUrl}" style="background-color: #dc2626; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">View Order Status</a>
+      </p>
       
       <p>We're sorry we couldn't complete this order. Our support team is here to help if you have questions.</p>
       <p>Best regards,<br/>The BitLoot Team</p>
@@ -668,6 +704,8 @@ export class EmailsService {
    */
   sendPaymentFailedNotice(to: string, data: { orderId: string; reason?: string }): Promise<void> {
     const { orderId, reason } = data;
+    const frontendUrl = process.env.FRONTEND_URL ?? 'http://localhost:3000';
+    const orderStatusUrl = `${frontendUrl}/orders/${orderId}/cancel`;
 
     const html = `
       <h2>BitLoot Payment Failed</h2>
@@ -682,6 +720,10 @@ export class EmailsService {
         <li>Try placing a new order with a different payment method</li>
         <li>Contact our support team for assistance</li>
       </ul>
+      
+      <p style="margin: 24px 0;">
+        <a href="${orderStatusUrl}" style="background-color: #dc2626; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">View Order Status</a>
+      </p>
       
       <p>We apologize for the inconvenience. Our support team is here to help.</p>
       <p>Best regards,<br/>The BitLoot Team</p>

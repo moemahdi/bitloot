@@ -3,6 +3,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { HttpModule } from '@nestjs/axios';
 import { ThrottlerModule } from '@nestjs/throttler';
+import { ScheduleModule } from '@nestjs/schedule';
 
 import { HealthController } from './health/health.controller';
 import { Order } from './modules/orders/order.entity';
@@ -11,7 +12,7 @@ import { Payment } from './modules/payments/payment.entity';
 import { WebhookLog } from './database/entities/webhook-log.entity';
 import { User } from './database/entities/user.entity';
 import { OrdersService } from './modules/orders/orders.service';
-import { OrdersController } from './modules/orders/orders.controller';
+// OrdersController is provided by OrdersModule (no direct import needed)
 import { StorageService } from './modules/storage/storage.service';
 import { WebhooksModule } from './modules/webhooks/webhooks.module';
 import { AdminModule } from './modules/admin/admin.module';
@@ -19,6 +20,7 @@ import { AuthModule } from './modules/auth/auth.module';
 import { PaymentsModule } from './modules/payments/payments.module';
 import { BullQueues, FulfillmentQueue } from './jobs/queues';
 import { FulfillmentProcessor } from './jobs/fulfillment.processor';
+import { OrphanOrderCleanupService } from './jobs/orphan-order-cleanup.processor';
 import { FulfillmentModule } from './modules/fulfillment/fulfillment.module';
 import { WebSocketModule } from './modules/fulfillment/websocket.module';
 import { KinguinModule } from './modules/kinguin/kinguin.module';
@@ -37,6 +39,8 @@ import { WatchlistModule } from './modules/watchlist/watchlist.module';
       envFilePath: 'C:/Users/beast/bitloot/.env',
     }),
     HttpModule,
+    // Schedule module for cron jobs (orphan order cleanup, etc.)
+    ScheduleModule.forRoot(),
     // Rate limiting configuration
     // Default: 100 requests per 60 seconds (configurable per-route)
     ThrottlerModule.forRoot({
@@ -95,7 +99,7 @@ import { WatchlistModule } from './modules/watchlist/watchlist.module';
     // Watchlist module (customer product wishlists)
     WatchlistModule,
   ],
-  controllers: [HealthController, OrdersController],
+  controllers: [HealthController],
   providers: [
     // Services
     OrdersService,
@@ -104,6 +108,8 @@ import { WatchlistModule } from './modules/watchlist/watchlist.module';
     // Note: PaymentProcessorService is provided by PaymentsModule
     // Note: CatalogProcessor is provided by CatalogModule
     FulfillmentProcessor,
+    // Scheduled jobs
+    OrphanOrderCleanupService,
   ],
 })
 export class AppModule {}

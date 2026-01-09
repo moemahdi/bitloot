@@ -57,6 +57,12 @@ export interface CreateOrderDto {
      * @memberof CreateOrderDto
      */
     captchaToken?: string;
+    /**
+     * Idempotency key (cart hash) to prevent duplicate order creation. If provided, duplicate requests with the same key within 5 minutes will return the existing order instead of creating a new one.
+     * @type {string}
+     * @memberof CreateOrderDto
+     */
+    idempotencyKey?: string;
 }
 
 /**
@@ -82,6 +88,7 @@ export function CreateOrderDtoFromJSONTyped(json: any, ignoreDiscriminator: bool
         'items': json['items'] == null ? undefined : ((json['items'] as Array<any>).map(CreateOrderItemDtoFromJSON)),
         'note': json['note'] == null ? undefined : json['note'],
         'captchaToken': json['captchaToken'] == null ? undefined : json['captchaToken'],
+        'idempotencyKey': json['idempotencyKey'] == null ? undefined : json['idempotencyKey'],
     };
 }
 
@@ -101,6 +108,7 @@ export function CreateOrderDtoToJSONTyped(value?: CreateOrderDto | null, ignoreD
         'items': value['items'] == null ? undefined : ((value['items'] as Array<any>).map(CreateOrderItemDtoToJSON)),
         'note': value['note'],
         'captchaToken': value['captchaToken'],
+        'idempotencyKey': value['idempotencyKey'],
     };
 }
 

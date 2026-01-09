@@ -143,8 +143,7 @@ import { FulfillmentGateway } from './fulfillment.gateway';
     OrdersService,
     // Delivery service used by fulfillment
     DeliveryService,
-    // WebSocket gateway for real-time updates
-    FulfillmentGateway,
+    // Note: FulfillmentGateway is provided by WebSocketModule to avoid duplicate initialization
   ],
   controllers: [FulfillmentController],
   exports: [FulfillmentService, KinguinClient, R2StorageClient, OrdersService, DeliveryService],

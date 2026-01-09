@@ -1,12 +1,48 @@
 import { Injectable, BadRequestException, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, MoreThan } from 'typeorm';
 import { Order } from './order.entity';
 import { OrderItem } from './order-item.entity';
 import { CreateOrderDto, OrderResponseDto, OrderItemResponseDto } from './dto/create-order.dto';
 import { EmailsService } from '../emails/emails.service';
 import { CatalogService } from '../catalog/catalog.service';
 import { Product } from '../catalog/entities/product.entity';
+
+// In-memory cache for idempotency keys (in production, use Redis)
+const idempotencyCache = new Map<string, { orderId: string; expiresAt: number }>();
+
+// ========== ORDER STATUS CACHE ==========
+// Cache fulfilled orders to reduce database queries (they don't change)
+const orderStatusCache = new Map<string, { response: OrderResponseDto; cachedAt: number }>();
+const ORDER_CACHE_TTL_MS = 60 * 1000; // 1 minute for non-terminal states
+const ORDER_FULFILLED_CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes for fulfilled orders
+
+/**
+ * Invalidate order status cache for a specific order
+ * MUST be called after any order status change to ensure fresh data
+ */
+export function invalidateOrderCache(orderId: string): void {
+  if (orderStatusCache.has(orderId)) {
+    orderStatusCache.delete(orderId);
+  }
+}
+
+// Cleanup expired entries every 5 minutes
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, value] of idempotencyCache.entries()) {
+    if (value.expiresAt < now) {
+      idempotencyCache.delete(key);
+    }
+  }
+  // Cleanup order status cache
+  for (const [key, value] of orderStatusCache.entries()) {
+    const ttl = ORDER_FULFILLED_CACHE_TTL_MS; // Max TTL for cleanup
+    if (now - value.cachedAt > ttl) {
+      orderStatusCache.delete(key);
+    }
+  }
+}, 5 * 60 * 1000);
 
 @Injectable()
 export class OrdersService {
@@ -20,6 +56,18 @@ export class OrdersService {
   ) { }
 
   async create(dto: CreateOrderDto, userId?: string): Promise<OrderResponseDto> {
+    // ========== IDEMPOTENCY CHECK ==========
+    // If idempotencyKey is provided, check for existing order to prevent duplicates
+    if (dto.idempotencyKey !== undefined && dto.idempotencyKey.length > 0) {
+      const cacheKey = `${dto.email}:${dto.idempotencyKey}`;
+      const cached = idempotencyCache.get(cacheKey);
+      
+      if (cached !== undefined && cached.expiresAt > Date.now()) {
+        this.logger.log(`🔄 Idempotency hit: returning existing order ${cached.orderId} for key ${dto.idempotencyKey}`);
+        return await this.get(cached.orderId);
+      }
+    }
+
     // Normalize items: support both single productId and items array
     let itemsToCreate: Array<{ productId: string; quantity: number }> = [];
     
@@ -102,6 +150,17 @@ export class OrdersService {
       }
     }
 
+    // ========== CACHE IDEMPOTENCY KEY ==========
+    // Store in cache to prevent duplicates for 5 minutes
+    if (dto.idempotencyKey !== undefined && dto.idempotencyKey.length > 0) {
+      const cacheKey = `${dto.email}:${dto.idempotencyKey}`;
+      idempotencyCache.set(cacheKey, {
+        orderId: savedOrder.id,
+        expiresAt: Date.now() + 5 * 60 * 1000, // 5 minutes
+      });
+      this.logger.debug(`Cached idempotency key: ${cacheKey} → order ${savedOrder.id}`);
+    }
+
     return await this.mapToResponse(savedOrder, savedItems);
   }
 
@@ -136,8 +195,22 @@ export class OrdersService {
       where: { id: orderId },
       relations: ['items'],
     });
+
+    // RACE CONDITION FIX: Don't downgrade status if order is already fulfilled
+    if (order.status === 'fulfilled') {
+      this.logger.debug(
+        `⏭️ Order ${orderId} already fulfilled, skipping markPaid to prevent status downgrade`,
+      );
+      return await this.mapToResponse(order, order.items);
+    }
+
     order.status = 'paid';
     const updated = await this.ordersRepo.save(order);
+
+    // CRITICAL: Invalidate cache after status change
+    invalidateOrderCache(orderId);
+    this.logger.debug(`📦 Cache invalidated for order ${orderId} (markPaid)`);
+
     return await this.mapToResponse(updated, updated.items);
   }
 
@@ -157,15 +230,40 @@ export class OrdersService {
     order.status = 'fulfilled';
     const updated = await this.ordersRepo.save(order);
 
+    // CRITICAL: Invalidate cache after status change
+    invalidateOrderCache(orderId);
+    this.logger.debug(`📦 Cache invalidated for order ${orderId} (fulfill)`);
+
     return await this.mapToResponse(updated, updated.items);
   }
 
   async get(id: string): Promise<OrderResponseDto> {
+    // ========== ORDER STATUS CACHE CHECK ==========
+    const cached = orderStatusCache.get(id);
+    if (cached !== undefined) {
+      const ttl = cached.response.status === 'fulfilled' 
+        ? ORDER_FULFILLED_CACHE_TTL_MS 
+        : ORDER_CACHE_TTL_MS;
+      
+      if (Date.now() - cached.cachedAt < ttl) {
+        this.logger.debug(`📦 Cache hit for order ${id} (status: ${cached.response.status})`);
+        return cached.response;
+      }
+      // Cache expired, remove it
+      orderStatusCache.delete(id);
+    }
+
     const order = await this.ordersRepo.findOneOrFail({
       where: { id },
       relations: ['items'],
     });
-    return await this.mapToResponse(order, order.items);
+    const response = await this.mapToResponse(order, order.items);
+
+    // ========== CACHE THE RESPONSE ==========
+    // Cache all orders, but fulfilled orders are cached longer
+    orderStatusCache.set(id, { response, cachedAt: Date.now() });
+
+    return response;
   }
 
   /**
@@ -185,7 +283,12 @@ export class OrdersService {
 
     order.status = 'waiting';
     this.logger.log(`Order ${orderId} marked as waiting (payment in progress)`);
-    return this.ordersRepo.save(order);
+    const saved = await this.ordersRepo.save(order);
+    
+    // CRITICAL: Invalidate cache after status change
+    invalidateOrderCache(orderId);
+    
+    return saved;
   }
 
   /**
@@ -203,7 +306,12 @@ export class OrdersService {
 
     order.status = 'confirming';
     this.logger.log(`Order ${orderId} marked as confirming (awaiting blockchain confirmations)`);
-    return this.ordersRepo.save(order);
+    const saved = await this.ordersRepo.save(order);
+    
+    // CRITICAL: Invalidate cache after status change
+    invalidateOrderCache(orderId);
+    
+    return saved;
   }
 
   /**
@@ -228,6 +336,9 @@ export class OrdersService {
     );
 
     const savedOrder = await this.ordersRepo.save(order);
+    
+    // CRITICAL: Invalidate cache after status change
+    invalidateOrderCache(orderId);
 
     // Level 4: Send underpaid notice email
     try {
@@ -264,6 +375,9 @@ export class OrdersService {
     this.logger.error(`Order ${orderId} marked as failed. Reason: ${reason ?? 'unknown'}`);
 
     const savedOrder = await this.ordersRepo.save(order);
+    
+    // CRITICAL: Invalidate cache after status change
+    invalidateOrderCache(orderId);
 
     // Level 4: Send payment failed notice email
     try {
@@ -305,7 +419,12 @@ export class OrdersService {
 
     order.status = 'fulfilled';
     this.logger.log(`Order ${orderId} marked as fulfilled (keys delivered)`);
-    return this.ordersRepo.save(order);
+    const savedOrder = await this.ordersRepo.save(order);
+    
+    // CRITICAL: Invalidate cache after status change
+    invalidateOrderCache(orderId);
+    
+    return savedOrder;
   }
 
   /**

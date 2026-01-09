@@ -1,9 +1,10 @@
 'use client';
 
+import { useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   Loader2,
   CheckCircle2,
@@ -19,12 +20,15 @@ import {
   RefreshCw,
   Timer,
   Wallet,
+  ExternalLink,
+  Sparkles,
 } from 'lucide-react';
 import { OrdersApi } from '@bitloot/sdk';
 import type { OrderResponseDto } from '@bitloot/sdk';
 import { Button } from '@/design-system/primitives/button';
 import { Badge } from '@/design-system/primitives/badge';
 import { Progress } from '@/design-system/primitives/progress';
+import { Alert, AlertDescription } from '@/design-system/primitives/alert';
 import { toast } from 'sonner';
 import { apiConfig } from '@/lib/api-config';
 
@@ -120,12 +124,12 @@ export default function OrderStatusPage(): React.ReactElement {
       return orderData;
     },
     refetchInterval: (query) => {
-      // Poll every 5 seconds for pending/confirming orders
       const status = query.state.data?.status;
-      if (status === 'pending' || status === 'confirming') {
-        return 5000;
+      // Poll every 3 seconds for active payment states
+      if (status === 'pending' || status === 'confirming' || status === 'paid') {
+        return 3000;
       }
-      // Stop polling for completed/failed orders
+      // Stop polling for terminal states
       return false;
     },
     retry: 3,
@@ -135,15 +139,37 @@ export default function OrderStatusPage(): React.ReactElement {
   const orderStatus = (order?.status ?? 'pending') as OrderStatus;
   const statusConfig = STATUS_CONFIG[orderStatus] ?? STATUS_CONFIG.pending;
 
+  // ========== Auto-redirect Effect ==========
+  // Only auto-redirect to success page when order becomes fulfilled
+  // This page is a status viewer - users can manually click to take actions
+  useEffect(() => {
+    if (orderStatus === 'fulfilled') {
+      toast.success('🎉 Your order is ready!', {
+        description: 'Redirecting to your keys...',
+      });
+      const timer = setTimeout(() => {
+        router.push(`/orders/${orderId}/success`);
+      }, 1500);
+      return () => clearTimeout(timer);
+    }
+  }, [orderStatus, orderId, router]);
+
   // Copy to clipboard
   const copyToClipboard = (text: string, label: string) => {
     void navigator.clipboard.writeText(text);
     toast.success(`${label} copied!`);
   };
 
-  // Handle retry payment
-  const handleRetryPayment = () => {
+  // Handle go to payment
+  const handleGoToPayment = () => {
     router.push(`/checkout/${orderId}`);
+  };
+
+
+
+  // Handle retry/new order
+  const handleCreateNewOrder = () => {
+    router.push('/catalog');
   };
 
   // Loading state
@@ -155,7 +181,7 @@ export default function OrderStatusPage(): React.ReactElement {
           animate={{ opacity: 1, scale: 1 }}
           className="glass-strong rounded-3xl p-12 text-center max-w-md shadow-glow-cyan-sm"
         >
-          <Loader2 className="h-12 w-12 animate-spin text-cyan-glow mx-auto mb-4" />
+          <Loader2 className="h-12 w-12 animate-spin-glow text-cyan-glow mx-auto mb-4" />
           <p className="text-text-secondary text-lg">Loading order details...</p>
         </motion.div>
       </div>
@@ -171,7 +197,7 @@ export default function OrderStatusPage(): React.ReactElement {
           animate={{ opacity: 1, y: 0 }}
           className="glass-strong rounded-3xl p-12 text-center max-w-md shadow-glow-error"
         >
-          <XCircle className="h-16 w-16 text-red-500 mx-auto mb-6" />
+          <XCircle className="h-16 w-16 text-red-500 mx-auto mb-6 animate-pulse" />
           <h2 className="text-2xl font-bold text-text-primary mb-3">Order Not Found</h2>
           <p className="text-text-secondary mb-8">
             We couldn&apos;t find this order. It may have been deleted or never existed.
@@ -225,12 +251,14 @@ export default function OrderStatusPage(): React.ReactElement {
             <code className="px-3 py-1 bg-bg-tertiary rounded-lg font-mono text-sm text-text-secondary">
               {orderId.slice(0, 8)}...{orderId.slice(-4)}
             </code>
-            <button
+            <motion.button
               onClick={() => copyToClipboard(orderId, 'Order ID')}
-              className="p-1.5 rounded-lg hover:bg-bg-tertiary transition-colors text-text-muted hover:text-cyan-glow"
+              className="p-1.5 rounded-lg hover:bg-bg-tertiary transition-all text-text-muted hover:text-cyan-glow hover:shadow-glow-cyan-sm"
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
             >
               <Copy className="h-4 w-4" />
-            </button>
+            </motion.button>
           </div>
         </motion.div>
 
@@ -253,13 +281,16 @@ export default function OrderStatusPage(): React.ReactElement {
                 </h2>
                 <p className="text-text-muted mt-1">{statusConfig.description}</p>
               </div>
-              <button
+              <motion.button
                 onClick={() => void refetch()}
-                className="p-3 rounded-xl bg-bg-tertiary hover:bg-border-subtle transition-colors text-text-muted hover:text-cyan-glow"
+                className="p-3 rounded-xl bg-bg-tertiary hover:bg-border-subtle transition-all text-text-muted hover:text-cyan-glow hover:shadow-glow-cyan-sm"
                 title="Refresh status"
+                whileHover={{ scale: 1.05, rotate: 180 }}
+                whileTap={{ scale: 0.95 }}
+                transition={{ type: 'spring', stiffness: 260, damping: 20 }}
               >
                 <RefreshCw className="h-5 w-5" />
-              </button>
+              </motion.button>
             </div>
 
             {/* Progress Bar */}
@@ -287,7 +318,7 @@ export default function OrderStatusPage(): React.ReactElement {
                 <div className="space-y-3">
                   <div className="flex justify-between p-3 rounded-xl bg-bg-tertiary">
                     <span className="text-text-muted">Total</span>
-                    <span className="text-xl font-bold text-text-primary">
+                    <span className="text-xl font-bold text-text-primary tabular-nums">
                       ${Number(order.total).toFixed(2)}
                     </span>
                   </div>
@@ -346,6 +377,79 @@ export default function OrderStatusPage(): React.ReactElement {
           </div>
         </motion.div>
 
+        {/* Pending Order - Info Banner */}
+        <AnimatePresence>
+          {orderStatus === 'pending' && (
+            <motion.div
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="mb-6"
+            >
+              <Alert className="border-amber-400/30 bg-amber-400/10">
+                <Clock className="h-5 w-5 text-amber-400" />
+                <AlertDescription className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                  <span className="text-text-primary">
+                    This order is awaiting payment. Click the button below to complete your purchase.
+                  </span>
+                  <Button
+                    size="sm"
+                    onClick={handleGoToPayment}
+                    className="bg-cyan-glow text-bg-primary hover:shadow-glow-cyan whitespace-nowrap"
+                  >
+                    <Wallet className="h-4 w-4 mr-1" />
+                    Pay Now
+                  </Button>
+                </AlertDescription>
+              </Alert>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Fulfillment in Progress Banner */}
+        <AnimatePresence>
+          {(orderStatus === 'paid' || orderStatus === 'confirming') && (
+            <motion.div
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="mb-6"
+            >
+              <Alert className="border-green-success/30 bg-green-success/10">
+                <Sparkles className="h-5 w-5 text-green-success animate-pulse" />
+                <AlertDescription className="flex items-center gap-3">
+                  <div className="h-5 w-5 rounded-full border-2 border-green-success border-t-transparent animate-spin" />
+                  <span className="text-text-primary">
+                    {orderStatus === 'confirming' 
+                      ? 'Payment detected! Confirming on blockchain...' 
+                      : 'Payment confirmed! Preparing your digital keys...'}
+                  </span>
+                </AlertDescription>
+              </Alert>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Fulfilled - Auto-redirecting Banner */}
+        <AnimatePresence>
+          {orderStatus === 'fulfilled' && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="mb-6"
+            >
+              <Alert className="border-green-success/50 bg-green-success/20 shadow-glow-success">
+                <CheckCircle2 className="h-5 w-5 text-green-success" />
+                <AlertDescription className="flex items-center gap-3">
+                  <span className="text-green-success font-medium">
+                    🎉 Your keys are ready! Redirecting...
+                  </span>
+                </AlertDescription>
+              </Alert>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         {/* Action Buttons based on status */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -353,55 +457,137 @@ export default function OrderStatusPage(): React.ReactElement {
           transition={{ delay: 0.2 }}
           className="flex flex-col sm:flex-row gap-4 justify-center"
         >
-          {/* Pending - Show pay button */}
+          {/* Pending - Show prominent pay button */}
           {orderStatus === 'pending' && (
-            <Button
-              onClick={handleRetryPayment}
-              className="h-14 px-8 text-base font-bold bg-cyan-glow text-bg-primary hover:shadow-glow-cyan"
-            >
-              <Wallet className="h-5 w-5 mr-2" />
-              Complete Payment
-            </Button>
-          )}
-
-          {/* Failed/Expired - Retry */}
-          {(orderStatus === 'failed' || orderStatus === 'expired') && (
-            <Button
-              onClick={handleRetryPayment}
-              className="h-14 px-8 text-base font-bold bg-cyan-glow text-bg-primary hover:shadow-glow-cyan"
-            >
-              <RefreshCw className="h-5 w-5 mr-2" />
-              Try Again
-            </Button>
-          )}
-
-          {/* Fulfilled - View Keys */}
-          {orderStatus === 'fulfilled' && (
-            <Link href={`/orders/${orderId}/success`}>
-              <Button className="h-14 px-8 text-base font-bold bg-green-success text-bg-primary hover:shadow-glow-success">
-                <Package className="h-5 w-5 mr-2" />
-                View Your Keys
+            <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+              <Button
+                onClick={handleGoToPayment}
+                className="h-14 px-8 text-base font-bold bg-cyan-glow text-bg-primary hover:shadow-glow-cyan transition-shadow animate-glow-pulse"
+              >
+                <Wallet className="h-5 w-5 mr-2" />
+                Complete Payment
               </Button>
-            </Link>
+            </motion.div>
           )}
 
-          {/* Always show support link */}
-          <Link href="/support">
-            <Button variant="outline" className="h-14 px-8 text-base border-border-subtle hover:border-cyan-glow/50">
-              Need Help?
-            </Button>
-          </Link>
+          {/* Confirming/Paid - Show waiting state */}
+          {(orderStatus === 'confirming' || orderStatus === 'paid') && (
+            <div className="flex items-center gap-3 px-6 py-3 rounded-xl bg-bg-tertiary border border-border-subtle">
+              <Loader2 className="h-5 w-5 animate-spin text-cyan-glow" />
+              <span className="text-text-secondary">
+                {orderStatus === 'confirming' ? 'Confirming payment...' : 'Preparing your order...'}
+              </span>
+            </div>
+          )}
+
+          {/* Failed - Create New Order */}
+          {orderStatus === 'failed' && (
+            <>
+              <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                <Button
+                  onClick={handleGoToPayment}
+                  className="h-14 px-8 text-base font-bold bg-cyan-glow text-bg-primary hover:shadow-glow-cyan transition-shadow"
+                >
+                  <RefreshCw className="h-5 w-5 mr-2" />
+                  Retry Payment
+                </Button>
+              </motion.div>
+              <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                <Button
+                  onClick={handleCreateNewOrder}
+                  variant="outline"
+                  className="h-14 px-8 text-base border-border-subtle hover:border-cyan-glow/50"
+                >
+                  <Package className="h-5 w-5 mr-2" />
+                  New Order
+                </Button>
+              </motion.div>
+            </>
+          )}
+
+          {/* Expired - Start Fresh */}
+          {orderStatus === 'expired' && (
+            <>
+              <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                <Button
+                  onClick={handleCreateNewOrder}
+                  className="h-14 px-8 text-base font-bold bg-cyan-glow text-bg-primary hover:shadow-glow-cyan transition-shadow"
+                >
+                  <Package className="h-5 w-5 mr-2" />
+                  Create New Order
+                </Button>
+              </motion.div>
+              <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                <Button
+                  onClick={handleGoToPayment}
+                  variant="outline"
+                  className="h-14 px-8 text-base border-border-subtle hover:border-orange-warning/50"
+                >
+                  <Timer className="h-5 w-5 mr-2" />
+                  Try This Order Again
+                </Button>
+              </motion.div>
+            </>
+          )}
+
+          {/* Underpaid - Contact Support prominently */}
+          {orderStatus === 'underpaid' && (
+            <>
+              <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                <Link href="/support">
+                  <Button className="h-14 px-8 text-base font-bold bg-orange-warning text-bg-primary hover:shadow-glow-error transition-shadow">
+                    <AlertCircle className="h-5 w-5 mr-2" />
+                    Contact Support
+                  </Button>
+                </Link>
+              </motion.div>
+              <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                <Button
+                  onClick={() => copyToClipboard(orderId, 'Order ID')}
+                  variant="outline"
+                  className="h-14 px-8 text-base border-border-subtle hover:border-cyan-glow/50"
+                >
+                  <Copy className="h-5 w-5 mr-2" />
+                  Copy Order ID
+                </Button>
+              </motion.div>
+            </>
+          )}
+
+          {/* Fulfilled - View Keys (prominent) */}
+          {orderStatus === 'fulfilled' && (
+            <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+              <Link href={`/orders/${orderId}/success`}>
+                <Button className="h-14 px-8 text-base font-bold bg-green-success text-bg-primary hover:shadow-glow-success transition-shadow animate-glow-pulse">
+                  <Sparkles className="h-5 w-5 mr-2" />
+                  View Your Keys
+                  <ExternalLink className="h-4 w-4 ml-2" />
+                </Button>
+              </Link>
+            </motion.div>
+          )}
+
+          {/* Always show support link (except underpaid which has it prominently) */}
+          {orderStatus !== 'underpaid' && (
+            <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+              <Link href="/support">
+                <Button variant="outline" className="h-14 px-8 text-base border-border-subtle hover:border-cyan-glow/50 hover:shadow-glow-cyan-sm transition-all">
+                  Need Help?
+                </Button>
+              </Link>
+            </motion.div>
+          )}
         </motion.div>
 
         {/* Security Note */}
         <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.3 }}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4 }}
           className="mt-12 text-center"
         >
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-green-success/10 border border-green-success/30">
-            <Shield className="h-4 w-4 text-green-success" />
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-green-success/10 border border-green-success/30 shadow-glow-success">
+            <Shield className="h-4 w-4 text-green-success animate-pulse" />
             <span className="text-sm text-green-success">
               Your payment is secured with blockchain verification
             </span>

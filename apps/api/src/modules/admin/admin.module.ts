@@ -3,7 +3,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { AdminController } from './admin.controller';
 import { AdminService } from './admin.service';
 import { AdminOpsModule } from './admin-ops.module';
-import { AdminOpsController } from './admin-ops.controller';
+// AdminOpsController is provided by AdminOpsModule (no direct import needed)
 import { Order } from '../orders/order.entity';
 import { Payment } from '../payments/payment.entity';
 import { WebhookLog } from '../../database/entities/webhook-log.entity';
@@ -29,7 +29,7 @@ import { User } from '../../database/entities/user.entity';
     AdminOpsModule,
   ],
   providers: [AdminService],
-  controllers: [AdminController, AdminOpsController],
+  controllers: [AdminController],
   exports: [AdminService],
 })
 export class AdminModule { }

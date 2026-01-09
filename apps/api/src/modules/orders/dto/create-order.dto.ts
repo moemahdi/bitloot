@@ -53,6 +53,15 @@ export class CreateOrderDto {
   @IsOptional()
   @IsString()
   captchaToken?: string;
+
+  @ApiProperty({ 
+    required: false, 
+    description: 'Idempotency key (cart hash) to prevent duplicate order creation. If provided, duplicate requests with the same key within 5 minutes will return the existing order instead of creating a new one.',
+    example: 'cart-hash-abc123'
+  })
+  @IsOptional()
+  @IsString()
+  idempotencyKey?: string;
 }
 
 export class OrderItemResponseDto {

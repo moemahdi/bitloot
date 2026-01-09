@@ -47,6 +47,9 @@ export function AuthProvider({ children }: { children: ReactNode }): React.React
   const queryClient = useQueryClient();
   const refreshTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isRefreshingRef = useRef<boolean>(false);
+  // ========== TOKEN REFRESH DEBOUNCE ==========
+  // Store the in-flight refresh promise so concurrent callers can await the same operation
+  const refreshPromiseRef = useRef<Promise<void> | null>(null);
 
   // Helper functions for cookie management
   const getCookie = useCallback((name: string): string | null => {
@@ -224,34 +227,43 @@ export function AuthProvider({ children }: { children: ReactNode }): React.React
 
       refreshTimeoutRef.current = setTimeout(() => {
         void (async () => {
-          // Prevent concurrent refresh attempts
+          // ========== TOKEN REFRESH DEBOUNCE ==========
+          // If a refresh is already in progress, skip - the other caller will handle it
           if (isRefreshingRef.current) {
+            console.debug('🔄 Scheduled refresh skipped - already in progress');
             return;
           }
           isRefreshingRef.current = true;
 
-          try {
-            // Use SDK to refresh token
-            const result = await authClient.refreshToken(state.refreshToken ?? '');
+          // Create and store the promise for concurrent callers
+          const refreshPromise = (async (): Promise<void> => {
+            try {
+              // Use SDK to refresh token
+              const result = await authClient.refreshToken(state.refreshToken ?? '');
 
-            setCookie('accessToken', result.accessToken);
-            setCookie('refreshToken', result.refreshToken);
+              setCookie('accessToken', result.accessToken);
+              setCookie('refreshToken', result.refreshToken);
 
-            setState((prev) => ({
-              ...prev,
-              accessToken: result.accessToken,
-              refreshToken: result.refreshToken,
-            }));
-
-            // Note: Don't call scheduleRefresh() here - the effect will re-run
-            // due to state change and reschedule automatically
-          } catch (error) {
-            console.error('Token refresh failed:', error);
-            // Logout on refresh failure
-            logout();
-          } finally {
-            isRefreshingRef.current = false;
-          }
+              setState((prev) => ({
+                ...prev,
+                accessToken: result.accessToken,
+                refreshToken: result.refreshToken,
+              }));
+              
+              console.debug('✅ Scheduled token refresh completed');
+              // Note: Don't call scheduleRefresh() here - the effect will re-run
+              // due to state change and reschedule automatically
+            } catch (error) {
+              console.error('Token refresh failed:', error);
+              // Logout on refresh failure
+              logout();
+            } finally {
+              isRefreshingRef.current = false;
+              refreshPromiseRef.current = null;
+            }
+          })();
+          
+          refreshPromiseRef.current = refreshPromise;
         })();
       }, refreshTime);
     };
@@ -299,31 +311,44 @@ export function AuthProvider({ children }: { children: ReactNode }): React.React
       throw new Error('No refresh token available');
     }
 
-    // Prevent concurrent refresh attempts
-    if (isRefreshingRef.current) {
-      return;
+    // ========== TOKEN REFRESH DEBOUNCE ==========
+    // If a refresh is already in progress, return the existing promise
+    // This prevents duplicate API calls when multiple components request refresh simultaneously
+    if (isRefreshingRef.current && refreshPromiseRef.current !== null) {
+      console.debug('🔄 Token refresh already in progress, awaiting existing promise');
+      return refreshPromiseRef.current;
     }
+    
     isRefreshingRef.current = true;
 
-    try {
-      // Use SDK to refresh token
-      const result = await authClient.refreshToken(state.refreshToken);
+    // Create the refresh promise and store it for concurrent callers
+    const refreshPromise = (async (): Promise<void> => {
+      try {
+        // Use SDK to refresh token
+        const result = await authClient.refreshToken(state.refreshToken ?? '');
 
-      setCookie('accessToken', result.accessToken);
-      setCookie('refreshToken', result.refreshToken);
+        setCookie('accessToken', result.accessToken);
+        setCookie('refreshToken', result.refreshToken);
 
-      setState((prev) => ({
-        ...prev,
-        accessToken: result.accessToken,
-        refreshToken: result.refreshToken,
-      }));
-    } catch (error) {
-      console.error('Token refresh error:', error);
-      logout();
-      throw error;
-    } finally {
-      isRefreshingRef.current = false;
-    }
+        setState((prev) => ({
+          ...prev,
+          accessToken: result.accessToken,
+          refreshToken: result.refreshToken,
+        }));
+        
+        console.debug('✅ Token refreshed successfully');
+      } catch (error) {
+        console.error('Token refresh error:', error);
+        logout();
+        throw error;
+      } finally {
+        isRefreshingRef.current = false;
+        refreshPromiseRef.current = null;
+      }
+    })();
+    
+    refreshPromiseRef.current = refreshPromise;
+    return refreshPromise;
   }, [state.refreshToken, setCookie, logout]);
 
   return (

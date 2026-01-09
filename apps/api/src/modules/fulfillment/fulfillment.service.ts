@@ -11,7 +11,7 @@ import { R2StorageClient } from '../storage/r2.client';
 import { DeliveryService } from './delivery.service';
 import { EmailsService } from '../emails/emails.service';
 import { Key } from '../orders/key.entity';
-import { OrdersService } from '../orders/orders.service';
+import { OrdersService, invalidateOrderCache } from '../orders/orders.service';
 import { Product, type ProductSourceType } from '../catalog/entities/product.entity';
 import { AdminOpsService } from '../admin/admin-ops.service';
 
@@ -152,6 +152,9 @@ export class FulfillmentService {
 
     // Update order status to fulfilled
     await this.orderRepo.update({ id: order.id }, { status: 'fulfilled' });
+    
+    // CRITICAL: Invalidate cache after status change to 'fulfilled'
+    invalidateOrderCache(order.id);
 
     // Send completion email
     await this.sendCompletionEmail(order, results);
@@ -347,6 +350,9 @@ export class FulfillmentService {
 
     // Update order status to fulfilled
     await this.orderRepo.update({ id: order.id }, { status: 'fulfilled' });
+    
+    // CRITICAL: Invalidate cache after status change to 'fulfilled'
+    invalidateOrderCache(order.id);
 
     // Send completion email
     await this.sendCompletionEmail(order, results);
@@ -463,22 +469,32 @@ export class FulfillmentService {
 
   /**
    * Send completion email with download link
+   * IDEMPOTENT: Checks completionEmailSent flag to prevent duplicate emails
    */
   private async sendCompletionEmail(order: Order, results: ItemFulfillmentResult[]): Promise<void> {
     try {
+      // IDEMPOTENCY CHECK: Only send email once per order
+      if (order.completionEmailSent === true) {
+        this.logger.debug(`[FULFILLMENT] Completion email already sent for order ${order.id}, skipping`);
+        return;
+      }
+
       const primary = results[0];
       if (primary !== undefined && typeof order.email === 'string' && order.email.length > 0) {
         const productName = 'Your Digital Product';
-        // Use gateway URL instead of raw signed URL for graceful expiry handling
+        // Link to order success page where customer can view and download keys
         const frontendUrl = process.env.FRONTEND_URL ?? 'http://localhost:3000';
-        const gatewayUrl = `${frontendUrl}/download/${order.id}`;
+        const successUrl = `${frontendUrl}/orders/${order.id}/success`;
         await this.emailsService.sendOrderCompleted(order.email, {
           orderId: order.id,
           productName,
-          downloadUrl: gatewayUrl,
-          expiresIn: '3 hours',
+          downloadUrl: successUrl,
+          expiresIn: '24 hours',
         });
-        this.logger.debug(`[FULFILLMENT] Order completion email queued for ${order.email}`);
+        
+        // Mark email as sent AFTER successful send (idempotency)
+        await this.orderRepo.update(order.id, { completionEmailSent: true });
+        this.logger.debug(`[FULFILLMENT] Order completion email sent for ${order.email}, flag set to true`);
       }
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
@@ -646,14 +662,14 @@ export class FulfillmentService {
 
     try {
       if (order.email !== undefined && order.email !== '') {
-        // Use gateway URL instead of raw signed URL for graceful expiry handling
+        // Link to order success page where customer can view and download keys
         const frontendUrl = process.env.FRONTEND_URL ?? 'http://localhost:3000';
-        const gatewayUrl = `${frontendUrl}/download/${order.id}`;
+        const successUrl = `${frontendUrl}/orders/${order.id}/success`;
         await this.emailsService.sendOrderCompleted(order.email, {
           orderId: order.id,
           productName: 'Your Digital Product',
-          downloadUrl: gatewayUrl,
-          expiresIn: '3 hours',
+          downloadUrl: successUrl,
+          expiresIn: '24 hours',
         });
       }
     } catch (e) {

@@ -11,6 +11,7 @@ Name | Type
 `items` | [Array&lt;CreateOrderItemDto&gt;](CreateOrderItemDto.md)
 `note` | string
 `captchaToken` | string
+`idempotencyKey` | string
 
 ## Example
 
@@ -24,6 +25,7 @@ const example = {
   "items": null,
   "note": Demo order,
   "captchaToken": null,
+  "idempotencyKey": cart-hash-abc123,
 } satisfies CreateOrderDto
 
 console.log(example)

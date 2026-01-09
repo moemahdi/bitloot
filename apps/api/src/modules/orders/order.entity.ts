@@ -101,6 +101,14 @@ export class Order {
   @Column({ type: 'varchar', length: 255, nullable: true })
   kinguinReservationId?: string;
 
+  /**
+   * Completion email sent flag for idempotency
+   * Prevents duplicate completion emails when fulfillment runs multiple times
+   * Set to TRUE after the first completion email is sent successfully
+   */
+  @Column({ type: 'boolean', default: false })
+  completionEmailSent!: boolean;
+
   @OneToMany(() => OrderItem, (i) => i.order, { cascade: true })
   items!: OrderItem[];
 

@@ -37,6 +37,7 @@ import { CreateWatchlist1767000000000 } from './migrations/1767000000000-CreateW
 import { UpdateWebhookIdempotencyConstraint1735827000000 } from './migrations/1735827000000-UpdateWebhookIdempotencyConstraint';
 import { AddContentTypeToKeys1735840000000 } from './migrations/1735840000000-AddContentTypeToKeys';
 import { LinkOrdersToUsersByEmail1767100000000 } from './migrations/1767100000000-LinkOrdersToUsersByEmail';
+import { AddCompletionEmailSent1767200000000 } from './migrations/1767200000000-AddCompletionEmailSent';
 
 dotenv.config({ path: path.resolve(__dirname, '../../../../.env') });
 
@@ -67,6 +68,7 @@ export default new DataSource({
     UpdateWebhookIdempotencyConstraint1735827000000,
     AddContentTypeToKeys1735840000000,
     LinkOrdersToUsersByEmail1767100000000,
+    AddCompletionEmailSent1767200000000,
   ],
   logging: true,
   synchronize: false,

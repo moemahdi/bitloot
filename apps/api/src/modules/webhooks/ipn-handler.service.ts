@@ -13,6 +13,7 @@ import { WebhookLog } from '../../database/entities/webhook-log.entity';
 import { Order } from '../orders/order.entity';
 import { MetricsService } from '../metrics/metrics.service';
 import { QUEUE_NAMES } from '../../jobs/queues';
+import { invalidateOrderCache } from '../orders/orders.service';
 
 /**
  * IPN Handler Service
@@ -427,21 +428,48 @@ export class IpnHandlerService {
         // Payment complete - trigger fulfillment
         order.status = 'paid';
 
-        // Queue fulfillment job to process order delivery
-        await this.fulfillmentQueue.add(
-          'reserve',
-          {
-            orderId: order.id,
-            paymentId: payload.payment_id,
-          },
-          {
-            attempts: 5,
-            backoff: { type: 'exponential', delay: 1000 },
-          },
-        );
-        fulfillmentTriggered = true;
+        // ========== FULFILLMENT JOB DEDUPLICATION ==========
+        // Check if a fulfillment job for this order already exists
+        const existingJob = await this.fulfillmentQueue.getJob(`fulfill-${order.id}`);
+        if (existingJob !== null && existingJob !== undefined) {
+          const jobState = await existingJob.getState();
+          if (jobState !== 'completed' && jobState !== 'failed') {
+            this.logger.log(`[IPN] Fulfillment job already exists for order ${order.id} (state: ${jobState}), skipping duplicate queue`);
+            fulfillmentTriggered = false;
+          } else {
+            // Previous job completed/failed, queue a new one
+            await this.fulfillmentQueue.add(
+              'reserve',
+              {
+                orderId: order.id,
+                paymentId: payload.payment_id,
+              },
+              {
+                jobId: `fulfill-${order.id}`,
+                attempts: 5,
+                backoff: { type: 'exponential', delay: 1000 },
+              },
+            );
+            fulfillmentTriggered = true;
+          }
+        } else {
+          // No existing job, queue fulfillment with unique jobId to prevent duplicates
+          await this.fulfillmentQueue.add(
+            'reserve',
+            {
+              orderId: order.id,
+              paymentId: payload.payment_id,
+            },
+            {
+              jobId: `fulfill-${order.id}`,
+              attempts: 5,
+              backoff: { type: 'exponential', delay: 1000 },
+            },
+          );
+          fulfillmentTriggered = true;
+        }
 
-        this.logger.log(`[IPN] Payment finished for order ${order.id}, fulfillment queued`);
+        this.logger.log(`[IPN] Payment finished for order ${order.id}, fulfillment ${fulfillmentTriggered ? 'queued' : 'already in queue'}`);
         break;
 
       case 'failed':
@@ -468,6 +496,11 @@ export class IpnHandlerService {
 
     // 3. Save order with new status
     await this.orderRepo.save(order);
+    
+    // CRITICAL: Invalidate order cache after status change
+    // This ensures frontend gets fresh data on next poll
+    invalidateOrderCache(order.id);
+    this.logger.debug(`[IPN] Cache invalidated for order ${order.id}`);
 
     // 4. Return processing result
     return {

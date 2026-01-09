@@ -1,8 +1,8 @@
 'use client';
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useParams, useRouter } from 'next/navigation';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import {
@@ -48,7 +48,6 @@ export default function OrderSuccessPage(): React.ReactElement {
   const queryClient = useQueryClient();
   const orderId = String(params.id);
   const [showConfetti, _setShowConfetti] = useState(true);
-  const fulfillmentTriggered = useRef(false);
 
   const { data, isError, isPending } = useQuery<OrderResponseDto>({
     queryKey: ['order', orderId],
@@ -67,47 +66,11 @@ export default function OrderSuccessPage(): React.ReactElement {
     },
   });
 
-  // Sandbox fulfillment trigger mutation
-  const triggerFulfillmentMutation = useMutation({
-    mutationFn: async (id: string) => {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
-      const res = await fetch(`${apiUrl}/fulfillment/${id}/trigger-fulfillment`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-      });
-      if (!res.ok) {
-        const errorText = await res.text();
-        throw new Error(`Failed to trigger fulfillment: ${errorText}`);
-      }
-      return res.json() as Promise<{ success: boolean; status: string; message: string }>;
-    },
-    onSuccess: (result) => {
-      console.info('[SANDBOX] Fulfillment triggered:', result);
-      // Refetch order to get updated status
-      void queryClient.invalidateQueries({ queryKey: ['order', orderId] });
-      if (result.status === 'fulfilled') {
-        toast.success('Keys are ready!');
-      }
-    },
-    onError: (error) => {
-      console.error('[SANDBOX] Fulfillment trigger failed:', error);
-      // Don't show error toast to user - this is expected to fail in production
-    },
-  });
-
-  // Auto-trigger fulfillment in sandbox mode when order is 'paid' but not 'fulfilled'
-  useEffect(() => {
-    const shouldTrigger = 
-      data?.status === 'paid' && 
-      !fulfillmentTriggered.current &&
-      !triggerFulfillmentMutation.isPending;
-    
-    if (shouldTrigger) {
-      fulfillmentTriggered.current = true;
-      console.info('[SANDBOX] Auto-triggering fulfillment for paid order:', orderId);
-      triggerFulfillmentMutation.mutate(orderId);
-    }
-  }, [data?.status, orderId, triggerFulfillmentMutation]);
+  // NOTE: Sandbox auto-fulfillment trigger removed.
+  // Fulfillment is now handled exclusively by:
+  // 1. NOWPayments IPN webhook → triggers BullMQ fulfillment job
+  // 2. Kinguin order.complete webhook → triggers BullMQ fulfillment job
+  // This prevents duplicate fulfillment, double emails, and duplicate key records.
 
   const copyOrderId = (text: string): void => {
     void navigator.clipboard.writeText(text);
@@ -176,32 +139,32 @@ export default function OrderSuccessPage(): React.ReactElement {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
           >
-            <Card className="relative overflow-hidden border-[hsl(var(--green-success))]/30 bg-gradient-to-br from-[hsl(var(--green-success))]/5 via-[hsl(var(--cyan-glow))]/5 to-transparent">
-              <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-[hsl(var(--green-success))]/10 via-transparent to-transparent" />
+            <Card className="relative overflow-hidden border-green-success/30 bg-gradient-to-br from-green-success/5 via-cyan-glow/5 to-transparent shadow-glow-success">
+              <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-green-success/10 via-transparent to-transparent" />
               <CardHeader className="relative text-center pb-4">
                 <motion.div 
-                  className="mx-auto mb-4 h-20 w-20 rounded-full bg-[hsl(var(--green-success))]/10 border border-[hsl(var(--green-success))]/30 flex items-center justify-center shadow-lg shadow-[hsl(var(--green-success))]/20"
+                  className="mx-auto mb-4 h-20 w-20 rounded-full bg-green-success/10 border border-green-success/30 flex items-center justify-center shadow-glow-success"
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
-                  transition={{ type: 'spring', stiffness: 200, delay: 0.2 }}
+                  transition={{ type: 'spring', stiffness: 260, damping: 20, delay: 0.2 }}
                 >
-                  <CheckCircle2 className="h-10 w-10 text-[hsl(var(--green-success))]" />
+                  <CheckCircle2 className="h-10 w-10 text-green-success animate-pulse" />
                 </motion.div>
-                <CardTitle className="text-3xl font-bold bg-gradient-to-r from-[hsl(var(--green-success))] to-[hsl(var(--cyan-glow))] bg-clip-text text-transparent">
+                <CardTitle className="text-3xl font-bold bg-gradient-to-r from-green-success to-cyan-glow bg-clip-text text-transparent">
                   Payment Successful!
                 </CardTitle>
-                <CardDescription className="text-base text-muted-foreground">
+                <CardDescription className="text-base text-text-muted">
                   Thank you for your purchase. Your order has been confirmed.
                 </CardDescription>
               </CardHeader>
               <CardContent className="relative pb-6">
                 <div className="flex flex-wrap items-center justify-center gap-4 text-sm">
-                  <div className="flex items-center gap-2 text-muted-foreground">
+                  <div className="flex items-center gap-2 text-text-muted">
                     <Package className="h-4 w-4" />
-                    <span>Order #{orderId.slice(0, 8)}</span>
+                    <span className="font-mono">Order #{orderId.slice(0, 8)}</span>
                   </div>
                   <Separator orientation="vertical" className="h-4 hidden sm:block" />
-                  <div className="flex items-center gap-2 text-muted-foreground">
+                  <div className="flex items-center gap-2 text-text-muted">
                     <Calendar className="h-4 w-4" />
                     <span>{new Date(orderData.createdAt).toLocaleDateString()}</span>
                   </div>
@@ -209,13 +172,13 @@ export default function OrderSuccessPage(): React.ReactElement {
                   <Badge 
                     variant="secondary"
                     className={cn(
-                      "text-xs font-medium border",
+                      "text-xs font-medium border uppercase tracking-wider",
                       isOrderFulfilled 
-                        ? "bg-[hsl(var(--green-success))]/10 text-[hsl(var(--green-success))] border-[hsl(var(--green-success))]/30"
-                        : "bg-[hsl(var(--orange-warning))]/10 text-[hsl(var(--orange-warning))] border-[hsl(var(--orange-warning))]/30"
+                        ? "bg-green-success/10 text-green-success border-green-success/30 shadow-glow-success"
+                        : "bg-orange-warning/10 text-orange-warning border-orange-warning/30"
                     )}
                   >
-                    {orderData.status.toUpperCase()}
+                    {orderData.status}
                   </Badge>
                 </div>
               </CardContent>
@@ -238,12 +201,14 @@ export default function OrderSuccessPage(): React.ReactElement {
                     irreversible and cannot be refunded automatically.
                   </p>
                   <div className="flex gap-2">
-                    <Button variant="outline" size="sm" asChild className="bg-background">
-                      <Link href="/support">
-                        <HelpCircle className="mr-2 h-4 w-4" />
-                        Contact Support
-                      </Link>
-                    </Button>
+                    <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                      <Button variant="outline" size="sm" asChild className="bg-background hover:shadow-glow-cyan transition-shadow">
+                        <Link href="/support">
+                          <HelpCircle className="mr-2 h-4 w-4" />
+                          Contact Support
+                        </Link>
+                      </Button>
+                    </motion.div>
                   </div>
                 </AlertDescription>
               </Alert>
@@ -260,12 +225,12 @@ export default function OrderSuccessPage(): React.ReactElement {
             >
               {/* Preparing Order Message - Shown when paid but not fulfilled */}
               {(orderData.status === 'paid' || orderData.status === 'confirming') && (
-                <Alert className="border-[hsl(var(--orange-warning))]/20 bg-[hsl(var(--orange-warning))]/5">
+                <Alert className="border-orange-warning/20 bg-orange-warning/5">
                   <div className="flex items-center gap-3">
-                    <div className="h-5 w-5 animate-spin rounded-full border-2 border-[hsl(var(--orange-warning))] border-t-transparent" />
+                    <div className="h-5 w-5 animate-spin-glow rounded-full border-2 border-orange-warning border-t-transparent" />
                     <div>
-                      <AlertTitle className="text-[hsl(var(--orange-warning))]">Preparing Your Order</AlertTitle>
-                      <AlertDescription className="text-[hsl(var(--orange-warning))]/70">
+                      <AlertTitle className="text-orange-warning">Preparing Your Order</AlertTitle>
+                      <AlertDescription className="text-orange-warning/70">
                         Your payment is confirmed! We&apos;re now preparing your digital keys. This usually takes less than a minute.
                       </AlertDescription>
                     </div>
@@ -283,10 +248,10 @@ export default function OrderSuccessPage(): React.ReactElement {
               )}
 
               {/* Security Notice */}
-              <Alert className="border-[hsl(var(--cyan-glow))]/20 bg-[hsl(var(--cyan-glow))]/5">
-                <ShieldCheck className="h-4 w-4 text-[hsl(var(--cyan-glow))]" />
-                <AlertTitle className="text-[hsl(var(--cyan-glow))]">Keep Your Keys Secure</AlertTitle>
-                <AlertDescription className="text-[hsl(var(--cyan-glow))]/70">
+              <Alert className="border-cyan-glow/20 bg-cyan-glow/5">
+                <ShieldCheck className="h-4 w-4 text-cyan-glow" />
+                <AlertTitle className="text-cyan-glow">Keep Your Keys Secure</AlertTitle>
+                <AlertDescription className="text-cyan-glow/70">
                   Save your keys in a secure location. Don&apos;t share them with anyone. 
                   You can always access them from your order history.
                 </AlertDescription>
@@ -308,33 +273,35 @@ export default function OrderSuccessPage(): React.ReactElement {
                 <CardContent className="space-y-4">
                   <div className="space-y-3">
                     <div className="flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground">Order ID</span>
+                      <span className="text-text-muted">Order ID</span>
                       <div className="flex items-center gap-1">
-                        <code className="text-xs font-mono">{orderId.slice(0, 8)}</code>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-6 w-6"
-                          onClick={() => copyOrderId(orderId)}
-                        >
-                          <Copy className="h-3 w-3" />
-                        </Button>
+                        <code className="text-xs font-mono text-cyan-glow">{orderId.slice(0, 8)}</code>
+                        <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 hover:text-cyan-glow transition-colors"
+                            onClick={() => copyOrderId(orderId)}
+                          >
+                            <Copy className="h-3 w-3" />
+                          </Button>
+                        </motion.div>
                       </div>
                     </div>
                     <Separator />
                     <div className="flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground">Email</span>
+                      <span className="text-text-muted">Email</span>
                       <span className="font-medium truncate max-w-[140px]">{orderData.email}</span>
                     </div>
                     <Separator />
                     <div className="flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground">Items</span>
-                      <span className="font-medium">{orderItems.length}</span>
+                      <span className="text-text-muted">Items</span>
+                      <Badge variant="secondary" className="bg-cyan-glow/10 text-cyan-glow border-cyan-glow/20">{orderItems.length}</Badge>
                     </div>
                     <Separator />
                     <div className="flex items-center justify-between">
-                      <span className="text-sm text-muted-foreground">Total</span>
-                      <span className="text-lg font-bold">€{parseFloat(orderData.total).toFixed(2)}</span>
+                      <span className="text-sm text-text-muted">Total</span>
+                      <span className="text-lg font-bold tabular-nums text-green-success">€{parseFloat(orderData.total).toFixed(2)}</span>
                     </div>
                   </div>
                 </CardContent>
@@ -347,41 +314,60 @@ export default function OrderSuccessPage(): React.ReactElement {
                 </CardHeader>
                 <CardContent>
                   <ul className="space-y-3">
-                    <li className="flex items-start gap-3 text-sm">
-                      <div className="mt-0.5 h-5 w-5 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                        <span className="text-xs font-bold text-primary">1</span>
+                    <motion.li 
+                      className="flex items-start gap-3 text-sm"
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.4 }}
+                    >
+                      <div className="mt-0.5 h-5 w-5 rounded-full bg-cyan-glow/10 border border-cyan-glow/30 flex items-center justify-center shrink-0">
+                        <span className="text-xs font-bold text-cyan-glow">1</span>
                       </div>
-                      <span className="text-muted-foreground">Reveal your product keys above</span>
-                    </li>
-                    <li className="flex items-start gap-3 text-sm">
-                      <div className="mt-0.5 h-5 w-5 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                        <span className="text-xs font-bold text-primary">2</span>
+                      <span className="text-text-muted">Reveal your product keys above</span>
+                    </motion.li>
+                    <motion.li 
+                      className="flex items-start gap-3 text-sm"
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.5 }}
+                    >
+                      <div className="mt-0.5 h-5 w-5 rounded-full bg-cyan-glow/10 border border-cyan-glow/30 flex items-center justify-center shrink-0">
+                        <span className="text-xs font-bold text-cyan-glow">2</span>
                       </div>
-                      <span className="text-muted-foreground">Copy and redeem on the platform</span>
-                    </li>
-                    <li className="flex items-start gap-3 text-sm">
-                      <div className="mt-0.5 h-5 w-5 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                        <span className="text-xs font-bold text-primary">3</span>
+                      <span className="text-text-muted">Copy and redeem on the platform</span>
+                    </motion.li>
+                    <motion.li 
+                      className="flex items-start gap-3 text-sm"
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.6 }}
+                    >
+                      <div className="mt-0.5 h-5 w-5 rounded-full bg-cyan-glow/10 border border-cyan-glow/30 flex items-center justify-center shrink-0">
+                        <span className="text-xs font-bold text-cyan-glow">3</span>
                       </div>
-                      <span className="text-muted-foreground">Check email for confirmation</span>
-                    </li>
+                      <span className="text-text-muted">Check email for confirmation</span>
+                    </motion.li>
                   </ul>
                 </CardContent>
               </Card>
 
               {/* Actions */}
               <div className="space-y-2">
-                <Button asChild variant="outline" className="w-full">
-                  <Link href={`/orders/${orderId}`}>
-                    <Package className="mr-2 h-4 w-4" />
-                    View Order Details
-                  </Link>
-                </Button>
-                <Button asChild variant="ghost" className="w-full">
-                  <Link href="/catalog">
-                    Continue Shopping
-                  </Link>
-                </Button>
+                <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                  <Button asChild variant="outline" className="w-full hover:border-cyan-glow/50 hover:shadow-glow-cyan transition-all">
+                    <Link href={`/orders/${orderId}`}>
+                      <Package className="mr-2 h-4 w-4" />
+                      View Order Details
+                    </Link>
+                  </Button>
+                </motion.div>
+                <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                  <Button asChild variant="ghost" className="w-full hover:text-cyan-glow transition-colors">
+                    <Link href="/catalog">
+                      Continue Shopping
+                    </Link>
+                  </Button>
+                </motion.div>
               </div>
             </motion.div>
           </div>
