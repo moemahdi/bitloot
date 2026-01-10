@@ -178,7 +178,8 @@ export function OTPLogin(): React.ReactElement {
         role: (result.user.role === 'admin' ? 'admin' : 'user'),
       };
 
-      login(result.accessToken, result.refreshToken, user);
+      // Pass sessionId to track current session
+      login(result.accessToken, result.refreshToken, user, result.sessionId ?? undefined);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unknown error';
       setError(message);

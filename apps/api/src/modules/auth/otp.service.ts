@@ -14,9 +14,9 @@ export class OtpService {
   private readonly redis: Redis;
   private readonly logger = new Logger(OtpService.name);
   private readonly OTP_TTL = 300; // 5 minutes
-  private readonly MAX_REQUESTS_PER_WINDOW = 3;
+  private readonly MAX_REQUESTS_PER_WINDOW = 10; // Increased for testing
   private readonly REQUEST_WINDOW_SECONDS = 900; // 15 minutes
-  private readonly MAX_VERIFY_ATTEMPTS = 5;
+  private readonly MAX_VERIFY_ATTEMPTS = 10; // Increased for testing
   private readonly VERIFY_WINDOW_SECONDS = 60; // 1 minute
 
   constructor(

@@ -74,6 +74,12 @@ export class OrderItemResponseDto {
   @ApiProperty({ description: 'Product title/name for display' })
   productTitle!: string;
 
+  @ApiProperty({ description: 'Quantity of this item', example: 1 })
+  quantity!: number;
+
+  @ApiProperty({ description: 'Unit price in EUR at time of purchase', example: '29.99' })
+  unitPrice!: string;
+
   @ApiProperty({
     description: 'Fulfillment source for this item',
     enum: ['custom', 'kinguin'],
@@ -114,13 +120,20 @@ export class OrderResponseDto {
   @ApiProperty()
   total!: string;
 
+  @ApiProperty({
+    description: 'Cryptocurrency used for payment (e.g., btc, eth, ltc)',
+    required: false,
+    example: 'btc',
+  })
+  payCurrency?: string;
+
   @ApiProperty({ type: [OrderItemResponseDto] })
   @Type(() => OrderItemResponseDto)
   items!: OrderItemResponseDto[];
 
-  @ApiProperty()
-  createdAt!: Date;
+  @ApiProperty({ description: 'Creation timestamp in ISO 8601 format (UTC)' })
+  createdAt!: string;
 
-  @ApiProperty()
-  updatedAt!: Date;
+  @ApiProperty({ description: 'Last update timestamp in ISO 8601 format (UTC)' })
+  updatedAt!: string;
 }

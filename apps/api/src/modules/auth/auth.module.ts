@@ -6,7 +6,10 @@ import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { OtpService } from './otp.service';
 import { UserService } from './user.service';
+import { SessionService } from './session.service';
+import { SessionController } from './session.controller';
 import { User } from '../../database/entities/user.entity';
+import { Session } from '../../database/entities/session.entity';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { RefreshTokenGuard } from './guards/refresh-token.guard';
@@ -40,7 +43,7 @@ import { OrdersModule } from '../orders/orders.module';
  */
 @Module({
   imports: [
-    TypeOrmModule.forFeature([User]),
+    TypeOrmModule.forFeature([User, Session]),
     PassportModule.register({
       defaultStrategy: 'jwt',
     }),
@@ -56,12 +59,13 @@ import { OrdersModule } from '../orders/orders.module';
     forwardRef(() => OrdersModule), // Link guest orders to users on login
   ],
 
-  controllers: [AuthController],
+  controllers: [AuthController, SessionController],
 
   providers: [
     AuthService,
     OtpService,
     UserService,
+    SessionService,
     JwtStrategy,
     JwtAuthGuard,
     RefreshTokenGuard,
@@ -71,6 +75,7 @@ import { OrdersModule } from '../orders/orders.module';
     AuthService,
     OtpService,
     UserService,
+    SessionService,
     JwtAuthGuard,
     RefreshTokenGuard,
     JwtModule,

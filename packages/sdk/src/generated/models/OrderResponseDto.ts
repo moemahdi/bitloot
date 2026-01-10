@@ -70,23 +70,29 @@ export interface OrderResponseDto {
      */
     total: string;
     /**
+     * Cryptocurrency used for payment (e.g., btc, eth, ltc)
+     * @type {string}
+     * @memberof OrderResponseDto
+     */
+    payCurrency?: string;
+    /**
      * 
      * @type {Array<OrderItemResponseDto>}
      * @memberof OrderResponseDto
      */
     items: Array<OrderItemResponseDto>;
     /**
-     * 
-     * @type {Date}
+     * Creation timestamp in ISO 8601 format (UTC)
+     * @type {string}
      * @memberof OrderResponseDto
      */
-    createdAt: Date;
+    createdAt: string;
     /**
-     * 
-     * @type {Date}
+     * Last update timestamp in ISO 8601 format (UTC)
+     * @type {string}
      * @memberof OrderResponseDto
      */
-    updatedAt: Date;
+    updatedAt: string;
 }
 
 
@@ -132,9 +138,10 @@ export function OrderResponseDtoFromJSONTyped(json: any, ignoreDiscriminator: bo
         'sourceType': json['sourceType'],
         'kinguinReservationId': json['kinguinReservationId'] == null ? undefined : json['kinguinReservationId'],
         'total': json['total'],
+        'payCurrency': json['payCurrency'] == null ? undefined : json['payCurrency'],
         'items': ((json['items'] as Array<any>).map(OrderItemResponseDtoFromJSON)),
-        'createdAt': (new Date(json['createdAt'])),
-        'updatedAt': (new Date(json['updatedAt'])),
+        'createdAt': json['createdAt'],
+        'updatedAt': json['updatedAt'],
     };
 }
 
@@ -156,9 +163,10 @@ export function OrderResponseDtoToJSONTyped(value?: OrderResponseDto | null, ign
         'sourceType': value['sourceType'],
         'kinguinReservationId': value['kinguinReservationId'],
         'total': value['total'],
+        'payCurrency': value['payCurrency'],
         'items': ((value['items'] as Array<any>).map(OrderItemResponseDtoToJSON)),
-        'createdAt': value['createdAt'].toISOString(),
-        'updatedAt': value['updatedAt'].toISOString(),
+        'createdAt': value['createdAt'],
+        'updatedAt': value['updatedAt'],
     };
 }
 

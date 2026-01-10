@@ -42,6 +42,21 @@ export class User {
   })
   role!: 'user' | 'admin';
 
+  /**
+   * Pending email address during email change verification
+   * Will replace current email after OTP verification
+   */
+  @Column({ nullable: true })
+  pendingEmail?: string;
+
+  /**
+   * Timestamp when user requested account deletion
+   * Account will be permanently deleted 30 days after this date
+   * User can cancel deletion before the 30-day period ends
+   */
+  @Column({ type: 'timestamptz', nullable: true })
+  deletionRequestedAt?: Date | null;
+
   @CreateDateColumn()
   createdAt!: Date;
 

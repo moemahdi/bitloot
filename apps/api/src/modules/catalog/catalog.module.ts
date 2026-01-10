@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { BullModule } from '@nestjs/bullmq';
 
@@ -34,7 +34,7 @@ import { ProductGroup } from './entities/product-group.entity';
     ]),
     BullModule.registerQueue({ name: 'catalog' }),
     BullModule.registerQueue({ name: 'fulfillment' }),
-    AdminOpsModule,
+    forwardRef(() => AdminOpsModule),
   ],
   providers: [CatalogService, GroupsService, KinguinCatalogClient, CatalogProcessor],
   controllers: [

@@ -16,35 +16,71 @@
 import * as runtime from '../runtime';
 import type {
   AuthResponseDto,
+  CancelDeletionResponseDto,
+  CancellationTokenResponseDto,
+  DeletionResponseDto,
+  EmailChangeResponseDto,
   ForgotPasswordDto,
   ForgotPasswordResponseDto,
   OtpResponseDto,
+  PublicCancelDeletionResponseDto,
+  RequestDeletionDto,
+  RequestEmailChangeDto,
   RequestOtpDto,
   ResetPasswordDto,
   ResetPasswordResponseDto,
+  VerifyEmailChangeDto,
   VerifyOtpDto,
 } from '../models/index';
 import {
     AuthResponseDtoFromJSON,
     AuthResponseDtoToJSON,
+    CancelDeletionResponseDtoFromJSON,
+    CancelDeletionResponseDtoToJSON,
+    CancellationTokenResponseDtoFromJSON,
+    CancellationTokenResponseDtoToJSON,
+    DeletionResponseDtoFromJSON,
+    DeletionResponseDtoToJSON,
+    EmailChangeResponseDtoFromJSON,
+    EmailChangeResponseDtoToJSON,
     ForgotPasswordDtoFromJSON,
     ForgotPasswordDtoToJSON,
     ForgotPasswordResponseDtoFromJSON,
     ForgotPasswordResponseDtoToJSON,
     OtpResponseDtoFromJSON,
     OtpResponseDtoToJSON,
+    PublicCancelDeletionResponseDtoFromJSON,
+    PublicCancelDeletionResponseDtoToJSON,
+    RequestDeletionDtoFromJSON,
+    RequestDeletionDtoToJSON,
+    RequestEmailChangeDtoFromJSON,
+    RequestEmailChangeDtoToJSON,
     RequestOtpDtoFromJSON,
     RequestOtpDtoToJSON,
     ResetPasswordDtoFromJSON,
     ResetPasswordDtoToJSON,
     ResetPasswordResponseDtoFromJSON,
     ResetPasswordResponseDtoToJSON,
+    VerifyEmailChangeDtoFromJSON,
+    VerifyEmailChangeDtoToJSON,
     VerifyOtpDtoFromJSON,
     VerifyOtpDtoToJSON,
 } from '../models/index';
 
+export interface AuthControllerCancelDeletionViaTokenRequest {
+    token: string;
+}
+
 export interface AuthControllerForgotPasswordRequest {
     forgotPasswordDto: ForgotPasswordDto;
+}
+
+export interface AuthControllerRequestAccountDeletionRequest {
+    requestDeletionDto: RequestDeletionDto;
+}
+
+export interface AuthControllerRequestEmailChangeRequest {
+    requestEmailChangeDto: RequestEmailChangeDto;
 }
 
 export interface AuthControllerRequestOtpRequest {
@@ -55,6 +91,10 @@ export interface AuthControllerResetPasswordRequest {
     resetPasswordDto: ResetPasswordDto;
 }
 
+export interface AuthControllerVerifyEmailChangeRequest {
+    verifyEmailChangeDto: VerifyEmailChangeDto;
+}
+
 export interface AuthControllerVerifyOtpRequest {
     verifyOtpDto: VerifyOtpDto;
 }
@@ -63,6 +103,82 @@ export interface AuthControllerVerifyOtpRequest {
  * 
  */
 export class AuthenticationApi extends runtime.BaseAPI {
+
+    /**
+     * Cancel pending account deletion
+     */
+    async authControllerCancelAccountDeletionRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<CancelDeletionResponseDto>> {
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("JWT-auth", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/auth/account/delete/cancel`;
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => CancelDeletionResponseDtoFromJSON(jsonValue));
+    }
+
+    /**
+     * Cancel pending account deletion
+     */
+    async authControllerCancelAccountDeletion(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<CancelDeletionResponseDto> {
+        const response = await this.authControllerCancelAccountDeletionRaw(initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Allows users to cancel their account deletion from the email link without logging in. The token is secure and expires after 30 days.
+     * Cancel account deletion via email link (public, no auth required)
+     */
+    async authControllerCancelDeletionViaTokenRaw(requestParameters: AuthControllerCancelDeletionViaTokenRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<PublicCancelDeletionResponseDto>> {
+        if (requestParameters['token'] == null) {
+            throw new runtime.RequiredError(
+                'token',
+                'Required parameter "token" was null or undefined when calling authControllerCancelDeletionViaToken().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/auth/account/delete/cancel/{token}`;
+        urlPath = urlPath.replace(`{${"token"}}`, encodeURIComponent(String(requestParameters['token'])));
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => PublicCancelDeletionResponseDtoFromJSON(jsonValue));
+    }
+
+    /**
+     * Allows users to cancel their account deletion from the email link without logging in. The token is secure and expires after 30 days.
+     * Cancel account deletion via email link (public, no auth required)
+     */
+    async authControllerCancelDeletionViaToken(requestParameters: AuthControllerCancelDeletionViaTokenRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PublicCancelDeletionResponseDto> {
+        const response = await this.authControllerCancelDeletionViaTokenRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
 
     /**
      * Request password reset email
@@ -100,6 +216,80 @@ export class AuthenticationApi extends runtime.BaseAPI {
      */
     async authControllerForgotPassword(requestParameters: AuthControllerForgotPasswordRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ForgotPasswordResponseDto> {
         const response = await this.authControllerForgotPasswordRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Get account deletion status
+     */
+    async authControllerGetAccountDeletionStatusRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<DeletionResponseDto>> {
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("JWT-auth", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/auth/account/delete/status`;
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => DeletionResponseDtoFromJSON(jsonValue));
+    }
+
+    /**
+     * Get account deletion status
+     */
+    async authControllerGetAccountDeletionStatus(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<DeletionResponseDto> {
+        const response = await this.authControllerGetAccountDeletionStatusRaw(initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Get cancellation token for redirect
+     */
+    async authControllerGetCancellationTokenRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<CancellationTokenResponseDto>> {
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("JWT-auth", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/auth/account/delete/cancel-token`;
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => CancellationTokenResponseDtoFromJSON(jsonValue));
+    }
+
+    /**
+     * Get cancellation token for redirect
+     */
+    async authControllerGetCancellationToken(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<CancellationTokenResponseDto> {
+        const response = await this.authControllerGetCancellationTokenRaw(initOverrides);
         return await response.value();
     }
 
@@ -194,6 +384,100 @@ export class AuthenticationApi extends runtime.BaseAPI {
     }
 
     /**
+     * Request account deletion (30-day grace period)
+     */
+    async authControllerRequestAccountDeletionRaw(requestParameters: AuthControllerRequestAccountDeletionRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<DeletionResponseDto>> {
+        if (requestParameters['requestDeletionDto'] == null) {
+            throw new runtime.RequiredError(
+                'requestDeletionDto',
+                'Required parameter "requestDeletionDto" was null or undefined when calling authControllerRequestAccountDeletion().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("JWT-auth", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/auth/account/delete`;
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+            body: RequestDeletionDtoToJSON(requestParameters['requestDeletionDto']),
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => DeletionResponseDtoFromJSON(jsonValue));
+    }
+
+    /**
+     * Request account deletion (30-day grace period)
+     */
+    async authControllerRequestAccountDeletion(requestParameters: AuthControllerRequestAccountDeletionRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<DeletionResponseDto> {
+        const response = await this.authControllerRequestAccountDeletionRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Request email change (sends OTP to BOTH old and new email)
+     */
+    async authControllerRequestEmailChangeRaw(requestParameters: AuthControllerRequestEmailChangeRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<EmailChangeResponseDto>> {
+        if (requestParameters['requestEmailChangeDto'] == null) {
+            throw new runtime.RequiredError(
+                'requestEmailChangeDto',
+                'Required parameter "requestEmailChangeDto" was null or undefined when calling authControllerRequestEmailChange().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("JWT-auth", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/auth/email-change/request`;
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+            body: RequestEmailChangeDtoToJSON(requestParameters['requestEmailChangeDto']),
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => EmailChangeResponseDtoFromJSON(jsonValue));
+    }
+
+    /**
+     * Request email change (sends OTP to BOTH old and new email)
+     */
+    async authControllerRequestEmailChange(requestParameters: AuthControllerRequestEmailChangeRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<EmailChangeResponseDto> {
+        const response = await this.authControllerRequestEmailChangeRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
      * Request OTP code via email
      */
     async authControllerRequestOtpRaw(requestParameters: AuthControllerRequestOtpRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<OtpResponseDto>> {
@@ -268,6 +552,53 @@ export class AuthenticationApi extends runtime.BaseAPI {
      */
     async authControllerResetPassword(requestParameters: AuthControllerResetPasswordRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ResetPasswordResponseDto> {
         const response = await this.authControllerResetPasswordRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Verify email change with OTP code(s)
+     */
+    async authControllerVerifyEmailChangeRaw(requestParameters: AuthControllerVerifyEmailChangeRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<EmailChangeResponseDto>> {
+        if (requestParameters['verifyEmailChangeDto'] == null) {
+            throw new runtime.RequiredError(
+                'verifyEmailChangeDto',
+                'Required parameter "verifyEmailChangeDto" was null or undefined when calling authControllerVerifyEmailChange().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("JWT-auth", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/auth/email-change/verify`;
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+            body: VerifyEmailChangeDtoToJSON(requestParameters['verifyEmailChangeDto']),
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => EmailChangeResponseDtoFromJSON(jsonValue));
+    }
+
+    /**
+     * Verify email change with OTP code(s)
+     */
+    async authControllerVerifyEmailChange(requestParameters: AuthControllerVerifyEmailChangeRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<EmailChangeResponseDto> {
+        const response = await this.authControllerVerifyEmailChangeRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

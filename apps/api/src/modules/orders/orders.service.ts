@@ -1,8 +1,9 @@
 import { Injectable, BadRequestException, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, MoreThan } from 'typeorm';
+import { Repository } from 'typeorm';
 import { Order } from './order.entity';
 import { OrderItem } from './order-item.entity';
+import { Payment } from '../payments/payment.entity';
 import { CreateOrderDto, OrderResponseDto, OrderItemResponseDto } from './dto/create-order.dto';
 import { EmailsService } from '../emails/emails.service';
 import { CatalogService } from '../catalog/catalog.service';
@@ -51,6 +52,7 @@ export class OrdersService {
   constructor(
     @InjectRepository(Order) private readonly ordersRepo: Repository<Order>,
     @InjectRepository(OrderItem) private readonly itemsRepo: Repository<OrderItem>,
+    @InjectRepository(Payment) private readonly paymentsRepo: Repository<Payment>,
     private readonly emailsService: EmailsService,
     private readonly catalogService: CatalogService,
   ) { }
@@ -142,6 +144,8 @@ export class OrdersService {
             order: savedOrder,
             productId: itemData.productId,
             productSourceType: product.sourceType ?? 'custom',
+            quantity: 1, // Each item represents 1 unit (for key delivery)
+            unitPrice: product.price, // Capture price at time of purchase
             signedUrl: null,
           });
           const savedItem = await this.itemsRepo.save(item);
@@ -396,6 +400,51 @@ export class OrdersService {
   }
 
   /**
+   * Mark order as expired - Level 4
+   * Transition: * → expired (terminal)
+   * Called when payment invoice expires (distinct from failed for better UX)
+   * Expired orders can prompt users to retry with a new payment
+   * Sends payment expired notice email to customer
+   */
+  async markExpired(orderId: string, reason?: string): Promise<Order> {
+    const order = await this.ordersRepo.findOne({ where: { id: orderId }, relations: ['items'] });
+    if (order === null) throw new NotFoundException(`Order ${orderId} not found`);
+
+    if (order.status === 'fulfilled') {
+      throw new BadRequestException(`Cannot mark as expired: order is already fulfilled`);
+    }
+
+    // Idempotent: already expired is success
+    if (order.status === 'expired') {
+      this.logger.debug(`Order ${orderId} is already expired (idempotent success)`);
+      return order;
+    }
+
+    order.status = 'expired';
+    this.logger.warn(`Order ${orderId} marked as expired. Reason: ${reason ?? 'payment window closed'}`);
+
+    const savedOrder = await this.ordersRepo.save(order);
+    
+    // CRITICAL: Invalidate cache after status change
+    invalidateOrderCache(orderId);
+
+    // Level 4: Send payment expired notice email (customer can retry)
+    try {
+      await this.emailsService.sendPaymentExpiredNotice(order.email, {
+        orderId: order.id,
+        reason: reason ?? 'Payment window expired',
+      });
+
+      this.logger.log(`Payment expired notice email sent to ${order.email} for order ${orderId}`);
+    } catch (error) {
+      this.logger.error(`Failed to send payment expired notice email for order ${orderId}:`, error);
+      // Don't fail the order status update - email delivery should be non-critical
+    }
+
+    return savedOrder;
+  }
+
+  /**
    * Mark order as fulfilled (keys delivered)
    * Transition: paid → fulfilled (terminal)
    * Called after keys are generated and stored in R2
@@ -518,6 +567,12 @@ export class OrdersService {
     const productIds = items.map((item) => item.productId);
     const productMap = await this.catalogService.getProductsBySlugs(productIds);
 
+    // Fetch the most recent payment for this order to get payCurrency
+    const payment = await this.paymentsRepo.findOne({
+      where: { orderId: order.id },
+      order: { createdAt: 'DESC' },
+    });
+
     return {
       id: order.id,
       email: order.email,
@@ -526,17 +581,20 @@ export class OrdersService {
       sourceType: order.sourceType ?? 'custom',
       kinguinReservationId: order.kinguinReservationId,
       total: order.totalCrypto,
+      payCurrency: payment?.payCurrency ?? undefined,
       items: items.map(
         (item): OrderItemResponseDto => ({
           id: item.id,
           productId: item.productId,
           productTitle: productMap.get(item.productId)?.title ?? item.productId,
+          quantity: item.quantity ?? 1,
+          unitPrice: item.unitPrice ?? '0.00',
           sourceType: item.productSourceType ?? 'custom',
           signedUrl: item.signedUrl,
         }),
       ),
-      createdAt: order.createdAt,
-      updatedAt: order.updatedAt,
+      createdAt: order.createdAt.toISOString(),
+      updatedAt: order.updatedAt.toISOString(),
     };
   }
 }

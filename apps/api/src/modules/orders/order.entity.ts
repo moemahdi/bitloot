@@ -24,6 +24,7 @@ import type { ProductSourceType } from '../catalog/entities/product.entity';
  * - 'confirming':   Payment confirming (IPN: payment_status = 'confirming')
  * - 'paid':         Payment finished successfully → Enqueue fulfillment (IPN: payment_status = 'finished')
  * - 'underpaid':    Payment insufficient (IPN: payment_status = 'underpaid') - TERMINAL, non-refundable
+ * - 'expired':      Payment expired (invoice timed out) - TERMINAL, can retry with new payment
  * - 'failed':       Payment failed (IPN: payment_status = 'failed') - TERMINAL
  * - 'fulfilled':    Fulfillment complete, keys delivered - TERMINAL success
  */
@@ -33,7 +34,8 @@ export type OrderStatus =
   | 'confirming' // Payment in progress: Awaiting blockchain confirmations
   | 'paid' // Payment successful: Ready to fulfill
   | 'underpaid' // Payment failed: Insufficient amount (non-refundable)
-  | 'failed' // Payment failed: Error or expired (refundable)
+  | 'expired' // Payment window expired: Customer can retry with new payment
+  | 'failed' // Payment failed: Error or rejected (refundable)
   | 'fulfilled'; // Success: Keys delivered, order complete
 
 @Entity('orders')

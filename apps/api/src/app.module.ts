@@ -21,6 +21,7 @@ import { PaymentsModule } from './modules/payments/payments.module';
 import { BullQueues, FulfillmentQueue } from './jobs/queues';
 import { FulfillmentProcessor } from './jobs/fulfillment.processor';
 import { OrphanOrderCleanupService } from './jobs/orphan-order-cleanup.processor';
+import { UserDeletionCleanupService } from './jobs/user-deletion-cleanup.processor';
 import { FulfillmentModule } from './modules/fulfillment/fulfillment.module';
 import { WebSocketModule } from './modules/fulfillment/websocket.module';
 import { KinguinModule } from './modules/kinguin/kinguin.module';
@@ -110,6 +111,7 @@ import { WatchlistModule } from './modules/watchlist/watchlist.module';
     FulfillmentProcessor,
     // Scheduled jobs
     OrphanOrderCleanupService,
+    UserDeletionCleanupService,
   ],
 })
 export class AppModule {}

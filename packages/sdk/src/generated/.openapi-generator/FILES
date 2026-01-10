@@ -19,6 +19,7 @@ apis/MetricsApi.ts
 apis/OrdersApi.ts
 apis/PaymentsApi.ts
 apis/ReviewsApi.ts
+apis/SessionsApi.ts
 apis/UsersApi.ts
 apis/WatchlistApi.ts
 apis/WebhooksApi.ts
@@ -79,6 +80,8 @@ docs/BulkDeleteProductsDto.md
 docs/BulkDeleteResponseDto.md
 docs/BulkRepriceProductsDto.md
 docs/BulkRepriceResponseDto.md
+docs/CancelDeletionResponseDto.md
+docs/CancellationTokenResponseDto.md
 docs/CatalogApi.md
 docs/CatalogGroupsApi.md
 docs/CategoriesResponseDto.md
@@ -94,7 +97,9 @@ docs/CreateProductGroupDto.md
 docs/CreateReviewDto.md
 docs/DashboardStatsDto.md
 docs/DashboardStatsDtoRevenueHistoryInner.md
+docs/DeletionResponseDto.md
 docs/DeliveryLinkDto.md
+docs/EmailChangeResponseDto.md
 docs/EmailsApi.md
 docs/EmbeddedPaymentResponseDto.md
 docs/FeaturedCategoryDto.md
@@ -146,8 +151,11 @@ docs/ProductGroupResponseDto.md
 docs/ProductGroupWithProductsDto.md
 docs/ProductListResponseDto.md
 docs/ProductResponseDto.md
+docs/PublicCancelDeletionResponseDto.md
 docs/RegionFilterDto.md
 docs/RemoveProductsFromGroupDto.md
+docs/RequestDeletionDto.md
+docs/RequestEmailChangeDto.md
 docs/RequestOtpDto.md
 docs/ResetPasswordDto.md
 docs/ResetPasswordResponseDto.md
@@ -157,6 +165,7 @@ docs/ReviewStatsDto.md
 docs/ReviewsApi.md
 docs/ReviewsControllerCanReviewOrder200Response.md
 docs/ScreenshotDto.md
+docs/SessionsApi.md
 docs/SyncConfigStatusDto.md
 docs/SyncJobResponseDto.md
 docs/SyncJobStatusResponseDto.md
@@ -171,6 +180,7 @@ docs/UpdateProductGroupDto.md
 docs/UpdateReviewDto.md
 docs/UserResponseDto.md
 docs/UsersApi.md
+docs/VerifyEmailChangeDto.md
 docs/VerifyOtpDto.md
 docs/VideoDto.md
 docs/WatchlistApi.md
@@ -224,6 +234,8 @@ models/BulkDeleteProductsDto.ts
 models/BulkDeleteResponseDto.ts
 models/BulkRepriceProductsDto.ts
 models/BulkRepriceResponseDto.ts
+models/CancelDeletionResponseDto.ts
+models/CancellationTokenResponseDto.ts
 models/CategoriesResponseDto.ts
 models/CategoryDto.ts
 models/CheckWatchlistResponseDto.ts
@@ -237,7 +249,9 @@ models/CreateProductGroupDto.ts
 models/CreateReviewDto.ts
 models/DashboardStatsDto.ts
 models/DashboardStatsDtoRevenueHistoryInner.ts
+models/DeletionResponseDto.ts
 models/DeliveryLinkDto.ts
+models/EmailChangeResponseDto.ts
 models/EmbeddedPaymentResponseDto.ts
 models/FeaturedCategoryDto.ts
 models/FiltersResponseDto.ts
@@ -282,8 +296,11 @@ models/ProductGroupResponseDto.ts
 models/ProductGroupWithProductsDto.ts
 models/ProductListResponseDto.ts
 models/ProductResponseDto.ts
+models/PublicCancelDeletionResponseDto.ts
 models/RegionFilterDto.ts
 models/RemoveProductsFromGroupDto.ts
+models/RequestDeletionDto.ts
+models/RequestEmailChangeDto.ts
 models/RequestOtpDto.ts
 models/ResetPasswordDto.ts
 models/ResetPasswordResponseDto.ts
@@ -305,6 +322,7 @@ models/UpdateProductDto.ts
 models/UpdateProductGroupDto.ts
 models/UpdateReviewDto.ts
 models/UserResponseDto.ts
+models/VerifyEmailChangeDto.ts
 models/VerifyOtpDto.ts
 models/VideoDto.ts
 models/WatchlistControllerGetWatchlistCount200Response.ts

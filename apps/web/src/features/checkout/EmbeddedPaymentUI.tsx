@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { QRCodeSVG } from 'qrcode.react';
 import { motion } from 'framer-motion';
+import confetti from 'canvas-confetti';
 import {
   Copy,
   CheckCircle2,
@@ -18,12 +19,20 @@ import {
   Timer,
   Sparkles,
   Zap,
+  Download,
+  HelpCircle,
 } from 'lucide-react';
 import { OrdersApi, PaymentsApi } from '@bitloot/sdk';
 import type { OrderResponseDto } from '@bitloot/sdk';
 import { Button } from '@/design-system/primitives/button';
 import { Badge } from '@/design-system/primitives/badge';
 import { Progress } from '@/design-system/primitives/progress';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@/design-system/primitives/accordion';
 import { toast } from 'sonner';
 import { apiConfig } from '@/lib/api-config';
 import { CryptoIcon } from '@/components/crypto-icons';
@@ -45,7 +54,7 @@ interface EmbeddedPaymentProps {
   estimatedTime: string;
 }
 
-type PaymentStatus = 'waiting' | 'confirming' | 'confirmed' | 'finished' | 'failed' | 'expired';
+type PaymentStatus = 'waiting' | 'confirming' | 'confirmed' | 'finished' | 'failed' | 'expired' | 'underpaid';
 
 // ========== Status Config ==========
 const STATUS_CONFIG: Record<PaymentStatus, {
@@ -85,15 +94,22 @@ const STATUS_CONFIG: Record<PaymentStatus, {
   },
   failed: {
     label: 'Payment Failed',
-    description: 'Something went wrong. Please try again.',
+    description: 'Something went wrong with the payment. Please try again.',
     icon: <AlertCircle className="h-5 w-5" />,
     color: 'text-red-500',
     bgColor: 'bg-red-500/10',
   },
   expired: {
-    label: 'Payment Expired',
-    description: 'The payment window has expired. Please start a new payment.',
+    label: 'Payment Window Expired',
+    description: 'The 1-hour payment window has closed. No funds were charged.',
     icon: <Timer className="h-5 w-5" />,
+    color: 'text-orange-warning',
+    bgColor: 'bg-orange-warning/10',
+  },
+  underpaid: {
+    label: 'Partial Payment Received',
+    description: 'Insufficient amount received. Please contact support.',
+    icon: <AlertCircle className="h-5 w-5" />,
     color: 'text-orange-warning',
     bgColor: 'bg-orange-warning/10',
   },
@@ -147,22 +163,42 @@ function CountdownTimer({ expiresAt, onExpired }: { expiresAt: string; onExpired
 
   const isLow = timeLeft.minutes < 5;
   const isCritical = timeLeft.minutes < 2;
+  const totalSeconds = timeLeft.minutes * 60 + timeLeft.seconds;
+  const progressPercentage = (totalSeconds / 3600) * 251.2; // 251.2 is circumference of circle with r=40
 
   return (
     <motion.div 
       animate={isCritical ? { scale: [1, 1.02, 1] } : {}}
       transition={{ duration: 1, repeat: Infinity }}
-      className={`flex items-center gap-2 ${isCritical ? 'text-destructive' : isLow ? 'text-orange-warning' : 'text-text-secondary'}`}
+      className="relative w-24 h-24"
     >
-      <motion.div
-        animate={isLow ? { rotate: [0, -10, 10, 0] } : {}}
-        transition={{ duration: 0.5, repeat: Infinity, repeatDelay: 2 }}
-      >
-        <Timer className="h-4 w-4" />
-      </motion.div>
-      <span className={`font-mono text-lg font-semibold tabular-nums ${isCritical ? 'animate-pulse' : ''}`}>
-        {String(timeLeft.minutes).padStart(2, '0')}:{String(timeLeft.seconds).padStart(2, '0')}
-      </span>
+      <svg className="transform -rotate-90 w-24 h-24">
+        <circle
+          cx="48"
+          cy="48"
+          r="40"
+          stroke="currentColor"
+          strokeWidth="4"
+          fill="none"
+          className="text-border-subtle"
+        />
+        <circle
+          cx="48"
+          cy="48"
+          r="40"
+          stroke="currentColor"
+          strokeWidth="4"
+          fill="none"
+          strokeDasharray={`${progressPercentage} 251.2`}
+          className={isCritical ? 'text-destructive' : isLow ? 'text-orange-warning' : 'text-cyan-glow'}
+        />
+      </svg>
+      <div className="absolute inset-0 flex flex-col items-center justify-center">
+        <Timer className={`h-4 w-4 mb-1 ${isCritical ? 'text-destructive' : isLow ? 'text-orange-warning' : 'text-text-secondary'}`} />
+        <span className={`font-mono text-lg font-bold tabular-nums ${isCritical ? 'text-destructive animate-pulse' : isLow ? 'text-orange-warning' : 'text-text-primary'}`}>
+          {String(timeLeft.minutes).padStart(2, '0')}:{String(timeLeft.seconds).padStart(2, '0')}
+        </span>
+      </div>
     </motion.div>
   );
 }
@@ -184,6 +220,11 @@ export function EmbeddedPaymentUI({
   const [copied, setCopied] = useState<'address' | 'amount' | null>(null);
   const [isExpired, setIsExpired] = useState(false);
   const [npPaymentStatus, setNpPaymentStatus] = useState<string | null>(null);
+  const [confirmations, setConfirmations] = useState<{current: number, required: number}>({current: 0, required: 3});
+  const [txHash, setTxHash] = useState<string | null>(null);
+  const networkFee = 0.50; // Mock network fee - should come from backend
+  const [amountReceived, setAmountReceived] = useState<number>(0);
+  const [amountNeeded, setAmountNeeded] = useState<number>(0);
 
   // Poll order status every 5 seconds
   const { data: order, refetch } = useQuery<OrderResponseDto>({
@@ -239,8 +280,11 @@ export function EmbeddedPaymentUI({
   const orderStatus = order?.status ?? 'pending';
   let paymentStatus: PaymentStatus = 'waiting';
   
-  // Check NOWPayments status first (more accurate in sandbox)
-  if (npPaymentStatus === 'confirming' || npPaymentStatus === 'sending') {
+  // Check for expired order status first (from backend orphan cleanup)
+  if (orderStatus === 'expired') {
+    paymentStatus = 'expired';
+  // Check NOWPayments status (more accurate in sandbox)
+  } else if (npPaymentStatus === 'confirming' || npPaymentStatus === 'sending') {
     paymentStatus = 'confirming';
   } else if (npPaymentStatus === 'confirmed' || npPaymentStatus === 'finished') {
     paymentStatus = 'finished';
@@ -261,6 +305,14 @@ export function EmbeddedPaymentUI({
   // Handle redirect on success
   useEffect(() => {
     if (paymentStatus === 'finished') {
+      // Trigger confetti
+      confetti({
+        particleCount: 100,
+        spread: 70,
+        origin: { y: 0.6 },
+        colors: ['#00FFFF', '#A855F7', '#10B981']
+      });
+
       const timer = setTimeout(() => {
         router.push(`/orders/${orderId}/success`);
       }, 2000);
@@ -274,6 +326,22 @@ export function EmbeddedPaymentUI({
     setCopied(type);
     toast.success(`${type === 'address' ? 'Address' : 'Amount'} copied!`);
     setTimeout(() => setCopied(null), 2000);
+  };
+
+  // Download QR Code
+  const downloadQR = () => {
+    const svg = document.querySelector('.qr-code-svg');
+    if (!svg) return;
+    
+    const svgData = new XMLSerializer().serializeToString(svg);
+    const blob = new Blob([svgData], { type: 'image/svg+xml' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `bitloot-payment-${orderId}.svg`;
+    link.click();
+    URL.revokeObjectURL(url);
+    toast.success('QR code downloaded!');
   };
 
   // Success state - redirect happening
@@ -333,6 +401,8 @@ export function EmbeddedPaymentUI({
 
   // Failed/Expired state
   if (paymentStatus === 'failed' || paymentStatus === 'expired') {
+    const isExpiredStatus = paymentStatus === 'expired';
+    
     return (
       <motion.div
         initial={{ opacity: 0, y: 20 }}
@@ -340,19 +410,65 @@ export function EmbeddedPaymentUI({
         className="relative glass-strong rounded-3xl p-10 text-center overflow-hidden"
       >
         {/* Background gradient */}
-        <div className={`absolute inset-0 ${paymentStatus === 'expired' ? 'bg-gradient-to-br from-orange-warning/10 via-transparent to-transparent' : 'bg-gradient-to-br from-red-500/10 via-transparent to-transparent'}`} />
+        <div className={`absolute inset-0 ${isExpiredStatus ? 'bg-gradient-to-br from-orange-warning/10 via-transparent to-transparent' : 'bg-gradient-to-br from-red-500/10 via-transparent to-transparent'}`} />
         
         <motion.div 
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
           transition={{ type: 'spring', stiffness: 200 }}
-          className={`relative mx-auto mb-6 h-20 w-20 rounded-2xl ${statusConfig.bgColor} flex items-center justify-center border-2 ${paymentStatus === 'expired' ? 'border-orange-warning/50' : 'border-red-500/50'}`}
+          className={`relative mx-auto mb-6 h-20 w-20 rounded-2xl ${statusConfig.bgColor} flex items-center justify-center border-2 ${isExpiredStatus ? 'border-orange-warning/50' : 'border-red-500/50'}`}
         >
           <div className={statusConfig.color}>{statusConfig.icon}</div>
         </motion.div>
         
         <h2 className={`text-2xl font-bold mb-3 ${statusConfig.color}`}>{statusConfig.label}</h2>
-        <p className="text-text-muted mb-8 max-w-sm mx-auto">{statusConfig.description}</p>
+        <p className="text-text-muted mb-4 max-w-sm mx-auto">{statusConfig.description}</p>
+        
+        {/* Additional info for expired payments */}
+        {isExpiredStatus && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="mb-6 p-4 rounded-xl bg-orange-warning/5 border border-orange-warning/20 text-left max-w-md mx-auto"
+          >
+            <p className="text-sm text-text-muted mb-2">
+              <strong className="text-orange-warning">What happened?</strong>
+            </p>
+            <p className="text-xs text-text-muted mb-2">
+              Crypto payments have a <strong>1-hour window</strong> to complete. If no payment is received within this time, the order expires automatically.
+            </p>
+            <p className="text-xs text-text-muted">
+              <strong>Don&apos;t worry</strong> - no funds were charged. You can start a new order and complete the payment within the time limit.
+            </p>
+          </motion.div>
+        )}
+        
+        {isExpiredStatus && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="mb-6 space-y-3"
+          >
+            <p className="text-sm text-text-muted text-center">Try a different cryptocurrency:</p>
+            <div className="grid grid-cols-3 gap-2">
+              {['BTC', 'ETH', 'USDT'].map((currency) => (
+                <Button 
+                  key={currency} 
+                  variant="outline"
+                  className="border-border-subtle hover:border-cyan-glow/50 hover:bg-cyan-glow/5"
+                  onClick={() => {
+                    toast.info(`Switching to ${currency}...`);
+                    // This would trigger a new payment creation with selected currency
+                  }}
+                >
+                  {currency}
+                </Button>
+              ))}
+            </div>
+          </motion.div>
+        )}
         
         <motion.div
           whileHover={{ scale: 1.02 }}
@@ -360,11 +476,11 @@ export function EmbeddedPaymentUI({
           transition={{ type: 'spring', stiffness: 400, damping: 17 }}
         >
           <Button
-            onClick={() => router.push('/checkout')}
+            onClick={() => router.push('/catalog')}
             className="h-14 px-8 bg-gradient-to-r from-cyan-glow to-purple-neon text-bg-primary hover:shadow-glow-cyan-lg font-bold text-lg group"
           >
             <RefreshCw className="h-5 w-5 mr-2 transition-transform duration-200 group-hover:rotate-180" />
-            Start New Payment
+            {isExpiredStatus ? 'Create New Order' : 'Start New Payment'}
           </Button>
         </motion.div>
       </motion.div>
@@ -421,25 +537,29 @@ export function EmbeddedPaymentUI({
 
         {/* Progress indicator for confirming */}
         {paymentStatus === 'confirming' && (
-          <div className="mt-4">
-            <div className="flex items-center justify-between text-xs text-text-muted mb-1.5">
-              <span>Confirming on blockchain...</span>
-              <span className="text-cyan-glow">~50%</span>
+          <div className="mt-4 space-y-2">
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-text-muted">Blockchain confirmations</span>
+              <span className="text-cyan-glow font-mono">{confirmations.current}/{confirmations.required}</span>
             </div>
-            <Progress value={50} className="h-2" />
+            <Progress value={(confirmations.current / confirmations.required) * 100} className="h-2" />
+            <p className="text-xs text-text-muted">Estimated {estimatedTime} remaining</p>
           </div>
         )}
       </div>
 
       {/* Payment Details */}
       <div className="p-6 space-y-6">
-        {/* Timer */}
+        {/* Timer - 1 hour payment window */}
         <div className="flex items-center justify-between p-4 rounded-2xl bg-gradient-to-r from-bg-tertiary to-bg-secondary border border-border-subtle">
           <div className="flex items-center gap-3">
             <div className="p-2 rounded-xl bg-orange-warning/10 border border-orange-warning/20">
               <Clock className="h-4 w-4 text-orange-warning" />
             </div>
-            <span className="text-text-muted font-medium">Time remaining</span>
+            <div>
+              <span className="text-text-muted font-medium block">Time remaining</span>
+              <span className="text-xs text-text-muted/70">1-hour payment window</span>
+            </div>
           </div>
           <CountdownTimer expiresAt={expiresAt} onExpired={() => setIsExpired(true)} />
         </div>
@@ -464,6 +584,7 @@ export function EmbeddedPaymentUI({
                 size={200}
                 level="H"
                 includeMargin={true}
+                className="qr-code-svg"
                 style={{ display: 'block' }}
               />
             </div>
@@ -477,7 +598,59 @@ export function EmbeddedPaymentUI({
             <Sparkles className="h-3.5 w-3.5 text-cyan-glow animate-pulse" />
             Scan with your wallet app
           </motion.p>
+          <motion.div
+            initial={{ opacity: 0, y: 5 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.25 }}
+          >
+            <Button 
+              variant="outline" 
+              onClick={downloadQR} 
+              className="gap-2 border-cyan-glow/20 hover:border-cyan-glow/50 hover:bg-cyan-glow/5"
+            >
+              <Download className="h-4 w-4" />
+              Download QR Code
+            </Button>
+          </motion.div>
         </div>
+
+        {/* Payment Instructions Accordion */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+        >
+          <Accordion type="single" collapsible className="border-none">
+            <AccordionItem value="how-to-pay" className="border border-border-subtle rounded-xl px-4">
+              <AccordionTrigger className="hover:no-underline py-4">
+                <div className="flex items-center gap-2 text-text-primary">
+                  <HelpCircle className="h-4 w-4 text-cyan-glow" />
+                  <span className="text-sm font-medium">How to pay with crypto?</span>
+                </div>
+              </AccordionTrigger>
+              <AccordionContent className="pb-4">
+                <ol className="space-y-3 text-sm text-text-muted">
+                  <li className="flex gap-3">
+                    <span className="font-bold text-cyan-glow shrink-0">1.</span>
+                    <span>Open your crypto wallet app</span>
+                  </li>
+                  <li className="flex gap-3">
+                    <span className="font-bold text-cyan-glow shrink-0">2.</span>
+                    <span>Scan the QR code or copy the address</span>
+                  </li>
+                  <li className="flex gap-3">
+                    <span className="font-bold text-cyan-glow shrink-0">3.</span>
+                    <span>Send the EXACT amount shown above</span>
+                  </li>
+                  <li className="flex gap-3">
+                    <span className="font-bold text-cyan-glow shrink-0">4.</span>
+                    <span>Wait for blockchain confirmation</span>
+                  </li>
+                </ol>
+              </AccordionContent>
+            </AccordionItem>
+          </Accordion>
+        </motion.div>
 
         {/* Amount to Send */}
         <div className="relative p-5 rounded-2xl bg-gradient-to-br from-bg-tertiary via-bg-secondary to-bg-tertiary border border-border-subtle overflow-hidden group hover:border-cyan-glow/30 transition-colors">
@@ -537,6 +710,22 @@ export function EmbeddedPaymentUI({
           </div>
         </div>
 
+        {/* Network Fee Warning */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.35 }}
+          className="p-4 rounded-xl bg-orange-warning/5 border border-orange-warning/20"
+        >
+          <div className="flex items-center gap-2 mb-2">
+            <AlertCircle className="h-4 w-4 text-orange-warning" />
+            <span className="text-sm font-semibold text-orange-warning">Network Fee Notice</span>
+          </div>
+          <p className="text-xs text-text-muted">
+            Amount shown is exact. Your wallet will add network fees separately (≈ ${networkFee.toFixed(2)} USD)
+          </p>
+        </motion.div>
+
         {/* Wallet Address */}
         <div className="relative p-5 rounded-2xl bg-gradient-to-br from-bg-tertiary via-bg-secondary to-bg-tertiary border border-border-subtle overflow-hidden group hover:border-purple-neon/30 transition-colors">
           {/* Subtle glow effect */}
@@ -587,6 +776,58 @@ export function EmbeddedPaymentUI({
           <Clock className="h-4 w-4 text-cyan-glow" />
           <span>Estimated confirmation: <span className="text-text-secondary font-medium">{estimatedTime}</span></span>
         </div>
+
+        {/* Transaction Hash Display */}
+        {txHash && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="p-4 rounded-xl bg-cyan-glow/5 border border-cyan-glow/20"
+          >
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm font-medium text-cyan-glow">Transaction Hash</span>
+              <a 
+                href={`https://blockchain.com/btc/tx/${txHash}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs text-cyan-glow hover:underline flex items-center gap-1"
+              >
+                View on explorer
+                <ExternalLink className="h-3 w-3" />
+              </a>
+            </div>
+            <code className="text-xs font-mono text-text-muted break-all bg-bg-primary/50 p-2 rounded block">
+              {txHash}
+            </code>
+          </motion.div>
+        )}
+
+        {/* Underpayment Warning */}
+        {(paymentStatus as string) === 'underpaid' && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="p-4 rounded-xl bg-orange-warning/10 border border-orange-warning/30"
+          >
+            <div className="flex items-center gap-3 mb-3">
+              <AlertCircle className="h-5 w-5 text-orange-warning" />
+              <h4 className="font-semibold text-orange-warning">Partial Payment Received</h4>
+            </div>
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-text-muted">Received:</span>
+                <span className="font-mono text-text-primary">{amountReceived.toFixed(8)} {payCurrency}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-text-muted">Still needed:</span>
+                <span className="font-mono text-orange-warning">{amountNeeded.toFixed(8)} {payCurrency}</span>
+              </div>
+            </div>
+            <Button className="w-full mt-4" variant="outline" onClick={() => window.open('/support', '_blank')}>
+              Contact Support
+            </Button>
+          </motion.div>
+        )}
 
         {/* Security Note */}
         <motion.div 

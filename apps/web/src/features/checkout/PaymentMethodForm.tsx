@@ -319,6 +319,8 @@ export function PaymentMethodForm({
   // Handle currency selection
   const handleSelectCurrency = (code: string) => {
     setValue('payCurrency', code, { shouldValidate: true });
+    // Collapse the dropdown after selection
+    setShowAllCurrencies(false);
   };
 
   // Filter currencies based on search query
@@ -374,7 +376,7 @@ export function PaymentMethodForm({
         <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-purple-neon/10 border border-purple-neon/20">
           <Sparkles className="w-4 h-4 text-purple-neon flex-shrink-0" />
           <span className="text-sm text-text-secondary">
-            <span className="font-medium text-purple-neon">Recommended:</span> USDT (TRC20) for
+            <span className="font-medium text-purple-neon">Recommended:</span> LTC or SOL for
             lowest network fees
           </span>
         </div>

@@ -21,6 +21,7 @@ export * from './MetricsApi';
 export * from './OrdersApi';
 export * from './PaymentsApi';
 export * from './ReviewsApi';
+export * from './SessionsApi';
 export * from './UsersApi';
 export * from './WatchlistApi';
 export * from './WebhooksApi';

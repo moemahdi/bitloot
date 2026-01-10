@@ -9,18 +9,26 @@ import { Order } from '../modules/orders/order.entity';
  * 
  * Runs every 15 minutes to clean up stale orders that:
  * 1. Have status 'created' (never started payment)
- * 2. Were created more than 30 minutes ago
+ * 2. Were created more than 1 hour ago
  * 
- * These orders are marked as 'failed' with reason 'expired'
+ * These orders are marked as 'expired' with reason 'expired'
  * This prevents database pollution from:
  * - Duplicate order creation bugs
  * - Users who abandon checkout
  * - Payment widget failures
+ * 
+ * Note: NOWPayments invoices have no expiration (permanent), but payments
+ * live for 7 days. We use 1 hour as a reasonable UX window for checkout.
  */
 @Injectable()
 export class OrphanOrderCleanupService {
   private readonly logger = new Logger(OrphanOrderCleanupService.name);
-  private readonly ORPHAN_THRESHOLD_MINUTES = 30;
+  /**
+   * Threshold for order expiration (1 hour)
+   * Orders in 'created' status for more than 60 minutes are considered orphaned/expired
+   * NOWPayments invoices are permanent, but we set a reasonable checkout window for UX
+   */
+  private readonly ORPHAN_THRESHOLD_MINUTES = 60;
 
   constructor(
     @InjectRepository(Order)
@@ -56,15 +64,15 @@ export class OrphanOrderCleanupService {
 
       this.logger.log(`Found ${orphanedOrders.length} orphaned orders to clean up`);
 
-      // Mark each order as failed (expired)
+      // Mark each order as expired (distinct from failed for better UX)
       let cleanedCount = 0;
       for (const order of orphanedOrders) {
         try {
           await this.ordersRepo.update(order.id, {
-            status: 'failed',
+            status: 'expired',
           });
           cleanedCount++;
-          this.logger.debug(`Marked order ${order.id} as failed (expired after ${this.ORPHAN_THRESHOLD_MINUTES}min)`);
+          this.logger.debug(`Marked order ${order.id} as expired (payment window closed after ${this.ORPHAN_THRESHOLD_MINUTES}min)`);
         } catch (error) {
           this.logger.error(`Failed to cleanup order ${order.id}:`, error);
         }
@@ -87,14 +95,14 @@ export class OrphanOrderCleanupService {
     const result = await this.ordersRepo
       .createQueryBuilder()
       .update(Order)
-      .set({ status: 'failed' })
+      .set({ status: 'expired' })
       .where('status = :status', { status: 'created' })
       .andWhere('createdAt < :cutoff', { cutoff: cutoffTime })
       .execute();
 
     const affected = result.affected ?? 0;
     if (affected > 0) {
-      this.logger.log(`Manual cleanup: ${affected} orphaned orders marked as failed`);
+      this.logger.log(`Manual cleanup: ${affected} orphaned orders marked as expired`);
     }
     return affected;
   }

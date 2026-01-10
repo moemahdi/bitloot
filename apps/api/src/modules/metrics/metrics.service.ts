@@ -191,7 +191,7 @@ export class MetricsService {
    * Call when Resend API call fails or times out
    */
   incrementEmailSendFailed(
-    type: 'otp' | 'payment_created' | 'payment_completed' | 'underpaid' | 'failed',
+    type: 'otp' | 'payment_created' | 'payment_completed' | 'underpaid' | 'failed' | 'expired',
   ): void {
     this.emailSendFailed.inc({ type });
   }

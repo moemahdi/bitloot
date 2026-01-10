@@ -3,6 +3,7 @@ import { ApiTags, ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagg
 import { AdminOpsService } from './admin-ops.service';
 import { AdminGuard } from '../../common/guards/admin.guard';
 import { JwtAuthGuard } from '../../modules/auth/guards/jwt-auth.guard';
+import { UserDeletionCleanupService } from '../../jobs/user-deletion-cleanup.processor';
 
 /**
  * Admin Ops Controller - Phase 3: Ops Panels & Monitoring
@@ -13,7 +14,10 @@ import { JwtAuthGuard } from '../../modules/auth/guards/jwt-auth.guard';
 @UseGuards(JwtAuthGuard, AdminGuard)
 @ApiBearerAuth('JWT-auth')
 export class AdminOpsController {
-  constructor(private readonly adminOpsService: AdminOpsService) {}
+  constructor(
+    private readonly adminOpsService: AdminOpsService,
+    private readonly userDeletionCleanupService: UserDeletionCleanupService,
+  ) {}
 
   // ============ FEATURE FLAGS ============
 
@@ -267,5 +271,28 @@ export class AdminOpsController {
     queues: { healthy: boolean; failedJobs: number };
   }> {
     return this.adminOpsService.getSystemHealth();
+  }
+
+  // ============ USER DELETION CLEANUP ============
+
+  @Post('user-deletion-cleanup')
+  @ApiOperation({ summary: 'Manually trigger user deletion cleanup (30-day grace period expired)' })
+  @ApiResponse({
+    status: 200,
+    description: 'Cleanup results',
+    schema: {
+      properties: {
+        processed: { type: 'number', description: 'Number of users found for deletion' },
+        deleted: { type: 'number', description: 'Number successfully deleted' },
+        failed: { type: 'number', description: 'Number that failed to delete' },
+      },
+    },
+  })
+  async triggerUserDeletionCleanup(): Promise<{
+    processed: number;
+    deleted: number;
+    failed: number;
+  }> {
+    return this.userDeletionCleanupService.triggerManualCleanup();
   }
 }

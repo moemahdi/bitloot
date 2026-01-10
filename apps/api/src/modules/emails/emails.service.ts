@@ -746,4 +746,133 @@ export class EmailsService {
     // Level 4: Mock sending (will integrate with Resend in production)
     return Promise.resolve();
   }
+
+  /**
+   * Send expired payment notice email
+   * Level 4: Notification for expired payments (payment window closed without payment)
+   * 
+   * Different from failed notice - provides a friendlier message with option to retry
+   *
+   * @param to Customer email address
+   * @param data { orderId, reason }
+   * @returns Promise that resolves when email is queued
+   */
+  sendPaymentExpiredNotice(to: string, data: { orderId: string; reason?: string }): Promise<void> {
+    const { orderId, reason } = data;
+    const frontendUrl = process.env.FRONTEND_URL ?? 'http://localhost:3000';
+    const retryUrl = `${frontendUrl}/checkout`; // Redirect to checkout to create new order
+
+    const html = `
+      <h2>BitLoot Payment Expired</h2>
+      <p>Dear Customer,</p>
+      <p>The payment window for order <strong>#${orderId.substring(0, 8)}</strong> has expired.</p>
+      
+      <p><strong>Reason:</strong> ${reason ?? 'Payment window timed out (1 hour)'}</p>
+      
+      <p><strong>Don't worry!</strong> No funds have been charged. Our checkout has a 1-hour window to complete payment.</p>
+      
+      <p><strong>What can you do?</strong></p>
+      <ul>
+        <li>Visit our checkout page to create a new order</li>
+        <li>Ensure you have your wallet ready before starting payment</li>
+        <li>Complete the transfer promptly once you receive the payment address</li>
+      </ul>
+      
+      <p style="margin: 24px 0;">
+        <a href="${retryUrl}" style="background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">Create New Order</a>
+      </p>
+      
+      <p>We're here to help if you have any questions!</p>
+      <p>Best regards,<br/>The BitLoot Team</p>
+      
+      <hr/>
+      <small>This is an automated message. Do not reply to this email. Visit our <a href="https://bitloot.io/support">Support Center</a> for help.</small>
+    `;
+
+    // Generate delivery headers (Idempotency-Key, X-Priority set to NORMAL for info notice)
+    const headers = this.generateEmailHeaders('normal');
+
+    this.logger.log(
+      `[MOCK EMAIL - LEVEL 4] Sending payment expired notice to ${to} for order ${orderId}`,
+    );
+    this.logger.debug(`[MOCK EMAIL - LEVEL 4] Expiration reason: ${reason ?? 'payment window closed'}`);
+    this.logger.debug(`[MOCK EMAIL - LEVEL 4] Headers: ${JSON.stringify(headers)}`);
+    this.logger.debug(`[MOCK EMAIL - LEVEL 4] HTML: ${html}`);
+    this.metricsService.incrementEmailSendFailed('expired'); // Track expired separately
+
+    // Level 4: Mock sending (will integrate with Resend in production)
+    return Promise.resolve();
+  }
+
+  /**
+   * Generic email sending method for custom emails
+   * Used by account management features (email change, deletion notifications)
+   *
+   * @param options Email options
+   * @returns Promise that resolves when email is sent
+   */
+  async sendEmail(options: {
+    to: string;
+    subject: string;
+    html: string;
+    priority?: 'high' | 'normal' | 'low';
+  }): Promise<void> {
+    const { to, subject, html, priority = 'normal' } = options;
+    const headers = this.generateEmailHeaders(priority);
+    const idempotencyKey = headers['Idempotency-Key'];
+
+    // In mock mode, just log
+    if (this.resendApiKey.length === 0) {
+      this.logger.log(`[MOCK EMAIL] Generic email to ${to}`);
+      this.logger.debug(`[MOCK EMAIL] Subject: ${subject}`);
+      this.logger.debug(`[MOCK EMAIL] Idempotency-Key: ${idempotencyKey}`);
+      return;
+    }
+
+    // Check suppression list
+    const isSuppressed = await this.suppressionList.isSuppressed(to);
+    if (isSuppressed) {
+      this.logger.warn(`⏭️  Skipping email to suppressed address: ${to}`);
+      return;
+    }
+
+    const startTime = Date.now();
+
+    try {
+      const payload = {
+        from: this.from,
+        to: [to],
+        subject,
+        html,
+      };
+
+      const response = await this.retry.executeWithRetry(
+        () =>
+          this.httpService.post('/emails', payload, {
+            baseURL: this.resendBaseUrl,
+            headers: {
+              Authorization: `Bearer ${this.resendApiKey}`,
+              'Idempotency-Key': idempotencyKey,
+              'X-Priority': headers['X-Priority'],
+              'X-MSMail-Priority': headers['X-MSMail-Priority'],
+            },
+          }),
+        3, // max 3 retry attempts
+        (attempt, error) => {
+          this.logger.warn(`Retrying email (attempt ${attempt}) to ${to}: ${error.message}`);
+        },
+      );
+
+      const latencyMs = Date.now() - startTime;
+      this.metricsService.recordEmailLatency('otp', latencyMs);
+      this.metricsService.incrementEmailSendSuccess('otp');
+
+      this.logger.log(`✅ Email sent to ${to} (ID: ${(response.data as { id?: string })?.id ?? 'unknown'}, latency: ${latencyMs}ms)`);
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      this.logger.error(`❌ Failed to send email to ${to}: ${errorMessage}`);
+      this.metricsService.incrementEmailSendFailed('otp');
+      throw error;
+    }
+  }
 }

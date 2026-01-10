@@ -15,6 +15,7 @@ import { Product } from '../modules/catalog/entities/product.entity';
 import { ProductOffer } from '../modules/catalog/entities/product-offer.entity';
 import { ProductGroup } from '../modules/catalog/entities/product-group.entity';
 import { DynamicPricingRule } from '../modules/catalog/entities/dynamic-pricing-rule.entity';
+import { Session } from './entities/session.entity';
 import { InitOrders1710000000000 } from './migrations/1710000000000-InitOrders';
 import { AddKeysReservation1720000000000 } from './migrations/1720000000000-add-keys-reservation';
 import { CreatePayments1730000000001 } from './migrations/1730000000001-CreatePayments';
@@ -38,13 +39,16 @@ import { UpdateWebhookIdempotencyConstraint1735827000000 } from './migrations/17
 import { AddContentTypeToKeys1735840000000 } from './migrations/1735840000000-AddContentTypeToKeys';
 import { LinkOrdersToUsersByEmail1767100000000 } from './migrations/1767100000000-LinkOrdersToUsersByEmail';
 import { AddCompletionEmailSent1767200000000 } from './migrations/1767200000000-AddCompletionEmailSent';
+import { AddOrderItemPriceQuantity1736450000000 } from './migrations/1736450000000-AddOrderItemPriceQuantity';
+import { CreateUserSessions1768000000000 } from './migrations/1768000000000-CreateUserSessions';
+import { AddUserDeletionRequestedAt1768100000000 } from './migrations/1768100000000-AddUserDeletionRequestedAt';
 
 dotenv.config({ path: path.resolve(__dirname, '../../../../.env') });
 
 export default new DataSource({
   type: 'postgres',
   url: process.env.DATABASE_URL,
-  entities: [Order, OrderItem, Key, Payment, WebhookLog, User, AuditLog, EmailBounce, Review, WatchlistItem, Product, ProductOffer, ProductGroup, DynamicPricingRule],
+  entities: [Order, OrderItem, Key, Payment, WebhookLog, User, AuditLog, EmailBounce, Review, WatchlistItem, Product, ProductOffer, ProductGroup, DynamicPricingRule, Session],
   migrations: [
     InitOrders1710000000000,
     AddKeysReservation1720000000000,
@@ -69,6 +73,9 @@ export default new DataSource({
     AddContentTypeToKeys1735840000000,
     LinkOrdersToUsersByEmail1767100000000,
     AddCompletionEmailSent1767200000000,
+    AddOrderItemPriceQuantity1736450000000,
+    CreateUserSessions1768000000000,
+    AddUserDeletionRequestedAt1768100000000,
   ],
   logging: true,
   synchronize: false,

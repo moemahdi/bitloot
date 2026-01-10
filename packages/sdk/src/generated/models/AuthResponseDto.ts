@@ -40,6 +40,12 @@ export interface AuthResponseDto {
      */
     refreshToken: string;
     /**
+     * Current session ID for tracking active sessions
+     * @type {string}
+     * @memberof AuthResponseDto
+     */
+    sessionId: string;
+    /**
      * User info
      * @type {UserResponseDto}
      * @memberof AuthResponseDto
@@ -53,6 +59,7 @@ export interface AuthResponseDto {
 export function instanceOfAuthResponseDto(value: object): value is AuthResponseDto {
     if (!('accessToken' in value) || value['accessToken'] === undefined) return false;
     if (!('refreshToken' in value) || value['refreshToken'] === undefined) return false;
+    if (!('sessionId' in value) || value['sessionId'] === undefined) return false;
     if (!('user' in value) || value['user'] === undefined) return false;
     return true;
 }
@@ -69,6 +76,7 @@ export function AuthResponseDtoFromJSONTyped(json: any, ignoreDiscriminator: boo
         
         'accessToken': json['accessToken'],
         'refreshToken': json['refreshToken'],
+        'sessionId': json['sessionId'],
         'user': UserResponseDtoFromJSON(json['user']),
     };
 }
@@ -86,6 +94,7 @@ export function AuthResponseDtoToJSONTyped(value?: AuthResponseDto | null, ignor
         
         'accessToken': value['accessToken'],
         'refreshToken': value['refreshToken'],
+        'sessionId': value['sessionId'],
         'user': UserResponseDtoToJSON(value['user']),
     };
 }

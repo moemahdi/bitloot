@@ -117,6 +117,7 @@ export class PaymentsService {
         payAmount: 0, // Will be set once we receive payment details
         payCurrency: npInvoice.pay_currency,
         status: npInvoice.status,
+        // 1-hour expiration window for checkout UX (NOWPayments invoices are permanent)
         expirationDate: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
       };
     } catch (error) {
@@ -272,12 +273,25 @@ export class PaymentsService {
           currency: payment?.payCurrency,
         });
       } else if (status === 'failed') {
-        await this.ordersService.markFailed(orderId, 'NOWPayments reported failure');
-        this.logStructured('warn', 'handleIpn:payment_failed', 'payment_rejected', {
-          orderId,
-          paymentId: externalId,
-          reason: 'nowpayments_failure',
-        });
+        // Check if this is an expiration (based on IPN payload) or a real failure
+        // NOWPayments sends 'failed' for both expired and actual failures
+        const isExpired = this.isPaymentExpired(dto);
+        
+        if (isExpired) {
+          await this.ordersService.markExpired(orderId, 'Payment invoice expired');
+          this.logStructured('warn', 'handleIpn:payment_expired', 'payment_window_closed', {
+            orderId,
+            paymentId: externalId,
+            reason: 'invoice_expired',
+          });
+        } else {
+          await this.ordersService.markFailed(orderId, 'NOWPayments reported failure');
+          this.logStructured('warn', 'handleIpn:payment_failed', 'payment_rejected', {
+            orderId,
+            paymentId: externalId,
+            reason: 'nowpayments_failure',
+          });
+        }
       } else if (status !== undefined) {
         this.logger.warn(`Unknown payment status: ${status}`);
         this.logStructured('warn', 'handleIpn:unknown_status', 'unknown_status', {
@@ -743,5 +757,30 @@ export class PaymentsService {
         fulfillmentTriggered,
       };
     }
+  }
+
+  /**
+   * Determine if a failed payment was due to expiration
+   * 
+   * NOWPayments sends 'failed' status for both expired invoices and actual failures.
+   * We can distinguish them by checking if no payment was ever received:
+   * - If actually_paid is 0 or undefined → likely expiration
+   * - If actually_paid > 0 → actual payment failure (e.g., network issue, processing error)
+   * 
+   * @param dto IPN request data
+   * @returns true if the failure was due to invoice expiration
+   */
+  private isPaymentExpired(dto: IpnRequestDto): boolean {
+    // Check if any amount was actually paid
+    // Use type assertion since IPN may include additional fields from NOWPayments
+    const dtoAsRecord = dto as unknown as Record<string, unknown>;
+    const actuallyPaid = dtoAsRecord['actually_paid'] ?? 
+                         dtoAsRecord['actuallyPaid'] ?? 0;
+    
+    const paidAmount = typeof actuallyPaid === 'number' ? actuallyPaid : parseFloat(String(actuallyPaid)) || 0;
+    
+    // If no payment was ever received and status is failed → expired
+    // If some payment was received → actual failure (not expiration)
+    return paidAmount === 0;
   }
 }

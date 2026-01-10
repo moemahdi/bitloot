@@ -3,6 +3,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { Order } from './order.entity';
 import { OrderItem } from './order-item.entity';
 import { Key } from './key.entity';
+import { Payment } from '../payments/payment.entity';
 import { OrdersService } from './orders.service';
 import { OrdersController } from './orders.controller';
 import { EmailsModule } from '../emails/emails.module';
@@ -29,7 +30,7 @@ import { CatalogModule } from '../catalog/catalog.module';
  * constructor(private readonly orders: OrdersService) {}
  */
 @Module({
-  imports: [TypeOrmModule.forFeature([Order, OrderItem, Key]), EmailsModule, CatalogModule],
+  imports: [TypeOrmModule.forFeature([Order, OrderItem, Key, Payment]), EmailsModule, CatalogModule],
   providers: [OrdersService],
   controllers: [OrdersController],
   exports: [OrdersService],

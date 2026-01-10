@@ -23,12 +23,13 @@ export interface AuthState {
   user: User | null;
   accessToken: string | null;
   refreshToken: string | null;
+  sessionId: string | null;
   isLoading: boolean;
   isAuthenticated: boolean;
 }
 
 interface AuthContextType extends AuthState {
-  login: (accessToken: string, refreshToken: string, user: User) => void;
+  login: (accessToken: string, refreshToken: string, user: User, sessionId?: string) => void;
   logout: () => void;
   refreshAccessToken: () => Promise<void>;
 }
@@ -40,6 +41,7 @@ export function AuthProvider({ children }: { children: ReactNode }): React.React
     user: null,
     accessToken: null,
     refreshToken: null,
+    sessionId: null,
     isLoading: true,
     isAuthenticated: false,
   });
@@ -112,22 +114,37 @@ export function AuthProvider({ children }: { children: ReactNode }): React.React
 
     if (typeof localStorage !== 'undefined') {
       localStorage.removeItem('user');
+      localStorage.removeItem('sessionId');
     }
 
     if (refreshTimeoutRef.current !== null) {
       clearTimeout(refreshTimeoutRef.current);
     }
 
+    // Clear the refreshing flag to allow future refreshes after re-login
+    isRefreshingRef.current = false;
+    refreshPromiseRef.current = null;
+
     setState({
       user: null,
       accessToken: null,
       refreshToken: null,
+      sessionId: null,
       isLoading: false,
       isAuthenticated: false,
     });
 
     void queryClient.clear();
   }, [deleteCookie, queryClient]);
+
+  // Helper to clear stale sessionId without full logout
+  const clearStaleSessionId = useCallback((): void => {
+    if (typeof localStorage !== 'undefined') {
+      localStorage.removeItem('sessionId');
+    }
+    setState((prev) => ({ ...prev, sessionId: null }));
+    console.info('🧹 Cleared stale sessionId from localStorage');
+  }, []);
 
   // Initialize auth state from storage on mount
   useEffect(() => {
@@ -138,12 +155,14 @@ export function AuthProvider({ children }: { children: ReactNode }): React.React
       // Optimistically set user from local storage to avoid flash
       const userStr = localStorage.getItem('user');
       const localUser = userStr !== null ? (JSON.parse(userStr) as User) : null;
+      const localSessionId = localStorage.getItem('sessionId');
 
       if (localUser !== null) {
         setState({
           user: localUser,
           accessToken,
           refreshToken,
+          sessionId: localSessionId,
           isLoading: false, // Set loading false initially to show UI
           isAuthenticated: true,
         });
@@ -172,6 +191,7 @@ export function AuthProvider({ children }: { children: ReactNode }): React.React
               user,
               accessToken,
               refreshToken,
+              sessionId: localSessionId,
               isLoading: false,
               isAuthenticated: true,
             });
@@ -186,11 +206,21 @@ export function AuthProvider({ children }: { children: ReactNode }): React.React
           }
         } catch (error) {
           console.error('Failed to initialize auth:', error);
-          // If we have a local user, we keep it (optimistic), otherwise stop loading
+          
+          // If error is 401 (Unauthorized), the token/session is invalid - logout
+          if (error instanceof Error && 'response' in error) {
+            const response = (error as { response?: { status?: number } }).response;
+            if (response?.status === 401) {
+              console.warn('🚫 Token validation failed with 401 - logging out');
+              logout();
+              return;
+            }
+          }
+          
+          // For other errors, if we have a local user, keep it (optimistic)
           if (localUser === null) {
             setState((prev) => ({ ...prev, isLoading: false }));
           }
-          // If error is 401, we should probably logout, but for now let's be safe
         }
       })();
     } else {
@@ -284,19 +314,116 @@ export function AuthProvider({ children }: { children: ReactNode }): React.React
     logout,
   ]);
 
+  // ========== PERIODIC SESSION VALIDATION ==========
+  // Check every 2 minutes if the current session is still valid
+  // This catches revoked sessions faster than waiting for token refresh
+  useEffect(() => {
+    if (!state.isAuthenticated || state.sessionId === null || state.accessToken === null) return;
+
+    const validateSession = async (): Promise<void> => {
+      try {
+        const response = await fetch(
+          `${apiConfig.basePath}/sessions/validate/${state.sessionId}`,
+          {
+            headers: {
+              Authorization: `Bearer ${state.accessToken}`,
+            },
+          }
+        );
+
+        if (response.ok) {
+          const result = (await response.json()) as { valid: boolean; message: string };
+          if (!result.valid) {
+            console.warn('🚫 Session validation failed - session was revoked');
+            logout();
+          }
+        } else if (response.status === 401) {
+          console.warn('🚫 Session validation returned 401 - logging out');
+          logout();
+        }
+      } catch (error) {
+        // Network errors are OK, don't logout on network issues
+        console.debug('Session validation network error (ignored):', error);
+      }
+    };
+
+    // Validate immediately on mount
+    void validateSession();
+
+    // Then validate every 2 minutes
+    const intervalId = setInterval(() => {
+      void validateSession();
+    }, 2 * 60 * 1000); // 2 minutes
+
+    return () => {
+      clearInterval(intervalId);
+    };
+  }, [state.isAuthenticated, state.sessionId, state.accessToken, logout]);
+
+  // ========== WINDOW FOCUS SESSION VALIDATION ==========
+  // Validate session when user returns to the tab - catches revokes instantly
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const handleFocus = (): void => {
+      if (!state.isAuthenticated || state.sessionId === null || state.accessToken === null) return;
+
+      console.debug('👁️ Window focused - validating session...');
+      
+      void (async () => {
+        try {
+          const response = await fetch(
+            `${apiConfig.basePath}/sessions/validate/${state.sessionId}`,
+            {
+              headers: {
+                Authorization: `Bearer ${state.accessToken}`,
+              },
+            }
+          );
+
+          if (response.ok) {
+            const result = (await response.json()) as { valid: boolean; message: string };
+            if (!result.valid) {
+              console.warn('🚫 Session invalid on window focus - logging out');
+              logout();
+            }
+          } else if (response.status === 401) {
+            console.warn('🚫 Session validation 401 on window focus - logging out');
+            logout();
+          }
+        } catch (error) {
+          console.debug('Session validation on focus failed (network):', error);
+        }
+      })();
+    };
+
+    window.addEventListener('focus', handleFocus);
+
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, [state.isAuthenticated, state.sessionId, state.accessToken, logout]);
+
   const login = useCallback(
-    (accessToken: string, refreshToken: string, user: User): void => {
+    (accessToken: string, refreshToken: string, user: User, sessionId?: string): void => {
+      console.info('🔐 Login called with sessionId:', sessionId);
+      
       setCookie('accessToken', accessToken);
       setCookie('refreshToken', refreshToken);
 
       if (typeof localStorage !== 'undefined') {
         localStorage.setItem('user', JSON.stringify(user));
+        if (sessionId !== undefined) {
+          localStorage.setItem('sessionId', sessionId);
+          console.info('🔐 SessionId stored in localStorage:', sessionId);
+        }
       }
 
       setState({
         user,
         accessToken,
         refreshToken,
+        sessionId: sessionId ?? null,
         isLoading: false,
         isAuthenticated: true,
       });

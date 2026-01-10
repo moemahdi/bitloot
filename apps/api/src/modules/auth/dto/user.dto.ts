@@ -115,6 +115,9 @@ export class AuthResponseDto {
   @ApiProperty({ description: 'JWT refresh token (7 day expiry)' })
   refreshToken!: string;
 
+  @ApiProperty({ description: 'Current session ID for tracking active sessions' })
+  sessionId!: string;
+
   @ApiProperty({ description: 'User info', type: UserResponseDto })
   user!: UserResponseDto;
 }
@@ -182,3 +185,172 @@ export class ResetPasswordResponseDto {
   message!: string;
 }
 
+/**
+ * Email Change DTOs (Dual-OTP verification: old email + new email)
+ * Security: Both current and new email owners must verify the change
+ */
+
+export class RequestEmailChangeDto {
+  @ApiProperty({
+    description: 'New email address to change to',
+    example: 'newemail@example.com',
+  })
+  @IsEmail()
+  newEmail!: string;
+}
+
+export class VerifyEmailChangeDto {
+  @ApiProperty({
+    description: '6-digit OTP code sent to OLD (current) email',
+    example: '123456',
+  })
+  @IsString()
+  @MinLength(6)
+  oldEmailCode!: string;
+
+  @ApiProperty({
+    description: '6-digit OTP code sent to NEW email',
+    example: '654321',
+  })
+  @IsString()
+  @MinLength(6)
+  newEmailCode!: string;
+}
+
+export class EmailChangeResponseDto {
+  @ApiProperty({ description: 'Operation success status' })
+  success!: boolean;
+
+  @ApiProperty({ description: 'Response message' })
+  message!: string;
+
+  @ApiProperty({ description: 'New email address', required: false })
+  newEmail?: string;
+
+  @ApiProperty({ description: 'Current email address (for verification step)', required: false })
+  currentEmail?: string;
+
+  @ApiProperty({ description: 'Seconds until OTP expires', required: false })
+  expiresIn?: number;
+
+  @ApiProperty({ description: 'Indicates if dual OTP verification is required', required: false })
+  requiresDualVerification?: boolean;
+}
+
+/**
+ * Account Deletion DTOs (30-day grace period)
+ */
+
+export class RequestDeletionDto {
+  @ApiProperty({
+    description: 'Confirmation string - must be "DELETE"',
+    example: 'DELETE',
+  })
+  @IsString()
+  confirmation!: string;
+}
+
+export class DeletionResponseDto {
+  @ApiProperty({ description: 'Operation success status' })
+  success!: boolean;
+
+  @ApiProperty({ description: 'Response message' })
+  message!: string;
+
+  @ApiProperty({ description: 'Date when account will be permanently deleted (ISO string)', required: false })
+  deletionDate?: string | null;
+
+  @ApiProperty({ description: 'Days remaining before permanent deletion', required: false })
+  daysRemaining?: number | null;
+}
+
+export class CancelDeletionResponseDto {
+  @ApiProperty({ description: 'Operation success status' })
+  success!: boolean;
+
+  @ApiProperty({ description: 'Response message' })
+  message!: string;
+}
+
+/**
+ * Cancellation Token Response DTO
+ * Returns a token that can be used to redirect to the cancellation page
+ */
+export class CancellationTokenResponseDto {
+  @ApiProperty({ description: 'Operation success status' })
+  success!: boolean;
+
+  @ApiProperty({ description: 'Cancellation token for redirect' })
+  token!: string;
+
+  @ApiProperty({ description: 'Full URL to the cancellation page' })
+  cancelUrl!: string;
+}
+
+/**
+ * Public (token-based) Cancel Deletion DTO
+ * Used for cancelling deletion via email link without requiring login
+ */
+export class PublicCancelDeletionResponseDto {
+  @ApiProperty({
+    description: 'Cancellation result status',
+    enum: ['success', 'already_cancelled', 'expired', 'invalid', 'error'],
+    example: 'success',
+  })
+  status!: 'success' | 'already_cancelled' | 'expired' | 'invalid' | 'error';
+
+  @ApiProperty({ description: 'Human-readable message' })
+  message!: string;
+
+  @ApiProperty({ description: 'User email (masked for privacy)', required: false })
+  email?: string;
+
+  @ApiProperty({ description: 'Timestamp when cancellation was processed', required: false })
+  cancelledAt?: string;
+}
+
+/**
+ * Session DTOs
+ */
+
+export class SessionResponseDto {
+  @ApiProperty({ description: 'Session UUID' })
+  id!: string;
+
+  @ApiProperty({ description: 'Device/browser info', required: false })
+  deviceInfo?: string | null;
+
+  @ApiProperty({ description: 'IP address', required: false })
+  ipAddress?: string | null;
+
+  @ApiProperty({ description: 'Approximate location', required: false })
+  location?: string | null;
+
+  @ApiProperty({ description: 'Last activity timestamp', required: false })
+  lastActiveAt?: Date | null;
+
+  @ApiProperty({ description: 'Session creation timestamp' })
+  createdAt!: Date;
+
+  @ApiProperty({ description: 'Whether this is the current session' })
+  isCurrent!: boolean;
+}
+
+export class SessionListResponseDto {
+  @ApiProperty({ description: 'List of active sessions', type: [SessionResponseDto] })
+  sessions!: SessionResponseDto[];
+
+  @ApiProperty({ description: 'Total number of active sessions' })
+  total!: number;
+}
+
+export class RevokeSessionResponseDto {
+  @ApiProperty({ description: 'Operation success status' })
+  success!: boolean;
+
+  @ApiProperty({ description: 'Response message' })
+  message!: string;
+
+  @ApiProperty({ description: 'Number of sessions revoked', required: false })
+  revokedCount?: number;
+}

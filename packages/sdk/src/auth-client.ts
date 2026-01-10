@@ -16,6 +16,7 @@ export interface VerifyOtpResponse {
   success: boolean;
   accessToken?: string;
   refreshToken?: string;
+  sessionId?: string;
   user?: {
     id: string;
     email: string;

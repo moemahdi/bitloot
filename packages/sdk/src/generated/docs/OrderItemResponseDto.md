@@ -9,6 +9,8 @@ Name | Type
 `id` | string
 `productId` | string
 `productTitle` | string
+`quantity` | number
+`unitPrice` | string
 `sourceType` | string
 `signedUrl` | object
 
@@ -22,6 +24,8 @@ const example = {
   "id": null,
   "productId": null,
   "productTitle": null,
+  "quantity": 1,
+  "unitPrice": 29.99,
   "sourceType": custom,
   "signedUrl": null,
 } satisfies OrderItemResponseDto

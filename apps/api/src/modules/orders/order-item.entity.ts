@@ -25,7 +25,19 @@ export class OrderItem {
   productId!: string; // e.g., "demo-product"
 
   /**
-   * Captured from product at time of order creation
+   * Quantity of this product in the order
+   */
+  @Column({ type: 'int', default: 1 })
+  quantity!: number;
+
+  /**
+   * Unit price at time of purchase (in EUR)
+   * Captured to preserve historical pricing
+   */
+  @Column({ type: 'decimal', precision: 10, scale: 2, default: 0 })
+  unitPrice!: string;
+
+  /**
    * Used for fulfillment routing:
    * - 'custom': Retrieve pre-uploaded key from R2
    * - 'kinguin': Purchase from Kinguin API

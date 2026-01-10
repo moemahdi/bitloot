@@ -12,6 +12,8 @@ import {
   HttpStatus,
   NotFoundException,
   ForbiddenException,
+  Inject,
+  forwardRef,
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
@@ -43,6 +45,7 @@ import { Product } from './entities/product.entity';
 export class AdminProductsController {
   constructor(
     private readonly catalogService: CatalogService,
+    @Inject(forwardRef(() => AdminOpsService))
     private readonly adminOpsService: AdminOpsService,
   ) { }
 

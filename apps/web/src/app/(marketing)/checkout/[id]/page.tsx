@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -19,15 +19,19 @@ import {
   Clock,
   Timer,
   Package,
+  ArrowLeft,
   ArrowRight,
   ShoppingBag,
   Mail,
   Check,
   CreditCard,
+  Copy,
+  Sparkles,
+  Hash,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { OrdersApi, PaymentsApi } from '@bitloot/sdk';
-import type { EmbeddedPaymentResponseDto } from '@bitloot/sdk';
+import type { EmbeddedPaymentResponseDto, OrderItemResponseDto } from '@bitloot/sdk';
 import { apiConfig } from '@/lib/api-config';
 import { Button } from '@/design-system/primitives/button';
 import { Input } from '@/design-system/primitives/input';
@@ -53,6 +57,40 @@ type CheckoutStep = 'email' | 'payment' | 'paying';
 
 // Order status type
 type OrderStatus = 'pending' | 'confirming' | 'paid' | 'fulfilled' | 'failed' | 'expired' | 'underpaid';
+
+// Group order items by productId to show combined quantity
+interface GroupedOrderItem {
+  productId: string;
+  productTitle: string;
+  quantity: number;
+  unitPrice: string;
+  totalPrice: number;
+}
+
+const groupOrderItems = (items: OrderItemResponseDto[] | undefined): GroupedOrderItem[] => {
+  if (items === undefined || items.length === 0) return [];
+  
+  const grouped = new Map<string, GroupedOrderItem>();
+  
+  for (const item of items) {
+    const existing = grouped.get(item.productId);
+    const itemPrice = Number(item.unitPrice ?? 0);
+    if (existing !== undefined) {
+      existing.quantity += 1;
+      existing.totalPrice += itemPrice;
+    } else {
+      grouped.set(item.productId, {
+        productId: item.productId,
+        productTitle: item.productTitle,
+        quantity: 1,
+        unitPrice: item.unitPrice ?? '0.00',
+        totalPrice: itemPrice,
+      });
+    }
+  }
+  
+  return Array.from(grouped.values());
+};
 
 // Step Progress component
 function StepProgress({ currentStep }: { currentStep: CheckoutStep }): React.ReactElement {
@@ -183,12 +221,12 @@ function OrderStatusCard({
       case 'expired':
         return {
           icon: Clock,
-          iconClass: 'text-text-muted',
-          bgClass: 'from-border-muted/20 to-border-muted/10',
-          borderClass: 'border-border-muted',
-          title: 'Payment Expired',
-          subtitle: 'The payment window has closed',
-          message: 'Please create a new order to continue your purchase.',
+          iconClass: 'text-orange-warning',
+          bgClass: 'from-orange-warning/20 to-orange-warning/10',
+          borderClass: 'border-orange-warning/30',
+          title: 'Payment Window Expired',
+          subtitle: 'The 1-hour payment window has closed',
+          message: 'No funds were charged. Create a new order and complete payment within the time limit.',
         };
       case 'underpaid':
         return {
@@ -263,6 +301,7 @@ export default function CheckoutPage(): React.ReactElement {
   const [email, setEmail] = useState<string>('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [embeddedPayment, setEmbeddedPayment] = useState<EmbeddedPaymentResponseDto | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
 
   // Form setup
   const {
@@ -495,7 +534,7 @@ export default function CheckoutPage(): React.ReactElement {
             transition={{ delay: 0.3 }}
             className="mt-3 text-text-muted text-sm sm:text-base"
           >
-            Fast, secure crypto payments with instant key delivery
+            Fast, secure crypto payments with instant product delivery
           </motion.p>
         </motion.div>
 
@@ -534,7 +573,7 @@ export default function CheckoutPage(): React.ReactElement {
                           <h2 className="text-xl sm:text-2xl font-bold text-text-primary tracking-tight">
                             Delivery Email
                           </h2>
-                          <p className="text-sm text-text-muted">We&apos;ll send your game keys here instantly</p>
+                          <p className="text-sm text-text-muted">We&apos;ll send your products here instantly</p>
                         </div>
                       </div>
                     </div>
@@ -606,7 +645,7 @@ export default function CheckoutPage(): React.ReactElement {
                             <div className="flex gap-3">
                               <Zap className="h-5 w-5 text-orange-warning shrink-0 mt-0.5" />
                               <p className="text-sm text-text-secondary">
-                                <span className="font-bold text-orange-warning">Important:</span> Your purchased keys
+                                <span className="font-bold text-orange-warning">Important:</span> Your purchased products
                                 will be delivered to this email address.
                               </p>
                             </div>
@@ -693,33 +732,139 @@ export default function CheckoutPage(): React.ReactElement {
                 <div className="absolute top-0 left-0 right-0 h-1 bg-linear-to-r from-purple-neon via-cyan-glow to-purple-neon" />
 
                 <div className="p-6 border-b border-border-subtle">
-                  <h3 className="text-lg font-bold text-text-primary flex items-center gap-2">
-                    <ShoppingBag className="h-5 w-5 text-cyan-glow" />
-                    Order Summary
-                  </h3>
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-lg font-bold text-text-primary flex items-center gap-2">
+                      <ShoppingBag className="h-5 w-5 text-cyan-glow" />
+                      Order Summary
+                      {order.items && order.items.length > 0 && (
+                        <span className="ml-1 inline-flex items-center px-2 py-0.5 rounded-full bg-purple-neon/10 text-xs font-medium text-purple-neon border border-purple-neon/20">
+                          {order.items.length} {order.items.length === 1 ? 'item' : 'items'}
+                        </span>
+                      )}
+                    </h3>
+                  </div>
+                  {/* Order ID with copy button */}
+                  <div className="mt-2 flex items-center gap-2">
+                    <Hash className="h-3.5 w-3.5 text-text-muted" />
+                    <span className="text-xs text-text-muted font-mono">{orderId.slice(0, 8)}...{orderId.slice(-4)}</span>
+                    <button
+                      onClick={() => {
+                        void navigator.clipboard.writeText(orderId);
+                        toast.success('Order ID copied!');
+                      }}
+                      className="p-1 rounded-md hover:bg-cyan-glow/10 transition-colors group"
+                      title="Copy Order ID"
+                    >
+                      <Copy className="h-3 w-3 text-text-muted group-hover:text-cyan-glow transition-colors" />
+                    </button>
+                  </div>
                 </div>
 
                 <div className="p-6 space-y-4">
-                  {/* Order Items */}
-                  {order.items && order.items.length > 0 ? (
-                    <div className="space-y-3">
-                      {order.items.map((item) => (
-                        <div key={item.productId} className="flex justify-between items-start">
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-text-primary truncate">
-                              {item.productTitle !== '' ? item.productTitle : `Product ${item.productId.slice(0, 8)}...`}
-                            </p>
-                            <p className="text-xs text-text-muted">x1</p>
-                          </div>
-                          <p className="text-sm font-semibold text-text-primary ml-4">
-                            Included
-                          </p>
+                  {/* Order Items - Grouped by product with pagination */}
+                  {(() => {
+                    const ITEMS_PER_PAGE = 5;
+                    const groupedItems = groupOrderItems(order.items);
+                    const totalPages = Math.ceil(groupedItems.length / ITEMS_PER_PAGE);
+                    const paginatedItems = groupedItems.slice(
+                      (currentPage - 1) * ITEMS_PER_PAGE,
+                      currentPage * ITEMS_PER_PAGE
+                    );
+                    
+                    return groupedItems.length > 0 ? (
+                      <>
+                        <div className="space-y-3">
+                          {paginatedItems.map((item, index) => (
+                            <div key={item.productId} className="p-3 rounded-xl bg-bg-tertiary/50 border border-border-subtle">
+                              <div className="flex justify-between items-start gap-3">
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-medium text-text-primary leading-relaxed">
+                                    {item.productTitle !== '' ? item.productTitle : `Product #${(currentPage - 1) * ITEMS_PER_PAGE + index + 1}`}
+                                  </p>
+                                  <div className="flex items-center gap-2 mt-1.5">
+                                    <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-cyan-glow/10 text-xs font-medium text-cyan-glow">
+                                      Qty: {item.quantity}
+                                    </span>
+                                    <span className="text-xs text-text-muted">Digital Product</span>
+                                  </div>
+                                </div>
+                                <div className="text-right flex-shrink-0">
+                                  <p className="text-sm font-semibold text-text-primary">
+                                    €{item.totalPrice.toFixed(2)}
+                                  </p>
+                                  {item.quantity > 1 && (
+                                    <p className="text-xs text-text-muted">
+                                      €{Number(item.unitPrice).toFixed(2)} each
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          ))}
                         </div>
-                      ))}
+                        
+                        {/* Pagination Controls */}
+                        {totalPages > 1 && (
+                          <div className="flex items-center justify-between pt-3 border-t border-border-subtle/50">
+                            <span className="text-xs text-text-muted">
+                              Page {currentPage} of {totalPages}
+                            </span>
+                            <div className="flex items-center gap-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                                disabled={currentPage === 1}
+                                className="text-xs h-7 px-2"
+                              >
+                                <ArrowLeft className="h-3 w-3 mr-1" />
+                                Prev
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                                disabled={currentPage === totalPages}
+                                className="text-xs h-7 px-2"
+                              >
+                                Next
+                                <ArrowRight className="h-3 w-3 ml-1" />
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <div className="space-y-3">
+                        {[1, 2].map((i) => (
+                          <div key={i} className="p-3 rounded-xl bg-bg-tertiary/50 border border-border-subtle animate-pulse">
+                            <div className="flex justify-between items-start gap-3">
+                              <div className="flex-1 space-y-2">
+                                <div className="h-4 bg-border-subtle rounded w-3/4" />
+                                <div className="h-3 bg-border-subtle rounded w-1/2" />
+                              </div>
+                              <div className="h-4 bg-border-subtle rounded w-16" />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })()}
+
+                  {/* Estimated Delivery Time */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 5 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="flex items-center gap-3 p-3 rounded-xl bg-linear-to-r from-green-success/10 to-green-success/5 border border-green-success/20"
+                  >
+                    <div className="w-8 h-8 rounded-lg bg-green-success/20 flex items-center justify-center">
+                      <Sparkles className="h-4 w-4 text-green-success" />
                     </div>
-                  ) : (
-                    <p className="text-sm text-text-muted text-center py-4">Order details loading...</p>
-                  )}
+                    <div>
+                      <p className="text-xs font-semibold text-green-success">Instant Delivery</p>
+                      <p className="text-xs text-text-muted">Products delivered immediately after payment</p>
+                    </div>
+                  </motion.div>
 
                   <div className="border-t border-border-subtle pt-4 space-y-2">
                     {email !== '' && (
@@ -735,7 +880,7 @@ export default function CheckoutPage(): React.ReactElement {
                       <span className="text-text-muted">Total</span>
                       <div className="text-right">
                         <p className="text-2xl font-bold text-transparent bg-clip-text bg-linear-to-r from-cyan-glow to-purple-neon">
-                          ${Number(order.total).toFixed(2)}
+                          €{Number(order.total).toFixed(2)}
                         </p>
                         <p className="text-xs text-text-muted">Including VAT</p>
                       </div>
@@ -743,61 +888,79 @@ export default function CheckoutPage(): React.ReactElement {
                   </div>
                 </div>
               </div>
-
-              {/* Trust Signals */}
-              <div className="glass-strong rounded-2xl p-5 space-y-4 border border-border-subtle">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-cyan-glow/10 flex items-center justify-center">
-                    <Zap className="h-5 w-5 text-cyan-glow" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-text-primary">Instant Delivery</p>
-                    <p className="text-xs text-text-muted">Keys delivered to email</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-purple-neon/10 flex items-center justify-center">
-                    <Shield className="h-5 w-5 text-purple-neon" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-text-primary">Secure Payment</p>
-                    <p className="text-xs text-text-muted">Crypto encryption</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-green-success/10 flex items-center justify-center">
-                    <CheckCircle2 className="h-5 w-5 text-green-success" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-text-primary">100% Authentic</p>
-                    <p className="text-xs text-text-muted">Official keys only</p>
-                  </div>
-                </div>
-              </div>
             </div>
           </motion.div>
         </div>
-      </div>
 
-      {/* Footer */}
-      <footer className="relative z-10 mt-16 border-t border-border-subtle">
-        <div className="container mx-auto max-w-5xl py-6 px-4">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-text-muted">
-            <p>© 2025 BitLoot. All rights reserved.</p>
-            <div className="flex items-center gap-6">
-              <Link href="/terms" className="hover:text-cyan-glow transition-colors">
-                Terms
-              </Link>
-              <Link href="/privacy" className="hover:text-cyan-glow transition-colors">
-                Privacy
-              </Link>
-              <Link href="/support" className="hover:text-cyan-glow transition-colors">
-                Support
-              </Link>
+        {/* Trust Signals - Horizontal below form */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4 }}
+          className="mt-12 max-w-5xl mx-auto"
+        >
+          <div className="glass-strong rounded-2xl p-6 border border-border-subtle">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <motion.div 
+                className="flex items-center gap-4 justify-center md:justify-start"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.5 }}
+              >
+                <motion.div
+                  className="flex-shrink-0 w-12 h-12 rounded-xl bg-linear-to-br from-cyan-glow/20 to-cyan-glow/10 flex items-center justify-center border border-cyan-glow/30"
+                  whileHover={{ scale: 1.05 }}
+                  transition={{ type: 'spring', stiffness: 300 }}
+                >
+                  <Zap className="h-6 w-6 text-cyan-glow" />
+                </motion.div>
+                <div>
+                  <p className="text-sm font-semibold text-text-primary">Instant Delivery</p>
+                  <p className="text-xs text-text-muted">Products delivered to email</p>
+                </div>
+              </motion.div>
+
+              <motion.div 
+                className="flex items-center gap-4 justify-center md:justify-start"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.6 }}
+              >
+                <motion.div
+                  className="flex-shrink-0 w-12 h-12 rounded-xl bg-linear-to-br from-purple-neon/20 to-purple-neon/10 flex items-center justify-center border border-purple-neon/30"
+                  whileHover={{ scale: 1.05 }}
+                  transition={{ type: 'spring', stiffness: 300 }}
+                >
+                  <Lock className="h-6 w-6 text-purple-neon" />
+                </motion.div>
+                <div>
+                  <p className="text-sm font-semibold text-text-primary">Secure Payment</p>
+                  <p className="text-xs text-text-muted">256-bit encryption</p>
+                </div>
+              </motion.div>
+
+              <motion.div 
+                className="flex items-center gap-4 justify-center md:justify-start"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.7 }}
+              >
+                <motion.div
+                  className="flex-shrink-0 w-12 h-12 rounded-xl bg-linear-to-br from-cyan-glow/20 to-purple-neon/10 flex items-center justify-center border border-cyan-glow/30"
+                  whileHover={{ scale: 1.05 }}
+                  transition={{ type: 'spring', stiffness: 300 }}
+                >
+                  <Shield className="h-6 w-6 text-cyan-glow" />
+                </motion.div>
+                <div>
+                  <p className="text-sm font-semibold text-text-primary">100% Authentic</p>
+                  <p className="text-xs text-text-muted">Official products only</p>
+                </div>
+              </motion.div>
             </div>
           </div>
-        </div>
-      </footer>
+        </motion.div>
+      </div>
     </div>
   );
 }

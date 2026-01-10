@@ -9,6 +9,7 @@ import { Order } from '../orders/order.entity';
 import { OrderItem } from '../orders/order-item.entity';
 import { Key } from '../orders/key.entity';
 import { Product } from '../catalog/entities/product.entity';
+import { Payment } from '../payments/payment.entity';
 import { FulfillmentService } from './fulfillment.service';
 import { KinguinClient } from './kinguin.client';
 import { MockKinguinClient } from './kinguin.mock';
@@ -47,7 +48,7 @@ import { FulfillmentGateway } from './fulfillment.gateway';
 @Module({
   imports: [
     // Database access (includes Product for looking up kinguinOfferId)
-    TypeOrmModule.forFeature([Order, OrderItem, Key, Product]),
+    TypeOrmModule.forFeature([Order, OrderItem, Key, Product, Payment]),
 
     // BullMQ queue for async job processing
     BullModule.registerQueue({

@@ -8,6 +8,7 @@ Name | Type
 ------------ | -------------
 `accessToken` | string
 `refreshToken` | string
+`sessionId` | string
 `user` | [UserResponseDto](UserResponseDto.md)
 
 ## Example
@@ -19,6 +20,7 @@ import type { AuthResponseDto } from ''
 const example = {
   "accessToken": null,
   "refreshToken": null,
+  "sessionId": null,
   "user": null,
 } satisfies AuthResponseDto
 

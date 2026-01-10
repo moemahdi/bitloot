@@ -1,14 +1,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
-import { useQuery } from '@tanstack/react-query';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import { UsersApi, FulfillmentApi, type OrderResponseDto, type OrderItemResponseDto } from '@bitloot/sdk';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { UsersApi, FulfillmentApi, AuthenticationApi, SessionsApi, type OrderResponseDto, type OrderItemResponseDto } from '@bitloot/sdk';
 import { apiConfig } from '@/lib/api-config';
 import { useWatchlist, useRemoveFromWatchlist } from '@/features/watchlist';
 import { useCart } from '@/context/CartContext';
@@ -16,31 +13,16 @@ import { KeyReveal, type OrderItem } from '@/features/orders';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/design-system/primitives/card';
 import { Button } from '@/design-system/primitives/button';
 import { Input } from '@/design-system/primitives/input';
-import { Label } from '@/design-system/primitives/label';
 import { Separator } from '@/design-system/primitives/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/design-system/primitives/tabs';
 import { Badge } from '@/design-system/primitives/badge';
-import { Loader2, User, Shield, Lock, Key, Package, DollarSign, Check, Copy, ShoppingBag, LogOut, LayoutDashboard, Eye, HelpCircle, Mail, Hash, Crown, ShieldCheck, AlertCircle, Fingerprint, KeyRound, Info, Heart, ChevronDown, ChevronUp, RefreshCw, Download } from 'lucide-react';
+import { Loader2, User, Shield, Key, Package, DollarSign, Check, Copy, ShoppingBag, LogOut, LayoutDashboard, Eye, HelpCircle, Mail, Hash, Crown, ShieldCheck, AlertCircle, Fingerprint, Info, Heart, ChevronDown, ChevronUp, RefreshCw, Download, Smartphone, Monitor, Trash2, X, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { DashboardStatCard } from '@/components/dashboard/DashboardStatCard';
 import { AnimatedGridPattern } from '@/components/animations/FloatingParticles';
 import { GlowButton } from '@/design-system/primitives/glow-button';
 import { WatchlistProductCard } from '@/features/watchlist/components/WatchlistProductCard';
-
-// Validation schemas
-const passwordSchema = z
-  .object({
-    oldPassword: z.string().min(1, 'Current password is required'),
-    newPassword: z.string().min(8, 'Password must be at least 8 characters'),
-    confirmPassword: z.string().min(8, 'Confirm password is required'),
-  })
-  .refine((data) => data.newPassword === data.confirmPassword, {
-    message: "Passwords don't match",
-    path: ['confirmPassword'],
-  });
-
-type PasswordFormValues = z.infer<typeof passwordSchema>;
 
 const usersClient = new UsersApi(apiConfig);
 const fulfillmentClient = new FulfillmentApi(apiConfig);
@@ -254,29 +236,9 @@ function WatchlistTabContent(): React.ReactElement {
 }
 
 export default function ProfilePage(): React.ReactElement {
-  const { user, logout } = useAuth();
+  const { user, logout, accessToken, sessionId } = useAuth();
   const searchParams = useSearchParams();
-  const [isSubmittingPassword, setIsSubmittingPassword] = useState(false);
-  const [newPasswordValue, setNewPasswordValue] = useState('');
-  
-  // Calculate password strength
-  const getPasswordStrength = (password: string): { score: number; label: string; color: string } => {
-    if (password === '' || password === null || password === undefined) return { score: 0, label: '', color: '' };
-    let score = 0;
-    if (password.length >= 8) score++;
-    if (password.length >= 12) score++;
-    if (/[a-z]/.test(password) && /[A-Z]/.test(password)) score++;
-    if (/\d/.test(password)) score++;
-    if (/[^a-zA-Z\d]/.test(password)) score++;
-    
-    if (score <= 1) return { score, label: 'Weak', color: 'bg-red-500' };
-    if (score <= 2) return { score, label: 'Fair', color: 'bg-orange-warning' };
-    if (score <= 3) return { score, label: 'Good', color: 'bg-yellow-500' };
-    if (score <= 4) return { score, label: 'Strong', color: 'bg-green-success' };
-    return { score, label: 'Very Strong', color: 'bg-cyan-glow' };
-  };
-  
-  const passwordStrength = getPasswordStrength(newPasswordValue);
+  const router = useRouter();
   
   // Sync activeTab with URL query params
   const urlTab = searchParams.get('tab');
@@ -291,6 +253,19 @@ export default function ProfilePage(): React.ReactElement {
   const [downloadingOrder, setDownloadingOrder] = useState<string | null>(null);
   // State for tracking key recovery in progress
   const [recoveringOrder, setRecoveringOrder] = useState<string | null>(null);
+
+  // Security tab state
+  const [newEmail, setNewEmail] = useState('');
+  const [oldEmailOtp, setOldEmailOtp] = useState('');
+  const [newEmailOtp, setNewEmailOtp] = useState('');
+  const [isEmailChangeStep, setIsEmailChangeStep] = useState<'idle' | 'otp' | 'verifying'>('idle');
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  
+  // API clients
+  const queryClient = useQueryClient();
+  const authClient = new AuthenticationApi(apiConfig);
+  const sessionsClient = new SessionsApi(apiConfig);
 
   // Update activeTab when URL changes
   useEffect(() => {
@@ -322,13 +297,242 @@ export default function ProfilePage(): React.ReactElement {
     refetchOnWindowFocus: true, // Refetch when user returns to window
   });
 
-  const {
-    register,
-    handleSubmit,
-    reset,
-    formState: { errors },
-  } = useForm<PasswordFormValues>({
-    resolver: zodResolver(passwordSchema),
+  // Fetch active sessions
+  interface SessionData {
+    id: string;
+    deviceInfo: string;
+    ipAddress: string;
+    lastActiveAt: string;
+    createdAt: string;
+    isCurrent: boolean;
+  }
+  
+  const { data: sessions = [], isLoading: sessionsLoading, refetch: refetchSessions } = useQuery<SessionData[]>({
+    queryKey: ['active-sessions', sessionId],
+    queryFn: async () => {
+      try {
+        // Pass currentSessionId to identify current session
+        const queryParams = sessionId !== null ? `?currentSessionId=${sessionId}` : '';
+        console.info('📋 Fetching sessions with currentSessionId:', sessionId);
+        const response = await fetch(`${apiConfig.basePath}/sessions${queryParams}`, {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        });
+        if (response.ok) {
+          const result = (await response.json()) as { sessions: SessionData[]; total: number };
+          console.info('📋 Sessions received:', result.sessions.map(s => ({ id: s.id, isCurrent: s.isCurrent })));
+          
+          // ========== REVOKED SESSION CHECK ==========
+          // If we passed a currentSessionId but no session is marked as current,
+          // it means our session was revoked or expired. Trigger full logout.
+          if (sessionId !== null && result.sessions.length > 0) {
+            const hasCurrentSession = result.sessions.some(s => s.isCurrent);
+            if (!hasCurrentSession) {
+              console.warn('🚫 Current session was revoked - logging out');
+              toast.error('Your session was revoked. Please log in again.');
+              // Use setTimeout to allow toast to show before logout
+              setTimeout(() => {
+                logout();
+              }, 500);
+              return [];
+            }
+          }
+          
+          // Edge case: No sessions at all means all were revoked
+          if (sessionId !== null && result.sessions.length === 0) {
+            console.warn('🚫 No active sessions found - logging out');
+            toast.error('Your session has expired. Please log in again.');
+            setTimeout(() => {
+              logout();
+            }, 500);
+            return [];
+          }
+          
+          return result.sessions;
+        }
+        return [];
+      } catch (error) {
+        console.error('Failed to fetch sessions:', error);
+        return [];
+      }
+    },
+    enabled: user !== null && user !== undefined && activeTab === 'security' && accessToken !== null,
+    staleTime: 30000,
+  });
+
+  // Fetch account deletion status
+  interface DeletionStatus {
+    deletionRequested: boolean;
+    deletionScheduledAt: string | null;
+    daysRemaining: number | null;
+  }
+  
+  // API response interface (different from UI interface)
+  interface DeletionStatusApiResponse {
+    success: boolean;
+    message: string;
+    deletionDate: string | null;
+    daysRemaining: number | null;
+  }
+  
+  const { data: deletionStatus, refetch: refetchDeletionStatus } = useQuery<DeletionStatus | null>({
+    queryKey: ['deletion-status'],
+    queryFn: async () => {
+      try {
+        const response = await authClient.authControllerGetAccountDeletionStatusRaw({});
+        if (response.raw.ok) {
+          const apiData = (await response.raw.json()) as DeletionStatusApiResponse;
+          // Map API response to UI interface
+          return {
+            deletionRequested: apiData.deletionDate !== null,
+            deletionScheduledAt: apiData.deletionDate,
+            daysRemaining: apiData.daysRemaining,
+          };
+        }
+        return null;
+      } catch (error) {
+        console.error('Failed to fetch deletion status:', error);
+        return null;
+      }
+    },
+    enabled: user !== null && user !== undefined && activeTab === 'security',
+    staleTime: 0, // Always consider stale to ensure fresh data
+    refetchOnMount: 'always', // Always refetch when component mounts
+    refetchOnWindowFocus: true, // Refetch when user comes back to tab
+  });
+
+  // Email change mutations (Dual-OTP: old email + new email verification)
+  const requestEmailChangeMutation = useMutation({
+    mutationFn: async (email: string) => {
+      const response = await authClient.authControllerRequestEmailChangeRaw({
+        requestEmailChangeDto: { newEmail: email }
+      });
+      if (!response.raw.ok) {
+        const error = await response.raw.json();
+        throw new Error((error as { message?: string }).message ?? 'Failed to request email change');
+      }
+      return response.raw.json();
+    },
+    onSuccess: () => {
+      setIsEmailChangeStep('otp');
+      toast.success('Verification codes sent to both your current and new email addresses');
+    },
+    onError: (error: Error) => {
+      toast.error(error.message);
+    }
+  });
+
+  const verifyEmailChangeMutation = useMutation({
+    mutationFn: async ({ oldCode, newCode }: { oldCode: string; newCode: string }) => {
+      const response = await authClient.authControllerVerifyEmailChangeRaw({
+        verifyEmailChangeDto: { oldEmailCode: oldCode, newEmailCode: newCode }
+      });
+      if (!response.raw.ok) {
+        const error = await response.raw.json();
+        throw new Error((error as { message?: string }).message ?? 'Failed to verify email change');
+      }
+      return response.raw.json();
+    },
+    onSuccess: () => {
+      setIsEmailChangeStep('idle');
+      setNewEmail('');
+      setOldEmailOtp('');
+      setNewEmailOtp('');
+      toast.success('Email address updated successfully!');
+      // Refresh user data
+      void queryClient.invalidateQueries({ queryKey: ['auth-user'] });
+    },
+    onError: (error: Error) => {
+      toast.error(error.message);
+    }
+  });
+
+  // Session mutations
+  const revokeSessionMutation = useMutation({
+    mutationFn: async (revokeSessionId: string) => {
+      const response = await sessionsClient.sessionControllerRevokeSessionRaw({ sessionId: revokeSessionId });
+      if (!response.raw.ok) {
+        throw new Error('Failed to revoke session');
+      }
+      // Return whether this was the current session
+      return revokeSessionId === sessionId;
+    },
+    onSuccess: (wasCurrentSession) => {
+      if (wasCurrentSession) {
+        toast.success('Current session ended. Logging out...');
+        // Small delay to show the toast, then logout
+        setTimeout(() => {
+          logout();
+        }, 1500);
+      } else {
+        toast.success('Session revoked');
+        void refetchSessions();
+      }
+    },
+    onError: () => {
+      toast.error('Failed to revoke session');
+    }
+  });
+
+  const revokeAllSessionsMutation = useMutation({
+    mutationFn: async () => {
+      const response = await sessionsClient.sessionControllerRevokeAllSessionsRaw({});
+      if (!response.raw.ok) {
+        throw new Error('Failed to revoke all sessions');
+      }
+    },
+    onSuccess: () => {
+      toast.success('All sessions revoked. Logging out...');
+      // Revoke all includes current, so logout
+      setTimeout(() => {
+        logout();
+      }, 1500);
+    },
+    onError: () => {
+      toast.error('Failed to revoke sessions');
+    }
+  });
+
+  // Account deletion mutations
+  const requestDeletionMutation = useMutation({
+    mutationFn: async () => {
+      const response = await authClient.authControllerRequestAccountDeletionRaw({
+        requestDeletionDto: { confirmation: 'DELETE' }
+      });
+      if (!response.raw.ok) {
+        const error = await response.raw.json();
+        throw new Error((error as { message?: string }).message ?? 'Failed to request account deletion');
+      }
+      return response.raw.json();
+    },
+    onSuccess: async () => {
+      setShowDeleteConfirm(false);
+      setDeleteConfirmText('');
+      toast.success('Account deletion scheduled. You have 30 days to cancel.');
+      // Invalidate and refetch the deletion status cache
+      await queryClient.invalidateQueries({ queryKey: ['deletion-status'] });
+      await queryClient.refetchQueries({ queryKey: ['deletion-status'] });
+    },
+    onError: (error: Error) => {
+      toast.error(error.message);
+    }
+  });
+
+  // Cancel deletion mutation - redirects to cancel-deletion page for consistent UX
+  const cancelDeletionMutation = useMutation({
+    mutationFn: async () => {
+      // Get cancellation token from API - use the typed method, not raw
+      const data = await authClient.authControllerGetCancellationToken();
+      return data;
+    },
+    onSuccess: (data) => {
+      // Redirect to the cancel-deletion page with the token
+      router.push(`/cancel-deletion/${data.token}`);
+    },
+    onError: (error: Error) => {
+      toast.error(error.message);
+    }
   });
 
   // Calculate statistics
@@ -341,25 +545,6 @@ export default function ProfilePage(): React.ReactElement {
       const total = typeof o.total === 'string' ? parseFloat(o.total) : o.total;
       return acc + (isNaN(total) ? 0 : total);
     }, 0);
-
-  const onPasswordSubmit = async (data: PasswordFormValues): Promise<void> => {
-    setIsSubmittingPassword(true);
-    try {
-      await usersClient.usersControllerUpdatePassword({
-        updatePasswordDto: {
-          oldPassword: data.oldPassword,
-          newPassword: data.newPassword,
-        },
-      });
-      toast.success('Password updated successfully');
-      reset();
-    } catch (error) {
-      console.error('Failed to update password:', error);
-      toast.error('Failed to update password. Please check your current password.');
-    } finally {
-      setIsSubmittingPassword(false);
-    }
-  };
 
   // Download keys for a fulfilled order
   const handleDownloadKeys = async (orderId: string): Promise<void> => {
@@ -1027,7 +1212,7 @@ export default function ProfilePage(): React.ReactElement {
           </Card>
         </TabsContent>
 
-        {/* Security Tab */}
+        {/* Security Tab - OTP-Based Authentication */}
         <TabsContent value="security" className="space-y-6">
           <div className="grid gap-6 lg:grid-cols-3">
             {/* Security Status Card */}
@@ -1041,18 +1226,18 @@ export default function ProfilePage(): React.ReactElement {
                 <CardContent className="flex flex-col items-center justify-center p-8 text-center">
                   <div className="relative mb-4">
                     <div className="flex h-24 w-24 items-center justify-center rounded-full bg-green-success/10 border-2 border-green-success/30">
-                      <ShieldCheck className="h-12 w-12 text-green-success" />
+                      <Fingerprint className="h-12 w-12 text-green-success" />
                     </div>
                     <div className="absolute -bottom-1 -right-1 flex h-8 w-8 items-center justify-center rounded-full bg-green-success text-bg-primary">
                       <Check className="h-5 w-5" />
                     </div>
                   </div>
-                  <h3 className="text-xl font-bold text-text-primary mb-1">Account Secured</h3>
-                  <p className="text-sm text-text-secondary mb-4">Your account has password protection enabled</p>
+                  <h3 className="text-xl font-bold text-text-primary mb-1">Passwordless Auth</h3>
+                  <p className="text-sm text-text-secondary mb-4">Your account uses secure OTP verification</p>
                   <div className="flex flex-wrap gap-2 justify-center">
                     <Badge className="badge-success">
                       <span className="status-dot status-dot-success mr-1" />
-                      <Lock className="h-3 w-3 mr-1" /> Password Set
+                      <Shield className="h-3 w-3 mr-1" /> OTP Protected
                     </Badge>
                     {user.emailConfirmed && (
                       <Badge className="badge-info">
@@ -1065,173 +1250,401 @@ export default function ProfilePage(): React.ReactElement {
               </Card>
             </motion.div>
 
-            {/* Change Password Form */}
+            {/* Email Management */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4, delay: 0.1 }}
               className="lg:col-span-2"
             >
-              <Card className="glass border-border/50 bg-bg-secondary/50 backdrop-blur-sm transition-all duration-300 hover:border-cyan-glow/20 focus-within:ring-2 focus-within:ring-cyan-glow/30">
+              <Card className="glass border-border/50 bg-bg-secondary/50 backdrop-blur-sm transition-all duration-300 hover:border-cyan-glow/20">
                 <CardHeader className="pb-4">
                   <div className="flex items-center gap-3">
                     <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-cyan-glow/10 border border-cyan-glow/20">
-                      <KeyRound className="h-5 w-5 text-cyan-glow" />
+                      <Mail className="h-5 w-5 text-cyan-glow" />
                     </div>
                     <div>
-                      <CardTitle className="text-text-primary">Change Password</CardTitle>
-                      <CardDescription className="text-text-secondary">Update your account password</CardDescription>
+                      <CardTitle className="text-text-primary">Email Address</CardTitle>
+                      <CardDescription className="text-text-secondary">Manage your account email</CardDescription>
                     </div>
                   </div>
                 </CardHeader>
-                <CardContent>
-                  <form onSubmit={handleSubmit(onPasswordSubmit)} className="space-y-5">
-                    <div className="space-y-2">
-                      <Label htmlFor="oldPassword" className="flex items-center gap-2 text-text-secondary text-sm">
-                        <Lock className="h-4 w-4 text-text-muted" />
-                        Current Password
-                      </Label>
-                      <Input
-                        id="oldPassword"
-                        type="password"
-                        {...register('oldPassword')}
-                        placeholder="Enter current password"
-                        disabled={isSubmittingPassword}
-                        className="border-border/50 bg-bg-tertiary/50 focus:border-cyan-glow/50 focus:ring-cyan-glow/20"
-                      />
-                      {errors.oldPassword !== null && errors.oldPassword !== undefined && (
-                        <p className="text-sm text-destructive flex items-center gap-1">
-                          <AlertCircle className="h-3 w-3" />
-                          {errors.oldPassword.message}
-                        </p>
-                      )}
+                <CardContent className="space-y-4">
+                  {/* Current Email Display */}
+                  <div className="flex items-center justify-between p-4 rounded-lg bg-bg-tertiary/30 border border-border/30">
+                    <div className="flex items-center gap-3">
+                      <Mail className="h-5 w-5 text-text-muted" />
+                      <div>
+                        <p className="text-sm font-medium text-text-primary">{user?.email}</p>
+                        <p className="text-xs text-text-secondary">Primary email address</p>
+                      </div>
                     </div>
+                    {user.emailConfirmed && (
+                      <Badge className="badge-success text-xs">
+                        <Check className="h-3 w-3 mr-1" /> Verified
+                      </Badge>
+                    )}
+                  </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="newPassword" className="flex items-center gap-2 text-text-secondary text-sm">
-                        <Shield className="h-4 w-4 text-text-muted" />
-                        New Password
-                      </Label>
-                      <Input
-                        id="newPassword"
-                        type="password"
-                        {...register('newPassword')}
-                        placeholder="Enter new password (min 8 characters)"
-                        disabled={isSubmittingPassword}
-                        className="border-border/50 bg-bg-tertiary/50 focus:border-cyan-glow/50 focus:ring-cyan-glow/20"
-                        onChange={(e) => setNewPasswordValue(e.target.value)}
-                      />
-                      {/* Password Strength Indicator */}
-                      {newPasswordValue !== '' && (
-                        <motion.div
-                          initial={{ opacity: 0, height: 0 }}
-                          animate={{ opacity: 1, height: 'auto' }}
-                          className="space-y-2 pt-2"
-                        >
-                          <div className="flex items-center justify-between text-xs">
-                            <span className="text-text-secondary">Password strength:</span>
-                            <span className={`font-semibold ${
-                              passwordStrength.score <= 1 ? 'text-red-500' :
-                              passwordStrength.score <= 2 ? 'text-orange-warning' :
-                              passwordStrength.score <= 3 ? 'text-yellow-500' :
-                              passwordStrength.score <= 4 ? 'text-green-success' :
-                              'text-cyan-glow'
-                            }`}>
-                              {passwordStrength.label}
-                            </span>
+                  {/* Email Change Form */}
+                  <AnimatePresence mode="wait">
+                    {isEmailChangeStep === 'idle' && (
+                      <motion.div
+                        key="email-form"
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        className="space-y-3"
+                      >
+                        <div className="flex gap-2">
+                          <Input
+                            type="email"
+                            placeholder="Enter new email address"
+                            value={newEmail}
+                            onChange={(e) => setNewEmail(e.target.value)}
+                            className="flex-1 bg-bg-tertiary/50 border-border/50"
+                          />
+                          <Button
+                            onClick={() => void requestEmailChangeMutation.mutateAsync(newEmail)}
+                            disabled={!newEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newEmail) || requestEmailChangeMutation.isPending}
+                            className="bg-cyan-glow/10 text-cyan-glow hover:bg-cyan-glow/20 border border-cyan-glow/30"
+                          >
+                            {requestEmailChangeMutation.isPending ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              'Change Email'
+                            )}
+                          </Button>
+                        </div>
+                      </motion.div>
+                    )}
+
+                    {isEmailChangeStep === 'otp' && (
+                      <motion.div
+                        key="otp-form"
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        className="space-y-4"
+                      >
+                        <div className="p-4 rounded-lg bg-cyan-glow/5 border border-cyan-glow/20 space-y-4">
+                          <div className="flex items-start gap-2">
+                            <AlertTriangle className="h-5 w-5 text-yellow-500 mt-0.5 flex-shrink-0" />
+                            <div className="text-sm text-text-secondary">
+                              <p className="font-medium text-text-primary mb-1">Dual verification required</p>
+                              <p>For your security, we&apos;ve sent verification codes to both your current email (<span className="font-medium text-cyan-glow">{user?.email}</span>) and new email (<span className="font-medium text-cyan-glow">{newEmail}</span>).</p>
+                            </div>
                           </div>
-                          <div className="h-2 w-full rounded-full bg-bg-tertiary overflow-hidden">
-                            <motion.div 
-                              initial={{ width: 0 }}
-                              animate={{ width: `${(passwordStrength.score / 5) * 100}%` }}
-                              className={`h-full transition-colors duration-300 ${passwordStrength.color}`}
+
+                          {/* Current Email OTP */}
+                          <div className="space-y-2">
+                            <label className="text-sm font-medium text-text-secondary">
+                              Code from current email ({user?.email})
+                            </label>
+                            <Input
+                              type="text"
+                              placeholder="Enter 6-digit code"
+                              value={oldEmailOtp}
+                              onChange={(e) => setOldEmailOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                              maxLength={6}
+                              className="bg-bg-tertiary/50 border-border/50 font-mono tracking-widest text-center"
                             />
                           </div>
-                          <div className="grid grid-cols-2 gap-2 mt-3">
-                            <div className={`flex items-center gap-2 text-xs rounded-md p-2 transition-colors ${
-                              newPasswordValue.length >= 8 
-                                ? 'bg-green-success/10 text-green-success border border-green-success/20' 
-                                : 'bg-bg-tertiary/50 text-text-muted border border-transparent'
-                            }`}>
-                              {newPasswordValue.length >= 8 ? <Check className="h-3.5 w-3.5" /> : <span className="h-3.5 w-3.5 rounded-full border border-current" />}
-                              8+ characters
-                            </div>
-                            <div className={`flex items-center gap-2 text-xs rounded-md p-2 transition-colors ${
-                              /[a-z]/.test(newPasswordValue) && /[A-Z]/.test(newPasswordValue)
-                                ? 'bg-green-success/10 text-green-success border border-green-success/20' 
-                                : 'bg-bg-tertiary/50 text-text-muted border border-transparent'
-                            }`}>
-                              {/[a-z]/.test(newPasswordValue) && /[A-Z]/.test(newPasswordValue) ? <Check className="h-3.5 w-3.5" /> : <span className="h-3.5 w-3.5 rounded-full border border-current" />}
-                              Mixed case
-                            </div>
-                            <div className={`flex items-center gap-2 text-xs rounded-md p-2 transition-colors ${
-                              /\d/.test(newPasswordValue)
-                                ? 'bg-green-success/10 text-green-success border border-green-success/20' 
-                                : 'bg-bg-tertiary/50 text-text-muted border border-transparent'
-                            }`}>
-                              {/\d/.test(newPasswordValue) ? <Check className="h-3.5 w-3.5" /> : <span className="h-3.5 w-3.5 rounded-full border border-current" />}
-                              Number
-                            </div>
-                            <div className={`flex items-center gap-2 text-xs rounded-md p-2 transition-colors ${
-                              /[^a-zA-Z\d]/.test(newPasswordValue)
-                                ? 'bg-green-success/10 text-green-success border border-green-success/20' 
-                                : 'bg-bg-tertiary/50 text-text-muted border border-transparent'
-                            }`}>
-                              {/[^a-zA-Z\d]/.test(newPasswordValue) ? <Check className="h-3.5 w-3.5" /> : <span className="h-3.5 w-3.5 rounded-full border border-current" />}
-                              Special char
-                            </div>
+
+                          {/* New Email OTP */}
+                          <div className="space-y-2">
+                            <label className="text-sm font-medium text-text-secondary">
+                              Code from new email ({newEmail})
+                            </label>
+                            <Input
+                              type="text"
+                              placeholder="Enter 6-digit code"
+                              value={newEmailOtp}
+                              onChange={(e) => setNewEmailOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                              maxLength={6}
+                              className="bg-bg-tertiary/50 border-border/50 font-mono tracking-widest text-center"
+                            />
                           </div>
-                        </motion.div>
-                      )}
-                      {errors.newPassword !== null && errors.newPassword !== undefined && (
-                        <p className="text-sm text-destructive flex items-center gap-1">
-                          <AlertCircle className="h-3 w-3" />
-                          {errors.newPassword.message}
-                        </p>
-                      )}
-                    </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="confirmPassword" className="flex items-center gap-2 text-text-secondary text-sm">
-                        <Check className="h-4 w-4 text-text-muted" />
-                        Confirm New Password
-                      </Label>
-                      <Input
-                        id="confirmPassword"
-                        type="password"
-                        {...register('confirmPassword')}
-                        placeholder="Confirm new password"
-                        disabled={isSubmittingPassword}
-                        className="border-border/50 bg-bg-tertiary/50 focus:border-cyan-glow/50 focus:ring-cyan-glow/20"
-                      />
-                      {errors.confirmPassword !== null && errors.confirmPassword !== undefined && (
-                        <p className="text-sm text-destructive flex items-center gap-1">
-                          <AlertCircle className="h-3 w-3" />
-                          {errors.confirmPassword.message}
-                        </p>
-                      )}
-                    </div>
-
-                    <div className="flex justify-end pt-2">
-                      <GlowButton type="submit" disabled={isSubmittingPassword} variant="default">
-                        {isSubmittingPassword ? (
-                          <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            Updating...
-                          </>
-                        ) : (
-                          <>
-                            <Shield className="mr-2 h-4 w-4" />
-                            Update Password
-                          </>
-                        )}
-                      </GlowButton>
-                    </div>
-                  </form>
+                          {/* Actions */}
+                          <div className="flex gap-2 pt-2">
+                            <Button
+                              onClick={() => void verifyEmailChangeMutation.mutateAsync({ oldCode: oldEmailOtp, newCode: newEmailOtp })}
+                              disabled={oldEmailOtp.length !== 6 || newEmailOtp.length !== 6 || verifyEmailChangeMutation.isPending}
+                              className="flex-1 bg-green-success/10 text-green-success hover:bg-green-success/20 border border-green-success/30"
+                            >
+                              {verifyEmailChangeMutation.isPending ? (
+                                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                              ) : (
+                                <Check className="h-4 w-4 mr-2" />
+                              )}
+                              Verify Both Codes
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              onClick={() => {
+                                setIsEmailChangeStep('idle');
+                                setOldEmailOtp('');
+                                setNewEmailOtp('');
+                              }}
+                              className="text-text-muted hover:text-text-primary"
+                            >
+                              <X className="h-4 w-4 mr-1" /> Cancel
+                            </Button>
+                          </div>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </CardContent>
               </Card>
             </motion.div>
           </div>
+
+          {/* Active Sessions */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.15 }}
+          >
+            <Card className="glass border-border/50 bg-bg-secondary/50 backdrop-blur-sm">
+              <CardHeader className="pb-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-green-success/10 border border-green-success/20">
+                      <Key className="h-5 w-5 text-green-success" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-text-primary">Active Sessions</CardTitle>
+                      <CardDescription className="text-text-secondary">Devices where you&apos;re signed in</CardDescription>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => void refetchSessions()}
+                      disabled={sessionsLoading}
+                      className="text-text-muted hover:text-text-primary"
+                    >
+                      <RefreshCw className={`h-4 w-4 ${sessionsLoading ? 'animate-spin' : ''}`} />
+                    </Button>
+                    {sessions.length > 1 && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => void revokeAllSessionsMutation.mutateAsync()}
+                        disabled={revokeAllSessionsMutation.isPending}
+                        className="text-orange-warning border-orange-warning/30 hover:bg-orange-warning/10"
+                      >
+                        {revokeAllSessionsMutation.isPending ? (
+                          <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                        ) : (
+                          <LogOut className="h-4 w-4 mr-1" />
+                        )}
+                        Revoke All Others
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {sessionsLoading ? (
+                  <div className="flex items-center justify-center p-8">
+                    <Loader2 className="h-6 w-6 animate-spin text-text-muted" />
+                  </div>
+                ) : sessions.length === 0 ? (
+                  <div className="p-6 rounded-lg bg-bg-tertiary/20 border border-border/30 text-center">
+                    <p className="text-sm text-text-secondary">No active sessions found</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {sessions.map((session) => (
+                      <div
+                        key={session.id}
+                        className={`flex items-center justify-between p-4 rounded-lg border transition-colors ${
+                          session.isCurrent === true
+                            ? 'bg-green-success/5 border-green-success/30'
+                            : 'bg-bg-tertiary/30 border-border/30 hover:border-border/50'
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${
+                            session.isCurrent === true ? 'bg-green-success/10' : 'bg-bg-tertiary/50'
+                          }`}>
+                            {session.deviceInfo?.toLowerCase().includes('mobile') ? (
+                              <Smartphone className={`h-5 w-5 ${session.isCurrent === true ? 'text-green-success' : 'text-text-muted'}`} />
+                            ) : (
+                              <Monitor className={`h-5 w-5 ${session.isCurrent === true ? 'text-green-success' : 'text-text-muted'}`} />
+                            )}
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <p className="text-sm font-medium text-text-primary">
+                                {session.deviceInfo ?? 'Unknown Device'}
+                              </p>
+                              {session.isCurrent === true && (
+                                <Badge className="badge-success text-xs">
+                                  Current
+                                </Badge>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-2 text-xs text-text-muted">
+                              <span>{session.ipAddress ?? 'Unknown'}</span>
+                              <span>•</span>
+                              <span>Last active: {session.lastActiveAt != null ? new Date(session.lastActiveAt).toLocaleDateString() : 'Unknown'}</span>
+                            </div>
+                          </div>
+                        </div>
+                        {session.isCurrent !== true && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => void revokeSessionMutation.mutateAsync(session.id)}
+                            disabled={revokeSessionMutation.isPending}
+                            className="text-red-500 hover:text-red-400 hover:bg-red-500/10"
+                          >
+                            {revokeSessionMutation.isPending ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Trash2 className="h-4 w-4" />
+                            )}
+                          </Button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </motion.div>
+
+          {/* Account Deletion */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.2 }}
+          >
+            <Card className="glass border-red-500/20 bg-red-500/5 backdrop-blur-sm">
+              <CardHeader className="pb-4">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-red-500/10 border border-red-500/20">
+                    <AlertTriangle className="h-5 w-5 text-red-500" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-text-primary">Delete Account</CardTitle>
+                    <CardDescription className="text-text-secondary">Permanently delete your account and data</CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {deletionStatus?.deletionRequested ? (
+                  <div className="space-y-4">
+                    <div className="p-4 rounded-lg bg-orange-warning/10 border border-orange-warning/30">
+                      <div className="flex items-start gap-3">
+                        <AlertCircle className="h-5 w-5 text-orange-warning shrink-0 mt-0.5" />
+                        <div>
+                          <p className="text-sm font-medium text-orange-warning mb-1">
+                            Account Deletion Scheduled
+                          </p>
+                          <p className="text-sm text-text-secondary">
+                            Your account will be permanently deleted in <span className="font-bold text-orange-warning">{deletionStatus.daysRemaining} days</span>.
+                            All your data, orders, and keys will be removed.
+                          </p>
+                          {deletionStatus.deletionScheduledAt && (
+                            <p className="text-xs text-text-muted mt-2">
+                              Scheduled for: {new Date(deletionStatus.deletionScheduledAt).toLocaleDateString('en-US', {
+                                weekday: 'long',
+                                year: 'numeric',
+                                month: 'long',
+                                day: 'numeric'
+                              })}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    <Button
+                      onClick={() => void cancelDeletionMutation.mutateAsync()}
+                      disabled={cancelDeletionMutation.isPending}
+                      className="w-full bg-green-success/10 text-green-success hover:bg-green-success/20 border border-green-success/30"
+                    >
+                      {cancelDeletionMutation.isPending ? (
+                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      ) : (
+                        <X className="h-4 w-4 mr-2" />
+                      )}
+                      Cancel Account Deletion
+                    </Button>
+                  </div>
+                ) : showDeleteConfirm ? (
+                  <div className="space-y-4">
+                    <div className="p-4 rounded-lg bg-red-500/10 border border-red-500/30">
+                      <p className="text-sm text-text-secondary mb-3">
+                        This action is <span className="font-bold text-red-500">irreversible</span>. After 30 days, all your data will be permanently deleted including:
+                      </p>
+                      <ul className="text-sm text-text-muted space-y-1 ml-4">
+                        <li>• Your account and profile</li>
+                        <li>• All purchase history</li>
+                        <li>• Downloaded product keys</li>
+                        <li>• Watchlist and preferences</li>
+                      </ul>
+                    </div>
+                    <div className="space-y-2">
+                      <p className="text-sm text-text-secondary">
+                        Type <span className="font-mono font-bold text-red-500">DELETE</span> to confirm:
+                      </p>
+                      <Input
+                        type="text"
+                        placeholder="Type DELETE"
+                        value={deleteConfirmText}
+                        onChange={(e) => setDeleteConfirmText(e.target.value)}
+                        className="bg-bg-tertiary/50 border-red-500/30 focus:border-red-500"
+                      />
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          setShowDeleteConfirm(false);
+                          setDeleteConfirmText('');
+                        }}
+                        className="flex-1"
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        onClick={() => void requestDeletionMutation.mutateAsync()}
+                        disabled={deleteConfirmText !== 'DELETE' || requestDeletionMutation.isPending}
+                        className="flex-1 bg-red-500 text-white hover:bg-red-600"
+                      >
+                        {requestDeletionMutation.isPending ? (
+                          <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                        ) : (
+                          <Trash2 className="h-4 w-4 mr-2" />
+                        )}
+                        Delete My Account
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm text-text-secondary">
+                      Once deleted, your account cannot be recovered. You have 30 days to cancel.
+                    </p>
+                    <Button
+                      variant="outline"
+                      onClick={() => setShowDeleteConfirm(true)}
+                      className="text-red-500 border-red-500/30 hover:bg-red-500/10"
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Delete Account
+                    </Button>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </motion.div>
 
           {/* Security Tips */}
           <motion.div
@@ -1250,15 +1663,19 @@ export default function ProfilePage(): React.ReactElement {
                     <ul className="grid gap-2 text-sm text-text-secondary md:grid-cols-2">
                       <li className="flex items-center gap-2">
                         <Check className="h-4 w-4 text-purple-neon shrink-0" />
-                        Use a unique password for BitLoot
+                        Keep your email account secure
                       </li>
                       <li className="flex items-center gap-2">
                         <Check className="h-4 w-4 text-purple-neon shrink-0" />
-                        Never share your password with anyone
+                        Never share OTP codes with anyone
                       </li>
                       <li className="flex items-center gap-2">
                         <Check className="h-4 w-4 text-purple-neon shrink-0" />
                         Check for secure connection (HTTPS)
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <Check className="h-4 w-4 text-purple-neon shrink-0" />
+                        OTP codes expire in 5 minutes
                       </li>
                     </ul>
                   </div>

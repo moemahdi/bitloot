@@ -4,14 +4,149 @@ All URIs are relative to *http://localhost*
 
 | Method | HTTP request | Description |
 |------------- | ------------- | -------------|
+| [**authControllerCancelAccountDeletion**](AuthenticationApi.md#authcontrollercancelaccountdeletion) | **POST** /auth/account/delete/cancel | Cancel pending account deletion |
+| [**authControllerCancelDeletionViaToken**](AuthenticationApi.md#authcontrollercanceldeletionviatoken) | **GET** /auth/account/delete/cancel/{token} | Cancel account deletion via email link (public, no auth required) |
 | [**authControllerForgotPassword**](AuthenticationApi.md#authcontrollerforgotpassword) | **POST** /auth/forgot-password | Request password reset email |
+| [**authControllerGetAccountDeletionStatus**](AuthenticationApi.md#authcontrollergetaccountdeletionstatus) | **GET** /auth/account/delete/status | Get account deletion status |
+| [**authControllerGetCancellationToken**](AuthenticationApi.md#authcontrollergetcancellationtoken) | **GET** /auth/account/delete/cancel-token | Get cancellation token for redirect |
 | [**authControllerGetOtpForTesting**](AuthenticationApi.md#authcontrollergetotpfortesting) | **POST** /auth/test/get-otp | [TEST ONLY] Get OTP for testing |
 | [**authControllerLogout**](AuthenticationApi.md#authcontrollerlogout) | **POST** /auth/logout | Logout user |
 | [**authControllerRefresh**](AuthenticationApi.md#authcontrollerrefresh) | **POST** /auth/refresh | Refresh JWT access token |
+| [**authControllerRequestAccountDeletion**](AuthenticationApi.md#authcontrollerrequestaccountdeletion) | **POST** /auth/account/delete | Request account deletion (30-day grace period) |
+| [**authControllerRequestEmailChange**](AuthenticationApi.md#authcontrollerrequestemailchange) | **POST** /auth/email-change/request | Request email change (sends OTP to BOTH old and new email) |
 | [**authControllerRequestOtp**](AuthenticationApi.md#authcontrollerrequestotp) | **POST** /auth/request-otp | Request OTP code via email |
 | [**authControllerResetPassword**](AuthenticationApi.md#authcontrollerresetpassword) | **POST** /auth/reset-password | Reset password with token |
+| [**authControllerVerifyEmailChange**](AuthenticationApi.md#authcontrollerverifyemailchange) | **POST** /auth/email-change/verify | Verify email change with OTP code(s) |
 | [**authControllerVerifyOtp**](AuthenticationApi.md#authcontrollerverifyotp) | **POST** /auth/verify-otp | Verify OTP code and get JWT tokens |
 
+
+
+## authControllerCancelAccountDeletion
+
+> CancelDeletionResponseDto authControllerCancelAccountDeletion()
+
+Cancel pending account deletion
+
+### Example
+
+```ts
+import {
+  Configuration,
+  AuthenticationApi,
+} from '';
+import type { AuthControllerCancelAccountDeletionRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const config = new Configuration({ 
+    // Configure HTTP bearer authorization: JWT-auth
+    accessToken: "YOUR BEARER TOKEN",
+  });
+  const api = new AuthenticationApi(config);
+
+  try {
+    const data = await api.authControllerCancelAccountDeletion();
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+This endpoint does not need any parameter.
+
+### Return type
+
+[**CancelDeletionResponseDto**](CancelDeletionResponseDto.md)
+
+### Authorization
+
+[JWT-auth](../README.md#JWT-auth)
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** |  |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## authControllerCancelDeletionViaToken
+
+> PublicCancelDeletionResponseDto authControllerCancelDeletionViaToken(token)
+
+Cancel account deletion via email link (public, no auth required)
+
+Allows users to cancel their account deletion from the email link without logging in. The token is secure and expires after 30 days.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  AuthenticationApi,
+} from '';
+import type { AuthControllerCancelDeletionViaTokenRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new AuthenticationApi();
+
+  const body = {
+    // string | Secure cancellation token from email
+    token: YWJjZGVmMTIzNDU2Nzg5MC4xNzAwMDAwMDAwMDAwLmFiY2RlZjEyMzQ1Njc4OTA=,
+  } satisfies AuthControllerCancelDeletionViaTokenRequest;
+
+  try {
+    const data = await api.authControllerCancelDeletionViaToken(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **token** | `string` | Secure cancellation token from email | [Defaults to `undefined`] |
+
+### Return type
+
+[**PublicCancelDeletionResponseDto**](PublicCancelDeletionResponseDto.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Cancellation result (success, already_cancelled, expired, or invalid) |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
 
 ## authControllerForgotPassword
@@ -68,6 +203,128 @@ No authorization required
 ### HTTP request headers
 
 - **Content-Type**: `application/json`
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** |  |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## authControllerGetAccountDeletionStatus
+
+> DeletionResponseDto authControllerGetAccountDeletionStatus()
+
+Get account deletion status
+
+### Example
+
+```ts
+import {
+  Configuration,
+  AuthenticationApi,
+} from '';
+import type { AuthControllerGetAccountDeletionStatusRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const config = new Configuration({ 
+    // Configure HTTP bearer authorization: JWT-auth
+    accessToken: "YOUR BEARER TOKEN",
+  });
+  const api = new AuthenticationApi(config);
+
+  try {
+    const data = await api.authControllerGetAccountDeletionStatus();
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+This endpoint does not need any parameter.
+
+### Return type
+
+[**DeletionResponseDto**](DeletionResponseDto.md)
+
+### Authorization
+
+[JWT-auth](../README.md#JWT-auth)
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** |  |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## authControllerGetCancellationToken
+
+> CancellationTokenResponseDto authControllerGetCancellationToken()
+
+Get cancellation token for redirect
+
+### Example
+
+```ts
+import {
+  Configuration,
+  AuthenticationApi,
+} from '';
+import type { AuthControllerGetCancellationTokenRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const config = new Configuration({ 
+    // Configure HTTP bearer authorization: JWT-auth
+    accessToken: "YOUR BEARER TOKEN",
+  });
+  const api = new AuthenticationApi(config);
+
+  try {
+    const data = await api.authControllerGetCancellationToken();
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+This endpoint does not need any parameter.
+
+### Return type
+
+[**CancellationTokenResponseDto**](CancellationTokenResponseDto.md)
+
+### Authorization
+
+[JWT-auth](../README.md#JWT-auth)
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
 - **Accept**: `application/json`
 
 
@@ -250,6 +507,144 @@ No authorization required
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
 
+## authControllerRequestAccountDeletion
+
+> DeletionResponseDto authControllerRequestAccountDeletion(requestDeletionDto)
+
+Request account deletion (30-day grace period)
+
+### Example
+
+```ts
+import {
+  Configuration,
+  AuthenticationApi,
+} from '';
+import type { AuthControllerRequestAccountDeletionRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const config = new Configuration({ 
+    // Configure HTTP bearer authorization: JWT-auth
+    accessToken: "YOUR BEARER TOKEN",
+  });
+  const api = new AuthenticationApi(config);
+
+  const body = {
+    // RequestDeletionDto
+    requestDeletionDto: ...,
+  } satisfies AuthControllerRequestAccountDeletionRequest;
+
+  try {
+    const data = await api.authControllerRequestAccountDeletion(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **requestDeletionDto** | [RequestDeletionDto](RequestDeletionDto.md) |  | |
+
+### Return type
+
+[**DeletionResponseDto**](DeletionResponseDto.md)
+
+### Authorization
+
+[JWT-auth](../README.md#JWT-auth)
+
+### HTTP request headers
+
+- **Content-Type**: `application/json`
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** |  |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## authControllerRequestEmailChange
+
+> EmailChangeResponseDto authControllerRequestEmailChange(requestEmailChangeDto)
+
+Request email change (sends OTP to BOTH old and new email)
+
+### Example
+
+```ts
+import {
+  Configuration,
+  AuthenticationApi,
+} from '';
+import type { AuthControllerRequestEmailChangeRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const config = new Configuration({ 
+    // Configure HTTP bearer authorization: JWT-auth
+    accessToken: "YOUR BEARER TOKEN",
+  });
+  const api = new AuthenticationApi(config);
+
+  const body = {
+    // RequestEmailChangeDto
+    requestEmailChangeDto: ...,
+  } satisfies AuthControllerRequestEmailChangeRequest;
+
+  try {
+    const data = await api.authControllerRequestEmailChange(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **requestEmailChangeDto** | [RequestEmailChangeDto](RequestEmailChangeDto.md) |  | |
+
+### Return type
+
+[**EmailChangeResponseDto**](EmailChangeResponseDto.md)
+
+### Authorization
+
+[JWT-auth](../README.md#JWT-auth)
+
+### HTTP request headers
+
+- **Content-Type**: `application/json`
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** |  |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
 ## authControllerRequestOtp
 
 > OtpResponseDto authControllerRequestOtp(requestOtpDto)
@@ -365,6 +760,75 @@ example().catch(console.error);
 ### Authorization
 
 No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: `application/json`
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** |  |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## authControllerVerifyEmailChange
+
+> EmailChangeResponseDto authControllerVerifyEmailChange(verifyEmailChangeDto)
+
+Verify email change with OTP code(s)
+
+### Example
+
+```ts
+import {
+  Configuration,
+  AuthenticationApi,
+} from '';
+import type { AuthControllerVerifyEmailChangeRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const config = new Configuration({ 
+    // Configure HTTP bearer authorization: JWT-auth
+    accessToken: "YOUR BEARER TOKEN",
+  });
+  const api = new AuthenticationApi(config);
+
+  const body = {
+    // VerifyEmailChangeDto
+    verifyEmailChangeDto: ...,
+  } satisfies AuthControllerVerifyEmailChangeRequest;
+
+  try {
+    const data = await api.authControllerVerifyEmailChange(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **verifyEmailChangeDto** | [VerifyEmailChangeDto](VerifyEmailChangeDto.md) |  | |
+
+### Return type
+
+[**EmailChangeResponseDto**](EmailChangeResponseDto.md)
+
+### Authorization
+
+[JWT-auth](../README.md#JWT-auth)
 
 ### HTTP request headers
 
