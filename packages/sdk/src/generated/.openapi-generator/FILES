@@ -61,6 +61,7 @@ docs/AdminOpsControllerGetSystemHealth200Response.md
 docs/AdminOpsControllerGetSystemHealth200ResponseApi.md
 docs/AdminOpsControllerGetSystemHealth200ResponseDatabase.md
 docs/AdminOpsControllerGetSystemHealth200ResponseQueues.md
+docs/AdminOpsControllerTriggerUserDeletionCleanup200Response.md
 docs/AdminPricingRuleResponseDto.md
 docs/AdminPricingRulesListResponseDto.md
 docs/AdminProductGroupsApi.md
@@ -152,6 +153,8 @@ docs/ProductGroupWithProductsDto.md
 docs/ProductListResponseDto.md
 docs/ProductResponseDto.md
 docs/PublicCancelDeletionResponseDto.md
+docs/RecoveryItemDto.md
+docs/RecoveryResponseDto.md
 docs/RegionFilterDto.md
 docs/RemoveProductsFromGroupDto.md
 docs/RequestDeletionDto.md
@@ -219,6 +222,7 @@ models/AdminOpsControllerGetSystemHealth200Response.ts
 models/AdminOpsControllerGetSystemHealth200ResponseApi.ts
 models/AdminOpsControllerGetSystemHealth200ResponseDatabase.ts
 models/AdminOpsControllerGetSystemHealth200ResponseQueues.ts
+models/AdminOpsControllerTriggerUserDeletionCleanup200Response.ts
 models/AdminPricingRuleResponseDto.ts
 models/AdminPricingRulesListResponseDto.ts
 models/AdminProductResponseDto.ts
@@ -297,6 +301,8 @@ models/ProductGroupWithProductsDto.ts
 models/ProductListResponseDto.ts
 models/ProductResponseDto.ts
 models/PublicCancelDeletionResponseDto.ts
+models/RecoveryItemDto.ts
+models/RecoveryResponseDto.ts
 models/RegionFilterDto.ts
 models/RemoveProductsFromGroupDto.ts
 models/RequestDeletionDto.ts

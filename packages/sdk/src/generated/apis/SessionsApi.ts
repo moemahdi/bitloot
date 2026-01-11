@@ -17,6 +17,8 @@ import * as runtime from '../runtime';
 
 export interface SessionControllerGetActiveSessionsRequest {
     currentSessionId: string;
+    page: string;
+    limit: string;
 }
 
 export interface SessionControllerRevokeSessionRequest {
@@ -43,10 +45,32 @@ export class SessionsApi extends runtime.BaseAPI {
             );
         }
 
+        if (requestParameters['page'] == null) {
+            throw new runtime.RequiredError(
+                'page',
+                'Required parameter "page" was null or undefined when calling sessionControllerGetActiveSessions().'
+            );
+        }
+
+        if (requestParameters['limit'] == null) {
+            throw new runtime.RequiredError(
+                'limit',
+                'Required parameter "limit" was null or undefined when calling sessionControllerGetActiveSessions().'
+            );
+        }
+
         const queryParameters: any = {};
 
         if (requestParameters['currentSessionId'] != null) {
             queryParameters['currentSessionId'] = requestParameters['currentSessionId'];
+        }
+
+        if (requestParameters['page'] != null) {
+            queryParameters['page'] = requestParameters['page'];
+        }
+
+        if (requestParameters['limit'] != null) {
+            queryParameters['limit'] = requestParameters['limit'];
         }
 
         const headerParameters: runtime.HTTPHeaders = {};

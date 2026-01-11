@@ -41,30 +41,36 @@ export class SessionController {
    * Get all active sessions for current user
    * Used to display "Active Sessions" in dashboard
    * @param currentSessionId Optional session ID to mark as current
+   * @param page Page number (1-indexed)
+   * @param limit Number of sessions per page
    */
   @Get()
   @ApiOperation({ summary: 'Get all active sessions for current user' })
   @ApiResponse({
     status: 200,
-    description: 'List of active sessions',
+    description: 'List of active sessions with pagination',
   })
   async getActiveSessions(
     @Request() req: AuthenticatedRequest,
     @Query('currentSessionId') currentSessionId?: string,
-  ): Promise<{ sessions: SessionResponseDto[]; total: number }> {
-    this.logger.debug(`📋 Fetching sessions for user ${req.user.id}, currentSessionId: ${currentSessionId ?? 'not provided'}`);
+    @Query('page') pageStr?: string,
+    @Query('limit') limitStr?: string,
+  ): Promise<{ sessions: SessionResponseDto[]; total: number; page: number; limit: number; totalPages: number }> {
+    const page = Math.max(1, parseInt(pageStr ?? '1', 10) || 1);
+    const limit = Math.min(50, Math.max(1, parseInt(limitStr ?? '10', 10) || 10));
     
-    const sessions = await this.sessionService.getActiveSessionsWithCurrent(
+    this.logger.debug(`📋 Fetching sessions for user ${req.user.id}, currentSessionId: ${currentSessionId ?? 'not provided'}, page: ${page}, limit: ${limit}`);
+    
+    const result = await this.sessionService.getActiveSessionsPaginated(
       req.user.id,
       currentSessionId,
+      page,
+      limit,
     );
 
-    this.logger.debug(`📋 Found ${sessions.length} sessions, current marked: ${sessions.filter(s => s.isCurrent).length}`);
+    this.logger.debug(`📋 Found ${result.total} total sessions, returning page ${page} with ${result.sessions.length} items`);
 
-    return {
-      sessions,
-      total: sessions.length,
-    };
+    return result;
   }
 
   /**

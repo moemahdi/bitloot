@@ -14,7 +14,7 @@ All URIs are relative to *http://localhost*
 
 ## sessionControllerGetActiveSessions
 
-> sessionControllerGetActiveSessions(currentSessionId)
+> sessionControllerGetActiveSessions(currentSessionId, page, limit)
 
 Get all active sessions for current user
 
@@ -38,6 +38,10 @@ async function example() {
   const body = {
     // string
     currentSessionId: currentSessionId_example,
+    // string
+    page: page_example,
+    // string
+    limit: limit_example,
   } satisfies SessionControllerGetActiveSessionsRequest;
 
   try {
@@ -58,6 +62,8 @@ example().catch(console.error);
 | Name | Type | Description  | Notes |
 |------------- | ------------- | ------------- | -------------|
 | **currentSessionId** | `string` |  | [Defaults to `undefined`] |
+| **page** | `string` |  | [Defaults to `undefined`] |
+| **limit** | `string` |  | [Defaults to `undefined`] |
 
 ### Return type
 
@@ -76,7 +82,7 @@ example().catch(console.error);
 ### HTTP response details
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
-| **200** | List of active sessions |  -  |
+| **200** | List of active sessions with pagination |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 

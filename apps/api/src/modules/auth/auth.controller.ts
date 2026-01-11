@@ -682,7 +682,7 @@ export class AuthController {
             </p>
             <p style="color: #666; font-size: 12px; margin-top: 20px;">
               This link is secure and expires in 30 days. If you didn't request this deletion, 
-              please <a href="${process.env.FRONTEND_URL ?? 'http://localhost:3000'}/dashboard/security">secure your account</a> immediately.
+              please <a href="${process.env.FRONTEND_URL ?? 'http://localhost:3000'}/profile?tab=security">secure your account</a> immediately.
             </p>
           `,
         });

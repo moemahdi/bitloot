@@ -23,6 +23,7 @@ import type {
   AdminOpsControllerGetQueueDetails200Response,
   AdminOpsControllerGetQueueStats200ResponseValue,
   AdminOpsControllerGetSystemHealth200Response,
+  AdminOpsControllerTriggerUserDeletionCleanup200Response,
 } from '../models/index';
 import {
     AdminOpsControllerCreateFeatureFlag201ResponseFromJSON,
@@ -41,6 +42,8 @@ import {
     AdminOpsControllerGetQueueStats200ResponseValueToJSON,
     AdminOpsControllerGetSystemHealth200ResponseFromJSON,
     AdminOpsControllerGetSystemHealth200ResponseToJSON,
+    AdminOpsControllerTriggerUserDeletionCleanup200ResponseFromJSON,
+    AdminOpsControllerTriggerUserDeletionCleanup200ResponseToJSON,
 } from '../models/index';
 
 export interface AdminOpsControllerGetFeatureFlagRequest {
@@ -369,6 +372,43 @@ export class AdminOperationsApi extends runtime.BaseAPI {
      */
     async adminOpsControllerGetSystemHealth(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<AdminOpsControllerGetSystemHealth200Response> {
         const response = await this.adminOpsControllerGetSystemHealthRaw(initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Manually trigger user deletion cleanup (30-day grace period expired)
+     */
+    async adminOpsControllerTriggerUserDeletionCleanupRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<AdminOpsControllerTriggerUserDeletionCleanup200Response>> {
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("JWT-auth", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/admin/ops/user-deletion-cleanup`;
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => AdminOpsControllerTriggerUserDeletionCleanup200ResponseFromJSON(jsonValue));
+    }
+
+    /**
+     * Manually trigger user deletion cleanup (30-day grace period expired)
+     */
+    async adminOpsControllerTriggerUserDeletionCleanup(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<AdminOpsControllerTriggerUserDeletionCleanup200Response> {
+        const response = await this.adminOpsControllerTriggerUserDeletionCleanupRaw(initOverrides);
         return await response.value();
     }
 

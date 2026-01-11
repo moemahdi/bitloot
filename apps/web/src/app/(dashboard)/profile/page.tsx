@@ -1,11 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { UsersApi, FulfillmentApi, AuthenticationApi, SessionsApi, type OrderResponseDto, type OrderItemResponseDto } from '@bitloot/sdk';
+import { UsersApi, FulfillmentApi, AuthenticationApi, SessionsApi, type OrderResponseDto, type OrderItemResponseDto, type RecoveryResponseDto, type RecoveryItemDto } from '@bitloot/sdk';
 import { apiConfig } from '@/lib/api-config';
 import { useWatchlist, useRemoveFromWatchlist } from '@/features/watchlist';
 import { useCart } from '@/context/CartContext';
@@ -16,13 +16,14 @@ import { Input } from '@/design-system/primitives/input';
 import { Separator } from '@/design-system/primitives/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/design-system/primitives/tabs';
 import { Badge } from '@/design-system/primitives/badge';
-import { Loader2, User, Shield, Key, Package, DollarSign, Check, Copy, ShoppingBag, LogOut, LayoutDashboard, Eye, HelpCircle, Mail, Hash, Crown, ShieldCheck, AlertCircle, Fingerprint, Info, Heart, ChevronDown, ChevronUp, RefreshCw, Download, Smartphone, Monitor, Trash2, X, AlertTriangle } from 'lucide-react';
+import { Loader2, User, Shield, Key, Package, DollarSign, Check, Copy, ShoppingBag, LogOut, LayoutDashboard, Eye, HelpCircle, Mail, Hash, Crown, ShieldCheck, AlertCircle, Fingerprint, Info, Heart, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, RefreshCw, Download, Smartphone, Monitor, Trash2, X, AlertTriangle, MessageSquare, Book, LifeBuoy, Clock, Globe, Activity, Search, Bell, ShoppingCart, LayoutGrid, List } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import { DashboardStatCard } from '@/components/dashboard/DashboardStatCard';
 import { AnimatedGridPattern } from '@/components/animations/FloatingParticles';
 import { GlowButton } from '@/design-system/primitives/glow-button';
 import { WatchlistProductCard } from '@/features/watchlist/components/WatchlistProductCard';
+import { WatchlistPreview } from '@/components/WatchlistPreview';
 
 const usersClient = new UsersApi(apiConfig);
 const fulfillmentClient = new FulfillmentApi(apiConfig);
@@ -30,6 +31,9 @@ const fulfillmentClient = new FulfillmentApi(apiConfig);
 // ============ WATCHLIST TAB CONTENT COMPONENT ============
 function WatchlistTabContent(): React.ReactElement {
   const [currentPage, setCurrentPage] = useState(1);
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [sortBy, setSortBy] = useState<'recent' | 'price-low' | 'price-high' | 'name'>('recent');
+  const [searchQuery, setSearchQuery] = useState('');
   const itemsPerPage = 12;
   
   const { data: watchlistData, isLoading, error, refetch } = useWatchlist(currentPage, itemsPerPage);
@@ -47,6 +51,21 @@ function WatchlistTabContent(): React.ReactElement {
     toast.success(`${item.product.title} added to cart`);
   };
 
+  const handleAddAllToCart = (): void => {
+    const items = watchlistData?.data ?? [];
+    const availableItems = items.filter(item => item.product.isPublished !== false);
+    availableItems.forEach(item => {
+      addItem({
+        productId: item.product.id,
+        title: item.product.title,
+        price: item.product.price,
+        quantity: 1,
+        image: item.product.coverImageUrl ?? undefined,
+      });
+    });
+    toast.success(`${availableItems.length} items added to cart`);
+  };
+
   const handleRemoveFromWatchlist = async (productId: string, productTitle: string): Promise<void> => {
     try {
       await removeFromWatchlist.mutateAsync(productId);
@@ -56,29 +75,78 @@ function WatchlistTabContent(): React.ReactElement {
     }
   };
 
+  // Computed values
+  const items = watchlistData?.data ?? [];
+  const total = watchlistData?.total ?? 0;
+  const totalPages = watchlistData?.totalPages ?? 1;
+  
+  // Calculate stats
+  const totalValue = items.reduce((sum, item) => sum + item.product.price, 0);
+  const availableCount = items.filter(item => item.product.isPublished !== false).length;
+  const platformCounts = items.reduce((acc, item) => {
+    const platform = item.product.platform ?? 'Other';
+    acc[platform] = (acc[platform] ?? 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
+  
+  // Sort and filter items
+  const filteredItems = useMemo(() => {
+    let result = [...items];
+    
+    // Filter by search
+    if (searchQuery.trim() !== '') {
+      const query = searchQuery.toLowerCase();
+      result = result.filter(item => 
+        item.product.title.toLowerCase().includes(query) ||
+        (item.product.platform?.toLowerCase().includes(query) ?? false)
+      );
+    }
+    
+    // Sort
+    switch (sortBy) {
+      case 'price-low':
+        result.sort((a, b) => a.product.price - b.product.price);
+        break;
+      case 'price-high':
+        result.sort((a, b) => b.product.price - a.product.price);
+        break;
+      case 'name':
+        result.sort((a, b) => a.product.title.localeCompare(b.product.title));
+        break;
+      case 'recent':
+      default:
+        result.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        break;
+    }
+    
+    return result;
+  }, [items, searchQuery, sortBy]);
+
   if (isLoading) {
     return (
       <div className="space-y-6">
-        {/* Header Skeleton */}
-        <Card className="glass border-border/50">
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <div className="space-y-2">
-                <div className="skeleton h-6 w-40 animate-shimmer rounded" />
-                <div className="skeleton h-4 w-28 animate-shimmer rounded" />
-              </div>
-              <div className="skeleton h-9 w-28 animate-shimmer rounded" />
+        {/* Stats Cards Skeleton */}
+        <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="glass rounded-lg p-4 space-y-2">
+              <div className="skeleton h-4 w-20 animate-shimmer rounded" />
+              <div className="skeleton h-8 w-28 animate-shimmer rounded" />
             </div>
-          </CardHeader>
-        </Card>
+          ))}
+        </div>
         {/* Grid Skeleton */}
         <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {Array.from({ length: 8 }).map((_, i) => (
-            <div key={i} className="glass rounded-lg p-4 space-y-3">
-              <div className="skeleton h-40 w-full animate-shimmer rounded-lg" />
-              <div className="skeleton h-5 w-3/4 animate-shimmer rounded" />
-              <div className="skeleton h-4 w-1/2 animate-shimmer rounded" />
-              <div className="skeleton h-8 w-full animate-shimmer rounded" />
+            <div key={i} className="glass rounded-lg overflow-hidden">
+              <div className="skeleton h-48 w-full animate-shimmer" />
+              <div className="p-4 space-y-3">
+                <div className="skeleton h-5 w-3/4 animate-shimmer rounded" />
+                <div className="skeleton h-4 w-1/2 animate-shimmer rounded" />
+                <div className="flex justify-between items-center">
+                  <div className="skeleton h-6 w-20 animate-shimmer rounded" />
+                  <div className="skeleton h-8 w-8 animate-shimmer rounded" />
+                </div>
+              </div>
             </div>
           ))}
         </div>
@@ -108,97 +176,414 @@ function WatchlistTabContent(): React.ReactElement {
     );
   }
 
-  const items = watchlistData?.data ?? [];
-  const total = watchlistData?.total ?? 0;
-  const totalPages = watchlistData?.totalPages ?? 1;
-
   if (items.length === 0) {
     return (
-      <Card className="glass border-border/50 border-dashed">
-        <CardContent className="empty-state py-16">
-          <div className="p-5 rounded-full bg-purple-neon/10 border border-purple-neon/20">
-            <Heart className="empty-state-icon text-purple-neon" />
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.5 }}
+      >
+        <Card className="glass border-border/50 border-dashed overflow-hidden">
+          <div className="relative">
+            {/* Background gradient */}
+            <div className="absolute inset-0 bg-gradient-to-br from-purple-neon/5 via-transparent to-cyan-glow/5" />
+            
+            <CardContent className="relative flex flex-col items-center justify-center py-20 text-center">
+              <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ delay: 0.2, type: 'spring', stiffness: 200 }}
+                className="relative mb-6"
+              >
+                <div className="absolute inset-0 bg-purple-neon/20 blur-2xl rounded-full" />
+                <div className="relative p-6 rounded-full bg-gradient-to-br from-purple-neon/20 to-purple-neon/5 border border-purple-neon/30">
+                  <Heart className="h-12 w-12 text-purple-neon" />
+                </div>
+              </motion.div>
+              
+              <motion.h3
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.3 }}
+                className="text-2xl font-bold text-text-primary mb-2"
+              >
+                Start Your Watchlist
+              </motion.h3>
+              
+              <motion.p
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.4 }}
+                className="text-text-secondary max-w-md mb-8"
+              >
+                Save games you&apos;re interested in and never miss a deal. 
+                Get notified when prices drop on your favorite titles.
+              </motion.p>
+              
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.5 }}
+                className="flex flex-col sm:flex-row gap-3"
+              >
+                <Link href="/">
+                  <GlowButton variant="default" size="lg">
+                    <ShoppingBag className="mr-2 h-5 w-5" />
+                    Browse Games
+                  </GlowButton>
+                </Link>
+                <Link href="/?sort=deals">
+                  <Button variant="outline" size="lg" className="border-orange-warning/30 text-orange-warning hover:bg-orange-warning/10">
+                    <DollarSign className="mr-2 h-5 w-5" />
+                    View Deals
+                  </Button>
+                </Link>
+              </motion.div>
+              
+              {/* Feature hints */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.6 }}
+                className="flex flex-wrap justify-center gap-6 mt-10 pt-8 border-t border-border/30"
+              >
+                <div className="flex items-center gap-2 text-sm text-text-muted">
+                  <Heart className="h-4 w-4 text-purple-neon" />
+                  <span>Track prices</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm text-text-muted">
+                  <Bell className="h-4 w-4 text-cyan-glow" />
+                  <span>Get deal alerts</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm text-text-muted">
+                  <ShoppingCart className="h-4 w-4 text-green-success" />
+                  <span>Quick add to cart</span>
+                </div>
+              </motion.div>
+            </CardContent>
           </div>
-          <h3 className="empty-state-title">Your watchlist is empty</h3>
-          <p className="empty-state-description">
-            Browse our catalog and add products to your watchlist to track them here.
-          </p>
-          <Link href="/catalog">
-            <GlowButton 
-              variant="default"
-              className="mt-6"
-            >
-              <ShoppingBag className="mr-2 h-4 w-4" />
-              Browse Products
-            </GlowButton>
-          </Link>
-        </CardContent>
-      </Card>
+        </Card>
+      </motion.div>
     );
   }
 
   return (
     <div className="space-y-6">
-      {/* Header Stats */}
+      {/* Stats Overview */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4 }}
+        className="grid gap-4 grid-cols-2 lg:grid-cols-4"
       >
-        <Card className="glass border-border/50 bg-bg-secondary/50 backdrop-blur-sm">
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="text-text-primary flex items-center gap-2">
-                  <Heart className="h-5 w-5 text-purple-neon" />
-                  Your Watchlist
-                </CardTitle>
-                <CardDescription className="text-text-secondary mt-1">
-                  {total} {total === 1 ? 'product' : 'products'} saved
-                </CardDescription>
+        {/* Total Items */}
+        <Card className="glass border-border/50 bg-bg-secondary/50 backdrop-blur-sm hover:border-purple-neon/30 transition-colors">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-purple-neon/10">
+                <Heart className="h-5 w-5 text-purple-neon" />
               </div>
-              <Link href="/catalog">
-                <Button variant="outline" size="sm" className="border-border/50 hover:border-cyan-glow/30">
-                  <ShoppingBag className="mr-2 h-4 w-4" />
-                  Browse More
-                </Button>
-              </Link>
+              <div>
+                <p className="text-xs text-text-muted uppercase tracking-wider">Saved Items</p>
+                <p className="text-2xl font-bold text-text-primary">{total}</p>
+              </div>
             </div>
-          </CardHeader>
+          </CardContent>
+        </Card>
+        
+        {/* Total Value */}
+        <Card className="glass border-border/50 bg-bg-secondary/50 backdrop-blur-sm hover:border-cyan-glow/30 transition-colors">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-cyan-glow/10">
+                <DollarSign className="h-5 w-5 text-cyan-glow" />
+              </div>
+              <div>
+                <p className="text-xs text-text-muted uppercase tracking-wider">Total Value</p>
+                <p className="text-2xl font-bold text-cyan-glow">€{totalValue.toFixed(2)}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        
+        {/* Available Items */}
+        <Card className="glass border-border/50 bg-bg-secondary/50 backdrop-blur-sm hover:border-green-success/30 transition-colors">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-green-success/10">
+                <Check className="h-5 w-5 text-green-success" />
+              </div>
+              <div>
+                <p className="text-xs text-text-muted uppercase tracking-wider">Available</p>
+                <p className="text-2xl font-bold text-text-primary">{availableCount}<span className="text-sm text-text-muted font-normal">/{total}</span></p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        
+        {/* Top Platform */}
+        <Card className="glass border-border/50 bg-bg-secondary/50 backdrop-blur-sm hover:border-orange-warning/30 transition-colors">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-orange-warning/10">
+                <Monitor className="h-5 w-5 text-orange-warning" />
+              </div>
+              <div>
+                <p className="text-xs text-text-muted uppercase tracking-wider">Top Platform</p>
+                <p className="text-lg font-bold text-text-primary truncate">
+                  {Object.entries(platformCounts).length > 0 
+                    ? Object.entries(platformCounts).sort((a, b) => b[1] - a[1])[0]?.[0] ?? 'N/A'
+                    : 'N/A'}
+                </p>
+              </div>
+            </div>
+          </CardContent>
         </Card>
       </motion.div>
 
-      {/* Watchlist Items Grid - Matching ProductCard Design */}
-      <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        {items.map((item, index) => (
-          <motion.div
-            key={item.id}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, delay: index * 0.05 }}
-          >
-            <WatchlistProductCard
-              product={{
-                id: item.product.id,
-                slug: item.product.slug,
-                title: item.product.title,
-                subtitle: item.product.subtitle,
-                price: item.product.price,
-                coverImageUrl: item.product.coverImageUrl,
-                platform: item.product.platform,
-                region: item.product.region,
-                isPublished: item.product.isPublished,
-              }}
-              addedAt={item.createdAt}
-              onRemove={async (productId: string) => {
-                await handleRemoveFromWatchlist(productId, item.product.title);
-              }}
-              onAddToCart={() => handleAddToCart(item)}
-              isRemoving={removeFromWatchlist.isPending}
-            />
-          </motion.div>
-        ))}
-      </div>
+      {/* Toolbar */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, delay: 0.1 }}
+      >
+        <Card className="glass border-border/50 bg-bg-secondary/50 backdrop-blur-sm">
+          <CardContent className="p-4">
+            <div className="flex flex-col lg:flex-row gap-4 lg:items-center lg:justify-between">
+              {/* Search & Sort */}
+              <div className="flex flex-1 gap-3">
+                {/* Search */}
+                <div className="relative flex-1 max-w-sm">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-text-muted" />
+                  <Input
+                    type="text"
+                    placeholder="Search watchlist..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-9 bg-bg-tertiary/50 border-border/50 focus:border-purple-neon/50"
+                  />
+                </div>
+                
+                {/* Sort Dropdown */}
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
+                  className="px-3 py-2 rounded-md bg-bg-tertiary/50 border border-border/50 text-text-primary text-sm focus:border-purple-neon/50 focus:outline-none cursor-pointer"
+                >
+                  <option value="recent">Recently Added</option>
+                  <option value="price-low">Price: Low to High</option>
+                  <option value="price-high">Price: High to Low</option>
+                  <option value="name">Name: A-Z</option>
+                </select>
+              </div>
+              
+              {/* Actions */}
+              <div className="flex items-center gap-3">
+                {/* View Toggle */}
+                <div className="flex items-center rounded-md border border-border/50 p-1">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setViewMode('grid')}
+                    className={`h-7 w-7 p-0 ${viewMode === 'grid' ? 'bg-purple-neon/20 text-purple-neon' : 'text-text-muted hover:text-text-primary'}`}
+                  >
+                    <LayoutGrid className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setViewMode('list')}
+                    className={`h-7 w-7 p-0 ${viewMode === 'list' ? 'bg-purple-neon/20 text-purple-neon' : 'text-text-muted hover:text-text-primary'}`}
+                  >
+                    <List className="h-4 w-4" />
+                  </Button>
+                </div>
+                
+                {/* Add All to Cart */}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleAddAllToCart}
+                  disabled={availableCount === 0}
+                  className="border-cyan-glow/30 text-cyan-glow hover:bg-cyan-glow/10 hover:border-cyan-glow/50"
+                >
+                  <ShoppingCart className="h-4 w-4 mr-2" />
+                  Add All ({availableCount})
+                </Button>
+                
+                {/* Browse More */}
+                <Link href="/">
+                  <Button variant="outline" size="sm" className="border-border/50 hover:border-purple-neon/30">
+                    <ShoppingBag className="h-4 w-4 mr-2" />
+                    Browse
+                  </Button>
+                </Link>
+              </div>
+            </div>
+            
+            {/* Active Filters Info */}
+            {searchQuery.trim() !== '' && (
+              <div className="flex items-center gap-2 mt-3 pt-3 border-t border-border/30">
+                <span className="text-sm text-text-muted">
+                  Showing {filteredItems.length} of {items.length} items
+                </span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setSearchQuery('')}
+                  className="h-6 px-2 text-xs text-purple-neon hover:bg-purple-neon/10"
+                >
+                  Clear filter
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </motion.div>
+
+      {/* Watchlist Items */}
+      {filteredItems.length === 0 ? (
+        <Card className="glass border-border/50">
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <Search className="h-12 w-12 text-text-muted mb-4" />
+            <h3 className="text-lg font-semibold text-text-primary">No matches found</h3>
+            <p className="text-text-secondary text-center max-w-sm mt-1">
+              Try adjusting your search or filters to find what you&apos;re looking for.
+            </p>
+          </CardContent>
+        </Card>
+      ) : viewMode === 'grid' ? (
+        /* Grid View */
+        <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {filteredItems.map((item, index) => (
+            <motion.div
+              key={item.id}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, delay: index * 0.03 }}
+            >
+              <WatchlistProductCard
+                product={{
+                  id: item.product.id,
+                  slug: item.product.slug,
+                  title: item.product.title,
+                  subtitle: item.product.subtitle,
+                  price: item.product.price,
+                  coverImageUrl: item.product.coverImageUrl,
+                  platform: item.product.platform,
+                  region: item.product.region,
+                  isPublished: item.product.isPublished,
+                }}
+                addedAt={item.createdAt}
+                onRemove={async (productId: string) => {
+                  await handleRemoveFromWatchlist(productId, item.product.title);
+                }}
+                onAddToCart={() => handleAddToCart(item)}
+                isRemoving={removeFromWatchlist.isPending}
+              />
+            </motion.div>
+          ))}
+        </div>
+      ) : (
+        /* List View */
+        <div className="space-y-3">
+          {filteredItems.map((item, index) => {
+            const isUnavailable = item.product.isPublished === false;
+            return (
+              <motion.div
+                key={item.id}
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.3, delay: index * 0.03 }}
+              >
+                <Card className={`glass border-border/50 hover:border-purple-neon/30 transition-all group ${isUnavailable ? 'opacity-60' : ''}`}>
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-4">
+                      {/* Image */}
+                      <Link href={`/product/${item.product.slug}`} className="shrink-0">
+                        <div className="relative w-20 h-20 rounded-lg overflow-hidden bg-bg-tertiary">
+                          {item.product.coverImageUrl !== undefined && item.product.coverImageUrl !== null && item.product.coverImageUrl !== '' ? (
+                            <img
+                              src={item.product.coverImageUrl}
+                              alt={item.product.title}
+                              className={`w-full h-full object-cover group-hover:scale-110 transition-transform duration-300 ${isUnavailable ? 'grayscale' : ''}`}
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center">
+                              <Package className="h-8 w-8 text-text-muted" />
+                            </div>
+                          )}
+                          {isUnavailable && (
+                            <div className="absolute inset-0 flex items-center justify-center bg-bg-primary/80">
+                              <Badge variant="destructive" className="text-xs">Unavailable</Badge>
+                            </div>
+                          )}
+                        </div>
+                      </Link>
+                      
+                      {/* Info */}
+                      <div className="flex-1 min-w-0">
+                        <Link href={`/product/${item.product.slug}`}>
+                          <h3 className="font-semibold text-text-primary truncate group-hover:text-purple-neon transition-colors">
+                            {item.product.title}
+                          </h3>
+                        </Link>
+                        <div className="flex items-center gap-2 mt-1">
+                          {item.product.platform !== undefined && item.product.platform !== '' && (
+                            <Badge variant="outline" className="text-xs border-border/50">
+                              {item.product.platform}
+                            </Badge>
+                          )}
+                          {item.product.region !== undefined && item.product.region !== '' && (
+                            <Badge variant="outline" className="text-xs border-border/50">
+                              {item.product.region}
+                            </Badge>
+                          )}
+                          <span className="text-xs text-text-muted flex items-center gap-1">
+                            <Clock className="h-3 w-3" />
+                            Added {new Date(item.createdAt).toLocaleDateString()}
+                          </span>
+                        </div>
+                      </div>
+                      
+                      {/* Price & Actions */}
+                      <div className="flex items-center gap-4">
+                        <div className="text-right">
+                          <p className="text-xl font-bold text-cyan-glow">€{item.product.price.toFixed(2)}</p>
+                        </div>
+                        
+                        <div className="flex items-center gap-2">
+                          <Button
+                            size="sm"
+                            onClick={() => handleAddToCart(item)}
+                            disabled={isUnavailable}
+                            className="bg-cyan-glow/10 text-cyan-glow hover:bg-cyan-glow/20 border border-cyan-glow/30"
+                          >
+                            <ShoppingCart className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => void handleRemoveFromWatchlist(item.product.id, item.product.title)}
+                            disabled={removeFromWatchlist.isPending}
+                            className="border-orange-warning/30 text-orange-warning hover:bg-orange-warning/10"
+                          >
+                            {removeFromWatchlist.isPending ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Trash2 className="h-4 w-4" />
+                            )}
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            );
+          })}
+        </div>
+      )}
 
       {/* Pagination */}
       {totalPages > 1 && (
@@ -206,29 +591,70 @@ function WatchlistTabContent(): React.ReactElement {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.4, delay: 0.2 }}
-          className="flex justify-center gap-2 pt-4"
         >
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-            disabled={currentPage === 1}
-            className="border-border/50"
-          >
-            Previous
-          </Button>
-          <span className="flex items-center px-4 text-sm text-text-secondary">
-            Page {currentPage} of {totalPages}
-          </span>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-            disabled={currentPage === totalPages}
-            className="border-border/50"
-          >
-            Next
-          </Button>
+          <Card className="glass border-border/50 bg-bg-secondary/50">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <p className="text-sm text-text-muted">
+                  Showing {(currentPage - 1) * itemsPerPage + 1}-{Math.min(currentPage * itemsPerPage, total)} of {total} items
+                </p>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                    className="border-border/50 hover:border-purple-neon/30"
+                  >
+                    <ChevronLeft className="h-4 w-4 mr-1" />
+                    Previous
+                  </Button>
+                  
+                  {/* Page Numbers */}
+                  <div className="hidden sm:flex items-center gap-1">
+                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                      let pageNum: number;
+                      if (totalPages <= 5) {
+                        pageNum = i + 1;
+                      } else if (currentPage <= 3) {
+                        pageNum = i + 1;
+                      } else if (currentPage >= totalPages - 2) {
+                        pageNum = totalPages - 4 + i;
+                      } else {
+                        pageNum = currentPage - 2 + i;
+                      }
+                      return (
+                        <Button
+                          key={pageNum}
+                          variant={currentPage === pageNum ? 'default' : 'ghost'}
+                          size="sm"
+                          onClick={() => setCurrentPage(pageNum)}
+                          className={`h-8 w-8 p-0 ${currentPage === pageNum ? 'bg-purple-neon text-white' : 'text-text-secondary hover:text-text-primary'}`}
+                        >
+                          {pageNum}
+                        </Button>
+                      );
+                    })}
+                  </div>
+                  
+                  <span className="sm:hidden text-sm text-text-secondary px-2">
+                    {currentPage} / {totalPages}
+                  </span>
+                  
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages}
+                    className="border-border/50 hover:border-purple-neon/30"
+                  >
+                    Next
+                    <ChevronRight className="h-4 w-4 ml-1" />
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </motion.div>
       )}
     </div>
@@ -253,6 +679,12 @@ export default function ProfilePage(): React.ReactElement {
   const [downloadingOrder, setDownloadingOrder] = useState<string | null>(null);
   // State for tracking key recovery in progress
   const [recoveringOrder, setRecoveringOrder] = useState<string | null>(null);
+  
+  // Purchases pagination, filtering, and search state
+  const [purchasesPage, setPurchasesPage] = useState(1);
+  const purchasesPerPage = 10;
+  const [purchasesStatusFilter, setPurchasesStatusFilter] = useState<'all' | 'fulfilled' | 'paid' | 'pending' | 'failed'>('all');
+  const [purchasesSearchQuery, setPurchasesSearchQuery] = useState('');
 
   // Security tab state
   const [newEmail, setNewEmail] = useState('');
@@ -261,6 +693,10 @@ export default function ProfilePage(): React.ReactElement {
   const [isEmailChangeStep, setIsEmailChangeStep] = useState<'idle' | 'otp' | 'verifying'>('idle');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  
+  // Sessions pagination state
+  const [sessionsPage, setSessionsPage] = useState(1);
+  const sessionsPerPage = 5;
   
   // API clients
   const queryClient = useQueryClient();
@@ -276,14 +712,34 @@ export default function ProfilePage(): React.ReactElement {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [urlTab]);
 
-  // Fetch user's orders - always fetch fresh data to show updated order status
-  const { data: orders = [], isLoading: ordersLoading, refetch: refetchOrders } = useQuery<OrderResponseDto[]>({
-    queryKey: ['profile-orders'],
+  // Handle tab change and update URL
+  const handleTabChange = (newTab: string): void => {
+    setActiveTab(newTab);
+    // Update URL with new tab parameter
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('tab', newTab);
+    router.push(`?${params.toString()}`, { scroll: false });
+  };
+
+  // Fetch ALL user's orders (for accurate stats and client-side filtering/pagination)
+  // Using a high limit to get all orders - typical user has < 100 orders
+  const { data: allOrders, isLoading: isLoadingOrders, refetch: refetchOrders } = useQuery<OrderResponseDto[]>({
+    queryKey: ['profile-orders-all'],
     queryFn: async () => {
       try {
-        const response = await usersClient.usersControllerGetOrdersRaw({});
+        const response = await usersClient.usersControllerGetOrdersRaw({
+          page: 1,
+          limit: 500, // Fetch all orders for accurate stats and filtering
+        });
         if (response.raw.ok) {
-          return (await response.raw.json()) as OrderResponseDto[];
+          const result = (await response.raw.json()) as {
+            data: OrderResponseDto[];
+            total: number;
+            page: number;
+            limit: number;
+            totalPages: number;
+          };
+          return result.data;
         }
         return [];
       } catch (error) {
@@ -307,26 +763,39 @@ export default function ProfilePage(): React.ReactElement {
     isCurrent: boolean;
   }
   
-  const { data: sessions = [], isLoading: sessionsLoading, refetch: refetchSessions } = useQuery<SessionData[]>({
-    queryKey: ['active-sessions', sessionId],
+  interface SessionsResponse {
+    sessions: SessionData[];
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  }
+  
+  const { data: sessionsData, isLoading: sessionsLoading, refetch: refetchSessions } = useQuery<SessionsResponse>({
+    queryKey: ['active-sessions', sessionId, sessionsPage, sessionsPerPage],
     queryFn: async () => {
       try {
-        // Pass currentSessionId to identify current session
-        const queryParams = sessionId !== null ? `?currentSessionId=${sessionId}` : '';
-        console.info('📋 Fetching sessions with currentSessionId:', sessionId);
+        // Build query params with pagination and currentSessionId
+        const params = new URLSearchParams();
+        if (sessionId !== null) params.append('currentSessionId', sessionId);
+        params.append('page', sessionsPage.toString());
+        params.append('limit', sessionsPerPage.toString());
+        const queryParams = params.toString() !== '' ? `?${params.toString()}` : '';
+        console.info('📋 Fetching sessions with currentSessionId:', sessionId, 'page:', sessionsPage);
         const response = await fetch(`${apiConfig.basePath}/sessions${queryParams}`, {
           headers: {
             Authorization: `Bearer ${accessToken}`,
           },
         });
         if (response.ok) {
-          const result = (await response.json()) as { sessions: SessionData[]; total: number };
+          const result = (await response.json()) as SessionsResponse;
           console.info('📋 Sessions received:', result.sessions.map(s => ({ id: s.id, isCurrent: s.isCurrent })));
           
           // ========== REVOKED SESSION CHECK ==========
           // If we passed a currentSessionId but no session is marked as current,
           // it means our session was revoked or expired. Trigger full logout.
-          if (sessionId !== null && result.sessions.length > 0) {
+          // Only check on first page to avoid false positives
+          if (sessionsPage === 1 && sessionId !== null && result.sessions.length > 0) {
             const hasCurrentSession = result.sessions.some(s => s.isCurrent);
             if (!hasCurrentSession) {
               console.warn('🚫 Current session was revoked - logging out');
@@ -335,31 +804,36 @@ export default function ProfilePage(): React.ReactElement {
               setTimeout(() => {
                 logout();
               }, 500);
-              return [];
+              return { sessions: [], total: 0, page: 1, limit: sessionsPerPage, totalPages: 0 };
             }
           }
           
-          // Edge case: No sessions at all means all were revoked
-          if (sessionId !== null && result.sessions.length === 0) {
+          // Edge case: No sessions at all means all were revoked (only check on first page)
+          if (sessionsPage === 1 && sessionId !== null && result.sessions.length === 0 && result.total === 0) {
             console.warn('🚫 No active sessions found - logging out');
             toast.error('Your session has expired. Please log in again.');
             setTimeout(() => {
               logout();
             }, 500);
-            return [];
+            return { sessions: [], total: 0, page: 1, limit: sessionsPerPage, totalPages: 0 };
           }
           
-          return result.sessions;
+          return result;
         }
-        return [];
+        return { sessions: [], total: 0, page: 1, limit: sessionsPerPage, totalPages: 0 };
       } catch (error) {
         console.error('Failed to fetch sessions:', error);
-        return [];
+        return { sessions: [], total: 0, page: 1, limit: sessionsPerPage, totalPages: 0 };
       }
     },
     enabled: user !== null && user !== undefined && activeTab === 'security' && accessToken !== null,
     staleTime: 30000,
   });
+  
+  // Extract sessions data for easier access
+  const sessions = sessionsData?.sessions ?? [];
+  const sessionsTotalPages = sessionsData?.totalPages ?? 1;
+  const sessionsTotal = sessionsData?.total ?? 0;
 
   // Fetch account deletion status
   interface DeletionStatus {
@@ -448,6 +922,17 @@ export default function ProfilePage(): React.ReactElement {
     }
   });
 
+  // Sessions refresh handler with feedback
+  const handleRefreshSessions = async (): Promise<void> => {
+    try {
+      await refetchSessions();
+      toast.success('Sessions refreshed');
+    } catch (error) {
+      console.error('Failed to refresh sessions:', error);
+      toast.error('Failed to refresh sessions');
+    }
+  };
+
   // Session mutations
   const revokeSessionMutation = useMutation({
     mutationFn: async (revokeSessionId: string) => {
@@ -534,17 +1019,75 @@ export default function ProfilePage(): React.ReactElement {
       toast.error(error.message);
     }
   });
+ 
+  // Calculate statistics from ALL orders (not just current page)
+  const orderStats = useMemo(() => {
+    const orders = allOrders ?? [];
+    const totalOrders = orders.length;
+    const completedOrders = orders.filter((o) => o.status === 'fulfilled').length;
+    const pendingOrders = orders.filter((o) => ['pending', 'waiting', 'confirming'].includes(o.status ?? '')).length;
+    const processingOrders = orders.filter((o) => o.status === 'paid').length;
+    const failedOrders = orders.filter((o) => ['failed', 'underpaid', 'expired'].includes(o.status ?? '')).length;
+    const totalSpent = orders
+      .filter((o) => o.status === 'fulfilled')
+      .reduce((acc, o) => {
+        const total = typeof o.total === 'string' ? parseFloat(o.total) : (o.total ?? 0);
+        return acc + (isNaN(total) ? 0 : total);
+      }, 0);
+    return { totalOrders, completedOrders, pendingOrders, processingOrders, failedOrders, totalSpent };
+  }, [allOrders]);
 
-  // Calculate statistics
-  const totalOrders = orders.length;
-  const completedOrders = orders.filter((o: OrderResponseDto) => o.status === 'fulfilled').length;
-  const _pendingOrders = orders.filter((o: OrderResponseDto) => o.status === 'pending').length;
-  const totalSpent = orders
-    .filter((o: OrderResponseDto) => o.status === 'fulfilled')
-    .reduce((acc: number, o: OrderResponseDto) => {
-      const total = typeof o.total === 'string' ? parseFloat(o.total) : o.total;
-      return acc + (isNaN(total) ? 0 : total);
-    }, 0);
+  // Client-side filtering for purchases (applied to ALL orders)
+  const filteredOrders = useMemo(() => {
+    if (!allOrders) return [];
+    
+    let filtered = [...allOrders];
+    
+    // Filter by status - handle grouped statuses
+    if (purchasesStatusFilter !== 'all') {
+      filtered = filtered.filter((order: OrderResponseDto) => {
+        const status = order.status ?? 'pending';
+        
+        if (purchasesStatusFilter === 'failed') {
+          // 'failed' filter includes: failed, underpaid, expired
+          return status === 'failed' || status === 'underpaid' || status === 'expired';
+        }
+        
+        if (purchasesStatusFilter === 'pending') {
+          // 'pending' filter includes: pending, waiting, confirming
+          return status === 'pending' || status === 'waiting' || status === 'confirming';
+        }
+        
+        // Direct match for: fulfilled, paid
+        return status === purchasesStatusFilter;
+      });
+    }
+    
+    // Filter by search query (Order ID - matches both full ID and short ID)
+    if (purchasesSearchQuery.trim()) {
+      const query = purchasesSearchQuery.toLowerCase().replace('#', '');
+      filtered = filtered.filter((order: OrderResponseDto) => 
+        order.id.toLowerCase().includes(query) ||
+        order.id.slice(-8).toLowerCase().includes(query)
+      );
+    }
+    
+    return filtered;
+  }, [allOrders, purchasesStatusFilter, purchasesSearchQuery]);
+
+  // Client-side pagination (applied after filtering)
+  const paginatedPurchases = useMemo(() => {
+    const startIndex = (purchasesPage - 1) * purchasesPerPage;
+    return filteredOrders.slice(startIndex, startIndex + purchasesPerPage);
+  }, [filteredOrders, purchasesPage, purchasesPerPage]);
+
+  // Calculate pagination info
+  const purchasesTotalPages = Math.ceil(filteredOrders.length / purchasesPerPage) || 1;
+
+  // Reset to page 1 when filter or search changes
+  useEffect(() => {
+    setPurchasesPage(1);
+  }, [purchasesStatusFilter, purchasesSearchQuery]);
 
   // Download keys for a fulfilled order
   const handleDownloadKeys = async (orderId: string): Promise<void> => {
@@ -556,11 +1099,27 @@ export default function ProfilePage(): React.ReactElement {
         window.open(response.signedUrl, '_blank');
         toast.success('Keys download started!');
       } else {
-        toast.error('Download link not available');
+        toast.error('Download link not available. Keys may not be ready yet or have expired. Please contact support.');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to get download link:', error);
-      toast.error('Failed to download keys. Please try again.');
+      
+      // Parse error message for better user feedback
+      let errorMessage = 'Failed to download keys. Please try again.';
+      
+      if (error?.response?.status === 404) {
+        errorMessage = 'Order not found. Please refresh the page and try again.';
+      } else if (error?.response?.status === 403) {
+        errorMessage = 'You do not have permission to access this order.';
+      } else if (error?.response?.status === 410) {
+        errorMessage = 'Download link has expired. Keys are still available - please use the "View & Copy Keys" option instead.';
+      } else if (error?.message?.includes('network') || error?.message?.includes('fetch')) {
+        errorMessage = 'Network error. Please check your connection and try again.';
+      } else if (error?.response?.data?.message) {
+        errorMessage = `Download failed: ${error.response.data.message}`;
+      }
+      
+      toast.error(errorMessage);
     } finally {
       setDownloadingOrder(null);
     }
@@ -570,12 +1129,45 @@ export default function ProfilePage(): React.ReactElement {
   const handleRecoverKeys = async (orderId: string): Promise<void> => {
     setRecoveringOrder(orderId);
     try {
-      await fulfillmentClient.fulfillmentControllerRecoverOrder({ id: orderId });
-      toast.success('Keys recovered successfully! Refreshing orders...');
-      await refetchOrders();
-    } catch (error) {
+      const response = await fulfillmentClient.fulfillmentControllerRecoverOrder({ id: orderId });
+      
+      // Check if recovery was successful
+      if (response.recovered) {
+        // Count successful recoveries
+        const successfulItems = response.items.filter(item => item.signedUrl !== null).length;
+        const totalItems = response.items.length;
+        
+        if (successfulItems === totalItems) {
+          toast.success(`All ${totalItems} keys recovered successfully! Refreshing orders...`);
+        } else if (successfulItems > 0) {
+          toast.warning(`${successfulItems} of ${totalItems} keys recovered successfully. Some items may still be processing.`);
+        } else {
+          toast.error('Keys are not ready yet. Please try again in a few minutes or contact support if this persists.');
+        }
+        await refetchOrders();
+      } else {
+        // Recovery failed
+        toast.error('Failed to recover keys. Keys may not be ready yet or there was an issue. Please contact support if this continues.');
+      }
+    } catch (error: any) {
       console.error('Failed to recover keys:', error);
-      toast.error('Failed to recover keys. Please contact support.');
+      
+      // Parse error message for better user feedback
+      let errorMessage = 'Failed to recover keys. Please contact support.';
+      
+      if (error?.response?.status === 404) {
+        errorMessage = 'Order not found. Please refresh the page and try again.';
+      } else if (error?.response?.status === 403) {
+        errorMessage = 'You do not have permission to access this order.';
+      } else if (error?.response?.status === 400) {
+        errorMessage = 'Invalid request. The order may not be eligible for key recovery.';
+      } else if (error?.message?.includes('network') || error?.message?.includes('fetch')) {
+        errorMessage = 'Network error. Please check your connection and try again.';
+      } else if (error?.response?.data?.message) {
+        errorMessage = `Recovery failed: ${error.response.data.message}`;
+      }
+      
+      toast.error(errorMessage);
     } finally {
       setRecoveringOrder(null);
     }
@@ -670,28 +1262,28 @@ export default function ProfilePage(): React.ReactElement {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <DashboardStatCard
           title="Total Orders"
-          value={totalOrders}
+          value={orderStats.totalOrders}
           icon={Package}
           color="cyan"
           delay={0.1}
         />
         <DashboardStatCard
           title="Completed"
-          value={completedOrders}
+          value={orderStats.completedOrders}
           icon={Check}
           color="green"
           delay={0.2}
         />
         <DashboardStatCard
           title="Total Spent"
-          value={`€${totalSpent.toFixed(2)}`}
+          value={`€${orderStats.totalSpent.toFixed(2)}`}
           icon={DollarSign}
           color="orange"
           delay={0.3}
         />
         <DashboardStatCard
           title="Digital Downloads"
-          value={completedOrders}
+          value={orderStats.completedOrders}
           icon={Key}
           color="purple"
           delay={0.4}
@@ -699,7 +1291,7 @@ export default function ProfilePage(): React.ReactElement {
       </div>
 
       {/* Main Tabs Section */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+      <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
         <TabsList className="glass grid w-full grid-cols-6 border border-border/30 bg-bg-secondary/50 p-1 backdrop-blur-sm">
           <TabsTrigger
             value="overview"
@@ -754,159 +1346,589 @@ export default function ProfilePage(): React.ReactElement {
 
         {/* Overview Tab */}
         <TabsContent value="overview" className="space-y-6">
-          <div className="grid gap-8 lg:grid-cols-3">
-            {/* Recent Orders */}
+          {/* Action Required Section */}
+          {(() => {
+            const paidOrders = allOrders?.filter(o => o.status === 'paid') ?? [];
+            const failedOrders = allOrders?.filter(o => ['failed', 'underpaid', 'expired'].includes(o.status ?? '')) ?? [];
+            const hasActions = paidOrders.length > 0 || failedOrders.length > 0 || (deletionStatus?.deletionRequested ?? false);
+            
+            if (!hasActions) return null;
+            
+            return (
+              <motion.div
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3 }}
+              >
+                <Card className="glass border-orange-warning/40 bg-orange-warning/5 backdrop-blur-sm">
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center gap-2">
+                      <AlertTriangle className="h-5 w-5 text-orange-warning" />
+                      <CardTitle className="text-orange-warning">Action Required</CardTitle>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    {paidOrders.length > 0 && (
+                      <div className="rounded-lg border border-cyan-glow/30 bg-cyan-glow/5 p-3">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex-1">
+                            <p className="text-sm font-medium text-text-primary">
+                              {paidOrders.length} {paidOrders.length === 1 ? 'order' : 'orders'} awaiting key delivery
+                            </p>
+                            <p className="text-xs text-text-muted mt-1">
+                              Your keys are being prepared. Check back soon or contact support if delayed.
+                            </p>
+                          </div>
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={() => handleTabChange('purchases')}
+                            className="border-cyan-glow/30 text-cyan-glow hover:bg-cyan-glow/10"
+                          >
+                            View Orders
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {failedOrders.length > 0 && (
+                      <div className="rounded-lg border border-orange-warning/30 bg-orange-warning/5 p-3">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex-1">
+                            <p className="text-sm font-medium text-text-primary">
+                              {failedOrders.length} {failedOrders.length === 1 ? 'order' : 'orders'} with issues
+                            </p>
+                            <p className="text-xs text-text-muted mt-1">
+                              Payment failed or underpaid. Contact support for assistance.
+                            </p>
+                          </div>
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={() => {
+                              const tawkWindow = window as unknown as { Tawk_API?: { maximize?: () => void } };
+                              if (typeof window !== 'undefined' && tawkWindow.Tawk_API !== null && tawkWindow.Tawk_API !== undefined && typeof tawkWindow.Tawk_API.maximize === 'function') {
+                                tawkWindow.Tawk_API.maximize();
+                              } else {
+                                window.open(`mailto:support@bitloot.io?subject=Order Issue&body=I need help with failed order(s)`, '_blank');
+                              }
+                            }}
+                            className="border-orange-warning/30 text-orange-warning hover:bg-orange-warning/10"
+                          >
+                            Get Help
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                    
+                    {deletionStatus?.deletionRequested && (
+                      <div className="rounded-lg border border-red-500/30 bg-red-500/5 p-3">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex-1">
+                            <p className="text-sm font-medium text-text-primary">
+                              Account deletion scheduled
+                            </p>
+                            <p className="text-xs text-text-muted mt-1">
+                              {deletionStatus.daysRemaining !== null && deletionStatus.daysRemaining > 0
+                                ? `${deletionStatus.daysRemaining} days remaining to cancel deletion`
+                                : 'Deletion pending'}
+                            </p>
+                          </div>
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={() => void cancelDeletionMutation.mutate()}
+                            disabled={cancelDeletionMutation.isPending}
+                            className="border-red-500/30 text-red-500 hover:bg-red-500/10"
+                          >
+                            Cancel
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </motion.div>
+            );
+          })()}
+
+          {/* Main Dashboard Grid - Redesigned Layout */}
+          <div className="grid gap-6 lg:grid-cols-12">
+            {/* Left Column - Watchlist Preview (Larger, Prominent) */}
             <motion.div
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.4 }}
-              className="lg:col-span-2"
+              className="lg:col-span-5"
             >
-              <Card className="glass border-border/50 bg-bg-secondary/50 backdrop-blur-sm transition-all duration-300 hover:border-cyan-glow/20 hover:shadow-glow-sm focus-within:ring-2 focus-within:ring-cyan-glow/30">
-                <CardHeader>
-                  <CardTitle className="text-text-primary">Recent Orders</CardTitle>
-                  <CardDescription className="text-text-secondary">Your latest purchases and delivery status</CardDescription>
+              <Card className="glass border-border/50 bg-bg-secondary/50 backdrop-blur-sm h-full">
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-purple-neon/10">
+                        <Heart className="h-4 w-4 text-purple-neon" />
+                      </div>
+                      <div>
+                        <CardTitle className="text-text-primary text-base">Your Watchlist</CardTitle>
+                        <p className="text-xs text-text-muted">Games you're tracking</p>
+                      </div>
+                    </div>
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={() => handleTabChange('watchlist')}
+                      className="text-xs text-purple-neon hover:text-purple-neon hover:bg-purple-neon/10"
+                    >
+                      View All
+                      <ChevronRight className="h-3.5 w-3.5 ml-1" />
+                    </Button>
+                  </div>
                 </CardHeader>
                 <CardContent>
-                  {ordersLoading ? (
-                    <div className="flex h-40 items-center justify-center">
-                      <Loader2 className="h-8 w-8 animate-spin text-cyan-glow" />
-                    </div>
-                  ) : orders.length === 0 ? (
-                    <div className="flex h-40 flex-col items-center justify-center text-text-muted">
-                      <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-cyan-glow/5 border border-cyan-glow/10">
-                        <Package className="h-8 w-8 text-cyan-glow/30" />
+                  <WatchlistPreview />
+                </CardContent>
+              </Card>
+            </motion.div>
+
+            {/* Right Column - Quick Actions + Activity */}
+            <div className="lg:col-span-7 space-y-6">
+              {/* Quick Actions - Horizontal Row */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: 0.1 }}
+              >
+                <Card className="glass border-border/50 bg-bg-secondary/50 backdrop-blur-sm">
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center gap-2">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-cyan-glow/10">
+                        <LayoutDashboard className="h-4 w-4 text-cyan-glow" />
                       </div>
-                      <p className="text-lg font-medium text-text-secondary">No orders yet</p>
-                      <p className="text-sm text-text-muted mt-1">Start shopping to see your orders here</p>
-                      <Button variant="outline" size="sm" asChild className="mt-4 border-cyan-glow/30 text-cyan-glow hover:bg-cyan-glow/10">
-                        <Link href="/">Browse Games</Link>
+                      <CardTitle className="text-text-primary text-base">Quick Actions</CardTitle>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-4 gap-3">
+                      <Button
+                        variant="outline"
+                        className="h-auto flex-col gap-1.5 py-3 border-cyan-glow/20 hover:border-cyan-glow/50 hover:bg-cyan-glow/5 group"
+                        onClick={() => handleTabChange('purchases')}
+                      >
+                        <ShoppingBag className="h-5 w-5 text-cyan-glow group-hover:scale-110 transition-transform" />
+                        <span className="text-xs font-medium">Orders</span>
+                      </Button>
+                      
+                      <Button
+                        variant="outline"
+                        className="h-auto flex-col gap-1.5 py-3 border-orange-warning/20 hover:border-orange-warning/50 hover:bg-orange-warning/5 group"
+                        asChild
+                      >
+                        <Link href="/?sort=deals">
+                          <DollarSign className="h-5 w-5 text-orange-warning group-hover:scale-110 transition-transform" />
+                          <span className="text-xs font-medium">Deals</span>
+                        </Link>
+                      </Button>
+                      
+                      <Button
+                        variant="outline"
+                        className="h-auto flex-col gap-1.5 py-3 border-green-success/20 hover:border-green-success/50 hover:bg-green-success/5 group"
+                        asChild
+                      >
+                        <Link href="/?sort=trending">
+                          <Activity className="h-5 w-5 text-green-success group-hover:scale-110 transition-transform" />
+                          <span className="text-xs font-medium">Trending</span>
+                        </Link>
+                      </Button>
+                      
+                      <Button
+                        variant="outline"
+                        className="h-auto flex-col gap-1.5 py-3 border-purple-neon/20 hover:border-purple-neon/50 hover:bg-purple-neon/5 group"
+                        asChild
+                      >
+                        <Link href="/?sort=new">
+                          <Globe className="h-5 w-5 text-purple-neon group-hover:scale-110 transition-transform" />
+                          <span className="text-xs font-medium">New</span>
+                        </Link>
                       </Button>
                     </div>
-                  ) : (
-                    <div className="space-y-4">
-                      {orders.slice(0, 5).map((order: OrderResponseDto, index) => (
+                  </CardContent>
+                </Card>
+              </motion.div>
+
+              {/* Activity Insights - Compact 2x2 Grid */}
+              <motion.div
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.4, delay: 0.2 }}
+              >
+                <Card className="glass border-border/50 bg-bg-secondary/50 backdrop-blur-sm">
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-green-success/10">
+                          <Activity className="h-4 w-4 text-green-success" />
+                        </div>
+                        <CardTitle className="text-text-primary text-base">Activity Insights</CardTitle>
+                      </div>
+                      {allOrders && allOrders.length > 0 && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-xs text-cyan-glow hover:text-cyan-glow hover:bg-cyan-glow/10"
+                          onClick={() => handleTabChange('purchases')}
+                        >
+                          View All
+                          <ChevronRight className="h-3.5 w-3.5 ml-1" />
+                        </Button>
+                      )}
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    {isLoadingOrders ? (
+                      <div className="flex items-center justify-center h-24">
+                        <Loader2 className="h-6 w-6 animate-spin text-cyan-glow" />
+                      </div>
+                    ) : !allOrders || allOrders.length === 0 ? (
+                      <div className="flex flex-col items-center justify-center h-24 text-center">
+                        <Activity className="h-8 w-8 text-text-muted mb-2" />
+                        <p className="text-sm text-text-muted">No activity yet</p>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-2 gap-3">
+                        {/* Last Purchase Card */}
+                        {(() => {
+                          const lastOrder = allOrders[0];
+                          const lastOrderItems = lastOrder?.items ?? [];
+                          const daysSinceLastOrder = lastOrder 
+                            ? Math.floor((Date.now() - new Date(lastOrder.createdAt ?? new Date()).getTime()) / (1000 * 60 * 60 * 24))
+                            : 0;
+                          
+                          return lastOrder && (
+                            <div className="rounded-lg border border-cyan-glow/20 bg-cyan-glow/5 p-3">
+                              <div className="flex items-center justify-between mb-1.5">
+                                <p className="text-xs font-medium text-text-muted">Last Purchase</p>
+                                <Badge variant="outline" className="text-[10px] px-1.5 h-4">
+                                  {daysSinceLastOrder === 0 ? 'Today' : daysSinceLastOrder === 1 ? '1d' : `${daysSinceLastOrder}d`}
+                                </Badge>
+                              </div>
+                              <p className="text-sm font-semibold text-text-primary truncate">
+                                {lastOrderItems[0]?.productTitle ?? 'Unknown'}
+                              </p>
+                              <p className="text-xs text-cyan-glow font-medium mt-1">
+                                €{(() => { 
+                                  const total = typeof lastOrder.total === 'string' ? parseFloat(lastOrder.total) : (lastOrder.total ?? 0); 
+                                  return typeof total === 'number' ? total.toFixed(2) : '0.00'; 
+                                })()}
+                              </p>
+                            </div>
+                          );
+                        })()}
+                        
+                        {/* Total Stats */}
+                        <div className="rounded-lg border border-purple-neon/20 bg-purple-neon/5 p-3">
+                          <p className="text-xs font-medium text-text-muted mb-1.5">Total Orders</p>
+                          <p className="text-2xl font-bold text-purple-neon">{orderStats.totalOrders}</p>
+                          <p className="text-xs text-text-muted mt-1">
+                            {orderStats.completedOrders} completed
+                          </p>
+                        </div>
+                        
+                        {/* Browse Trending */}
+                        <Link 
+                          href="/?sort=trending"
+                          className="rounded-lg border border-green-success/20 bg-green-success/5 p-3 hover:bg-green-success/10 hover:border-green-success/40 transition-all group"
+                        >
+                          <div className="flex items-center gap-2 mb-1.5">
+                            <Globe className="h-3.5 w-3.5 text-green-success" />
+                            <p className="text-xs font-medium text-text-muted">Trending</p>
+                          </div>
+                          <p className="text-sm font-semibold text-text-primary group-hover:text-green-success transition-colors">
+                            Popular Games
+                          </p>
+                          <p className="text-xs text-text-muted mt-1">
+                            See what others buy
+                          </p>
+                        </Link>
+                        
+                        {/* Browse Deals */}
+                        <Link 
+                          href="/?sort=deals"
+                          className="rounded-lg border border-orange-warning/20 bg-gradient-to-br from-orange-warning/10 to-orange-warning/5 p-3 hover:from-orange-warning/15 hover:border-orange-warning/40 transition-all group"
+                        >
+                          <div className="flex items-center justify-between mb-1.5">
+                            <div className="flex items-center gap-2">
+                              <DollarSign className="h-3.5 w-3.5 text-orange-warning" />
+                              <p className="text-xs font-medium text-text-muted">Deals</p>
+                            </div>
+                            <Badge variant="outline" className="text-[10px] px-1.5 h-4 border-orange-warning/30 text-orange-warning">
+                              Hot
+                            </Badge>
+                          </div>
+                          <p className="text-sm font-semibold text-text-primary group-hover:text-orange-warning transition-colors">
+                            Save up to 70%
+                          </p>
+                          <p className="text-xs text-text-muted mt-1">
+                            Limited time offers
+                          </p>
+                        </Link>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </motion.div>
+            </div>
+          </div>
+
+          {/* Recent Orders - Full Width */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.3 }}
+          >
+            <Card className="glass border-border/50 bg-bg-secondary/50 backdrop-blur-sm">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="text-text-primary">Recent Orders</CardTitle>
+                    <CardDescription className="text-text-secondary">Your latest purchases and their status</CardDescription>
+                  </div>
+                  {allOrders && allOrders.length > 0 && (
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => handleTabChange('purchases')}
+                      className="border-cyan-glow/30 text-cyan-glow hover:bg-cyan-glow/10"
+                    >
+                      View All
+                      <ChevronRight className="h-4 w-4 ml-1" />
+                    </Button>
+                  )}
+                </div>
+              </CardHeader>
+              <CardContent>
+                {isLoadingOrders ? (
+                  <div className="flex h-40 items-center justify-center">
+                    <Loader2 className="h-8 w-8 animate-spin text-cyan-glow" />
+                  </div>
+                ) : !allOrders || allOrders.length === 0 ? (
+                  <div className="flex h-64 flex-col items-center justify-center text-center px-4">
+                    <div className="mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-cyan-glow/10 to-purple-neon/10 border border-cyan-glow/20">
+                      <Package className="h-10 w-10 text-cyan-glow" />
+                    </div>
+                    <p className="text-xl font-bold text-text-primary mb-2">Start Your Gaming Journey</p>
+                    <p className="text-sm text-text-muted mb-6 max-w-md">
+                      Discover thousands of games at amazing prices. Instant delivery, secure payments, 24/7 support.
+                    </p>
+                    <div className="flex gap-3">
+                      <GlowButton size="default" asChild>
+                        <Link href="/?sort=deals">
+                          <DollarSign className="h-4 w-4 mr-2" />
+                          View Deals
+                        </Link>
+                      </GlowButton>
+                      <Button variant="outline" size="default" asChild className="border-purple-neon/30 text-purple-neon hover:bg-purple-neon/10">
+                        <Link href="/?sort=trending">
+                          <Activity className="h-4 w-4 mr-2" />
+                          Trending Games
+                        </Link>
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {allOrders.slice(0, 5).map((order: OrderResponseDto, index: number) => {
+                      // Extract order items info
+                      const items = order.items ?? [];
+                      const totalItems = items.reduce((sum, item) => sum + (item.quantity ?? 1), 0);
+                      const firstItem = items[0];
+                      const hasMultipleItems = items.length > 1;
+                      
+                      return (
                         <motion.div
                           initial={{ opacity: 0, y: 10 }}
                           animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: index * 0.1 }}
+                          transition={{ delay: index * 0.08 }}
                           key={order.id}
-                          className="group flex items-center justify-between rounded-lg border border-transparent bg-bg-tertiary/30 p-4 transition-all hover:border-cyan-glow/30 hover:bg-bg-tertiary/50 hover:shadow-[0_0_15px_rgba(0,217,255,0.05)]"
+                          className="group rounded-lg border border-border/30 bg-bg-tertiary/30 p-4 transition-all hover:border-cyan-glow/30 hover:bg-bg-tertiary/50 hover:shadow-[0_0_15px_rgba(0,217,255,0.05)] cursor-pointer"
+                          onClick={() => handleTabChange('purchases')}
                         >
-                          <div className="flex items-center gap-4">
-                            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-bg-primary text-cyan-glow">
+                          <div className="flex items-start gap-4">
+                            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-bg-primary text-cyan-glow">
                               <Package className="h-5 w-5" />
                             </div>
-                            <div>
-                              <p className="font-medium text-text-primary font-mono">{order.id.slice(0, 8)}</p>
-                              <p className="text-sm text-text-secondary">
-                                {new Date(order.createdAt ?? new Date()).toLocaleDateString()}
+                            
+                            <div className="flex-1 min-w-0">
+                              {/* Order ID and Date */}
+                              <div className="flex items-center gap-2 mb-1">
+                                <p className="font-medium text-text-primary font-mono text-sm">#{order.id.slice(-8)}</p>
+                                <span className="text-text-muted">•</span>
+                                <p className="text-xs text-text-secondary">
+                                  {new Date(order.createdAt ?? new Date()).toLocaleDateString('en-US', {
+                                    month: 'short',
+                                    day: 'numeric',
+                                    year: 'numeric'
+                                  })}
+                                </p>
+                              </div>
+                              
+                              {/* Product Title(s) */}
+                              {firstItem && (
+                                <p className="text-sm text-text-primary mb-1 truncate">
+                                  {firstItem.productTitle}
+                                  {hasMultipleItems && (
+                                    <span className="text-text-muted ml-1">
+                                      + {items.length - 1} more {items.length - 1 === 1 ? 'item' : 'items'}
+                                    </span>
+                                  )}
+                                </p>
+                              )}
+                              
+                              {/* Items count */}
+                              <p className="text-xs text-text-muted">
+                                {totalItems} {totalItems === 1 ? 'item' : 'items'}
                               </p>
                             </div>
-                          </div>
-                          <div className="text-right">
-                            <p className="crypto-amount font-bold text-text-primary">
-                              €{(() => { const total = typeof order.total === 'string' ? parseFloat(order.total) : (order.total ?? 0); return typeof total === 'number' ? total.toFixed(2) : '0.00'; })()}
-                            </p>
-                            <Badge
-                              variant={order.status === 'fulfilled' ? 'default' : 'secondary'}
-                              className={order.status === 'fulfilled'
-                                ? 'badge-success'
-                                : order.status === 'paid'
-                                  ? 'badge-info'
-                                  : order.status === 'failed'
-                                    ? 'badge-error'
-                                    : 'badge-warning'
-                              }
-                            >
-                              <span className={`status-dot mr-1.5 ${
-                                order.status === 'fulfilled' ? 'status-dot-success' 
-                                : order.status === 'paid' ? 'status-dot-info'
-                                : order.status === 'failed' ? 'status-dot-error'
-                                : 'status-dot-warning'
-                              }`} />
-                              {order.status ?? 'pending'}
-                            </Badge>
+                            
+                            <div className="flex items-center gap-3">
+                              <div className="text-right">
+                                <p className="crypto-amount font-bold text-text-primary mb-1">
+                                  €{(() => { 
+                                    const total = typeof order.total === 'string' ? parseFloat(order.total) : (order.total ?? 0); 
+                                    return typeof total === 'number' ? total.toFixed(2) : '0.00'; 
+                                  })()}
+                                </p>
+                                <Badge
+                                  variant={order.status === 'fulfilled' ? 'default' : 'secondary'}
+                                  className={order.status === 'fulfilled'
+                                    ? 'badge-success'
+                                    : order.status === 'paid'
+                                      ? 'badge-info'
+                                      : order.status === 'failed'
+                                        ? 'badge-error'
+                                        : 'badge-warning'
+                                  }
+                                >
+                                  <span className={`status-dot mr-1.5 ${
+                                    order.status === 'fulfilled' ? 'status-dot-success' 
+                                    : order.status === 'paid' ? 'status-dot-info'
+                                    : order.status === 'failed' ? 'status-dot-error'
+                                    : 'status-dot-warning'
+                                  }`} />
+                                  {order.status ?? 'pending'}
+                                </Badge>
+                              </div>
+                              <ChevronRight className="h-5 w-5 text-text-muted opacity-0 group-hover:opacity-100 transition-opacity" />
+                            </div>
                           </div>
                         </motion.div>
-                      ))}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </motion.div>
-
-            {/* Quick Actions / Promo */}
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.4, delay: 0.2 }}
-            >
-              <Card className="glass border-purple-neon/20 bg-linear-to-br from-bg-secondary to-purple-neon/5 backdrop-blur-sm transition-all duration-300 hover:border-purple-neon/40 hover:shadow-[0_0_20px_rgba(157,78,221,0.15)]">
-                <CardHeader>
-                  <CardTitle className="text-text-primary">Need Help?</CardTitle>
-                  <CardDescription className="text-text-secondary">Contact our support team for assistance</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="rounded-lg border border-purple-neon/20 bg-purple-neon/10 p-4">
-                    <p className="text-sm text-purple-neon">
-                      Our support team is available 24/7 to help with any issues regarding your keys or payments.
-                    </p>
+                      );
+                    })}
                   </div>
-                  <GlowButton 
-                    variant="secondary" 
-                    className="w-full"
-                    onClick={() => {
-                      // Try to open Tawk.to chat if available, fallback to email
-                      const tawkWindow = window as unknown as { Tawk_API?: { maximize?: () => void } };
-                      if (typeof window !== 'undefined' && tawkWindow.Tawk_API !== null && tawkWindow.Tawk_API !== undefined && typeof tawkWindow.Tawk_API.maximize === 'function') {
-                        tawkWindow.Tawk_API.maximize();
-                      } else {
-                        window.open(`mailto:support@bitloot.io?subject=Support Request&body=Hi, I need help with my account (${user?.email ?? 'Unknown'}).`, '_blank');
-                      }
-                    }}
-                  >
-                    Contact Support
-                  </GlowButton>
-                </CardContent>
-              </Card>
-            </motion.div>
-          </div>
+                )}
+              </CardContent>
+            </Card>
+          </motion.div>
         </TabsContent>
 
-        {/* My Purchases Tab - Comprehensive Order History */}
+        {/* My Purchases Tab - Enhanced with Pagination & Filters */}
         <TabsContent value="purchases" className="space-y-6">
-          <Card className="glass border-border/50 bg-bg-secondary/50 backdrop-blur-sm transition-all duration-300 hover:border-cyan-glow/20 focus-within:ring-2 focus-within:ring-cyan-glow/30">
+          <Card className="glass border-border/50 bg-bg-secondary/50 backdrop-blur-sm">
             <CardHeader className="pb-4">
-              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-purple-neon/10 border border-purple-neon/20">
-                    <ShoppingBag className="h-5 w-5 text-purple-neon" />
+              <div className="flex flex-col gap-4">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-purple-neon/10 border border-purple-neon/20">
+                      <ShoppingBag className="h-5 w-5 text-purple-neon" />
+                    </div>
+                    <div>
+                      <CardTitle className="text-text-primary">Purchase History</CardTitle>
+                      <CardDescription className="text-text-secondary">
+                        {purchasesStatusFilter === 'all' && purchasesSearchQuery === '' 
+                          ? `${orderStats.totalOrders} orders total`
+                          : `Showing ${filteredOrders.length} of ${orderStats.totalOrders} orders`}
+                      </CardDescription>
+                    </div>
                   </div>
-                  <div>
-                    <CardTitle className="text-text-primary">Purchase History</CardTitle>
-                    <CardDescription className="text-text-secondary">{totalOrders} orders • {completedOrders} completed • €{totalSpent.toFixed(2)} total spent</CardDescription>
-                  </div>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => void refetchOrders()}
+                    disabled={isLoadingOrders}
+                    className="border-cyan-glow/30 text-cyan-glow hover:bg-cyan-glow/10"
+                  >
+                    <RefreshCw className={`h-4 w-4 mr-2 ${isLoadingOrders ? 'animate-spin' : ''}`} />
+                    Refresh
+                  </Button>
                 </div>
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => void refetchOrders()}
-                  disabled={ordersLoading}
-                  className="border-cyan-glow/30 text-cyan-glow hover:bg-cyan-glow/10"
-                >
-                  <RefreshCw className={`h-4 w-4 mr-2 ${ordersLoading ? 'animate-spin' : ''}`} />
-                  Refresh
-                </Button>
+
+                {/* Filter Tabs */}
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    variant={purchasesStatusFilter === 'all' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setPurchasesStatusFilter('all')}
+                    className={purchasesStatusFilter === 'all' ? 'bg-purple-neon text-black' : ''}
+                  >
+                    All ({orderStats.totalOrders})
+                  </Button>
+                  <Button
+                    variant={purchasesStatusFilter === 'fulfilled' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setPurchasesStatusFilter('fulfilled')}
+                    className={purchasesStatusFilter === 'fulfilled' ? 'bg-green-success text-black' : ''}
+                  >
+                    <Key className="h-3 w-3 mr-1" />
+                    Completed ({orderStats.completedOrders})
+                  </Button>
+                  <Button
+                    variant={purchasesStatusFilter === 'paid' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setPurchasesStatusFilter('paid')}
+                    className={purchasesStatusFilter === 'paid' ? 'bg-blue-500 text-white' : ''}
+                  >
+                    <RefreshCw className="h-3 w-3 mr-1" />
+                    Processing ({orderStats.processingOrders})
+                  </Button>
+                  <Button
+                    variant={purchasesStatusFilter === 'pending' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setPurchasesStatusFilter('pending')}
+                    className={purchasesStatusFilter === 'pending' ? 'bg-orange-warning text-black' : ''}
+                  >
+                    <Clock className="h-3 w-3 mr-1" />
+                    Pending ({orderStats.pendingOrders})
+                  </Button>
+                  <Button
+                    variant={purchasesStatusFilter === 'failed' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setPurchasesStatusFilter('failed')}
+                    className={purchasesStatusFilter === 'failed' ? 'bg-red-500 text-white' : ''}
+                  >
+                    <AlertTriangle className="h-3 w-3 mr-1" />
+                    Failed ({orderStats.failedOrders})
+                  </Button>
+                </div>
+
+                {/* Search Bar */}
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-text-muted" />
+                  <Input
+                    type="text"
+                    placeholder="Search by Order ID..."
+                    value={purchasesSearchQuery}
+                    onChange={(e) => setPurchasesSearchQuery(e.target.value)}
+                    className="pl-10 bg-bg-tertiary/50 border-border/50"
+                  />
+                </div>
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
-              {ordersLoading ? (
+              {isLoadingOrders ? (
                 <div className="flex flex-col items-center justify-center py-12 space-y-4">
                   <Loader2 className="h-10 w-10 animate-spin text-purple-neon" />
                   <p className="text-text-secondary">Loading your purchase history...</p>
                 </div>
-              ) : orders.length === 0 ? (
+              ) : !allOrders || allOrders.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-12 text-center">
                   <ShoppingBag className="h-16 w-16 text-text-muted/30 mb-4" />
                   <h3 className="text-lg font-semibold text-text-primary mb-2">No purchases yet</h3>
@@ -917,13 +1939,27 @@ export default function ProfilePage(): React.ReactElement {
                     </Button>
                   </Link>
                 </div>
+              ) : filteredOrders.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-12 text-center">
+                  <Search className="h-16 w-16 text-text-muted/30 mb-4" />
+                  <h3 className="text-lg font-semibold text-text-primary mb-2">No matching orders</h3>
+                  <p className="text-text-secondary mb-4">Try adjusting your filters or search query</p>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => { setPurchasesStatusFilter('all'); setPurchasesSearchQuery(''); }}
+                  >
+                    Clear Filters
+                  </Button>
+                </div>
               ) : (
-                <div className="space-y-4">
-                  {orders.map((order: OrderResponseDto, index) => {
+                <>
+                  <div className="space-y-4">
+                    {paginatedPurchases.map((order: OrderResponseDto, index) => {
                     const isExpanded = expandedOrders.has(order.id);
                     const isFulfilled = order.status === 'fulfilled';
                     const isPaid = order.status === 'paid';
-                    const isFailed = order.status === 'failed' || order.status === 'underpaid';
+                    const isExpired = order.status === 'expired';
+                    const isFailed = order.status === 'failed' || order.status === 'underpaid' || isExpired;
                     const isPending = order.status === 'waiting' || order.status === 'pending' || order.status === 'confirming';
                     
                     // Map order items to KeyReveal format using real product titles
@@ -987,7 +2023,7 @@ export default function ProfilePage(): React.ReactElement {
                               <div>
                                 <div className="flex items-center gap-2">
                                   <p className="font-semibold text-text-primary">
-                                    Order #{order.id.slice(-8).toUpperCase()}
+                                    #{order.id.slice(-8).toUpperCase()}
                                   </p>
                                   <Badge variant="outline" className="text-xs">
                                     {order.items.length} {order.items.length === 1 ? 'item' : 'items'}
@@ -1042,44 +2078,45 @@ export default function ProfilePage(): React.ReactElement {
                           {/* Quick action buttons (always visible) */}
                           <div className="flex items-center gap-3 mt-4 pt-4 border-t border-border/30">
                             {isFulfilled && (
-                              <>
-                                <Button
-                                  size="sm"
-                                  onClick={(e) => { e.stopPropagation(); void handleDownloadKeys(order.id); }}
-                                  disabled={downloadingOrder === order.id}
-                                  className="bg-green-success hover:bg-green-success/80 text-black"
-                                >
-                                  {downloadingOrder === order.id ? (
-                                    <><Loader2 className="h-4 w-4 mr-1 animate-spin" />Downloading...</>
-                                  ) : (
-                                    <><Download className="h-4 w-4 mr-1" />Download All Keys</>
-                                  )}
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={(e) => { e.stopPropagation(); setExpandedOrders(prev => new Set(prev).add(order.id)); }}
-                                  className="border-cyan-glow/30 text-cyan-glow hover:bg-cyan-glow/10"
-                                >
-                                  <Eye className="h-4 w-4 mr-1" />
-                                  View Keys
-                                </Button>
-                              </>
-                            )}
-                            {isPaid && (
                               <Button
                                 size="sm"
                                 variant="outline"
-                                onClick={(e) => { e.stopPropagation(); void handleRecoverKeys(order.id); }}
-                                disabled={recoveringOrder === order.id}
-                                className="border-blue-500/30 bg-blue-500/10 text-blue-400 hover:bg-blue-500/20"
+                                onClick={(e) => { 
+                                  e.stopPropagation(); 
+                                  // Toggle expand/collapse
+                                  const newExpanded = new Set(expandedOrders);
+                                  if (isExpanded) {
+                                    newExpanded.delete(order.id);
+                                  } else {
+                                    newExpanded.add(order.id);
+                                  }
+                                  setExpandedOrders(newExpanded);
+                                }}
+                                className="border-green-success/30 bg-green-success/10 text-green-success hover:bg-green-success/20"
                               >
-                                {recoveringOrder === order.id ? (
-                                  <><Loader2 className="h-4 w-4 mr-1 animate-spin" />Recovering...</>
-                                ) : (
-                                  <><RefreshCw className="h-4 w-4 mr-1" />Recover Keys</>
-                                )}
+                                <Key className="h-4 w-4 mr-1" />
+                                {isExpanded ? 'Hide Keys' : 'View & Copy Keys'}
                               </Button>
+                            )}
+                            {isPaid && (
+                              <div className="flex flex-wrap items-center gap-3">
+                                <Button
+                                  size="sm"
+                                  onClick={(e) => { e.stopPropagation(); void handleRecoverKeys(order.id); }}
+                                  disabled={recoveringOrder === order.id}
+                                  className="bg-blue-500 hover:bg-blue-600 text-white"
+                                >
+                                  {recoveringOrder === order.id ? (
+                                    <><Loader2 className="h-4 w-4 mr-1 animate-spin" />Retrieving...</>
+                                  ) : (
+                                    <><Key className="h-4 w-4 mr-1" />Retrieve Keys</>
+                                  )}
+                                </Button>
+                                <div className="flex items-center gap-2">
+                                  <div className="h-2 w-2 rounded-full bg-blue-400 animate-pulse" />
+                                  <span className="text-sm text-blue-400">Payment confirmed • Click to retrieve keys</span>
+                                </div>
+                              </div>
                             )}
                             {isPending && (
                               <div className="flex items-center gap-2 text-sm text-text-secondary">
@@ -1091,7 +2128,13 @@ export default function ProfilePage(): React.ReactElement {
                                 </span>
                               </div>
                             )}
-                            {isFailed && (
+                            {isExpired && (
+                              <div className="flex items-center gap-2 text-sm text-red-400">
+                                <Clock className="h-4 w-4" />
+                                <span>Payment expired - Order cancelled</span>
+                              </div>
+                            )}
+                            {isFailed && !isExpired && (
                               <div className="flex items-center gap-2 text-sm text-red-400">
                                 <AlertCircle className="h-4 w-4" />
                                 <span>{order.status === 'underpaid' ? 'Insufficient payment received' : 'Payment failed'}</span>
@@ -1113,8 +2156,22 @@ export default function ProfilePage(): React.ReactElement {
                               {/* Order Details Summary */}
                               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 rounded-lg bg-bg-primary/50 border border-border/30">
                                 <div>
-                                  <p className="text-xs text-text-muted uppercase tracking-wider">Order ID</p>
-                                  <p className="font-mono text-sm text-text-primary truncate">{order.id}</p>
+                                  <p className="text-xs text-text-muted uppercase tracking-wider">Order Reference</p>
+                                  <div className="flex items-center gap-2">
+                                    <p className="font-mono text-sm text-text-primary">#{order.id.slice(-8).toUpperCase()}</p>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      className="h-6 w-6 p-0 text-text-muted hover:text-cyan-glow"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        void navigator.clipboard.writeText(order.id);
+                                        toast.success('Full Order ID copied');
+                                      }}
+                                    >
+                                      <Copy className="h-3 w-3" />
+                                    </Button>
+                                  </div>
                                 </div>
                                 <div>
                                   <p className="text-xs text-text-muted uppercase tracking-wider">Total Items</p>
@@ -1137,15 +2194,56 @@ export default function ProfilePage(): React.ReactElement {
                                 </div>
                               </div>
 
-                              {/* KeyReveal Component for Fulfilled Orders */}
-                              {(isFulfilled || isPaid) && order.items.length > 0 && (
+                              {/* KeyReveal Component for Fulfilled Orders ONLY */}
+                              {isFulfilled && order.items.length > 0 && (
                                 <div className="mt-4">
                                   <KeyReveal
                                     orderId={order.id}
                                     items={keyRevealItems}
-                                    isFulfilled={isFulfilled}
+                                    isFulfilled={true}
                                     variant="default"
                                   />
+                                </div>
+                              )}
+                              
+                              {/* Paid but not fulfilled - Show retrieve keys prompt */}
+                              {isPaid && !isFulfilled && order.items.length > 0 && (
+                                <div className="mt-4 p-4 rounded-lg bg-blue-500/10 border border-blue-500/30">
+                                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                                    <div className="flex items-center gap-3">
+                                      <div className="h-10 w-10 rounded-lg bg-blue-500/20 border border-blue-500/30 flex items-center justify-center">
+                                        <Key className="h-5 w-5 text-blue-400" />
+                                      </div>
+                                      <div>
+                                        <p className="font-medium text-text-primary">Keys Ready to Retrieve</p>
+                                        <p className="text-sm text-blue-400">Your payment was confirmed. Click the button to fetch your keys.</p>
+                                        <p className="text-xs text-text-muted mt-1">If retrieval fails, keys may still be processing or there may be a temporary issue.</p>
+                                      </div>
+                                    </div>
+                                    <Button
+                                      size="sm"
+                                      onClick={(e) => { e.stopPropagation(); void handleRecoverKeys(order.id); }}
+                                      disabled={recoveringOrder === order.id}
+                                      className="bg-blue-500 hover:bg-blue-600 text-white shrink-0"
+                                    >
+                                      {recoveringOrder === order.id ? (
+                                        <><Loader2 className="h-4 w-4 mr-1 animate-spin" />Retrieving...</>
+                                      ) : (
+                                        <><Key className="h-4 w-4 mr-1" />Retrieve Keys Now</>
+                                      )}
+                                    </Button>
+                                  </div>
+                                  <div className="mt-3 pt-3 border-t border-blue-500/20">
+                                    <h4 className="text-sm font-medium text-text-secondary mb-2">Items in this order:</h4>
+                                    <div className="space-y-2">
+                                      {order.items.map((item: OrderItemResponseDto, idx) => (
+                                        <div key={item.id} className="flex items-center gap-2 text-sm">
+                                          <div className="h-6 w-6 rounded bg-blue-500/20 flex items-center justify-center text-xs text-blue-400 font-bold">{idx + 1}</div>
+                                          <span className="text-text-primary">{item.productTitle}</span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
                                 </div>
                               )}
 
@@ -1175,8 +2273,13 @@ export default function ProfilePage(): React.ReactElement {
                                             </p>
                                           </div>
                                         </div>
-                                        <Badge variant="outline" className="text-xs">
-                                          {isPending ? 'Pending' : isFailed ? 'Failed' : 'Processing'}
+                                        <Badge variant="outline" className={`text-xs ${
+                                          isExpired ? 'border-red-500/30 text-red-400' :
+                                          isFailed ? 'border-red-500/30 text-red-400' :
+                                          isPending ? 'border-orange-warning/30 text-orange-warning' :
+                                          'border-border/50 text-text-muted'
+                                        }`}>
+                                          {isExpired ? 'Expired' : isPending ? 'Pending' : isFailed ? 'Failed' : 'Processing'}
                                         </Badge>
                                       </div>
                                     ))}
@@ -1184,8 +2287,11 @@ export default function ProfilePage(): React.ReactElement {
                                 </div>
                               )}
 
-                              {/* Copy Order ID */}
-                              <div className="flex justify-end pt-2">
+                              {/* Need Help Section */}
+                              <div className="flex items-center justify-between pt-2 border-t border-border/20">
+                                <p className="text-xs text-text-muted">
+                                  Need help? Contact support with reference #{order.id.slice(-8).toUpperCase()}
+                                </p>
                                 <Button
                                   variant="ghost"
                                   size="sm"
@@ -1193,11 +2299,11 @@ export default function ProfilePage(): React.ReactElement {
                                   onClick={(e) => {
                                     e.stopPropagation();
                                     void navigator.clipboard.writeText(order.id);
-                                    toast.success('Order ID copied to clipboard');
+                                    toast.success('Full Order ID copied');
                                   }}
                                 >
                                   <Copy className="h-4 w-4 mr-1" />
-                                  Copy Order ID
+                                  Copy Full ID
                                 </Button>
                               </div>
                             </div>
@@ -1206,7 +2312,67 @@ export default function ProfilePage(): React.ReactElement {
                       </motion.div>
                     );
                   })}
-                </div>
+                  </div>
+
+                  {/* Pagination Controls */}
+                  {purchasesTotalPages > 1 && (
+                    <div className="flex items-center justify-between pt-4 border-t border-border/30">
+                      <div className="text-sm text-text-muted">
+                        Page {purchasesPage} of {purchasesTotalPages}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setPurchasesPage(Math.max(1, purchasesPage - 1))}
+                          disabled={purchasesPage === 1}
+                          className="border-purple-neon/30 text-purple-neon hover:bg-purple-neon/10"
+                        >
+                          <ChevronLeft className="h-4 w-4 mr-1" />
+                          Previous
+                        </Button>
+                        <div className="flex items-center gap-1">
+                          {Array.from({ length: Math.min(5, purchasesTotalPages) }, (_, i) => {
+                            const totalPages = purchasesTotalPages;
+                            let pageNumber: number;
+                            
+                            if (totalPages <= 5) {
+                              pageNumber = i + 1;
+                            } else if (purchasesPage <= 3) {
+                              pageNumber = i + 1;
+                            } else if (purchasesPage >= totalPages - 2) {
+                              pageNumber = totalPages - 4 + i;
+                            } else {
+                              pageNumber = purchasesPage - 2 + i;
+                            }
+
+                            return (
+                              <Button
+                                key={pageNumber}
+                                variant={purchasesPage === pageNumber ? 'default' : 'outline'}
+                                size="sm"
+                                onClick={() => setPurchasesPage(pageNumber)}
+                                className={purchasesPage === pageNumber ? 'bg-purple-neon text-black' : 'border-border/30'}
+                              >
+                                {pageNumber}
+                              </Button>
+                            );
+                          })}
+                        </div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setPurchasesPage(Math.min(purchasesTotalPages, purchasesPage + 1))}
+                          disabled={purchasesPage >= purchasesTotalPages}
+                          className="border-purple-neon/30 text-purple-neon hover:bg-purple-neon/10"
+                        >
+                          Next
+                          <ChevronRight className="h-4 w-4 ml-1" />
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </>
               )}
             </CardContent>
           </Card>
@@ -1423,13 +2589,14 @@ export default function ProfilePage(): React.ReactElement {
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => void refetchSessions()}
+                      onClick={() => void handleRefreshSessions()}
                       disabled={sessionsLoading}
                       className="text-text-muted hover:text-text-primary"
+                      aria-label="Refresh sessions list"
                     >
                       <RefreshCw className={`h-4 w-4 ${sessionsLoading ? 'animate-spin' : ''}`} />
                     </Button>
-                    {sessions.length > 1 && (
+                    {sessionsTotal > 1 && (
                       <Button
                         variant="outline"
                         size="sm"
@@ -1513,6 +2680,40 @@ export default function ProfilePage(): React.ReactElement {
                         )}
                       </div>
                     ))}
+                  </div>
+                )}
+                
+                {/* Sessions Pagination */}
+                {sessionsTotalPages > 1 && (
+                  <div className="flex items-center justify-between pt-4 border-t border-border/30 mt-4">
+                    <p className="text-sm text-text-muted">
+                      Showing {sessions.length} of {sessionsTotal} sessions
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setSessionsPage(p => Math.max(1, p - 1))}
+                        disabled={sessionsPage === 1 || sessionsLoading}
+                        className="border-border/50 text-text-secondary hover:text-text-primary"
+                      >
+                        <ChevronLeft className="h-4 w-4 mr-1" />
+                        Previous
+                      </Button>
+                      <span className="text-sm text-text-secondary px-2">
+                        Page {sessionsPage} of {sessionsTotalPages}
+                      </span>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setSessionsPage(p => Math.min(sessionsTotalPages, p + 1))}
+                        disabled={sessionsPage === sessionsTotalPages || sessionsLoading}
+                        className="border-border/50 text-text-secondary hover:text-text-primary"
+                      >
+                        Next
+                        <ChevronRight className="h-4 w-4 ml-1" />
+                      </Button>
+                    </div>
                   </div>
                 )}
               </CardContent>
@@ -1828,11 +3029,11 @@ export default function ProfilePage(): React.ReactElement {
                   {/* Account Stats */}
                   <div className="grid grid-cols-2 gap-3 pt-2">
                     <div className="rounded-lg border border-border/30 bg-bg-tertiary/30 p-4 text-center group hover:border-cyan-glow/30 transition-colors">
-                      <p className="crypto-amount text-2xl font-bold text-cyan-glow">{totalOrders}</p>
+                      <p className="crypto-amount text-2xl font-bold text-cyan-glow">{orderStats.totalOrders}</p>
                       <p className="text-xs text-text-muted">Total Orders</p>
                     </div>
                     <div className="rounded-lg border border-border/30 bg-bg-tertiary/30 p-4 text-center group hover:border-green-success/30 transition-colors">
-                      <p className="crypto-amount text-2xl font-bold text-green-success">€{totalSpent.toFixed(2)}</p>
+                      <p className="crypto-amount text-2xl font-bold text-green-success">€{orderStats.totalSpent.toFixed(2)}</p>
                       <p className="text-xs text-text-muted">Total Spent</p>
                     </div>
                   </div>
@@ -1888,25 +3089,272 @@ export default function ProfilePage(): React.ReactElement {
 
         {/* Help Tab */}
         <TabsContent value="help" className="space-y-6">
-          <Card className="glass border-border/50 bg-bg-secondary/50 backdrop-blur-sm transition-all duration-300 hover:border-cyan-glow/20 focus-within:ring-2 focus-within:ring-cyan-glow/30">
+          {/* Quick Support Links */}
+          <div className="grid gap-4 md:grid-cols-3">
+            <Card className="glass border-border/50 bg-gradient-to-br from-cyan-glow/5 to-transparent hover:border-cyan-glow/30 transition-all duration-300 cursor-pointer group">
+              <CardContent className="flex flex-col items-center justify-center p-6 text-center space-y-3">
+                <div className="p-3 rounded-full bg-cyan-glow/10 group-hover:bg-cyan-glow/20 transition-colors">
+                  <MessageSquare className="h-6 w-6 text-cyan-glow" />
+                </div>
+                <h3 className="font-semibold text-text-primary">Live Chat</h3>
+                <p className="text-xs text-text-secondary">Get instant help from our support team</p>
+                <Button variant="outline" size="sm" className="border-cyan-glow/30 text-cyan-glow hover:bg-cyan-glow/10">
+                  Start Chat
+                </Button>
+              </CardContent>
+            </Card>
+            
+            <Card className="glass border-border/50 bg-gradient-to-br from-purple-neon/5 to-transparent hover:border-purple-neon/30 transition-all duration-300 cursor-pointer group">
+              <CardContent className="flex flex-col items-center justify-center p-6 text-center space-y-3">
+                <div className="p-3 rounded-full bg-purple-neon/10 group-hover:bg-purple-neon/20 transition-colors">
+                  <Mail className="h-6 w-6 text-purple-neon" />
+                </div>
+                <h3 className="font-semibold text-text-primary">Email Support</h3>
+                <p className="text-xs text-text-secondary">Response within 24 hours</p>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="border-purple-neon/30 text-purple-neon hover:bg-purple-neon/10"
+                  onClick={() => window.location.href = 'mailto:support@bitloot.com'}
+                >
+                  Send Email
+                </Button>
+              </CardContent>
+            </Card>
+            
+            <Card className="glass border-border/50 bg-gradient-to-br from-orange-warning/5 to-transparent hover:border-orange-warning/30 transition-all duration-300 cursor-pointer group">
+              <CardContent className="flex flex-col items-center justify-center p-6 text-center space-y-3">
+                <div className="p-3 rounded-full bg-orange-warning/10 group-hover:bg-orange-warning/20 transition-colors">
+                  <Book className="h-6 w-6 text-orange-warning" />
+                </div>
+                <h3 className="font-semibold text-text-primary">Help Center</h3>
+                <p className="text-xs text-text-secondary">Browse guides and tutorials</p>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="border-orange-warning/30 text-orange-warning hover:bg-orange-warning/10"
+                  onClick={() => window.open('/help', '_blank')}
+                >
+                  Visit Center
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* FAQs Section */}
+          <Card className="glass border-border/50 bg-bg-secondary/50 backdrop-blur-sm">
             <CardHeader>
-              <CardTitle className="text-text-primary">Help & Support</CardTitle>
-              <CardDescription className="text-text-secondary">Frequently asked questions and support information</CardDescription>
+              <div className="flex items-center gap-2">
+                <HelpCircle className="h-5 w-5 text-cyan-glow" />
+                <CardTitle className="text-text-primary">Frequently Asked Questions</CardTitle>
+              </div>
+              <CardDescription className="text-text-secondary">Common questions and answers about BitLoot</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div>
-                <h4 className="font-medium mb-2 text-text-primary">How do I download my keys?</h4>
-                <p className="text-sm text-text-secondary">Keys are available immediately after purchase in the &quot;Overview&quot; tab and can be copied or downloaded.</p>
+              {/* Account & Orders */}
+              <div className="space-y-4">
+                <h3 className="font-semibold text-text-primary flex items-center gap-2">
+                  <Package className="h-4 w-4 text-cyan-glow" />
+                  Account & Orders
+                </h3>
+                <div className="space-y-4 pl-6 border-l-2 border-cyan-glow/20">
+                  <div>
+                    <h4 className="font-medium mb-1 text-text-primary">How do I download my purchased keys?</h4>
+                    <p className="text-sm text-text-secondary">
+                      After successful payment, your keys are instantly available in the <span className="text-cyan-glow font-medium">Purchases</span> tab. 
+                      Click on any order to expand it and reveal your product keys. You can copy them individually or download all keys as a secure JSON file.
+                    </p>
+                  </div>
+                  
+                  <div>
+                    <h4 className="font-medium mb-1 text-text-primary">What if my payment was successful but I can&apos;t see my keys?</h4>
+                    <p className="text-sm text-text-secondary">
+                      If your order shows as &quot;paid&quot; but keys are not visible, use the <span className="text-orange-warning font-medium">Recover Keys</span> button 
+                      on the order. This will re-trigger the key delivery process. If the issue persists, contact support with your order ID.
+                    </p>
+                  </div>
+                  
+                  <div>
+                    <h4 className="font-medium mb-1 text-text-primary">Can I see my order history?</h4>
+                    <p className="text-sm text-text-secondary">
+                      Yes! All your past orders are visible in the <span className="text-cyan-glow font-medium">Purchases</span> tab. 
+                      You can view order details, payment status, and re-download keys for fulfilled orders anytime.
+                    </p>
+                  </div>
+                </div>
               </div>
+
               <Separator className="bg-border/50" />
-              <div>
-                <h4 className="font-medium mb-2 text-text-primary">How do I reset my password?</h4>
-                <p className="text-sm text-text-secondary">Use the &quot;Security&quot; tab to change your password. You&apos;ll need to provide your current password.</p>
+
+              {/* Security & Privacy */}
+              <div className="space-y-4">
+                <h3 className="font-semibold text-text-primary flex items-center gap-2">
+                  <ShieldCheck className="h-4 w-4 text-purple-neon" />
+                  Security & Privacy
+                </h3>
+                <div className="space-y-4 pl-6 border-l-2 border-purple-neon/20">
+                  <div>
+                    <h4 className="font-medium mb-1 text-text-primary">How do I change my email address?</h4>
+                    <p className="text-sm text-text-secondary">
+                      Go to the <span className="text-purple-neon font-medium">Security</span> tab, enter your new email address, and click 
+                      <span className="text-purple-neon font-medium"> Request Change</span>. You&apos;ll receive verification codes on both your 
+                      old and new email addresses (dual-OTP) for maximum security.
+                    </p>
+                  </div>
+                  
+                  <div>
+                    <h4 className="font-medium mb-1 text-text-primary">How do I manage my active sessions?</h4>
+                    <p className="text-sm text-text-secondary">
+                      In the <span className="text-purple-neon font-medium">Security</span> tab, you can view all devices currently logged into your account. 
+                      Each session shows the device type, IP address, and last activity time. You can revoke any session individually or sign out all devices at once.
+                    </p>
+                  </div>
+                  
+                  <div>
+                    <h4 className="font-medium mb-1 text-text-primary">What happens when I request account deletion?</h4>
+                    <p className="text-sm text-text-secondary">
+                      When you request deletion in the <span className="text-purple-neon font-medium">Account</span> tab, your account enters a 30-day grace period. 
+                      During this time, you can still log in and cancel the deletion. After 30 days, all your data is permanently deleted and cannot be recovered.
+                    </p>
+                  </div>
+                  
+                  <div>
+                    <h4 className="font-medium mb-1 text-text-primary">Is my payment information secure?</h4>
+                    <p className="text-sm text-text-secondary">
+                      BitLoot uses crypto-only payments via NOWPayments. We never store or process traditional payment card details. 
+                      All transactions are secured with industry-standard encryption and HMAC verification.
+                    </p>
+                  </div>
+                </div>
               </div>
+
               <Separator className="bg-border/50" />
-              <div>
-                <h4 className="font-medium mb-2 text-text-primary">Can I change my email address?</h4>
-                <p className="text-sm text-text-secondary">Email addresses cannot be self-changed. Please contact our support team for assistance.</p>
+
+              {/* Payments & Pricing */}
+              <div className="space-y-4">
+                <h3 className="font-semibold text-text-primary flex items-center gap-2">
+                  <DollarSign className="h-4 w-4 text-orange-warning" />
+                  Payments & Pricing
+                </h3>
+                <div className="space-y-4 pl-6 border-l-2 border-orange-warning/20">
+                  <div>
+                    <h4 className="font-medium mb-1 text-text-primary">What payment methods do you accept?</h4>
+                    <p className="text-sm text-text-secondary">
+                      BitLoot accepts cryptocurrency payments only via NOWPayments. We support 300+ cryptocurrencies including Bitcoin (BTC), 
+                      Ethereum (ETH), USDT, Litecoin (LTC), and many more.
+                    </p>
+                  </div>
+                  
+                  <div>
+                    <h4 className="font-medium mb-1 text-text-primary">How long does it take to receive my keys?</h4>
+                    <p className="text-sm text-text-secondary">
+                      Keys are delivered instantly after payment confirmation. For most cryptocurrencies, this happens within minutes. 
+                      Bitcoin confirmations may take 10-30 minutes depending on network congestion.
+                    </p>
+                  </div>
+                  
+                  <div>
+                    <h4 className="font-medium mb-1 text-text-primary">What if I underpay or overpay?</h4>
+                    <p className="text-sm text-text-secondary">
+                      Underpayments are <span className="text-orange-warning font-medium">non-refundable</span> and will not fulfill the order. 
+                      Overpayments cannot be refunded due to the nature of cryptocurrency transactions. Always double-check the exact amount before sending payment.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <Separator className="bg-border/50" />
+
+              {/* Watchlist & Wishlist */}
+              <div className="space-y-4">
+                <h3 className="font-semibold text-text-primary flex items-center gap-2">
+                  <Heart className="h-4 w-4 text-pink-500" />
+                  Watchlist
+                </h3>
+                <div className="space-y-4 pl-6 border-l-2 border-pink-500/20">
+                  <div>
+                    <h4 className="font-medium mb-1 text-text-primary">How do I add products to my watchlist?</h4>
+                    <p className="text-sm text-text-secondary">
+                      While browsing products, click the heart icon on any product card to add it to your watchlist. 
+                      View all your saved products in the <span className="text-pink-500 font-medium">Watchlist</span> tab.
+                    </p>
+                  </div>
+                  
+                  <div>
+                    <h4 className="font-medium mb-1 text-text-primary">Will I be notified about price changes?</h4>
+                    <p className="text-sm text-text-secondary">
+                      Price drop notifications for watchlist items are coming soon! You&apos;ll receive email alerts when products 
+                      on your watchlist go on sale or drop below your target price.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Contact Support */}
+          <Card className="glass border-border/50 bg-gradient-to-r from-cyan-glow/5 via-purple-neon/5 to-orange-warning/5">
+            <CardHeader>
+              <CardTitle className="text-text-primary flex items-center gap-2">
+                <LifeBuoy className="h-5 w-5 text-cyan-glow" />
+                Still Need Help?
+              </CardTitle>
+              <CardDescription className="text-text-secondary">
+                Our support team is available 24/7 to assist you
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="flex items-start gap-3 p-4 rounded-lg bg-bg-secondary/30 border border-border/30">
+                  <Clock className="h-5 w-5 text-cyan-glow mt-0.5" />
+                  <div>
+                    <h4 className="font-medium text-sm text-text-primary">Response Time</h4>
+                    <p className="text-xs text-text-secondary mt-1">
+                      Live chat: Instant<br />
+                      Email: Within 24 hours
+                    </p>
+                  </div>
+                </div>
+                
+                <div className="flex items-start gap-3 p-4 rounded-lg bg-bg-secondary/30 border border-border/30">
+                  <Globe className="h-5 w-5 text-purple-neon mt-0.5" />
+                  <div>
+                    <h4 className="font-medium text-sm text-text-primary">Availability</h4>
+                    <p className="text-xs text-text-secondary mt-1">
+                      24/7 Support<br />
+                      Multiple languages
+                    </p>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="flex flex-wrap gap-2 pt-2">
+                <Button 
+                  variant="default" 
+                  size="sm"
+                  className="bg-gradient-to-r from-cyan-glow to-purple-neon hover:opacity-90"
+                >
+                  <MessageSquare className="h-4 w-4 mr-2" />
+                  Open Support Ticket
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  className="border-border/50 text-text-secondary hover:text-text-primary"
+                  onClick={() => window.open('/help/tutorials', '_blank')}
+                >
+                  <Book className="h-4 w-4 mr-2" />
+                  View Tutorials
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  className="border-border/50 text-text-secondary hover:text-text-primary"
+                  onClick={() => window.open('/status', '_blank')}
+                >
+                  <Activity className="h-4 w-4 mr-2" />
+                  System Status
+                </Button>
               </div>
             </CardContent>
           </Card>

@@ -83,11 +83,16 @@ export class UsersController {
     @Request() req: AuthenticatedRequest,
     @Query('page') page?: string,
     @Query('limit') limit?: string,
-  ): Promise<OrderResponseDto[]> {
+  ): Promise<{ data: OrderResponseDto[]; total: number; page: number; limit: number; totalPages: number }> {
     const pageNum = parseInt(page ?? '1', 10) > 0 ? parseInt(page ?? '1', 10) : 1;
     const limitNum = parseInt(limit ?? '20', 10) > 0 ? parseInt(limit ?? '20', 10) : 20;
     
     const result = await this.ordersService.findUserOrders(req.user.id, pageNum, limitNum);
-    return result.data;
+    return {
+      ...result,
+      page: pageNum,
+      limit: limitNum,
+      totalPages: Math.ceil(result.total / limitNum),
+    };
   }
 }

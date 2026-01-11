@@ -7,6 +7,7 @@ import { DeliveryService } from './delivery.service';
 import { OrdersService } from '../orders/orders.service';
 import { FulfillmentStatusDto } from './dto/fulfillment-status.dto';
 import { DeliveryLinkDto, RevealedKeyDto, HealthCheckResultDto } from './dto/key-response.dto';
+import { RecoveryResponseDto } from './dto/recovery-response.dto';
 import { AdminGuard } from '../../common/guards/admin.guard';
 
 interface JwtPayload {
@@ -273,14 +274,14 @@ export class FulfillmentController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Recover signed URLs for orders with keys in R2 (requires ownership)' })
-  @ApiResponse({ status: 200, description: 'Recovery result with updated items' })
+  @ApiResponse({ status: 200, description: 'Recovery result with updated items', type: RecoveryResponseDto })
   @ApiResponse({ status: 401, description: 'Unauthorized - missing or invalid JWT' })
   @ApiResponse({ status: 403, description: 'Forbidden - order does not belong to user' })
   @ApiResponse({ status: 404, description: 'Order not found' })
   async recoverOrder(
     @Param('id') id: string,
     @Request() req: AuthenticatedRequest,
-  ): Promise<{ recovered: boolean; items: Array<{ itemId: string; signedUrl: string | null }> }> {
+  ): Promise<RecoveryResponseDto> {
     try {
       const user = req.user ?? null;
       if (user === null) {

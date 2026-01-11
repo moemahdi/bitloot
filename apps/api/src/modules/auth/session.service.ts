@@ -241,6 +241,47 @@ export class SessionService {
   }
 
   /**
+   * Get paginated active sessions for a user, marking current session by ID
+   */
+  async getActiveSessionsPaginated(
+    userId: string,
+    currentSessionId?: string,
+    page: number = 1,
+    limit: number = 10,
+  ): Promise<{ sessions: SessionResponseDto[]; total: number; page: number; limit: number; totalPages: number }> {
+    const skip = (page - 1) * limit;
+
+    const [sessions, total] = await this.sessionRepository.findAndCount({
+      where: {
+        userId,
+        isRevoked: false,
+        expiresAt: MoreThan(new Date()),
+      },
+      order: { lastActiveAt: 'DESC' },
+      skip,
+      take: limit,
+    });
+
+    const mappedSessions = sessions.map((session) => ({
+      id: session.id,
+      deviceInfo: session.deviceInfo ?? null,
+      ipAddress: session.ipAddress ?? null,
+      location: session.location ?? null,
+      lastActiveAt: session.lastActiveAt ?? null,
+      createdAt: session.createdAt,
+      isCurrent: currentSessionId ? session.id === currentSessionId : false,
+    }));
+
+    return {
+      sessions: mappedSessions,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
+  }
+
+  /**
    * Revoke a specific session (logout from that device)
    */
   async revokeSession(sessionId: string, userId: string): Promise<void> {

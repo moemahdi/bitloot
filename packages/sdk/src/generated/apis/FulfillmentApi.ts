@@ -18,6 +18,7 @@ import type {
   DeliveryLinkDto,
   FulfillmentStatusDto,
   HealthCheckResultDto,
+  RecoveryResponseDto,
   RevealedKeyDto,
 } from '../models/index';
 import {
@@ -27,6 +28,8 @@ import {
     FulfillmentStatusDtoToJSON,
     HealthCheckResultDtoFromJSON,
     HealthCheckResultDtoToJSON,
+    RecoveryResponseDtoFromJSON,
+    RecoveryResponseDtoToJSON,
     RevealedKeyDtoFromJSON,
     RevealedKeyDtoToJSON,
 } from '../models/index';
@@ -184,7 +187,7 @@ export class FulfillmentApi extends runtime.BaseAPI {
     /**
      * Recover signed URLs for orders with keys in R2 (requires ownership)
      */
-    async fulfillmentControllerRecoverOrderRaw(requestParameters: FulfillmentControllerRecoverOrderRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<void>> {
+    async fulfillmentControllerRecoverOrderRaw(requestParameters: FulfillmentControllerRecoverOrderRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<RecoveryResponseDto>> {
         if (requestParameters['id'] == null) {
             throw new runtime.RequiredError(
                 'id',
@@ -215,14 +218,15 @@ export class FulfillmentApi extends runtime.BaseAPI {
             query: queryParameters,
         }, initOverrides);
 
-        return new runtime.VoidApiResponse(response);
+        return new runtime.JSONApiResponse(response, (jsonValue) => RecoveryResponseDtoFromJSON(jsonValue));
     }
 
     /**
      * Recover signed URLs for orders with keys in R2 (requires ownership)
      */
-    async fulfillmentControllerRecoverOrder(requestParameters: FulfillmentControllerRecoverOrderRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<void> {
-        await this.fulfillmentControllerRecoverOrderRaw(requestParameters, initOverrides);
+    async fulfillmentControllerRecoverOrder(requestParameters: FulfillmentControllerRecoverOrderRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<RecoveryResponseDto> {
+        const response = await this.fulfillmentControllerRecoverOrderRaw(requestParameters, initOverrides);
+        return await response.value();
     }
 
     /**

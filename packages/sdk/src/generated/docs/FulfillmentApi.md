@@ -218,7 +218,7 @@ No authorization required
 
 ## fulfillmentControllerRecoverOrder
 
-> fulfillmentControllerRecoverOrder(id)
+> RecoveryResponseDto fulfillmentControllerRecoverOrder(id)
 
 Recover signed URLs for orders with keys in R2 (requires ownership)
 
@@ -265,7 +265,7 @@ example().catch(console.error);
 
 ### Return type
 
-`void` (Empty response body)
+[**RecoveryResponseDto**](RecoveryResponseDto.md)
 
 ### Authorization
 
@@ -274,7 +274,7 @@ example().catch(console.error);
 ### HTTP request headers
 
 - **Content-Type**: Not defined
-- **Accept**: Not defined
+- **Accept**: `application/json`
 
 
 ### HTTP response details

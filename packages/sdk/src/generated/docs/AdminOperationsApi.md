@@ -12,6 +12,7 @@ All URIs are relative to *http://localhost*
 | [**adminOpsControllerGetQueueDetails**](AdminOperationsApi.md#adminopscontrollergetqueuedetails) | **GET** /admin/ops/queues/{name}/details | Get detailed queue information |
 | [**adminOpsControllerGetQueueStats**](AdminOperationsApi.md#adminopscontrollergetqueuestats) | **GET** /admin/ops/queues/stats | Get BullMQ queue statistics |
 | [**adminOpsControllerGetSystemHealth**](AdminOperationsApi.md#adminopscontrollergetsystemhealth) | **GET** /admin/ops/health | Get system health status |
+| [**adminOpsControllerTriggerUserDeletionCleanup**](AdminOperationsApi.md#adminopscontrollertriggeruserdeletioncleanup) | **POST** /admin/ops/user-deletion-cleanup | Manually trigger user deletion cleanup (30-day grace period expired) |
 | [**adminOpsControllerUpdateFeatureFlag**](AdminOperationsApi.md#adminopscontrollerupdatefeatureflag) | **PATCH** /admin/ops/feature-flags/{name} | Update feature flag |
 
 
@@ -516,6 +517,67 @@ This endpoint does not need any parameter.
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
 | **200** | System health check results |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## adminOpsControllerTriggerUserDeletionCleanup
+
+> AdminOpsControllerTriggerUserDeletionCleanup200Response adminOpsControllerTriggerUserDeletionCleanup()
+
+Manually trigger user deletion cleanup (30-day grace period expired)
+
+### Example
+
+```ts
+import {
+  Configuration,
+  AdminOperationsApi,
+} from '';
+import type { AdminOpsControllerTriggerUserDeletionCleanupRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const config = new Configuration({ 
+    // Configure HTTP bearer authorization: JWT-auth
+    accessToken: "YOUR BEARER TOKEN",
+  });
+  const api = new AdminOperationsApi(config);
+
+  try {
+    const data = await api.adminOpsControllerTriggerUserDeletionCleanup();
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+This endpoint does not need any parameter.
+
+### Return type
+
+[**AdminOpsControllerTriggerUserDeletionCleanup200Response**](AdminOpsControllerTriggerUserDeletionCleanup200Response.md)
+
+### Authorization
+
+[JWT-auth](../README.md#JWT-auth)
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Cleanup results |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 

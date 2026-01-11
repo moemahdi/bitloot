@@ -3,3 +3,4 @@ export { OrderStatusDto, OrderStatusEnum } from './order-status.dto';
 export { DeliveryLinkDto, RevealedKeyDto, HealthCheckResultDto } from './key-response.dto';
 export { FulfillmentStatusDto } from './fulfillment-status.dto';
 export { DeliverKeyDto } from './deliver-key.dto';
+export { RecoveryResponseDto, RecoveryItemDto } from './recovery-response.dto';
