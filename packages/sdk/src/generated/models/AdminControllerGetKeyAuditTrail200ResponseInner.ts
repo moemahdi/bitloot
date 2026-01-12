@@ -20,25 +20,49 @@ import { mapValues } from '../runtime';
  */
 export interface AdminControllerGetKeyAuditTrail200ResponseInner {
     /**
-     * 
+     * Key ID
      * @type {string}
      * @memberof AdminControllerGetKeyAuditTrail200ResponseInner
      */
     id?: string;
     /**
-     * 
+     * Order item ID
+     * @type {string}
+     * @memberof AdminControllerGetKeyAuditTrail200ResponseInner
+     */
+    orderItemId?: string;
+    /**
+     * Whether key was revealed
      * @type {boolean}
      * @memberof AdminControllerGetKeyAuditTrail200ResponseInner
      */
     viewed?: boolean;
     /**
-     * 
+     * When key was revealed
      * @type {Date}
      * @memberof AdminControllerGetKeyAuditTrail200ResponseInner
      */
-    viewedAt?: Date;
+    viewedAt?: Date | null;
     /**
-     * 
+     * Number of times key was downloaded
+     * @type {number}
+     * @memberof AdminControllerGetKeyAuditTrail200ResponseInner
+     */
+    downloadCount?: number;
+    /**
+     * IP address of last access
+     * @type {string}
+     * @memberof AdminControllerGetKeyAuditTrail200ResponseInner
+     */
+    lastAccessIp?: string | null;
+    /**
+     * User agent of last access
+     * @type {string}
+     * @memberof AdminControllerGetKeyAuditTrail200ResponseInner
+     */
+    lastAccessUserAgent?: string | null;
+    /**
+     * When key was created
      * @type {Date}
      * @memberof AdminControllerGetKeyAuditTrail200ResponseInner
      */
@@ -63,8 +87,12 @@ export function AdminControllerGetKeyAuditTrail200ResponseInnerFromJSONTyped(jso
     return {
         
         'id': json['id'] == null ? undefined : json['id'],
+        'orderItemId': json['orderItemId'] == null ? undefined : json['orderItemId'],
         'viewed': json['viewed'] == null ? undefined : json['viewed'],
         'viewedAt': json['viewedAt'] == null ? undefined : (new Date(json['viewedAt'])),
+        'downloadCount': json['downloadCount'] == null ? undefined : json['downloadCount'],
+        'lastAccessIp': json['lastAccessIp'] == null ? undefined : json['lastAccessIp'],
+        'lastAccessUserAgent': json['lastAccessUserAgent'] == null ? undefined : json['lastAccessUserAgent'],
         'createdAt': json['createdAt'] == null ? undefined : (new Date(json['createdAt'])),
     };
 }
@@ -81,8 +109,12 @@ export function AdminControllerGetKeyAuditTrail200ResponseInnerToJSONTyped(value
     return {
         
         'id': value['id'],
+        'orderItemId': value['orderItemId'],
         'viewed': value['viewed'],
         'viewedAt': value['viewedAt'] == null ? value['viewedAt'] : value['viewedAt'].toISOString(),
+        'downloadCount': value['downloadCount'],
+        'lastAccessIp': value['lastAccessIp'],
+        'lastAccessUserAgent': value['lastAccessUserAgent'],
         'createdAt': value['createdAt'] == null ? value['createdAt'] : value['createdAt'].toISOString(),
     };
 }

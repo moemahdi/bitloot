@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { Skeleton } from '@/design-system/primitives/skeleton';
 import { Card, CardContent, CardHeader } from '@/design-system/primitives/card';
@@ -22,14 +22,18 @@ export default function AuthLayout({
   children: React.ReactNode;
 }): React.ReactElement {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { isAuthenticated, isLoading } = useAuth();
+  
+  // Get redirect URL from query params (used after guest checkout login)
+  const redirectUrl = searchParams.get('redirect') ?? searchParams.get('returnTo') ?? '/profile';
 
   // Redirect if already logged in
   useEffect(() => {
     if (!isLoading && isAuthenticated) {
-      router.push('/profile');
+      router.push(redirectUrl);
     }
-  }, [isAuthenticated, isLoading, router]);
+  }, [isAuthenticated, isLoading, router, redirectUrl]);
 
   // Loading skeleton while checking auth state
   if (isLoading) {

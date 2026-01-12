@@ -4,6 +4,7 @@ import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { useOrderAccess } from '@/hooks/useOrderAccess';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Loader2,
@@ -34,6 +35,8 @@ import {
   Globe,
   User,
   FileText,
+  Lock,
+  LogIn,
 } from 'lucide-react';
 import { OrdersApi } from '@bitloot/sdk';
 import type { OrderResponseDto, OrderItemResponseDto } from '@bitloot/sdk';
@@ -255,6 +258,9 @@ export default function OrderStatusPage(): React.ReactElement {
     },
     retry: 3,
   });
+
+  // Check if user can access order keys
+  const orderAccess = useOrderAccess(orderId);
 
   // Derive status
   const orderStatus = (order?.status ?? 'pending') as OrderStatus;
@@ -905,18 +911,69 @@ export default function OrderStatusPage(): React.ReactElement {
             </div>
           )}
 
-          {/* Fulfilled - Access Products */}
+          {/* Fulfilled - Access Products (conditional based on access status) */}
           {orderStatus === 'fulfilled' && (
-            <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-              <Button
-                onClick={handleViewProducts}
-                className="h-14 px-8 text-base font-bold bg-green-success text-bg-primary hover:shadow-glow-success transition-all animate-glow-pulse"
-              >
-                <Sparkles className="h-5 w-5 mr-2" />
-                Access Your Products
-                <ExternalLink className="h-4 w-4 ml-2" />
-              </Button>
-            </motion.div>
+            <>
+              {/* Loading access status */}
+              {orderAccess.isLoading && (
+                <div className="flex items-center gap-3 px-8 py-4 rounded-xl bg-bg-tertiary border border-border-subtle">
+                  <Loader2 className="h-5 w-5 animate-spin text-cyan-glow" />
+                  <span className="text-text-secondary font-medium">
+                    Checking access...
+                  </span>
+                </div>
+              )}
+
+              {/* Can access - Show button */}
+              {!orderAccess.isLoading && orderAccess.canAccess && (
+                <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                  <Button
+                    onClick={handleViewProducts}
+                    className="h-14 px-8 text-base font-bold bg-green-success text-bg-primary hover:shadow-glow-success transition-all animate-glow-pulse"
+                  >
+                    <Sparkles className="h-5 w-5 mr-2" />
+                    Access Your Products
+                    <ExternalLink className="h-4 w-4 ml-2" />
+                  </Button>
+                </motion.div>
+              )}
+
+              {/* Not authenticated - Show login prompt */}
+              {!orderAccess.isLoading && !orderAccess.canAccess && !orderAccess.isAuthenticated && (
+                <motion.div 
+                  whileHover={{ scale: 1.02 }} 
+                  whileTap={{ scale: 0.98 }}
+                  className="flex flex-col items-center gap-3"
+                >
+                  <Link href={`/auth/login?redirect=${encodeURIComponent(`/orders/${orderId}`)}`}>
+                    <Button
+                      className="h-14 px-8 text-base font-bold bg-amber-500 text-bg-primary hover:shadow-[0_0_15px_rgba(245,158,11,0.4)] transition-all"
+                    >
+                      <LogIn className="h-5 w-5 mr-2" />
+                      Login to Access Keys
+                    </Button>
+                  </Link>
+                  <p className="text-xs text-text-muted text-center max-w-xs">
+                    Sign in to verify ownership and reveal your product keys
+                  </p>
+                </motion.div>
+              )}
+
+              {/* Authenticated but not owner - Show locked state */}
+              {!orderAccess.isLoading && !orderAccess.canAccess && orderAccess.isAuthenticated && (
+                <div className="flex flex-col items-center gap-3 px-8 py-4 rounded-xl bg-red-500/10 border border-red-500/30">
+                  <div className="flex items-center gap-3">
+                    <Lock className="h-5 w-5 text-red-500" />
+                    <span className="text-text-secondary font-medium">
+                      Access Restricted
+                    </span>
+                  </div>
+                  <p className="text-xs text-text-muted text-center max-w-xs">
+                    {orderAccess.message ?? 'You do not have permission to access these keys.'}
+                  </p>
+                </div>
+              )}
+            </>
           )}
 
           {/* Failed - Retry Options */}

@@ -98,6 +98,12 @@ export function EmailEntryModal({
 
     try {
       const order = await createOrderMutation.mutateAsync(data.email);
+      
+      // Store order session token for immediate guest access to keys
+      if (order.orderSessionToken) {
+        localStorage.setItem(`order_session_${order.id}`, order.orderSessionToken);
+      }
+      
       // Navigate to checkout with orderId for payment selection
       router.push(`/checkout/${order.id}`);
     } catch (err) {

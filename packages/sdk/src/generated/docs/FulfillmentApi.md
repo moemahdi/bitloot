@@ -9,7 +9,7 @@ All URIs are relative to *http://localhost*
 | [**fulfillmentControllerHealthCheck**](FulfillmentApi.md#fulfillmentcontrollerhealthcheck) | **GET** /fulfillment/health/check | Health check for fulfillment service |
 | [**fulfillmentControllerRecoverOrder**](FulfillmentApi.md#fulfillmentcontrollerrecoverorder) | **POST** /fulfillment/{id}/recover | Recover signed URLs for orders with keys in R2 (requires ownership) |
 | [**fulfillmentControllerRevealKey**](FulfillmentApi.md#fulfillmentcontrollerrevealkey) | **POST** /fulfillment/{id}/reveal-key/{itemId} | Admin: Reveal encrypted key (requires admin role) |
-| [**fulfillmentControllerRevealMyKey**](FulfillmentApi.md#fulfillmentcontrollerrevealmykey) | **POST** /fulfillment/{id}/reveal/{itemId} | Reveal encrypted key (requires ownership) |
+| [**fulfillmentControllerRevealMyKey**](FulfillmentApi.md#fulfillmentcontrollerrevealmykey) | **POST** /fulfillment/{id}/reveal/{itemId} | Reveal encrypted key (requires ownership or session token) |
 | [**fulfillmentControllerTriggerFulfillment**](FulfillmentApi.md#fulfillmentcontrollertriggerfulfillment) | **POST** /fulfillment/{id}/trigger-fulfillment | SANDBOX: Manually trigger fulfillment for testing |
 
 
@@ -365,9 +365,9 @@ example().catch(console.error);
 
 ## fulfillmentControllerRevealMyKey
 
-> RevealedKeyDto fulfillmentControllerRevealMyKey(id, itemId)
+> RevealedKeyDto fulfillmentControllerRevealMyKey(id, itemId, xOrderSessionToken)
 
-Reveal encrypted key (requires ownership)
+Reveal encrypted key (requires ownership or session token)
 
 ### Example
 
@@ -391,6 +391,8 @@ async function example() {
     id: id_example,
     // string
     itemId: itemId_example,
+    // string | Order session token for immediate guest access (received on order creation) (optional)
+    xOrderSessionToken: xOrderSessionToken_example,
   } satisfies FulfillmentControllerRevealMyKeyRequest;
 
   try {
@@ -412,6 +414,7 @@ example().catch(console.error);
 |------------- | ------------- | ------------- | -------------|
 | **id** | `string` |  | [Defaults to `undefined`] |
 | **itemId** | `string` |  | [Defaults to `undefined`] |
+| **xOrderSessionToken** | `string` | Order session token for immediate guest access (received on order creation) | [Optional] [Defaults to `undefined`] |
 
 ### Return type
 

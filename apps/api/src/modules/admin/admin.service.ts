@@ -1,12 +1,18 @@
 import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { Order } from '../orders/order.entity';
+import { Repository, In } from 'typeorm';
+import { Order, type OrderStatus } from '../orders/order.entity';
 import { Payment } from '../payments/payment.entity';
 import { WebhookLog } from '../../database/entities/webhook-log.entity';
 import { Key } from '../orders/key.entity';
 import { User } from '../../database/entities/user.entity';
 import { DashboardStatsDto } from './dto/dashboard-stats.dto';
+import { EmailsService } from '../emails/emails.service';
+import { StorageService } from '../storage/storage.service';
+import { R2StorageClient } from '../storage/r2.client';
+import { decryptKey } from '../storage/encryption.util';
+import { AdminOrderStatus } from './dto/update-order-status.dto';
+import type { OrderAnalyticsDto, BulkUpdateStatusResponseDto, StatusCountDto, SourceTypeCountDto, DailyVolumeDto } from './dto/bulk-operations.dto';
 
 /**
  * Admin Service - Business logic for admin operations
@@ -17,6 +23,8 @@ import { DashboardStatsDto } from './dto/dashboard-stats.dto';
  * - Webhook log retrieval with pagination
  * - Key delivery audit trail
  * - Dashboard analytics
+ * - Order status management (admin override)
+ * - Resend key delivery emails
  */
 @Injectable()
 export class AdminService {
@@ -28,6 +36,9 @@ export class AdminService {
     @InjectRepository(WebhookLog) private readonly webhookLogsRepo: Repository<WebhookLog>,
     @InjectRepository(Key) private readonly keysRepo: Repository<Key>,
     @InjectRepository(User) private readonly usersRepo: Repository<User>,
+    private readonly emailsService: EmailsService,
+    private readonly storageService: StorageService,
+    private readonly r2StorageClient: R2StorageClient,
   ) { }
 
   /**
@@ -111,13 +122,18 @@ export class AdminService {
     limit?: number;
     offset?: number;
     email?: string;
+    search?: string;
     status?: string;
+    startDate?: Date;
+    endDate?: Date;
+    sourceType?: 'custom' | 'kinguin';
   }): Promise<{
     data: Array<{
       id: string;
       email: string;
       status: string;
       total: string;
+      sourceType: string;
       createdAt: Date;
       payment?: {
         id: string;
@@ -140,12 +156,32 @@ export class AdminService {
       .skip(offset)
       .take(limit);
 
-    if (options.email != null && options.email !== '') {
-      qb.andWhere('u.email ILIKE :email', { email: `%${options.email}%` });
+    // Search by email OR order ID
+    if (options.search != null && options.search !== '') {
+      qb.andWhere('(o.email ILIKE :search OR o.id::text ILIKE :search)', { search: `%${options.search}%` });
+    } else if (options.email != null && options.email !== '') {
+      qb.andWhere('o.email ILIKE :email', { email: `%${options.email}%` });
     }
 
     if (options.status != null) {
       qb.andWhere('o.status = :status', { status: options.status });
+    }
+
+    // Date range filtering
+    if (options.startDate != null) {
+      qb.andWhere('o.createdAt >= :startDate', { startDate: options.startDate });
+    }
+
+    if (options.endDate != null) {
+      // Add 1 day to include the end date fully
+      const endDatePlusOne = new Date(options.endDate);
+      endDatePlusOne.setDate(endDatePlusOne.getDate() + 1);
+      qb.andWhere('o.createdAt < :endDate', { endDate: endDatePlusOne });
+    }
+
+    // Source type filtering
+    if (options.sourceType != null) {
+      qb.andWhere('o.sourceType = :sourceType', { sourceType: options.sourceType });
     }
 
     const [orders, total] = await qb.getManyAndCount();
@@ -162,6 +198,7 @@ export class AdminService {
           email: o.email,
           status: o.status,
           total: o.totalCrypto,
+          sourceType: o.sourceType ?? 'custom',
           createdAt: o.createdAt,
           payment: latestPayment !== undefined && latestPayment !== null
             ? {
@@ -384,19 +421,22 @@ export class AdminService {
    * Get key access audit trail for an order
    *
    * @param orderId Order ID
-   * @returns Key delivery audit log
+   * @returns Key delivery audit log with product info
    */
   async getKeyAuditTrail(orderId: string): Promise<
     Array<{
       id: string;
+      orderItemId: string;
       viewed: boolean;
       viewedAt?: Date;
+      downloadCount: number;
+      lastAccessIp?: string;
+      lastAccessUserAgent?: string;
       createdAt: Date;
     }>
   > {
     const keys = await this.keysRepo.find({
       where: { orderItem: { order: { id: orderId } } },
-      relations: ['orderItem'],
       order: { createdAt: 'ASC' },
     });
 
@@ -406,10 +446,113 @@ export class AdminService {
 
     return keys.map((k) => ({
       id: k.id,
+      orderItemId: k.orderItemId,
       viewed: k.viewedAt !== null && k.viewedAt !== undefined,
       viewedAt: k.viewedAt ?? undefined,
+      downloadCount: k.downloadCount ?? 0,
+      lastAccessIp: k.lastAccessIp ?? undefined,
+      lastAccessUserAgent: k.lastAccessUserAgent ?? undefined,
       createdAt: k.createdAt,
     }));
+  }
+
+  /**
+   * Admin reveal key - for support purposes
+   * ⚠️ This action is logged for audit purposes
+   *
+   * @param keyId Key ID to reveal
+   * @param accessInfo Admin access information
+   */
+  async adminRevealKey(
+    keyId: string,
+    accessInfo: { ipAddress: string; userAgent: string },
+  ): Promise<{
+    keyId: string;
+    orderItemId: string;
+    orderId: string;
+    plainKey: string;
+    contentType: string;
+    isBase64: boolean;
+    viewedAt?: Date;
+    downloadCount: number;
+  }> {
+    // Find the key with relations
+    const key = await this.keysRepo.findOne({
+      where: { id: keyId },
+      relations: ['orderItem', 'orderItem.order'],
+    });
+
+    if (key === null || key === undefined) {
+      throw new NotFoundException(`Key not found: ${keyId}`);
+    }
+
+    const orderId = key.orderItem?.order?.id ?? 'unknown';
+    const orderItemId = key.orderItemId;
+
+    // Log admin access for audit trail
+    this.logger.warn(
+      `⚠️ [ADMIN REVEAL] Key ${keyId} revealed by admin from ${accessInfo.ipAddress} (Order: ${orderId})`,
+    );
+
+    // Get the actual key content from R2
+    let plainKey = '';
+    let contentType = 'text/plain';
+    let isBase64 = false;
+
+    try {
+      if (key.encryptionKey?.startsWith('raw:')) {
+        // ===== RAW KEY (New format - no encryption) =====
+        contentType = key.encryptionKey.substring(4);
+        this.logger.debug(`[ADMIN REVEAL] Fetching raw key with content type: ${contentType}`);
+
+        // Fetch raw key content from R2
+        const rawKeyResult = await this.r2StorageClient.getRawKeyFromR2({
+          orderId,
+          orderItemId,
+          contentType,
+        });
+
+        plainKey = rawKeyResult.content;
+        isBase64 = rawKeyResult.isBase64;
+
+        this.logger.debug(`[ADMIN REVEAL] Raw key fetched successfully (base64: ${isBase64})`);
+      } else if (key.encryptionKey !== null && key.encryptionKey !== undefined) {
+        // ===== ENCRYPTED KEY (Legacy format) =====
+        this.logger.debug(`[ADMIN REVEAL] Fetching encrypted key from R2`);
+
+        // Fetch encrypted key data from R2
+        const encryptedKeyData = await this.r2StorageClient.getEncryptedKey(orderId);
+        contentType = encryptedKeyData.contentType;
+
+        // Decrypt the key
+        const decryptionKey = Buffer.from(key.encryptionKey, 'base64');
+        plainKey = decryptKey(
+          encryptedKeyData.encryptedKey,
+          encryptedKeyData.encryptionIv,
+          encryptedKeyData.authTag,
+          decryptionKey,
+        );
+
+        this.logger.debug(`[ADMIN REVEAL] Key decrypted successfully`);
+      } else {
+        plainKey = '[No key content available - missing encryption key]';
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.logger.error(`[ADMIN REVEAL] Failed to fetch key: ${message}`);
+      plainKey = `[Error fetching key: ${message}]`;
+    }
+
+    return {
+      keyId: key.id,
+      orderItemId,
+      orderId,
+      plainKey,
+      contentType,
+      isBase64,
+      viewedAt: key.viewedAt ?? undefined,
+      downloadCount: key.downloadCount ?? 0,
+    };
   }
 
   /**
@@ -434,5 +577,314 @@ export class AdminService {
     await this.webhookLogsRepo.save(log);
 
     this.logger.log(`Webhook ${id} marked for replay`);
+  }
+
+  /**
+   * Update order status (admin override)
+   * Used for manual refunds, status corrections, etc.
+   * All changes are logged for audit trail.
+   *
+   * @param orderId Order ID
+   * @param newStatus New status to set
+   * @param reason Optional reason for the change
+   * @returns Previous and new status information
+   */
+  async updateOrderStatus(
+    orderId: string,
+    newStatus: AdminOrderStatus,
+    reason?: string,
+  ): Promise<{ ok: boolean; orderId: string; previousStatus: string; newStatus: string }> {
+    const order = await this.ordersRepo.findOne({ where: { id: orderId } });
+
+    if (order === null || order === undefined) {
+      throw new NotFoundException(`Order not found: ${orderId}`);
+    }
+
+    const previousStatus = order.status;
+
+    // Update the order status (cast AdminOrderStatus to OrderStatus as they're the same values)
+    order.status = newStatus as unknown as OrderStatus;
+    await this.ordersRepo.save(order);
+
+    // Log the change
+    this.logger.log(
+      `[ADMIN] Order ${orderId} status changed: ${previousStatus} → ${newStatus}` +
+      (reason !== undefined && reason.length > 0 ? ` (Reason: ${reason})` : ''),
+    );
+
+    return {
+      ok: true,
+      orderId,
+      previousStatus,
+      newStatus,
+    };
+  }
+
+  /**
+   * Resend key delivery email to customer
+   * Regenerates signed URLs and sends new email via Resend
+   *
+   * @param orderId Order ID
+   * @returns Success status with order and email info
+   */
+  async resendKeysEmail(orderId: string): Promise<{ ok: boolean; orderId: string; email: string }> {
+    const order = await this.ordersRepo.findOne({
+      where: { id: orderId },
+      relations: ['items', 'items.keys'],
+    });
+
+    if (order === null || order === undefined) {
+      throw new NotFoundException(`Order not found: ${orderId}`);
+    }
+
+    // Check if order is fulfilled
+    if (order.status !== 'fulfilled') {
+      throw new BadRequestException(
+        `Order ${orderId} is not fulfilled (status: ${order.status}). Cannot resend keys.`,
+      );
+    }
+
+    // Check if there are keys to resend
+    const keys = order.items?.flatMap(item => item.keys ?? []) ?? [];
+    if (keys.length === 0) {
+      throw new BadRequestException(`Order ${orderId} has no keys to resend.`);
+    }
+
+    // Generate new success page URL (where customer can view keys)
+    const frontendUrl = process.env.FRONTEND_URL ?? 'http://localhost:3000';
+    const successUrl = `${frontendUrl}/orders/${orderId}/success`;
+
+    // Send email via EmailsService
+    try {
+      await this.emailsService.sendOrderCompleted(order.email, {
+        orderId: order.id,
+        productName: 'Your Digital Product',
+        downloadUrl: successUrl,
+        expiresIn: '24 hours',
+      });
+
+      this.logger.log(`[ADMIN] Keys email resent for order ${orderId} to ${order.email}`);
+
+      return {
+        ok: true,
+        orderId,
+        email: order.email,
+      };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.logger.error(`[ADMIN] Failed to resend keys email for order ${orderId}: ${message}`);
+      throw new BadRequestException(`Failed to send email: ${message}`);
+    }
+  }
+
+  /**
+   * Bulk update order status
+   * Updates multiple orders at once with the same status
+   *
+   * @param orderIds Array of order IDs
+   * @param newStatus New status for all orders
+   * @param reason Optional reason for the change
+   * @returns Summary of updated and failed orders
+   */
+  async bulkUpdateStatus(
+    orderIds: string[],
+    newStatus: AdminOrderStatus,
+    reason?: string,
+  ): Promise<BulkUpdateStatusResponseDto> {
+    const updated: string[] = [];
+    const failed: string[] = [];
+
+    // Process orders one by one to handle individual failures
+    for (const orderId of orderIds) {
+      try {
+        const order = await this.ordersRepo.findOne({ where: { id: orderId } });
+        
+        if (order === null || order === undefined) {
+          failed.push(orderId);
+          continue;
+        }
+
+        const previousStatus = order.status;
+        order.status = newStatus as unknown as OrderStatus;
+        await this.ordersRepo.save(order);
+        
+        updated.push(orderId);
+        
+        this.logger.log(
+          `[ADMIN BULK] Order ${orderId} status changed: ${previousStatus} → ${newStatus}` +
+          (reason !== undefined && reason.length > 0 ? ` (Reason: ${reason})` : ''),
+        );
+      } catch (error) {
+        failed.push(orderId);
+        const message = error instanceof Error ? error.message : String(error);
+        this.logger.error(`[ADMIN BULK] Failed to update order ${orderId}: ${message}`);
+      }
+    }
+
+    this.logger.log(`[ADMIN BULK] Completed: ${updated.length} updated, ${failed.length} failed`);
+
+    return {
+      updated: updated.length,
+      failed,
+      total: orderIds.length,
+    };
+  }
+
+  /**
+   * Export orders to JSON with date range filtering
+   * Returns all matching orders for client-side CSV generation
+   *
+   * @param startDate Start of date range
+   * @param endDate End of date range
+   * @param status Optional status filter
+   * @param sourceType Optional source type filter
+   * @returns Array of orders for export
+   */
+  async exportOrders(options: {
+    startDate: Date;
+    endDate: Date;
+    status?: string;
+    sourceType?: 'custom' | 'kinguin';
+  }): Promise<Array<{
+    id: string;
+    email: string;
+    status: string;
+    sourceType: string;
+    total: string;
+    createdAt: string;
+    paymentProvider?: string;
+    paymentStatus?: string;
+    paymentId?: string;
+  }>> {
+    const qb = this.ordersRepo
+      .createQueryBuilder('o')
+      .leftJoinAndSelect('o.payments', 'p')
+      .where('o.createdAt >= :startDate', { startDate: options.startDate })
+      .orderBy('o.createdAt', 'DESC');
+
+    // Add 1 day to include the end date fully
+    const endDatePlusOne = new Date(options.endDate);
+    endDatePlusOne.setDate(endDatePlusOne.getDate() + 1);
+    qb.andWhere('o.createdAt < :endDate', { endDate: endDatePlusOne });
+
+    if (options.status != null && options.status !== 'all') {
+      qb.andWhere('o.status = :status', { status: options.status });
+    }
+
+    if (options.sourceType != null) {
+      qb.andWhere('o.sourceType = :sourceType', { sourceType: options.sourceType });
+    }
+
+    const orders = await qb.getMany();
+
+    return orders.map((o) => {
+      const latestPayment = o.payments?.sort(
+        (a, b) => b.createdAt.getTime() - a.createdAt.getTime(),
+      )[0];
+
+      return {
+        id: o.id,
+        email: o.email,
+        status: o.status,
+        sourceType: o.sourceType ?? 'custom',
+        total: o.totalCrypto,
+        createdAt: o.createdAt.toISOString(),
+        paymentProvider: latestPayment?.provider,
+        paymentStatus: latestPayment?.status,
+        paymentId: latestPayment?.id,
+      };
+    });
+  }
+
+  /**
+   * Get order analytics
+   * Returns aggregated statistics for dashboard widgets
+   *
+   * @param days Number of days to analyze (default 30)
+   * @returns Analytics data
+   */
+  async getOrderAnalytics(days: number = 30): Promise<OrderAnalyticsDto> {
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() - days);
+
+    // Orders by status
+    const byStatusRaw = await this.ordersRepo
+      .createQueryBuilder('o')
+      .select('o.status', 'status')
+      .addSelect('COUNT(*)', 'count')
+      .where('o.createdAt >= :startDate', { startDate })
+      .groupBy('o.status')
+      .getRawMany<{ status: string; count: string }>();
+
+    const byStatus = byStatusRaw.map((r) => ({
+      status: r.status,
+      count: parseInt(r.count, 10),
+    }));
+
+    // Orders by source type
+    const bySourceTypeRaw = await this.ordersRepo
+      .createQueryBuilder('o')
+      .select('o.sourceType', 'sourceType')
+      .addSelect('COUNT(*)', 'count')
+      .where('o.createdAt >= :startDate', { startDate })
+      .groupBy('o.sourceType')
+      .getRawMany<{ sourceType: string; count: string }>();
+
+    const bySourceType = bySourceTypeRaw.map((r) => ({
+      sourceType: r.sourceType ?? 'custom',
+      count: parseInt(r.count, 10),
+    }));
+
+    // Daily volume with revenue - ONLY count paid and fulfilled orders for accurate revenue
+    const dailyVolumeRaw = await this.ordersRepo
+      .createQueryBuilder('o')
+      .select("DATE_TRUNC('day', o.createdAt)", 'date')
+      .addSelect('COUNT(*)', 'count')
+      .addSelect('COALESCE(SUM(CAST(o.totalCrypto AS DECIMAL)), 0)', 'revenue')
+      .where('o.createdAt >= :startDate', { startDate })
+      .andWhere('o.status IN (:...statuses)', { statuses: ['paid', 'fulfilled'] })
+      .groupBy('date')
+      .orderBy('date', 'ASC')
+      .getRawMany<{ date: string; count: string; revenue: string }>();
+
+    // Fill in missing days
+    const dailyVolume: Array<{ date: string; count: number; revenue: number }> = [];
+    for (let i = days - 1; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const dateStr = d.toISOString().substring(0, 10);
+      const found = dailyVolumeRaw.find(
+        (r) => new Date(r.date).toISOString().substring(0, 10) === dateStr,
+      );
+      dailyVolume.push({
+        date: dateStr,
+        count: found !== undefined ? parseInt(found.count, 10) : 0,
+        revenue: found !== undefined ? parseFloat(found.revenue) : 0,
+      });
+    }
+
+    // Totals and rates
+    const totalOrders = byStatus.reduce((sum, s) => sum + s.count, 0);
+    const totalRevenue = dailyVolume.reduce((sum, d) => sum + d.revenue, 0);
+    const fulfilledCount = byStatus.find((s) => s.status === 'fulfilled')?.count ?? 0;
+    const paidCount = byStatus.find((s) => s.status === 'paid')?.count ?? 0;
+    const failedCount = byStatus.find((s) => s.status === 'failed')?.count ?? 0;
+
+    // AOV should be based on paid+fulfilled orders (same as revenue calculation)
+    const paidOrFulfilledCount = fulfilledCount + paidCount;
+    const averageOrderValue = paidOrFulfilledCount > 0 ? totalRevenue / paidOrFulfilledCount : 0;
+    const fulfillmentRate = totalOrders > 0 ? (fulfilledCount / totalOrders) * 100 : 0;
+    const failedRate = totalOrders > 0 ? (failedCount / totalOrders) * 100 : 0;
+
+    return {
+      byStatus,
+      bySourceType,
+      dailyVolume,
+      averageOrderValue: Math.round(averageOrderValue * 100) / 100,
+      totalOrders,
+      totalRevenue: Math.round(totalRevenue * 100) / 100,
+      fulfillmentRate: Math.round(fulfillmentRate * 10) / 10,
+      failedRate: Math.round(failedRate * 10) / 10,
+    };
   }
 }

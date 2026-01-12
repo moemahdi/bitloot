@@ -38,6 +38,7 @@ import { apiConfig } from '@/lib/api-config';
 import { Confetti } from '@/components/animations/Confetti';
 import { cn } from '@/design-system/utils/utils';
 import { KeyReveal } from '@/features/orders';
+import { useOrderAccess } from '@/hooks/useOrderAccess';
 
 // Initialize SDK client
 const ordersClient = new OrdersApi(apiConfig);
@@ -49,10 +50,13 @@ export default function OrderSuccessPage(): React.ReactElement {
   const orderId = String(params.id);
   const [showConfetti, _setShowConfetti] = useState(true);
 
+  // Check order access status
+  const orderAccess = useOrderAccess(orderId);
+
   const { data, isError, isPending } = useQuery<OrderResponseDto>({
     queryKey: ['order', orderId],
     queryFn: async () => {
-      const order = await ordersClient.ordersControllerGet({ id: orderId });
+      const order = await ordersClient.ordersControllerGetForCheckout({ id: orderId });
       return order;
     },
     // Poll every 5 seconds for orders waiting for fulfillment (paid but not fulfilled)
@@ -244,10 +248,17 @@ export default function OrderSuccessPage(): React.ReactElement {
                   orderId={orderId}
                   items={orderItems}
                   isFulfilled={isOrderFulfilled}
+                  accessStatus={orderAccess.isLoading ? undefined : {
+                    canAccess: orderAccess.canAccess,
+                    reason: orderAccess.reason,
+                    isAuthenticated: orderAccess.isAuthenticated,
+                    message: orderAccess.message,
+                  }}
                 />
               )}
 
-              {/* Security Notice */}
+              {/* Security Notice - Only show if user can access keys */}
+              {orderAccess.canAccess && (
               <Alert className="border-cyan-glow/20 bg-cyan-glow/5">
                 <ShieldCheck className="h-4 w-4 text-cyan-glow" />
                 <AlertTitle className="text-cyan-glow">Keep Your Keys Secure</AlertTitle>
@@ -256,6 +267,7 @@ export default function OrderSuccessPage(): React.ReactElement {
                   You can always access them from your order history.
                 </AlertDescription>
               </Alert>
+              )}
             </motion.div>
 
             {/* Sidebar */}

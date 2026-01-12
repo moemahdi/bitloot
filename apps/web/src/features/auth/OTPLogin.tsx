@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -90,6 +91,11 @@ type OTPForm = z.infer<typeof otpSchema>;
  */
 export function OTPLogin(): React.ReactElement {
   const { login } = useAuth();
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  // Check 'redirect' first (used by KeyReveal), then 'returnTo' as fallback
+  const returnTo = searchParams.get('redirect') ?? searchParams.get('returnTo') ?? '/account';
+  
   const [step, setStep] = useState<'email' | 'otp'>('email');
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
@@ -180,6 +186,9 @@ export function OTPLogin(): React.ReactElement {
 
       // Pass sessionId to track current session
       login(result.accessToken, result.refreshToken, user, result.sessionId ?? undefined);
+      
+      // Redirect to returnTo URL (e.g., order success page after guest checkout login)
+      router.push(returnTo);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unknown error';
       setError(message);

@@ -15,7 +15,7 @@ import { UsersService } from './users.service';
 import { UserResponseDto, UpdatePasswordDto } from './dto/user.dto';
 import { verifyPassword } from '../auth/password.util';
 import { OrdersService } from '../orders/orders.service';
-import { OrderResponseDto } from '../orders/dto/create-order.dto';
+import { OrderResponseDto, UserOrderStatsDto } from '../orders/dto/create-order.dto';
 
 interface AuthenticatedRequest extends ExpressRequest {
   user: { id: string; email: string; role: 'user' | 'admin' };
@@ -77,7 +77,7 @@ export class UsersController {
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: "Get user's orders" })
   @ApiQuery({ name: 'page', required: false, type: Number, description: 'Page number (default: 1)' })
-  @ApiQuery({ name: 'limit', required: false, type: Number, description: 'Items per page (default: 20, max: 100)' })
+  @ApiQuery({ name: 'limit', required: false, type: Number, description: 'Items per page (default: 20, max: 500)' })
   @ApiResponse({ status: 200, type: [OrderResponseDto] })
   async getOrders(
     @Request() req: AuthenticatedRequest,
@@ -94,5 +94,14 @@ export class UsersController {
       limit: limitNum,
       totalPages: Math.ceil(result.total / limitNum),
     };
+  }
+
+  @Get('me/stats')
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({ summary: "Get user's order statistics (aggregated from all orders)" })
+  @ApiResponse({ status: 200, type: UserOrderStatsDto })
+  async getStats(@Request() req: AuthenticatedRequest): Promise<UserOrderStatsDto> {
+    return this.ordersService.getUserOrderStats(req.user.id);
   }
 }

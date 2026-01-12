@@ -4,6 +4,7 @@ import { IpnHandlerService } from './ipn-handler.service';
 import { IpnHandlerController } from './ipn-handler.controller';
 import { WebhookLog } from '../../database/entities/webhook-log.entity';
 import { Order } from '../orders/order.entity';
+import { Payment } from '../payments/payment.entity';
 import { MetricsModule } from '../metrics/metrics.module';
 import { EmailsModule } from '../emails/emails.module';
 import { ResendBounceController } from './resend-bounce.controller';
@@ -39,7 +40,7 @@ import { FulfillmentQueue } from '../../jobs/queues';
  */
 @Module({
   imports: [
-    TypeOrmModule.forFeature([WebhookLog, Order]),
+    TypeOrmModule.forFeature([WebhookLog, Order, Payment]),
     MetricsModule,
     EmailsModule,
     FulfillmentQueue, // Enable IpnHandlerService to queue fulfillment jobs

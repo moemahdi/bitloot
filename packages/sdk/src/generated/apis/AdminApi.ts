@@ -15,15 +15,27 @@
 
 import * as runtime from '../runtime';
 import type {
+  AdminControllerAdminRevealKey200Response,
+  AdminControllerExportOrders200ResponseInner,
   AdminControllerGetKeyAuditTrail200ResponseInner,
   AdminControllerGetOrders200Response,
   AdminControllerGetPayments200Response,
   AdminControllerGetReservations200Response,
   AdminControllerGetWebhookLog200Response,
   AdminControllerGetWebhookLogs200Response,
+  AdminControllerResendKeys200Response,
+  AdminControllerUpdateOrderStatus200Response,
+  BulkUpdateStatusDto,
+  BulkUpdateStatusResponseDto,
   DashboardStatsDto,
+  OrderAnalyticsDto,
+  UpdateOrderStatusDto,
 } from '../models/index';
 import {
+    AdminControllerAdminRevealKey200ResponseFromJSON,
+    AdminControllerAdminRevealKey200ResponseToJSON,
+    AdminControllerExportOrders200ResponseInnerFromJSON,
+    AdminControllerExportOrders200ResponseInnerToJSON,
     AdminControllerGetKeyAuditTrail200ResponseInnerFromJSON,
     AdminControllerGetKeyAuditTrail200ResponseInnerToJSON,
     AdminControllerGetOrders200ResponseFromJSON,
@@ -36,19 +48,54 @@ import {
     AdminControllerGetWebhookLog200ResponseToJSON,
     AdminControllerGetWebhookLogs200ResponseFromJSON,
     AdminControllerGetWebhookLogs200ResponseToJSON,
+    AdminControllerResendKeys200ResponseFromJSON,
+    AdminControllerResendKeys200ResponseToJSON,
+    AdminControllerUpdateOrderStatus200ResponseFromJSON,
+    AdminControllerUpdateOrderStatus200ResponseToJSON,
+    BulkUpdateStatusDtoFromJSON,
+    BulkUpdateStatusDtoToJSON,
+    BulkUpdateStatusResponseDtoFromJSON,
+    BulkUpdateStatusResponseDtoToJSON,
     DashboardStatsDtoFromJSON,
     DashboardStatsDtoToJSON,
+    OrderAnalyticsDtoFromJSON,
+    OrderAnalyticsDtoToJSON,
+    UpdateOrderStatusDtoFromJSON,
+    UpdateOrderStatusDtoToJSON,
 } from '../models/index';
+
+export interface AdminControllerAdminRevealKeyRequest {
+    keyId: string;
+}
+
+export interface AdminControllerBulkUpdateStatusRequest {
+    bulkUpdateStatusDto: BulkUpdateStatusDto;
+}
+
+export interface AdminControllerExportOrdersRequest {
+    startDate: string;
+    endDate: string;
+    status?: string;
+    sourceType?: AdminControllerExportOrdersSourceTypeEnum;
+}
 
 export interface AdminControllerGetKeyAuditTrailRequest {
     orderId: string;
+}
+
+export interface AdminControllerGetOrderAnalyticsRequest {
+    days?: number;
 }
 
 export interface AdminControllerGetOrdersRequest {
     limit?: number;
     offset?: number;
     email?: string;
+    search?: string;
     status?: string;
+    startDate?: string;
+    endDate?: string;
+    sourceType?: AdminControllerGetOrdersSourceTypeEnum;
 }
 
 export interface AdminControllerGetPaymentsRequest {
@@ -80,10 +127,184 @@ export interface AdminControllerReplayWebhookRequest {
     id: string;
 }
 
+export interface AdminControllerResendKeysRequest {
+    id: string;
+}
+
+export interface AdminControllerUpdateOrderStatusRequest {
+    id: string;
+    updateOrderStatusDto: UpdateOrderStatusDto;
+}
+
 /**
  * 
  */
 export class AdminApi extends runtime.BaseAPI {
+
+    /**
+     * Reveals key content for admin support purposes. This action is logged for audit.
+     * Admin reveal key (for support)
+     */
+    async adminControllerAdminRevealKeyRaw(requestParameters: AdminControllerAdminRevealKeyRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<AdminControllerAdminRevealKey200Response>> {
+        if (requestParameters['keyId'] == null) {
+            throw new runtime.RequiredError(
+                'keyId',
+                'Required parameter "keyId" was null or undefined when calling adminControllerAdminRevealKey().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("JWT-auth", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/admin/keys/{keyId}/reveal`;
+        urlPath = urlPath.replace(`{${"keyId"}}`, encodeURIComponent(String(requestParameters['keyId'])));
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => AdminControllerAdminRevealKey200ResponseFromJSON(jsonValue));
+    }
+
+    /**
+     * Reveals key content for admin support purposes. This action is logged for audit.
+     * Admin reveal key (for support)
+     */
+    async adminControllerAdminRevealKey(requestParameters: AdminControllerAdminRevealKeyRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<AdminControllerAdminRevealKey200Response> {
+        const response = await this.adminControllerAdminRevealKeyRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Update status for multiple orders at once. Maximum 100 orders per request. All changes are logged.
+     * Bulk update order status
+     */
+    async adminControllerBulkUpdateStatusRaw(requestParameters: AdminControllerBulkUpdateStatusRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<BulkUpdateStatusResponseDto>> {
+        if (requestParameters['bulkUpdateStatusDto'] == null) {
+            throw new runtime.RequiredError(
+                'bulkUpdateStatusDto',
+                'Required parameter "bulkUpdateStatusDto" was null or undefined when calling adminControllerBulkUpdateStatus().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("JWT-auth", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/admin/orders/bulk-status`;
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'PATCH',
+            headers: headerParameters,
+            query: queryParameters,
+            body: BulkUpdateStatusDtoToJSON(requestParameters['bulkUpdateStatusDto']),
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => BulkUpdateStatusResponseDtoFromJSON(jsonValue));
+    }
+
+    /**
+     * Update status for multiple orders at once. Maximum 100 orders per request. All changes are logged.
+     * Bulk update order status
+     */
+    async adminControllerBulkUpdateStatus(requestParameters: AdminControllerBulkUpdateStatusRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<BulkUpdateStatusResponseDto> {
+        const response = await this.adminControllerBulkUpdateStatusRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Returns all orders matching filters for export. Client handles CSV generation.
+     * Export orders with date range
+     */
+    async adminControllerExportOrdersRaw(requestParameters: AdminControllerExportOrdersRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<AdminControllerExportOrders200ResponseInner>>> {
+        if (requestParameters['startDate'] == null) {
+            throw new runtime.RequiredError(
+                'startDate',
+                'Required parameter "startDate" was null or undefined when calling adminControllerExportOrders().'
+            );
+        }
+
+        if (requestParameters['endDate'] == null) {
+            throw new runtime.RequiredError(
+                'endDate',
+                'Required parameter "endDate" was null or undefined when calling adminControllerExportOrders().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        if (requestParameters['startDate'] != null) {
+            queryParameters['startDate'] = requestParameters['startDate'];
+        }
+
+        if (requestParameters['endDate'] != null) {
+            queryParameters['endDate'] = requestParameters['endDate'];
+        }
+
+        if (requestParameters['status'] != null) {
+            queryParameters['status'] = requestParameters['status'];
+        }
+
+        if (requestParameters['sourceType'] != null) {
+            queryParameters['sourceType'] = requestParameters['sourceType'];
+        }
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("JWT-auth", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/admin/orders/export`;
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => jsonValue.map(AdminControllerExportOrders200ResponseInnerFromJSON));
+    }
+
+    /**
+     * Returns all orders matching filters for export. Client handles CSV generation.
+     * Export orders with date range
+     */
+    async adminControllerExportOrders(requestParameters: AdminControllerExportOrdersRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<AdminControllerExportOrders200ResponseInner>> {
+        const response = await this.adminControllerExportOrdersRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
 
     /**
      * Returns aggregated revenue, orders, users, and sales history
@@ -125,7 +346,7 @@ export class AdminApi extends runtime.BaseAPI {
     }
 
     /**
-     * Returns when keys were revealed to the customer
+     * Returns when keys were revealed to the customer with product info
      * Get key access audit trail
      */
     async adminControllerGetKeyAuditTrailRaw(requestParameters: AdminControllerGetKeyAuditTrailRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<AdminControllerGetKeyAuditTrail200ResponseInner>>> {
@@ -163,11 +384,54 @@ export class AdminApi extends runtime.BaseAPI {
     }
 
     /**
-     * Returns when keys were revealed to the customer
+     * Returns when keys were revealed to the customer with product info
      * Get key access audit trail
      */
     async adminControllerGetKeyAuditTrail(requestParameters: AdminControllerGetKeyAuditTrailRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<AdminControllerGetKeyAuditTrail200ResponseInner>> {
         const response = await this.adminControllerGetKeyAuditTrailRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Returns aggregated order statistics: by status, by source type, daily volume, and rates
+     * Get order analytics
+     */
+    async adminControllerGetOrderAnalyticsRaw(requestParameters: AdminControllerGetOrderAnalyticsRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<OrderAnalyticsDto>> {
+        const queryParameters: any = {};
+
+        if (requestParameters['days'] != null) {
+            queryParameters['days'] = requestParameters['days'];
+        }
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("JWT-auth", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/admin/orders/analytics`;
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => OrderAnalyticsDtoFromJSON(jsonValue));
+    }
+
+    /**
+     * Returns aggregated order statistics: by status, by source type, daily volume, and rates
+     * Get order analytics
+     */
+    async adminControllerGetOrderAnalytics(requestParameters: AdminControllerGetOrderAnalyticsRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<OrderAnalyticsDto> {
+        const response = await this.adminControllerGetOrderAnalyticsRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
@@ -190,8 +454,24 @@ export class AdminApi extends runtime.BaseAPI {
             queryParameters['email'] = requestParameters['email'];
         }
 
+        if (requestParameters['search'] != null) {
+            queryParameters['search'] = requestParameters['search'];
+        }
+
         if (requestParameters['status'] != null) {
             queryParameters['status'] = requestParameters['status'];
+        }
+
+        if (requestParameters['startDate'] != null) {
+            queryParameters['startDate'] = requestParameters['startDate'];
+        }
+
+        if (requestParameters['endDate'] != null) {
+            queryParameters['endDate'] = requestParameters['endDate'];
+        }
+
+        if (requestParameters['sourceType'] != null) {
+            queryParameters['sourceType'] = requestParameters['sourceType'];
         }
 
         const headerParameters: runtime.HTTPHeaders = {};
@@ -484,4 +764,125 @@ export class AdminApi extends runtime.BaseAPI {
         await this.adminControllerReplayWebhookRaw(requestParameters, initOverrides);
     }
 
+    /**
+     * Regenerates signed URLs for keys and resends delivery email to customer. Only works for fulfilled orders.
+     * Resend key delivery email
+     */
+    async adminControllerResendKeysRaw(requestParameters: AdminControllerResendKeysRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<AdminControllerResendKeys200Response>> {
+        if (requestParameters['id'] == null) {
+            throw new runtime.RequiredError(
+                'id',
+                'Required parameter "id" was null or undefined when calling adminControllerResendKeys().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("JWT-auth", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/admin/orders/{id}/resend-keys`;
+        urlPath = urlPath.replace(`{${"id"}}`, encodeURIComponent(String(requestParameters['id'])));
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => AdminControllerResendKeys200ResponseFromJSON(jsonValue));
+    }
+
+    /**
+     * Regenerates signed URLs for keys and resends delivery email to customer. Only works for fulfilled orders.
+     * Resend key delivery email
+     */
+    async adminControllerResendKeys(requestParameters: AdminControllerResendKeysRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<AdminControllerResendKeys200Response> {
+        const response = await this.adminControllerResendKeysRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Admin override to update order status. Used for manual refunds or corrections. All changes are logged.
+     * Update order status
+     */
+    async adminControllerUpdateOrderStatusRaw(requestParameters: AdminControllerUpdateOrderStatusRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<AdminControllerUpdateOrderStatus200Response>> {
+        if (requestParameters['id'] == null) {
+            throw new runtime.RequiredError(
+                'id',
+                'Required parameter "id" was null or undefined when calling adminControllerUpdateOrderStatus().'
+            );
+        }
+
+        if (requestParameters['updateOrderStatusDto'] == null) {
+            throw new runtime.RequiredError(
+                'updateOrderStatusDto',
+                'Required parameter "updateOrderStatusDto" was null or undefined when calling adminControllerUpdateOrderStatus().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("JWT-auth", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/admin/orders/{id}/status`;
+        urlPath = urlPath.replace(`{${"id"}}`, encodeURIComponent(String(requestParameters['id'])));
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'PATCH',
+            headers: headerParameters,
+            query: queryParameters,
+            body: UpdateOrderStatusDtoToJSON(requestParameters['updateOrderStatusDto']),
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => AdminControllerUpdateOrderStatus200ResponseFromJSON(jsonValue));
+    }
+
+    /**
+     * Admin override to update order status. Used for manual refunds or corrections. All changes are logged.
+     * Update order status
+     */
+    async adminControllerUpdateOrderStatus(requestParameters: AdminControllerUpdateOrderStatusRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<AdminControllerUpdateOrderStatus200Response> {
+        const response = await this.adminControllerUpdateOrderStatusRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
 }
+
+/**
+ * @export
+ */
+export const AdminControllerExportOrdersSourceTypeEnum = {
+    Custom: 'custom',
+    Kinguin: 'kinguin'
+} as const;
+export type AdminControllerExportOrdersSourceTypeEnum = typeof AdminControllerExportOrdersSourceTypeEnum[keyof typeof AdminControllerExportOrdersSourceTypeEnum];
+/**
+ * @export
+ */
+export const AdminControllerGetOrdersSourceTypeEnum = {
+    Custom: 'custom',
+    Kinguin: 'kinguin'
+} as const;
+export type AdminControllerGetOrdersSourceTypeEnum = typeof AdminControllerGetOrdersSourceTypeEnum[keyof typeof AdminControllerGetOrdersSourceTypeEnum];

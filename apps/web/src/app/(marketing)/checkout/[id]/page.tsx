@@ -4,13 +4,9 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
 import {
   Loader2,
   AlertCircle,
-  Shield,
   Lock,
   ChevronLeft,
   Zap,
@@ -21,39 +17,30 @@ import {
   Package,
   ArrowLeft,
   ArrowRight,
-  ShoppingBag,
-  Mail,
   Check,
   CreditCard,
   Copy,
   Sparkles,
   Hash,
+  Shield,
+  ShoppingBag,
+  Mail,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { OrdersApi, PaymentsApi } from '@bitloot/sdk';
 import type { EmbeddedPaymentResponseDto, OrderItemResponseDto } from '@bitloot/sdk';
 import { apiConfig } from '@/lib/api-config';
 import { Button } from '@/design-system/primitives/button';
-import { Input } from '@/design-system/primitives/input';
-import { Label } from '@/design-system/primitives/label';
 import Link from 'next/link';
 import { EmbeddedPaymentUI } from '@/features/checkout/EmbeddedPaymentUI';
 import { PaymentMethodForm, type PaymentMethodFormData } from '@/features/checkout/PaymentMethodForm';
-import { useAuth } from '@/hooks/useAuth';
 
 // Initialize SDK clients
 const ordersClient = new OrdersApi(apiConfig);
 const paymentsClient = new PaymentsApi(apiConfig);
 
-// Email validation schema
-const emailSchema = z.object({
-  email: z.string().email('Please enter a valid email address'),
-});
-
-type EmailFormData = z.infer<typeof emailSchema>;
-
-// Step type for checkout flow
-type CheckoutStep = 'email' | 'payment' | 'paying';
+// Step type for checkout flow (email is collected before order creation)
+type CheckoutStep = 'payment' | 'paying';
 
 // Order status type
 type OrderStatus = 'pending' | 'confirming' | 'paid' | 'fulfilled' | 'failed' | 'expired' | 'underpaid';
@@ -95,9 +82,8 @@ const groupOrderItems = (items: OrderItemResponseDto[] | undefined): GroupedOrde
 // Step Progress component
 function StepProgress({ currentStep }: { currentStep: CheckoutStep }): React.ReactElement {
   const steps = [
-    { id: 'email', label: 'Email', icon: Mail },
-    { id: 'payment', label: 'Payment', icon: CreditCard },
-    { id: 'paying', label: 'Complete', icon: CheckCircle2 },
+    { id: 'payment', label: 'Select Crypto', icon: CreditCard },
+    { id: 'paying', label: 'Complete Payment', icon: CheckCircle2 },
   ];
 
   const currentIndex = steps.findIndex((s) => s.id === currentStep);
@@ -293,24 +279,11 @@ export default function CheckoutPage(): React.ReactElement {
   const router = useRouter();
   const orderId = params.id as string;
 
-  // Auth context
-  const { isAuthenticated, user } = useAuth();
-
   // State
-  const [currentStep, setCurrentStep] = useState<CheckoutStep>('email');
-  const [email, setEmail] = useState<string>('');
+  const [currentStep, setCurrentStep] = useState<CheckoutStep>('payment');
   const [isProcessing, setIsProcessing] = useState(false);
   const [embeddedPayment, setEmbeddedPayment] = useState<EmbeddedPaymentResponseDto | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
-
-  // Form setup
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-  } = useForm<EmailFormData>({
-    resolver: zodResolver(emailSchema),
-  });
 
   // Fetch order details
   const {
@@ -335,7 +308,7 @@ export default function CheckoutPage(): React.ReactElement {
     },
   });
 
-  // Auto-redirect on fulfilled and set email from order
+  // Auto-redirect on fulfilled
   useEffect(() => {
     if (order !== null && order !== undefined) {
       // Redirect to success when fulfilled
@@ -343,18 +316,8 @@ export default function CheckoutPage(): React.ReactElement {
         router.replace(`/orders/${orderId}/success`);
         return;
       }
-
-      // Set email from order if available (skip placeholder emails)
-      const orderEmail = order.email;
-      if (orderEmail !== undefined && orderEmail !== '' && !orderEmail.includes('pending@checkout')) {
-        setEmail(orderEmail);
-        // Skip email step if order already has real email
-        if (currentStep === 'email') {
-          setCurrentStep('payment');
-        }
-      }
     }
-  }, [order, orderId, router, currentStep]);
+  }, [order, orderId, router]);
 
   // Create embedded payment mutation
   const createPaymentMutation = useMutation({
@@ -363,10 +326,15 @@ export default function CheckoutPage(): React.ReactElement {
       if (order === null || order === undefined) {
         throw new Error('Order not found');
       }
+      // Use email from order (collected before order creation)
+      const orderEmail = order.email ?? '';
+      if (!orderEmail || orderEmail.includes('pending@checkout')) {
+        throw new Error('Valid email is required. Please go back and enter your email.');
+      }
       const response = await paymentsClient.paymentsControllerCreateEmbedded({
         createPaymentDto: {
           orderId,
-          email: email !== '' ? email : 'customer@checkout.bitloot.io',
+          email: orderEmail,
           priceAmount: order.total,
           priceCurrency: 'USD',
           payCurrency,
@@ -388,29 +356,13 @@ export default function CheckoutPage(): React.ReactElement {
   });
 
   // Handlers
-  const handleEmailSubmit = (data: EmailFormData): void => {
-    setEmail(data.email);
-    setCurrentStep('payment');
-  };
-
   const handlePaymentSubmit = async (data: PaymentMethodFormData): Promise<void> => {
     setIsProcessing(true);
     await createPaymentMutation.mutateAsync(data.payCurrency);
   };
 
   const handleBack = (): void => {
-    if (currentStep === 'payment') {
-      // Only go back to email if order doesn't have a real email yet
-      const orderEmail = order?.email;
-      const hasRealEmail = orderEmail !== undefined && orderEmail !== '' && !orderEmail.includes('pending@checkout');
-      if (!hasRealEmail) {
-        setCurrentStep('email');
-      } else {
-        router.push(`/orders/${orderId}`);
-      }
-    } else {
-      router.push(`/orders/${orderId}`);
-    }
+    router.push(`/orders/${orderId}`);
   };
 
   // Loading state
@@ -552,137 +504,7 @@ export default function CheckoutPage(): React.ReactElement {
             className="lg:col-span-2"
           >
             <AnimatePresence mode="wait">
-              {/* ========== STEP 1: EMAIL ========== */}
-              {currentStep === 'email' && (
-                <motion.div
-                  key="email-step"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -20 }}
-                  transition={{ duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }}
-                >
-                  <div className="relative glass-strong rounded-3xl overflow-hidden shadow-card-lg border border-border-subtle">
-                    <div className="absolute top-0 left-0 right-0 h-1 bg-linear-to-r from-cyan-glow via-purple-neon to-cyan-glow" />
-
-                    <div className="p-6 md:p-8 border-b border-border-subtle bg-linear-to-r from-cyan-glow/5 to-transparent">
-                      <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-xl bg-linear-to-br from-cyan-glow/20 to-purple-neon/10 flex items-center justify-center border border-cyan-glow/30 shadow-glow-cyan-sm">
-                          <Mail className="h-6 w-6 text-cyan-glow" />
-                        </div>
-                        <div>
-                          <h2 className="text-xl sm:text-2xl font-bold text-text-primary tracking-tight">
-                            Delivery Email
-                          </h2>
-                          <p className="text-sm text-text-muted">We&apos;ll send your products here instantly</p>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="p-6 md:p-8">
-                      {isAuthenticated && user?.email !== undefined && user?.email !== null && user?.email !== '' ? (
-                        <div className="space-y-6">
-                          <motion.div
-                            initial={{ scale: 0.95, opacity: 0 }}
-                            animate={{ scale: 1, opacity: 1 }}
-                            transition={{ delay: 0.1 }}
-                            className="p-5 rounded-2xl bg-linear-to-r from-green-success/10 to-green-success/5 border border-green-success/30 shadow-glow-success"
-                          >
-                            <div className="flex items-center gap-4">
-                              <div className="w-12 h-12 rounded-xl bg-green-success/20 flex items-center justify-center border border-green-success/30">
-                                <Check className="h-6 w-6 text-green-success" />
-                              </div>
-                              <div>
-                                <p className="font-semibold text-text-primary text-lg">{user.email}</p>
-                                <p className="text-xs text-green-success font-medium flex items-center gap-1">
-                                  <Shield className="h-3 w-3" /> Verified account
-                                </p>
-                              </div>
-                            </div>
-                          </motion.div>
-
-                          <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                            <Button
-                              onClick={() => {
-                                setEmail(user.email);
-                                setCurrentStep('payment');
-                              }}
-                              className="w-full h-14 bg-linear-to-r from-cyan-glow to-purple-neon text-bg-primary hover:shadow-glow-cyan-lg font-bold text-lg transition-all duration-200 group"
-                            >
-                              Continue to Payment
-                              <ArrowRight className="ml-2 h-5 w-5 transition-transform duration-200 group-hover:translate-x-1" />
-                            </Button>
-                          </motion.div>
-                        </div>
-                      ) : (
-                        <form onSubmit={handleSubmit(handleEmailSubmit)} className="space-y-6">
-                          <div className="space-y-3">
-                            <Label htmlFor="email" className="text-sm font-medium text-text-secondary">
-                              Email Address
-                            </Label>
-                            <div className="relative">
-                              <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-text-muted pointer-events-none" />
-                              <Input
-                                type="email"
-                                id="email"
-                                placeholder="your@email.com"
-                                className="h-14 pl-12 bg-bg-secondary border-border-subtle text-text-primary text-lg placeholder:text-text-muted focus:border-cyan-glow focus:ring-2 focus:ring-cyan-glow/30 focus:shadow-glow-cyan-sm rounded-xl transition-all duration-200"
-                                {...register('email')}
-                              />
-                            </div>
-                            {errors.email !== null && errors.email !== undefined && (
-                              <motion.p
-                                initial={{ opacity: 0, y: -5 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                className="text-sm text-orange-warning flex items-center gap-1.5"
-                              >
-                                <span className="w-1.5 h-1.5 rounded-full bg-orange-warning" />
-                                {errors.email.message}
-                              </motion.p>
-                            )}
-                          </div>
-
-                          <div className="p-4 rounded-xl bg-linear-to-r from-orange-warning/10 to-orange-warning/5 border border-orange-warning/30">
-                            <div className="flex gap-3">
-                              <Zap className="h-5 w-5 text-orange-warning shrink-0 mt-0.5" />
-                              <p className="text-sm text-text-secondary">
-                                <span className="font-bold text-orange-warning">Important:</span> Your purchased products
-                                will be delivered to this email address.
-                              </p>
-                            </div>
-                          </div>
-
-                          <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                            <Button
-                              type="submit"
-                              className="w-full h-14 bg-linear-to-r from-cyan-glow to-purple-neon text-bg-primary hover:shadow-glow-cyan-lg font-bold text-lg transition-all duration-200 group"
-                            >
-                              Continue to Payment
-                              <ArrowRight className="ml-2 h-5 w-5 transition-transform duration-200 group-hover:translate-x-1" />
-                            </Button>
-                          </motion.div>
-
-                          <div className="flex items-center justify-center gap-6 pt-2">
-                            <div className="flex items-center gap-1.5 text-xs text-text-muted">
-                              <Lock className="h-3.5 w-3.5" />
-                              <span>Encrypted</span>
-                            </div>
-                            <div className="flex items-center gap-1.5 text-xs text-text-muted">
-                              <Zap className="h-3.5 w-3.5" />
-                              <span>Instant delivery</span>
-                            </div>
-                            <div className="flex items-center gap-1.5 text-xs text-text-muted">
-                              <Clock className="h-3.5 w-3.5" />
-                              <span>24/7 support</span>
-                            </div>
-                          </div>
-                        </form>
-                      )}
-                    </div>
-                  </div>
-                </motion.div>
-              )}
-
-              {/* ========== STEP 2: PAYMENT ========== */}
+              {/* ========== STEP 1: PAYMENT ========== */}
               {currentStep === 'payment' && (
                 <motion.div
                   key="payment-step"
@@ -695,7 +517,7 @@ export default function CheckoutPage(): React.ReactElement {
                 </motion.div>
               )}
 
-              {/* ========== STEP 3: PAYING ========== */}
+              {/* ========== STEP 2: COMPLETE PAYMENT ========== */}
               {currentStep === 'paying' && embeddedPayment !== null && embeddedPayment !== undefined && (
                 <motion.div
                   key="paying-step"
@@ -867,10 +689,10 @@ export default function CheckoutPage(): React.ReactElement {
                   </motion.div>
 
                   <div className="border-t border-border-subtle pt-4 space-y-2">
-                    {email !== '' && (
+                    {order.email && order.email !== '' && (
                       <div className="flex items-center gap-2 text-sm text-text-muted">
                         <Mail className="h-4 w-4" />
-                        <span className="truncate">{email}</span>
+                        <span className="truncate">{order.email}</span>
                       </div>
                     )}
                   </div>

@@ -17,6 +17,7 @@ import * as runtime from '../runtime';
 import type {
   OrderResponseDto,
   UpdatePasswordDto,
+  UserOrderStatsDto,
   UserResponseDto,
 } from '../models/index';
 import {
@@ -24,6 +25,8 @@ import {
     OrderResponseDtoToJSON,
     UpdatePasswordDtoFromJSON,
     UpdatePasswordDtoToJSON,
+    UserOrderStatsDtoFromJSON,
+    UserOrderStatsDtoToJSON,
     UserResponseDtoFromJSON,
     UserResponseDtoToJSON,
 } from '../models/index';
@@ -121,6 +124,43 @@ export class UsersApi extends runtime.BaseAPI {
      */
     async usersControllerGetProfile(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<UserResponseDto> {
         const response = await this.usersControllerGetProfileRaw(initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Get user\'s order statistics (aggregated from all orders)
+     */
+    async usersControllerGetStatsRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<UserOrderStatsDto>> {
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("JWT-auth", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/users/me/stats`;
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => UserOrderStatsDtoFromJSON(jsonValue));
+    }
+
+    /**
+     * Get user\'s order statistics (aggregated from all orders)
+     */
+    async usersControllerGetStats(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<UserOrderStatsDto> {
+        const response = await this.usersControllerGetStatsRaw(initOverrides);
         return await response.value();
     }
 

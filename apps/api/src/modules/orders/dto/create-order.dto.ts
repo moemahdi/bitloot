@@ -121,6 +121,12 @@ export class OrderResponseDto {
   total!: string;
 
   @ApiProperty({
+    description: 'Session token for immediate key access (valid 1 hour). Only included on order creation.',
+    required: false,
+  })
+  orderSessionToken?: string;
+
+  @ApiProperty({
     description: 'Cryptocurrency used for payment (e.g., btc, eth, ltc)',
     required: false,
     example: 'btc',
@@ -136,4 +142,30 @@ export class OrderResponseDto {
 
   @ApiProperty({ description: 'Last update timestamp in ISO 8601 format (UTC)' })
   updatedAt!: string;
+}
+
+/**
+ * User order statistics - calculated directly from database for accuracy
+ */
+export class UserOrderStatsDto {
+  @ApiProperty({ description: 'Total number of orders', example: 151 })
+  totalOrders!: number;
+
+  @ApiProperty({ description: 'Number of completed (fulfilled) orders', example: 66 })
+  completedOrders!: number;
+
+  @ApiProperty({ description: 'Number of pending orders (waiting, confirming)', example: 5 })
+  pendingOrders!: number;
+
+  @ApiProperty({ description: 'Number of processing orders (paid, awaiting fulfillment)', example: 3 })
+  processingOrders!: number;
+
+  @ApiProperty({ description: 'Number of failed/expired/underpaid orders', example: 10 })
+  failedOrders!: number;
+
+  @ApiProperty({ description: 'Total amount spent on fulfilled orders (EUR)', example: '3243.11' })
+  totalSpent!: string;
+
+  @ApiProperty({ description: 'Number of digital downloads (items from fulfilled orders)', example: 40 })
+  digitalDownloads!: number;
 }

@@ -10,6 +10,7 @@ Name | Type
 `email` | string
 `status` | string
 `total` | string
+`sourceType` | string
 `createdAt` | Date
 `payment` | [AdminControllerGetOrders200ResponseDataInnerPayment](AdminControllerGetOrders200ResponseDataInnerPayment.md)
 
@@ -24,6 +25,7 @@ const example = {
   "email": null,
   "status": null,
   "total": null,
+  "sourceType": null,
   "createdAt": null,
   "payment": null,
 } satisfies AdminControllerGetOrders200ResponseDataInner

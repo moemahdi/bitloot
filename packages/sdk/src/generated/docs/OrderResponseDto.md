@@ -13,6 +13,7 @@ Name | Type
 `sourceType` | string
 `kinguinReservationId` | string
 `total` | string
+`orderSessionToken` | string
 `payCurrency` | string
 `items` | [Array&lt;OrderItemResponseDto&gt;](OrderItemResponseDto.md)
 `createdAt` | string
@@ -32,6 +33,7 @@ const example = {
   "sourceType": custom,
   "kinguinReservationId": null,
   "total": null,
+  "orderSessionToken": null,
   "payCurrency": btc,
   "items": null,
   "createdAt": null,

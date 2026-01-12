@@ -27,29 +27,72 @@ import {
   Crown,
   Layers,
   Star,
+  ChevronDown,
+  Activity,
+  Database,
 } from 'lucide-react';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/design-system/primitives/dropdown-menu';
 
-// Admin navigation tabs configuration
-const ADMIN_TABS = [
-  { href: '/admin', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/admin/orders', label: 'Orders', icon: Package },
-  { href: '/admin/payments', label: 'Payments', icon: CreditCard },
-  { href: '/admin/webhooks', label: 'Webhooks', icon: Webhook },
-  { href: '/admin/reservations', label: 'Reservations', icon: BookOpen },
-  { href: '/admin/catalog', label: 'Catalog', icon: ShoppingBag },
-  { href: '/admin/catalog/products', label: 'Products', icon: Boxes },
-  { href: '/admin/catalog/groups', label: 'Groups', icon: Layers },
-  { href: '/admin/catalog/import', label: 'Import', icon: Crown },
-  { href: '/admin/catalog/rules', label: 'Pricing', icon: Settings },
-  { href: '/admin/catalog/sync', label: 'Sync', icon: RefreshCw },
-  { href: '/admin/reviews', label: 'Reviews', icon: Star },
-  { href: '/admin/flags', label: 'Flags', icon: ToggleLeft },
-  { href: '/admin/queues', label: 'Queues', icon: ListOrdered },
-  { href: '/admin/balances', label: 'Balances', icon: Wallet },
-  { href: '/admin/audit', label: 'Audit', icon: ClipboardList },
-] as const;
+// Admin navigation structure with workflow-based grouped menus
+const ADMIN_NAV = {
+  // Always visible - most frequently accessed
+  primary: [
+    { href: '/admin', label: 'Dashboard', icon: LayoutDashboard },
+    { href: '/admin/orders', label: 'Orders', icon: Package },
+  ],
+  // Financial operations grouped together
+  finance: {
+    label: 'Finance',
+    icon: Wallet,
+    items: [
+      { href: '/admin/payments', label: 'Payments', icon: CreditCard },
+      { href: '/admin/balances', label: 'Balances', icon: Wallet },
+      { href: '/admin/reservations', label: 'Reservations', icon: BookOpen },
+    ],
+  },
+  // Product & catalog management
+  catalog: {
+    label: 'Catalog',
+    icon: ShoppingBag,
+    items: [
+      { href: '/admin/catalog', label: 'Overview', icon: ShoppingBag },
+      { href: '/admin/catalog/products', label: 'Products', icon: Boxes },
+      { href: '/admin/catalog/groups', label: 'Groups', icon: Layers },
+      { href: '/admin/catalog/import', label: 'Import', icon: Crown },
+      { href: '/admin/catalog/rules', label: 'Pricing Rules', icon: Settings },
+      { href: '/admin/catalog/sync', label: 'Sync Status', icon: RefreshCw },
+    ],
+  },
+  // System monitoring & operations
+  operations: {
+    label: 'Operations',
+    icon: Activity,
+    items: [
+      { href: '/admin/webhooks', label: 'Webhooks', icon: Webhook },
+      { href: '/admin/queues', label: 'Job Queues', icon: ListOrdered },
+      { href: '/admin/flags', label: 'Feature Flags', icon: ToggleLeft },
+      { href: '/admin/audit', label: 'Audit Logs', icon: ClipboardList },
+    ],
+  },
+  // Customer-facing feedback - standalone with accent
+  standalone: [
+    { href: '/admin/reviews', label: 'Reviews', icon: Star },
+  ],
+} as const;
+
+// Helper to check if any item in a dropdown is active
+const isDropdownActive = (items: readonly { href: string }[], pathname: string): boolean => {
+  return items.some((item) => pathname === item.href || pathname.startsWith(item.href + '/'));
+};
 
 /**
  * Branded loading skeleton for admin panel
@@ -61,13 +104,13 @@ function AdminLoadingSkeleton(): ReactNode {
       <main className="flex-1 flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
           <div className="relative">
-            <div className="absolute -inset-4 animate-ping rounded-full bg-cyan-glow/20" />
-            <div className="relative flex h-16 w-16 items-center justify-center rounded-2xl border border-cyan-glow/30 bg-bg-secondary">
-              <Zap className="h-8 w-8 animate-pulse text-cyan-glow" fill="currentColor" />
+            <div className="absolute -inset-4 animate-pulse-ring rounded-full bg-cyan-glow/20 shadow-glow-cyan-lg" />
+            <div className="relative flex h-16 w-16 items-center justify-center rounded-2xl border border-cyan-glow/30 bg-bg-secondary shadow-glow-cyan-sm">
+              <Zap className="h-8 w-8 animate-glow-pulse text-cyan-glow" fill="currentColor" />
             </div>
           </div>
-          <p className="text-sm text-text-muted">Verifying admin access...</p>
-          <Loader2 className="h-5 w-5 animate-spin text-cyan-glow" />
+          <p className="text-sm text-text-muted animate-fade-in">Verifying admin access...</p>
+          <Loader2 className="h-5 w-5 animate-spin-glow text-cyan-glow" />
         </div>
       </main>
       <Footer />
@@ -104,9 +147,9 @@ function RedirectingState({
     <div className="flex min-h-screen flex-col bg-gradient-dark">
       <Header />
       <main className="flex-1 flex items-center justify-center">
-        <div className="text-center space-y-4 max-w-sm px-6">
-          <div className="mx-auto w-16 h-16 rounded-2xl bg-accent-error/10 flex items-center justify-center border border-accent-error/30">
-            <Icon className="w-8 h-8 text-accent-error" />
+        <div className="text-center space-y-4 max-w-sm px-6 animate-fade-in">
+          <div className="mx-auto w-16 h-16 rounded-2xl glass flex items-center justify-center border border-accent-error/30 shadow-glow-error">
+            <Icon className="w-8 h-8 text-accent-error animate-glow-pulse" />
           </div>
           <div className="space-y-2">
             <h1 className="text-xl font-semibold text-text-primary">{title}</h1>
@@ -193,14 +236,15 @@ export default function AdminLayout({ children }: { children: ReactNode }): Reac
       <Header />
 
       {/* Admin Tabs Navigation */}
-      <div className="sticky top-0 z-40 border-b border-border-subtle bg-bg-primary/80 backdrop-blur-xl">
+      <div className="sticky top-0 z-50 border-b border-border-subtle glass-strong shadow-card-md">
         <div className="container mx-auto px-4">
           <nav
-            className="flex gap-1 overflow-x-auto py-2 scrollbar-thin scrollbar-thumb-border-subtle scrollbar-track-transparent"
-            role="tablist"
+            className="flex gap-1 overflow-x-auto py-2 scrollbar-thin scrollbar-thumb-cyan-glow/30 scrollbar-track-transparent hover:scrollbar-thumb-cyan-glow/50"
+            role="navigation"
             aria-label="Admin navigation"
           >
-            {ADMIN_TABS.map((tab) => {
+            {/* Primary Tabs */}
+            {ADMIN_NAV.primary.map((tab) => {
               const Icon = tab.icon;
               const isActive = isActiveTab(tab.href);
 
@@ -208,19 +252,246 @@ export default function AdminLayout({ children }: { children: ReactNode }): Reac
                 <Link
                   key={tab.href}
                   href={tab.href}
-                  role="tab"
-                  aria-selected={isActive}
-                  aria-current={isActive ? 'page' : undefined}
                   className={cn(
-                    'flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200',
+                    'group flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium',
+                    'transition-all duration-200 ease-out',
                     'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-glow/50 focus-visible:ring-offset-2 focus-visible:ring-offset-bg-primary',
                     isActive
-                      ? 'bg-cyan-glow/10 text-cyan-glow shadow-[0_0_12px_rgba(0,217,255,0.15)]'
-                      : 'text-text-muted hover:bg-bg-secondary hover:text-text-primary'
+                      ? 'bg-cyan-glow/10 text-cyan-glow shadow-glow-cyan-sm border border-cyan-glow/20'
+                      : 'text-text-muted hover:text-cyan-glow hover:bg-bg-secondary/50 hover:shadow-glow-cyan-sm border border-transparent hover:border-border-accent'
                   )}
                 >
-                  <Icon className="h-4 w-4" />
+                  <Icon
+                    className={cn(
+                      'h-4 w-4 transition-all duration-200',
+                      isActive ? 'text-cyan-glow' : 'text-text-secondary group-hover:text-cyan-glow'
+                    )}
+                  />
                   <span className="whitespace-nowrap">{tab.label}</span>
+                </Link>
+              );
+            })}
+
+            {/* Finance Dropdown - Orange theme */}
+            <DropdownMenu>
+              <DropdownMenuTrigger
+                className={cn(
+                  'group flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium',
+                  'transition-all duration-200 ease-out',
+                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-warning/50 focus-visible:ring-offset-2 focus-visible:ring-offset-bg-primary',
+                  isDropdownActive(ADMIN_NAV.finance.items, pathname)
+                    ? 'bg-orange-warning/10 text-orange-warning shadow-glow-error border border-orange-warning/20'
+                    : 'text-text-muted hover:text-orange-warning hover:bg-bg-secondary/50 hover:shadow-glow-error border border-transparent hover:border-border-accent'
+                )}
+              >
+                <Wallet
+                  className={cn(
+                    'h-4 w-4 transition-all duration-200',
+                    isDropdownActive(ADMIN_NAV.finance.items, pathname)
+                      ? 'text-orange-warning'
+                      : 'text-text-secondary group-hover:text-orange-warning'
+                  )}
+                />
+                <span className="whitespace-nowrap">{ADMIN_NAV.finance.label}</span>
+                <ChevronDown
+                  className={cn(
+                    'h-3 w-3 transition-transform duration-200',
+                    'group-data-[state=open]:rotate-180'
+                  )}
+                />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                align="start"
+                className="glass-strong border-border-accent shadow-card-lg min-w-[200px] animate-scale-in"
+              >
+                <DropdownMenuLabel className="text-orange-warning font-semibold text-xs uppercase tracking-wider">
+                  Finance & Billing
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator className="bg-border-subtle" />
+                {ADMIN_NAV.finance.items.map((item) => {
+                  const Icon = item.icon;
+                  const isActive = pathname === item.href;
+                  return (
+                    <DropdownMenuItem key={item.href} asChild>
+                      <Link
+                        href={item.href}
+                        className={cn(
+                          'flex items-center gap-3 px-3 py-2 cursor-pointer',
+                          'transition-all duration-200',
+                          'focus:bg-orange-warning/10 focus:text-orange-warning',
+                          isActive
+                            ? 'bg-orange-warning/10 text-orange-warning'
+                            : 'text-text-secondary hover:text-orange-warning hover:bg-bg-tertiary/50'
+                        )}
+                      >
+                        <Icon className="h-4 w-4" />
+                        <span>{item.label}</span>
+                        {isActive && (
+                          <div className="ml-auto h-1.5 w-1.5 rounded-full bg-orange-warning animate-glow-pulse" />
+                        )}
+                      </Link>
+                    </DropdownMenuItem>
+                  );
+                })}
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            {/* Catalog Dropdown - Purple theme */}
+            <DropdownMenu>
+              <DropdownMenuTrigger
+                className={cn(
+                  'group flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium',
+                  'transition-all duration-200 ease-out',
+                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-neon/50 focus-visible:ring-offset-2 focus-visible:ring-offset-bg-primary',
+                  isDropdownActive(ADMIN_NAV.catalog.items, pathname)
+                    ? 'bg-purple-neon/10 text-purple-neon shadow-glow-purple-sm border border-purple-neon/20'
+                    : 'text-text-muted hover:text-purple-neon hover:bg-bg-secondary/50 hover:shadow-glow-purple-sm border border-transparent hover:border-border-accent'
+                )}
+              >
+                <ShoppingBag
+                  className={cn(
+                    'h-4 w-4 transition-all duration-200',
+                    isDropdownActive(ADMIN_NAV.catalog.items, pathname)
+                      ? 'text-purple-neon'
+                      : 'text-text-secondary group-hover:text-purple-neon'
+                  )}
+                />
+                <span className="whitespace-nowrap">{ADMIN_NAV.catalog.label}</span>
+                <ChevronDown
+                  className={cn(
+                    'h-3 w-3 transition-transform duration-200',
+                    'group-data-[state=open]:rotate-180'
+                  )}
+                />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                align="start"
+                className="glass-strong border-border-accent shadow-card-lg min-w-[200px] animate-scale-in"
+              >
+                <DropdownMenuLabel className="text-purple-neon font-semibold text-xs uppercase tracking-wider">
+                  Catalog Management
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator className="bg-border-subtle" />
+                {ADMIN_NAV.catalog.items.map((item) => {
+                  const Icon = item.icon;
+                  const isActive = pathname === item.href;
+                  return (
+                    <DropdownMenuItem key={item.href} asChild>
+                      <Link
+                        href={item.href}
+                        className={cn(
+                          'flex items-center gap-3 px-3 py-2 cursor-pointer',
+                          'transition-all duration-200',
+                          'focus:bg-purple-neon/10 focus:text-purple-neon',
+                          isActive
+                            ? 'bg-purple-neon/10 text-purple-neon shadow-glow-purple-sm'
+                            : 'text-text-secondary hover:text-purple-neon hover:bg-bg-tertiary/50'
+                        )}
+                      >
+                        <Icon className="h-4 w-4" />
+                        <span>{item.label}</span>
+                        {isActive && (
+                          <div className="ml-auto h-1.5 w-1.5 rounded-full bg-purple-neon shadow-glow-purple-sm" />
+                        )}
+                      </Link>
+                    </DropdownMenuItem>
+                  );
+                })}
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            {/* Operations Dropdown - Green theme */}
+            <DropdownMenu>
+              <DropdownMenuTrigger
+                className={cn(
+                  'group flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium',
+                  'transition-all duration-200 ease-out',
+                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-success/50 focus-visible:ring-offset-2 focus-visible:ring-offset-bg-primary',
+                  isDropdownActive(ADMIN_NAV.operations.items, pathname)
+                    ? 'bg-green-success/10 text-green-success shadow-glow-success border border-green-success/20'
+                    : 'text-text-muted hover:text-green-success hover:bg-bg-secondary/50 hover:shadow-glow-success border border-transparent hover:border-border-accent'
+                )}
+              >
+                <Activity
+                  className={cn(
+                    'h-4 w-4 transition-all duration-200',
+                    isDropdownActive(ADMIN_NAV.operations.items, pathname)
+                      ? 'text-green-success'
+                      : 'text-text-secondary group-hover:text-green-success'
+                  )}
+                />
+                <span className="whitespace-nowrap">{ADMIN_NAV.operations.label}</span>
+                <ChevronDown
+                  className={cn(
+                    'h-3 w-3 transition-transform duration-200',
+                    'group-data-[state=open]:rotate-180'
+                  )}
+                />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                align="start"
+                className="glass-strong border-border-accent shadow-card-lg min-w-[200px] animate-scale-in"
+              >
+                <DropdownMenuLabel className="text-green-success font-semibold text-xs uppercase tracking-wider">
+                  System & Operations
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator className="bg-border-subtle" />
+                {ADMIN_NAV.operations.items.map((item) => {
+                  const Icon = item.icon;
+                  const isActive = pathname === item.href;
+                  return (
+                    <DropdownMenuItem key={item.href} asChild>
+                      <Link
+                        href={item.href}
+                        className={cn(
+                          'flex items-center gap-3 px-3 py-2 cursor-pointer',
+                          'transition-all duration-200',
+                          'focus:bg-green-success/10 focus:text-green-success',
+                          isActive
+                            ? 'bg-green-success/10 text-green-success shadow-glow-success'
+                            : 'text-text-secondary hover:text-green-success hover:bg-bg-tertiary/50'
+                        )}
+                      >
+                        <Icon className="h-4 w-4" />
+                        <span>{item.label}</span>
+                        {isActive && (
+                          <div className="ml-auto h-1.5 w-1.5 rounded-full bg-green-success shadow-glow-success" />
+                        )}
+                      </Link>
+                    </DropdownMenuItem>
+                  );
+                })}
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            {/* Standalone Items - Pink accent for customer-facing */}
+            {ADMIN_NAV.standalone.map((tab) => {
+              const Icon = tab.icon;
+              const isActive = pathname === tab.href;
+
+              return (
+                <Link
+                  key={tab.href}
+                  href={tab.href}
+                  className={cn(
+                    'group flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium',
+                    'transition-all duration-200 ease-out',
+                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pink-featured/50 focus-visible:ring-offset-2 focus-visible:ring-offset-bg-primary',
+                    isActive
+                      ? 'bg-pink-featured/10 text-pink-featured shadow-glow-pink border border-pink-featured/20'
+                      : 'text-text-muted hover:text-pink-featured hover:bg-bg-secondary/50 hover:shadow-glow-pink border border-transparent hover:border-border-accent'
+                  )}
+                >
+                  <Icon
+                    className={cn(
+                      'h-4 w-4 transition-all duration-200',
+                      isActive ? 'text-pink-featured' : 'text-text-secondary group-hover:text-pink-featured'
+                    )}
+                  />
+                  <span className="whitespace-nowrap">{tab.label}</span>
+                  {isActive && (
+                    <div className="h-1.5 w-1.5 rounded-full bg-pink-featured shadow-glow-pink animate-glow-pulse" />
+                  )}
                 </Link>
               );
             })}
@@ -236,7 +507,7 @@ export default function AdminLayout({ children }: { children: ReactNode }): Reac
         role="main"
         aria-label="Admin page content"
       >
-        <div className="container mx-auto px-4 py-6 lg:py-8">{children}</div>
+        <div className="container mx-auto px-4 py-6 lg:py-8 animate-fade-in">{children}</div>
       </main>
 
       <Footer />

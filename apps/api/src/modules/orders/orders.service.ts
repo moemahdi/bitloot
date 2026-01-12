@@ -1,6 +1,8 @@
 import { Injectable, BadRequestException, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { JwtService } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
 import { Order } from './order.entity';
 import { OrderItem } from './order-item.entity';
 import { Payment } from '../payments/payment.entity';
@@ -48,6 +50,7 @@ setInterval(() => {
 @Injectable()
 export class OrdersService {
   private readonly logger = new Logger(OrdersService.name);
+  private readonly jwtSecret: string;
 
   constructor(
     @InjectRepository(Order) private readonly ordersRepo: Repository<Order>,
@@ -55,7 +58,48 @@ export class OrdersService {
     @InjectRepository(Payment) private readonly paymentsRepo: Repository<Payment>,
     private readonly emailsService: EmailsService,
     private readonly catalogService: CatalogService,
-  ) { }
+    private readonly jwtService: JwtService,
+    private readonly configService: ConfigService,
+  ) {
+    this.jwtSecret = this.configService.get<string>('JWT_SECRET') ?? 'dev-secret-change-in-production';
+  }
+
+  /**
+   * Generate a session token for order access (valid 1 hour)
+   * Used for immediate guest access after checkout
+   */
+  generateOrderSessionToken(orderId: string, email: string): string {
+    const payload = {
+      type: 'order_session',
+      orderId,
+      email: email.toLowerCase(),
+    };
+    return this.jwtService.sign(payload, {
+      secret: this.jwtSecret,
+      expiresIn: '1h',
+    });
+  }
+
+  /**
+   * Verify an order session token
+   * Returns { orderId, email } if valid, null if invalid/expired
+   */
+  verifyOrderSessionToken(token: string): { orderId: string; email: string } | null {
+    try {
+      const decoded = this.jwtService.verify<{
+        type: string;
+        orderId: string;
+        email: string;
+      }>(token, { secret: this.jwtSecret });
+      
+      if (decoded.type !== 'order_session') {
+        return null;
+      }
+      return { orderId: decoded.orderId, email: decoded.email };
+    } catch {
+      return null;
+    }
+  }
 
   async create(dto: CreateOrderDto, userId?: string): Promise<OrderResponseDto> {
     // ========== IDEMPOTENCY CHECK ==========
@@ -165,7 +209,14 @@ export class OrdersService {
       this.logger.debug(`Cached idempotency key: ${cacheKey} → order ${savedOrder.id}`);
     }
 
-    return await this.mapToResponse(savedOrder, savedItems);
+    const response = await this.mapToResponse(savedOrder, savedItems);
+    
+    // ========== GENERATE ORDER SESSION TOKEN ==========
+    // Include session token for immediate guest access (valid 1 hour)
+    response.orderSessionToken = this.generateOrderSessionToken(savedOrder.id, dto.email);
+    this.logger.debug(`Generated order session token for order ${savedOrder.id}`);
+    
+    return response;
   }
 
   /**
@@ -507,7 +558,7 @@ export class OrdersService {
       relations: ['items'],
       order: { createdAt: 'DESC' },
       skip: (page - 1) * limit,
-      take: Math.min(limit, 100), // cap at 100 per page
+      take: Math.min(limit, 500), // cap at 500 per page for user's own orders
     });
 
     // Map orders with product titles (async)
@@ -595,6 +646,66 @@ export class OrdersService {
       ),
       createdAt: order.createdAt.toISOString(),
       updatedAt: order.updatedAt.toISOString(),
+    };
+  }
+
+  /**
+   * Get user order statistics - calculated directly from database
+   * No pagination limits - aggregated in SQL for accuracy
+   */
+  async getUserOrderStats(userId: string): Promise<{
+    totalOrders: number;
+    completedOrders: number;
+    pendingOrders: number;
+    processingOrders: number;
+    failedOrders: number;
+    totalSpent: string;
+    digitalDownloads: number;
+  }> {
+    // Use raw query for efficient aggregation
+    const result = await this.ordersRepo.query(
+      `
+      SELECT 
+        COUNT(*)::int as "totalOrders",
+        COUNT(*) FILTER (WHERE status = 'fulfilled')::int as "completedOrders",
+        COUNT(*) FILTER (WHERE status IN ('pending', 'waiting', 'confirming', 'created'))::int as "pendingOrders",
+        COUNT(*) FILTER (WHERE status = 'paid')::int as "processingOrders",
+        COUNT(*) FILTER (WHERE status IN ('failed', 'underpaid', 'expired'))::int as "failedOrders",
+        COALESCE(SUM(CASE WHEN status = 'fulfilled' THEN "totalCrypto" ELSE 0 END), 0)::text as "totalSpent"
+      FROM orders
+      WHERE "userId" = $1
+      `,
+      [userId],
+    );
+
+    // Get digital downloads count (items from fulfilled orders)
+    const downloadsResult = await this.ordersRepo.query(
+      `
+      SELECT COUNT(*)::int as count
+      FROM order_items oi
+      JOIN orders o ON oi."orderId" = o.id
+      WHERE o."userId" = $1 AND o.status = 'fulfilled'
+      `,
+      [userId],
+    );
+
+    const stats = result[0] ?? {
+      totalOrders: 0,
+      completedOrders: 0,
+      pendingOrders: 0,
+      processingOrders: 0,
+      failedOrders: 0,
+      totalSpent: '0',
+    };
+
+    return {
+      totalOrders: stats.totalOrders,
+      completedOrders: stats.completedOrders,
+      pendingOrders: stats.pendingOrders,
+      processingOrders: stats.processingOrders,
+      failedOrders: stats.failedOrders,
+      totalSpent: parseFloat(stats.totalSpent).toFixed(2),
+      digitalDownloads: downloadsResult[0]?.count ?? 0,
     };
   }
 }

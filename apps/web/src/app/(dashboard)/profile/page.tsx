@@ -6,7 +6,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useAuth } from '@/hooks/useAuth';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { UsersApi, FulfillmentApi, AuthenticationApi, SessionsApi, type OrderResponseDto, type OrderItemResponseDto } from '@bitloot/sdk';
+import { UsersApi, FulfillmentApi, AuthenticationApi, SessionsApi, type OrderResponseDto, type OrderItemResponseDto, type UserOrderStatsDto } from '@bitloot/sdk';
 import { apiConfig } from '@/lib/api-config';
 import { useWatchlist, useRemoveFromWatchlist } from '@/features/watchlist';
 import { useCart } from '@/context/CartContext';
@@ -1029,22 +1029,39 @@ export default function ProfilePage(): React.ReactElement {
     }
   });
  
-  // Calculate statistics from ALL orders (not just current page)
-  const orderStats = useMemo(() => {
-    const orders = allOrders ?? [];
-    const totalOrders = orders.length;
-    const completedOrders = orders.filter((o) => o.status === 'fulfilled').length;
-    const pendingOrders = orders.filter((o) => ['pending', 'waiting', 'confirming'].includes(o.status ?? '')).length;
-    const processingOrders = orders.filter((o) => o.status === 'paid').length;
-    const failedOrders = orders.filter((o) => ['failed', 'underpaid', 'expired'].includes(o.status ?? '')).length;
-    const totalSpent = orders
-      .filter((o) => o.status === 'fulfilled')
-      .reduce((acc, o) => {
-        const total = typeof o.total === 'string' ? parseFloat(o.total) : (o.total ?? 0);
-        return acc + (isNaN(total) ? 0 : total);
-      }, 0);
-    return { totalOrders, completedOrders, pendingOrders, processingOrders, failedOrders, totalSpent };
-  }, [allOrders]);
+  // Fetch user order stats from dedicated API endpoint (no pagination limits)
+  const { data: apiStats } = useQuery<UserOrderStatsDto>({
+    queryKey: ['profile-stats'],
+    queryFn: async () => {
+      try {
+        return await usersClient.usersControllerGetStats();
+      } catch (error) {
+        console.error('Failed to fetch stats:', error);
+        return {
+          totalOrders: 0,
+          completedOrders: 0,
+          pendingOrders: 0,
+          processingOrders: 0,
+          failedOrders: 0,
+          totalSpent: '0',
+          digitalDownloads: 0,
+        };
+      }
+    },
+    enabled: user !== null && user !== undefined,
+    staleTime: 30_000, // Cache for 30 seconds
+  });
+
+  // Order stats from API (accurate, not limited by pagination)
+  const orderStats = useMemo(() => ({
+    totalOrders: apiStats?.totalOrders ?? 0,
+    completedOrders: apiStats?.completedOrders ?? 0,
+    pendingOrders: apiStats?.pendingOrders ?? 0,
+    processingOrders: apiStats?.processingOrders ?? 0,
+    failedOrders: apiStats?.failedOrders ?? 0,
+    totalSpent: parseFloat(apiStats?.totalSpent ?? '0'),
+    digitalDownloads: apiStats?.digitalDownloads ?? 0,
+  }), [apiStats]);
 
   // Client-side filtering for purchases (applied to ALL orders)
   const filteredOrders = useMemo(() => {
@@ -1298,7 +1315,7 @@ export default function ProfilePage(): React.ReactElement {
         />
         <DashboardStatCard
           title="Digital Downloads"
-          value={orderStats.completedOrders}
+          value={orderStats.digitalDownloads}
           icon={Key}
           color="purple"
           delay={0.4}

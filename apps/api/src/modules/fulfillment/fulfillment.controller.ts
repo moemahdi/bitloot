@@ -1,7 +1,8 @@
-import { Controller, Get, Post, Param, UseGuards, Request, HttpException, HttpStatus, Logger } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import { Controller, Get, Post, Param, UseGuards, Request, HttpException, HttpStatus, Logger, Headers } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiHeader } from '@nestjs/swagger';
 import type { Request as ExpressRequest } from 'express';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { OptionalAuthGuard } from '../auth/guards/optional-auth.guard';
 import { FulfillmentService } from './fulfillment.service';
 import { DeliveryService } from './delivery.service';
 import { OrdersService } from '../orders/orders.service';
@@ -12,6 +13,7 @@ import { AdminGuard } from '../../common/guards/admin.guard';
 
 interface JwtPayload {
   sub: string;
+  email?: string;
   role?: string;
 }
 
@@ -149,12 +151,22 @@ export class FulfillmentController {
   }
 
   /**
-   * Reveal key for authenticated user (owner)
+   * Reveal key for authenticated user (owner) or guest with session token
+   * Ownership is verified by:
+   * 1. Session token (immediate guest access after order creation)
+   * 2. userId match (logged-in user who placed the order)
+   * 3. email match (guest checkout user who later created account with same email)
+   * 4. admin role (admins can reveal any key)
    */
   @Post(':id/reveal/:itemId')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(OptionalAuthGuard)
   @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: 'Reveal encrypted key (requires ownership)' })
+  @ApiHeader({
+    name: 'x-order-session-token',
+    description: 'Order session token for immediate guest access (received on order creation)',
+    required: false,
+  })
+  @ApiOperation({ summary: 'Reveal encrypted key (requires ownership or session token)' })
   @ApiResponse({ status: 200, type: RevealedKeyDto })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
   @ApiResponse({ status: 403, description: 'Forbidden' })
@@ -162,22 +174,59 @@ export class FulfillmentController {
   async revealMyKey(
     @Param('id') id: string,
     @Param('itemId') itemId: string,
+    @Headers('x-order-session-token') sessionToken: string | undefined,
     @Request() req: AuthenticatedRequest,
   ): Promise<RevealedKeyDto> {
     try {
       const user = req.user ?? null;
-      if (user === null) {
-        throw new Error('User not found in request');
-      }
-
-      // Verify ownership
+      
+      // Verify ownership (session token, userId match, email match, or admin)
       const order = await this.ordersService.get(id);
       if (order === null || order === undefined) {
         throw new HttpException('Order not found', HttpStatus.NOT_FOUND);
       }
-      if (order.userId !== user.sub && user.role !== 'admin') {
+
+      // Check access methods in order of priority
+      let hasAccess = false;
+      let accessMethod = 'none';
+
+      // 1. Check session token (for immediate guest access)
+      if (!hasAccess && sessionToken !== undefined && sessionToken.length > 0) {
+        const tokenData = this.ordersService.verifyOrderSessionToken(sessionToken);
+        if (tokenData !== null && tokenData.orderId === id) {
+          hasAccess = true;
+          accessMethod = 'session_token';
+          this.logger.log(`✅ Session token access granted for order ${id}`);
+        }
+      }
+
+      // 2. Check authenticated user access
+      if (!hasAccess && user !== null) {
+        const isAdmin = user.role === 'admin';
+        const isOwnerByUserId = order.userId !== undefined && order.userId !== null && order.userId === user.sub;
+        const userEmail = user.email ?? null;
+        const isOwnerByEmail = userEmail !== null && order.email.toLowerCase() === userEmail.toLowerCase();
+
+        if (isAdmin) {
+          hasAccess = true;
+          accessMethod = 'admin';
+        } else if (isOwnerByUserId) {
+          hasAccess = true;
+          accessMethod = 'user_id';
+        } else if (isOwnerByEmail) {
+          hasAccess = true;
+          accessMethod = 'email_match';
+        }
+      }
+
+      // If no access granted, deny
+      if (!hasAccess) {
+        const userId = user?.sub ?? 'guest';
+        this.logger.warn(`🚫 Access denied for ${userId} to order ${id} (userId: ${order.userId ?? 'guest'}, email: ${order.email})`);
         throw new HttpException('Forbidden', HttpStatus.FORBIDDEN);
       }
+
+      this.logger.log(`🔑 Revealing key for order ${id}, item ${itemId} (access: ${accessMethod})`);
 
       const ipAddress = (req.ip ?? '0.0.0.0').toString();
       const userAgent = req.get('user-agent') ?? 'unknown';

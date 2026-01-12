@@ -42,6 +42,7 @@ import { AddCompletionEmailSent1767200000000 } from './migrations/1767200000000-
 import { AddOrderItemPriceQuantity1736450000000 } from './migrations/1736450000000-AddOrderItemPriceQuantity';
 import { CreateUserSessions1768000000000 } from './migrations/1768000000000-CreateUserSessions';
 import { AddUserDeletionRequestedAt1768100000000 } from './migrations/1768100000000-AddUserDeletionRequestedAt';
+import { AddKeyAuditFields1768200000000 } from './migrations/1768200000000-AddKeyAuditFields';
 
 dotenv.config({ path: path.resolve(__dirname, '../../../../.env') });
 
@@ -76,6 +77,7 @@ export default new DataSource({
     AddOrderItemPriceQuantity1736450000000,
     CreateUserSessions1768000000000,
     AddUserDeletionRequestedAt1768100000000,
+    AddKeyAuditFields1768200000000,
   ],
   logging: true,
   synchronize: false,

@@ -54,6 +54,7 @@ export interface FulfillmentControllerRevealKeyRequest {
 export interface FulfillmentControllerRevealMyKeyRequest {
     id: string;
     itemId: string;
+    xOrderSessionToken?: string;
 }
 
 export interface FulfillmentControllerTriggerFulfillmentRequest {
@@ -283,7 +284,7 @@ export class FulfillmentApi extends runtime.BaseAPI {
     }
 
     /**
-     * Reveal encrypted key (requires ownership)
+     * Reveal encrypted key (requires ownership or session token)
      */
     async fulfillmentControllerRevealMyKeyRaw(requestParameters: FulfillmentControllerRevealMyKeyRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<RevealedKeyDto>> {
         if (requestParameters['id'] == null) {
@@ -303,6 +304,10 @@ export class FulfillmentApi extends runtime.BaseAPI {
         const queryParameters: any = {};
 
         const headerParameters: runtime.HTTPHeaders = {};
+
+        if (requestParameters['xOrderSessionToken'] != null) {
+            headerParameters['x-order-session-token'] = String(requestParameters['xOrderSessionToken']);
+        }
 
         if (this.configuration && this.configuration.accessToken) {
             const token = this.configuration.accessToken;
@@ -328,7 +333,7 @@ export class FulfillmentApi extends runtime.BaseAPI {
     }
 
     /**
-     * Reveal encrypted key (requires ownership)
+     * Reveal encrypted key (requires ownership or session token)
      */
     async fulfillmentControllerRevealMyKey(requestParameters: FulfillmentControllerRevealMyKeyRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<RevealedKeyDto> {
         const response = await this.fulfillmentControllerRevealMyKeyRaw(requestParameters, initOverrides);

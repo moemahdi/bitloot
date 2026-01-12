@@ -1,5 +1,7 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { JwtModule } from '@nestjs/jwt';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { Order } from './order.entity';
 import { OrderItem } from './order-item.entity';
 import { Key } from './key.entity';
@@ -18,6 +20,7 @@ import { CatalogModule } from '../catalog/catalog.module';
  * - Managing order items
  * - Linking orders to reservations
  * - Email notifications for order status changes (Level 4)
+ * - Order session tokens for immediate guest access
  *
  * @example
  * // In app.module.ts:
@@ -30,7 +33,19 @@ import { CatalogModule } from '../catalog/catalog.module';
  * constructor(private readonly orders: OrdersService) {}
  */
 @Module({
-  imports: [TypeOrmModule.forFeature([Order, OrderItem, Key, Payment]), EmailsModule, CatalogModule],
+  imports: [
+    TypeOrmModule.forFeature([Order, OrderItem, Key, Payment]),
+    EmailsModule,
+    CatalogModule,
+    ConfigModule,
+    JwtModule.registerAsync({
+      imports: [ConfigModule],
+      useFactory: (configService: ConfigService) => ({
+        secret: configService.get<string>('JWT_SECRET') ?? 'dev-secret-change-in-production',
+      }),
+      inject: [ConfigService],
+    }),
+  ],
   providers: [OrdersService],
   controllers: [OrdersController],
   exports: [OrdersService],

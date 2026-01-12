@@ -2,6 +2,8 @@
 
 import { useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import {
   Copy,
   Eye,
@@ -11,6 +13,9 @@ import {
   Package,
   Download,
   Key,
+  Lock,
+  LogIn,
+  AlertCircle,
 } from 'lucide-react';
 import { FulfillmentApi } from '@bitloot/sdk';
 import type { RevealedKeyDto } from '@bitloot/sdk';
@@ -37,29 +42,58 @@ export interface OrderItem {
   quantity?: number;
 }
 
+export interface KeyAccessStatus {
+  canAccess: boolean;
+  reason: 'owner' | 'admin' | 'email_match' | 'session_token' | 'guest_order' | 'not_authenticated' | 'not_owner';
+  isAuthenticated: boolean;
+  message: string;
+}
+
 interface KeyRevealProps {
   orderId: string;
   items: OrderItem[];
   isFulfilled: boolean;
   variant?: 'default' | 'compact';
+  /** Access status - if not provided, assumes user can access */
+  accessStatus?: KeyAccessStatus;
 }
 
 export function KeyReveal({ 
   orderId, 
   items, 
   isFulfilled,
-  variant = 'default' 
+  variant = 'default',
+  accessStatus,
 }: KeyRevealProps): React.ReactElement {
+  const pathname = usePathname();
   const [revealedKeys, setRevealedKeys] = useState<Record<string, RevealedKeyDto>>({});
   const [revealingItemId, setRevealingItemId] = useState<string | null>(null);
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
+  // Default to allowing access if no accessStatus is provided (backward compatibility)
+  const canAccess = accessStatus?.canAccess ?? true;
+  const isAuthenticated = accessStatus?.isAuthenticated ?? true;
+  const accessReason = accessStatus?.reason ?? 'owner';
+  const accessMessage = accessStatus?.message ?? '';
+
+  /**
+   * Get order session token from localStorage for guest access
+   */
+  const getOrderSessionToken = (): string | undefined => {
+    if (typeof window === 'undefined') return undefined;
+    const token = localStorage.getItem(`order_session_${orderId}`);
+    return token ?? undefined;
+  };
+
   const revealKeyMutation = useMutation({
     mutationFn: async ({ itemId }: { itemId: string }) => {
       setRevealingItemId(itemId);
+      // Include session token for guest access
+      const sessionToken = getOrderSessionToken();
       return await fulfillmentClient.fulfillmentControllerRevealMyKey({
         id: orderId,
         itemId,
+        xOrderSessionToken: sessionToken,
       });
     },
     onSuccess: (keyData, variables) => {
@@ -84,6 +118,102 @@ export function KeyReveal({
     toast.success('Copied to clipboard!');
     setTimeout(() => setCopiedKey(null), 2000);
   };
+
+  // ============ ACCESS CONTROL: Check canAccess first (includes session token access) ============
+  // If canAccess is true (via session token, owner, admin, email match), skip login prompt
+  // If canAccess is false AND not authenticated, show login
+  // If canAccess is false AND authenticated, show access denied
+
+  // ============ LOCKED STATE: Not authenticated AND cannot access ============
+  if (!canAccess && !isAuthenticated) {
+    const loginUrl = `/auth/login?redirect=${encodeURIComponent(pathname)}`;
+    return (
+      <Card className="border-amber-400/30 bg-amber-400/5">
+        <CardHeader className={variant === 'compact' ? 'py-3' : undefined}>
+          <div className="flex items-center gap-3">
+            <div className={cn(
+              "rounded-lg bg-amber-400/10 border border-amber-400/20 flex items-center justify-center",
+              variant === 'compact' ? 'h-8 w-8' : 'h-10 w-10'
+            )}>
+              <Lock className={cn(
+                "text-amber-400",
+                variant === 'compact' ? 'h-4 w-4' : 'h-5 w-5'
+              )} />
+            </div>
+            <div>
+              <CardTitle className={variant === 'compact' ? 'text-base' : 'text-lg'}>
+                Login Required
+              </CardTitle>
+              <CardDescription className={variant === 'compact' ? 'text-xs' : undefined}>
+                Sign in to access your product keys
+              </CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="rounded-lg bg-muted/50 p-4 mb-4">
+            <div className="flex items-center gap-3 text-amber-400">
+              <Lock className="h-4 w-4 shrink-0" />
+              <span className="text-sm">
+                Your keys are secure. Login with the email you used for this order to reveal them.
+              </span>
+            </div>
+          </div>
+          <Button asChild className="w-full bg-amber-400 text-black hover:bg-amber-500">
+            <Link href={loginUrl}>
+              <LogIn className="mr-2 h-4 w-4" />
+              Login to Access Keys
+            </Link>
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // ============ LOCKED STATE: Authenticated but not owner ============
+  if (!canAccess && isAuthenticated) {
+    const isGuestOrder = accessReason === 'guest_order';
+    return (
+      <Card className="border-red-500/30 bg-red-500/5">
+        <CardHeader className={variant === 'compact' ? 'py-3' : undefined}>
+          <div className="flex items-center gap-3">
+            <div className={cn(
+              "rounded-lg bg-red-500/10 border border-red-500/20 flex items-center justify-center",
+              variant === 'compact' ? 'h-8 w-8' : 'h-10 w-10'
+            )}>
+              <AlertCircle className={cn(
+                "text-red-500",
+                variant === 'compact' ? 'h-4 w-4' : 'h-5 w-5'
+              )} />
+            </div>
+            <div>
+              <CardTitle className={cn(
+                "text-red-500",
+                variant === 'compact' ? 'text-base' : 'text-lg'
+              )}>
+                {isGuestOrder ? 'Guest Order' : 'Access Denied'}
+              </CardTitle>
+              <CardDescription className={variant === 'compact' ? 'text-xs' : undefined}>
+                {accessMessage}
+              </CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="rounded-lg bg-muted/50 p-4">
+            <div className="flex items-center gap-3 text-muted-foreground">
+              <Lock className="h-4 w-4 shrink-0" />
+              <span className="text-sm">
+                {isGuestOrder 
+                  ? 'This order was placed as a guest. If you used a different email, try logging in with that email address.'
+                  : 'You do not have permission to view the keys for this order.'}
+              </span>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   // Not fulfilled - show loading state
   if (!isFulfilled && items.length > 0) {

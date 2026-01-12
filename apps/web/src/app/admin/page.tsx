@@ -104,13 +104,13 @@ function DashboardSkeleton(): React.ReactElement {
   return (
     <div className="container mx-auto py-8 space-y-8" role="status" aria-label="Loading dashboard">
       {/* Header skeleton */}
-      <div className="rounded-xl border border-white/10 bg-bg-secondary/50 p-8">
+      <div className="rounded-xl border border-border-subtle bg-bg-secondary p-8 shadow-card-md">
         <div className="flex items-center justify-between">
           <div className="space-y-2">
-            <div className="h-8 w-48 bg-white/10 rounded animate-pulse" />
-            <div className="h-4 w-64 bg-white/5 rounded animate-pulse" />
+            <div className="h-8 w-48 skeleton rounded" />
+            <div className="h-4 w-64 skeleton rounded" />
           </div>
-          <div className="h-8 w-40 bg-white/10 rounded-full animate-pulse" />
+          <div className="h-8 w-40 skeleton rounded-full" />
         </div>
       </div>
 
@@ -119,7 +119,7 @@ function DashboardSkeleton(): React.ReactElement {
         {Array.from({ length: 4 }, (_, i) => (
           <div
             key={i}
-            className="h-32 rounded-xl border border-white/10 bg-bg-secondary/50 animate-pulse"
+            className="h-32 rounded-xl border border-border-subtle bg-bg-secondary skeleton"
             style={{ animationDelay: `${i * 100}ms` }}
           />
         ))}
@@ -127,12 +127,12 @@ function DashboardSkeleton(): React.ReactElement {
 
       {/* Chart and alerts skeleton */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-        <div className="col-span-4 h-[420px] rounded-xl border border-white/10 bg-bg-secondary/50 animate-pulse" />
-        <div className="col-span-3 h-[420px] rounded-xl border border-white/10 bg-bg-secondary/50 animate-pulse" />
+        <div className="col-span-4 h-[420px] rounded-xl border border-border-subtle bg-bg-secondary skeleton" />
+        <div className="col-span-3 h-[420px] rounded-xl border border-border-subtle bg-bg-secondary skeleton" />
       </div>
 
       {/* Table skeleton */}
-      <div className="h-80 rounded-xl border border-white/10 bg-bg-secondary/50 animate-pulse" />
+      <div className="h-80 rounded-xl border border-border-subtle bg-bg-secondary skeleton" />
 
       <span className="sr-only">Loading admin dashboard data...</span>
     </div>
@@ -172,6 +172,7 @@ function SystemStatusBadge({ health }: { health: SystemHealth }): React.ReactEle
   };
 
   const config = statusConfig[health.status];
+  const Icon = config.icon;
 
   return (
     <TooltipProvider>
@@ -179,23 +180,22 @@ function SystemStatusBadge({ health }: { health: SystemHealth }): React.ReactEle
         <TooltipTrigger asChild>
           <div
             className={cn(
-              'flex items-center gap-2 rounded-full border px-4 py-1.5 backdrop-blur-sm cursor-help',
-              health.status === 'operational' && 'border-green-success/30 bg-green-success/10',
-              health.status === 'degraded' && 'border-orange-warning/30 bg-orange-warning/10',
-              health.status === 'outage' && 'border-red-500/30 bg-red-500/10',
-              health.status === 'unknown' && 'border-white/20 bg-white/5'
+              'flex items-center gap-2 rounded-full border px-4 py-1.5 glass cursor-help transition-all',
+              health.status === 'operational' && 'border-green-success/30 bg-green-success/10 shadow-glow-success hover:shadow-glow-success',
+              health.status === 'degraded' && 'border-orange-warning/30 bg-orange-warning/10 shadow-glow-error hover:shadow-glow-error',
+              health.status === 'outage' && 'border-destructive/30 bg-destructive/10 shadow-glow-error hover:shadow-glow-error',
+              health.status === 'unknown' && 'border-border-accent bg-bg-tertiary'
             )}
             role="status"
             aria-label={config.label}
           >
             <div
               className={cn(
-                'h-2 w-2 rounded-full',
-                health.status === 'operational' && 'bg-green-success animate-pulse',
-                health.status === 'degraded' && 'bg-orange-warning animate-pulse',
-                health.status === 'outage' && 'bg-red-500 animate-pulse',
-                health.status === 'unknown' && 'bg-text-muted',
-                config.glow
+                'h-2 w-2 rounded-full animate-glow-pulse',
+                health.status === 'operational' && 'bg-green-success',
+                health.status === 'degraded' && 'bg-orange-warning',
+                health.status === 'outage' && 'bg-destructive',
+                health.status === 'unknown' && 'bg-text-muted'
               )}
             />
             <span
@@ -203,7 +203,7 @@ function SystemStatusBadge({ health }: { health: SystemHealth }): React.ReactEle
                 'text-sm font-medium',
                 health.status === 'operational' && 'text-green-success',
                 health.status === 'degraded' && 'text-orange-warning',
-                health.status === 'outage' && 'text-red-500',
+                health.status === 'outage' && 'text-destructive',
                 health.status === 'unknown' && 'text-text-muted'
               )}
             >
@@ -213,7 +213,7 @@ function SystemStatusBadge({ health }: { health: SystemHealth }): React.ReactEle
         </TooltipTrigger>
         <TooltipContent
           side="bottom"
-          className="bg-bg-secondary border-white/10 p-3 w-56"
+          className="bg-bg-secondary border-border-subtle p-3 w-56 shadow-card-lg"
           sideOffset={8}
         >
           <div className="space-y-2">
@@ -228,13 +228,28 @@ function SystemStatusBadge({ health }: { health: SystemHealth }): React.ReactEle
                     {service === 'kinguin' && <Wifi className="h-3 w-3" />}
                     {service}
                   </span>
-                  <span className={isUp ? 'text-green-success' : 'text-red-500'}>
-                    {isUp ? 'Online' : 'Offline'}
+                  <span
+                    className={cn(
+                      'flex items-center gap-1 font-medium',
+                      isUp ? 'text-green-success' : 'text-destructive'
+                    )}
+                  >
+                    {isUp ? (
+                      <>
+                        <CheckCircle2 className="h-3 w-3" />
+                        Online
+                      </>
+                    ) : (
+                      <>
+                        <XCircle className="h-3 w-3" />
+                        Offline
+                      </>
+                    )}
                   </span>
                 </div>
               ))}
             </div>
-            <p className="text-[10px] text-text-muted pt-1 border-t border-white/5">
+            <p className="text-[10px] text-text-muted pt-1 border-t border-border-subtle">
               Last checked: {health.lastChecked.toLocaleTimeString()}
             </p>
           </div>
@@ -251,27 +266,27 @@ function SystemStatusBadge({ health }: { health: SystemHealth }): React.ReactEle
 function AlertItem({ alert }: { alert: Alert }): React.ReactElement {
   const severityConfig = {
     critical: {
-      color: 'red-500',
-      bgColor: 'bg-red-500/10',
-      borderColor: 'border-red-500/30',
-      glowColor: 'shadow-[0_0_10px_rgba(239,68,68,0.2)]',
-      hoverGlow: 'group-hover:shadow-[0_0_15px_rgba(239,68,68,0.4)]',
+      textColor: 'text-destructive',
+      bgColor: 'bg-destructive/10',
+      borderColor: 'border-destructive/30',
+      shadowClass: 'shadow-glow-error',
+      hoverShadow: 'group-hover:shadow-glow-error',
       icon: XCircle,
     },
     warning: {
-      color: 'orange-warning',
+      textColor: 'text-orange-warning',
       bgColor: 'bg-orange-warning/10',
       borderColor: 'border-orange-warning/30',
-      glowColor: 'shadow-[0_0_10px_rgba(255,107,0,0.2)]',
-      hoverGlow: 'group-hover:shadow-[0_0_15px_rgba(255,107,0,0.4)]',
+      shadowClass: 'shadow-glow-error',
+      hoverShadow: 'group-hover:shadow-glow-error',
       icon: AlertTriangle,
     },
     info: {
-      color: 'cyan-glow',
+      textColor: 'text-cyan-glow',
       bgColor: 'bg-cyan-glow/10',
       borderColor: 'border-cyan-glow/30',
-      glowColor: 'shadow-[0_0_10px_rgba(0,217,255,0.2)]',
-      hoverGlow: 'group-hover:shadow-[0_0_15px_rgba(0,217,255,0.4)]',
+      shadowClass: 'shadow-glow-cyan-sm',
+      hoverShadow: 'group-hover:shadow-glow-cyan',
       icon: Activity,
     },
   };
@@ -293,18 +308,18 @@ function AlertItem({ alert }: { alert: Alert }): React.ReactElement {
     <motion.div
       initial={{ opacity: 0, x: -10 }}
       animate={{ opacity: 1, x: 0 }}
-      className="flex items-start gap-3 group p-2 -mx-2 rounded-lg hover:bg-white/5 transition-colors"
+      className="flex items-start gap-3 group p-2 -mx-2 rounded-lg hover:bg-bg-tertiary/50 transition-all duration-200"
     >
       <div
         className={cn(
           'flex h-9 w-9 shrink-0 items-center justify-center rounded-full border transition-all',
           config.bgColor,
           config.borderColor,
-          config.glowColor,
-          config.hoverGlow
+          config.shadowClass,
+          config.hoverShadow
         )}
       >
-        <Icon className={cn('h-4 w-4', `text-${config.color}`)} />
+        <Icon className={cn('h-4 w-4', config.textColor)} />
       </div>
       <div className="flex-1 min-w-0 space-y-0.5">
         <p className="text-sm font-medium leading-none text-text-primary truncate">
@@ -335,16 +350,16 @@ function TimeRangeSelector({
   ];
 
   return (
-    <div className="flex items-center gap-1 p-1 rounded-lg bg-bg-tertiary/50 border border-white/10">
+    <div className="flex items-center gap-1 p-1 rounded-lg bg-bg-tertiary border border-border-subtle">
       {options.map((option) => (
         <button
           key={option.value}
           onClick={() => onChange(option.value)}
           className={cn(
-            'px-3 py-1 text-xs font-medium rounded-md transition-all',
+            'px-3 py-1 text-xs font-medium rounded-md transition-all duration-200',
             value === option.value
-              ? 'bg-cyan-glow/20 text-cyan-glow shadow-[0_0_10px_rgba(0,217,255,0.2)]'
-              : 'text-text-secondary hover:text-text-primary hover:bg-white/5'
+              ? 'bg-cyan-glow/20 text-cyan-glow shadow-glow-cyan-sm'
+              : 'text-text-secondary hover:text-text-primary hover:bg-bg-secondary'
           )}
         >
           {option.label}
@@ -361,10 +376,10 @@ function TimeRangeSelector({
 function OrderStatusBadge({ status }: { status: string }): React.ReactElement {
   const statusConfig: Record<string, { color: string; bg: string; icon: React.ElementType }> = {
     fulfilled: { color: 'text-green-success', bg: 'bg-green-success/10', icon: CheckCircle2 },
-    paid: { color: 'text-blue-500', bg: 'bg-blue-500/10', icon: DollarSign },
-    waiting: { color: 'text-yellow-500', bg: 'bg-yellow-500/10', icon: Clock },
+    paid: { color: 'text-purple-neon', bg: 'bg-purple-neon/10', icon: DollarSign },
+    waiting: { color: 'text-orange-warning', bg: 'bg-orange-warning/10', icon: Clock },
     confirming: { color: 'text-cyan-glow', bg: 'bg-cyan-glow/10', icon: Activity },
-    failed: { color: 'text-red-500', bg: 'bg-red-500/10', icon: XCircle },
+    failed: { color: 'text-destructive', bg: 'bg-destructive/10', icon: XCircle },
   };
 
   const config = statusConfig[status] ?? statusConfig.waiting;
@@ -435,50 +450,90 @@ export default function AdminDashboardPage(): React.ReactElement | null {
     []
   );
 
-  // Generate alerts from real data (would be real API call)
+  // Generate alerts from real data
   const alerts = useMemo<Alert[]>(() => {
-    // In production, this would come from webhook logs, queue status, etc.
     const alertsList: Alert[] = [];
 
-    // Check for recent failed orders
-    const failedOrders = recentOrders?.data?.filter((o) => o.status === 'failed') ?? [];
+    if (!recentOrders?.data || !stats) return alertsList;
+
+    // Critical: Failed orders
+    const failedOrders = recentOrders.data.filter((o) => o.status === 'failed');
     if (failedOrders.length > 0) {
       alertsList.push({
         id: 'failed-orders',
         severity: 'critical',
-        title: `${failedOrders.length} Failed Order(s)`,
-        description: 'Recent orders failed to process',
-        timestamp: new Date(),
+        title: `${failedOrders.length} Failed Order${failedOrders.length > 1 ? 's' : ''}`,
+        description: `Payment or fulfillment failures detected. Review order logs.`,
+        timestamp: new Date(failedOrders[0]?.createdAt ?? Date.now()),
         source: 'payment',
       });
     }
 
-    // Check for waiting orders (potential delays)
-    const waitingOrders = recentOrders?.data?.filter((o) => o.status === 'waiting') ?? [];
-    if (waitingOrders.length > 2) {
+    // Critical: Underpaid orders
+    const underpaidOrders = recentOrders.data.filter((o) => o.status === 'underpaid');
+    if (underpaidOrders.length > 0) {
+      alertsList.push({
+        id: 'underpaid-orders',
+        severity: 'critical',
+        title: `${underpaidOrders.length} Underpaid Order${underpaidOrders.length > 1 ? 's' : ''}`,
+        description: `Customers sent insufficient payment. Manual review required.`,
+        timestamp: new Date(underpaidOrders[0]?.createdAt ?? Date.now()),
+        source: 'payment',
+      });
+    }
+
+    // Warning: Confirming orders (stuck in payment confirmation)
+    const confirmingOrders = recentOrders.data.filter((o) => o.status === 'confirming');
+    if (confirmingOrders.length > 2) {
+      alertsList.push({
+        id: 'confirming-orders',
+        severity: 'warning',
+        title: `${confirmingOrders.length} Orders Confirming`,
+        description: `Multiple orders waiting for blockchain confirmation`,
+        timestamp: new Date(Date.now() - 10 * 60000),
+        source: 'payment',
+      });
+    }
+
+    // Warning: Waiting orders (potential delays)
+    const waitingOrders = recentOrders.data.filter((o) => o.status === 'waiting');
+    if (waitingOrders.length > 3) {
       alertsList.push({
         id: 'waiting-orders',
         severity: 'warning',
-        title: 'Orders Awaiting Payment',
-        description: `${waitingOrders.length} orders pending confirmation`,
-        timestamp: new Date(Date.now() - 15 * 60000),
+        title: `${waitingOrders.length} Orders Awaiting Payment`,
+        description: `Customers have not yet completed payment`,
+        timestamp: new Date(Date.now() - 20 * 60000),
         source: 'payment',
       });
     }
 
-    // Info alert for recent activity
-    if (stats !== null && stats !== undefined && stats.totalOrders > 0) {
+    // Info: Recent fulfillment activity
+    const fulfilledOrders = recentOrders.data.filter((o) => o.status === 'fulfilled');
+    if (fulfilledOrders.length > 0) {
       alertsList.push({
-        id: 'catalog-sync',
+        id: 'recent-fulfilled',
         severity: 'info',
-        title: 'Catalog Sync Complete',
-        description: `${stats.totalOrders} orders processed today`,
-        timestamp: new Date(Date.now() - 60 * 60000),
+        title: `${fulfilledOrders.length} Order${fulfilledOrders.length > 1 ? 's' : ''} Fulfilled`,
+        description: `Recent successful deliveries - system operational`,
+        timestamp: new Date(fulfilledOrders[0]?.createdAt ?? Date.now()),
+        source: 'webhook',
+      });
+    }
+
+    // Info: Active orders health check
+    if (stats.activeOrders > 10) {
+      alertsList.push({
+        id: 'high-activity',
+        severity: 'info',
+        title: 'High Order Activity',
+        description: `${stats.activeOrders} orders currently processing`,
+        timestamp: new Date(Date.now() - 30 * 60000),
         source: 'system',
       });
     }
 
-    return alertsList;
+    return alertsList.slice(0, 5); // Show max 5 alerts
   }, [recentOrders, stats]);
 
   // Calculate real trends from data
@@ -547,8 +602,8 @@ export default function AdminDashboardPage(): React.ReactElement | null {
   return (
     <div className="container mx-auto py-8 space-y-8">
       {/* Header Section */}
-      <div className="relative overflow-hidden rounded-xl border border-cyan-glow/20 bg-bg-secondary p-8 shadow-lg shadow-cyan-glow/5">
-        <div className="absolute inset-0 opacity-30">
+      <div className="relative overflow-hidden rounded-xl border border-cyan-glow/20 bg-bg-secondary p-8 shadow-card-lg shadow-cyan-glow/10">
+        <div className="absolute inset-0 opacity-20">
           <AnimatedGridPattern />
         </div>
         <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -590,7 +645,7 @@ export default function AdminDashboardPage(): React.ReactElement | null {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <DashboardStatCard
           title="Total Revenue"
-          value={`€${stats?.totalRevenue.toFixed(2) ?? '0.00'}`}
+          value={`€${((stats?.totalRevenue ?? 0) / 100).toFixed(2)}`}
           icon={DollarSign}
           color="green"
           trend={{
@@ -646,7 +701,7 @@ export default function AdminDashboardPage(): React.ReactElement | null {
           transition={{ duration: 0.4, delay: 0.5 }}
           className="col-span-4"
         >
-          <Card className="border-border/50 bg-bg-secondary/50 backdrop-blur-sm h-full">
+          <Card className="glass border-border-subtle h-full shadow-card-md">
             <CardHeader className="flex flex-row items-center justify-between">
               <div>
                 <CardTitle className="text-text-primary">Revenue Overview</CardTitle>
@@ -722,7 +777,7 @@ export default function AdminDashboardPage(): React.ReactElement | null {
           transition={{ duration: 0.4, delay: 0.6 }}
           className="col-span-3"
         >
-          <Card className="border-border/50 bg-bg-secondary/50 backdrop-blur-sm h-full">
+          <Card className="glass border-border-subtle h-full shadow-card-md">
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="text-text-primary">System Alerts</CardTitle>
               {alerts.length > 0 && (
@@ -768,7 +823,7 @@ export default function AdminDashboardPage(): React.ReactElement | null {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, delay: 0.7 }}
       >
-        <Card className="border-border/50 bg-bg-secondary/50 backdrop-blur-sm">
+        <Card className="glass border-border-subtle shadow-card-md">
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
               <CardTitle className="text-text-primary">Recent Orders</CardTitle>
@@ -787,48 +842,110 @@ export default function AdminDashboardPage(): React.ReactElement | null {
           <CardContent>
             <Table>
               <TableHeader>
-                <TableRow className="border-border/50 hover:bg-transparent">
+                <TableRow className="border-border-subtle hover:bg-transparent">
                   <TableHead className="text-text-secondary">Order ID</TableHead>
                   <TableHead className="text-text-secondary">Customer</TableHead>
                   <TableHead className="text-text-secondary">Total</TableHead>
+                  <TableHead className="text-text-secondary">Payment Status</TableHead>
                   <TableHead className="text-text-secondary">Status</TableHead>
                   <TableHead className="text-right text-text-secondary">Date</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {(recentOrders?.data?.length ?? 0) > 0 ? (
-                  recentOrders?.data?.map((order) => (
-                    <TableRow
-                      key={order.id}
-                      className="border-border/50 hover:bg-bg-tertiary/30 cursor-pointer"
-                    >
-                      <TableCell className="font-mono text-xs text-text-secondary">
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger className="hover:text-cyan-glow transition-colors">
-                              {order.id?.slice(0, 8)}...
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <span className="font-mono text-xs">{order.id}</span>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      </TableCell>
-                      <TableCell className="text-text-primary">{order.email}</TableCell>
-                      <TableCell className="text-text-primary font-mono">{order.total}</TableCell>
-                      <TableCell>
-                        <OrderStatusBadge status={order.status ?? 'waiting'} />
-                      </TableCell>
-                      <TableCell className="text-right text-text-secondary text-sm">
-                        {order.createdAt != null
-                          ? new Date(order.createdAt).toLocaleDateString()
-                          : 'N/A'}
-                      </TableCell>
-                    </TableRow>
-                  ))
+                  recentOrders?.data?.map((order) => {
+                    return (
+                      <TableRow
+                        key={order.id}
+                        className="border-border/50 hover:bg-bg-tertiary/30 cursor-pointer transition-colors"
+                      >
+                        <TableCell className="font-mono text-xs text-text-secondary">
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger className="hover:text-cyan-glow transition-colors">
+                                {order.id?.slice(0, 8)}...
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <div className="space-y-1">
+                                  <p className="font-mono text-xs">{order.id}</p>
+                                  <p className="text-xs text-text-muted">Full Order ID</p>
+                                </div>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </TableCell>
+                        <TableCell>
+                          <span className="text-text-primary text-sm">{order.email}</span>
+                        </TableCell>
+                        <TableCell>
+                          <span className="text-text-primary font-mono font-semibold">
+                            {order.total ?? '0.00'}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          {order.payment ? (
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger>
+                                  <div className="flex items-center gap-1.5">
+                                    <div className="h-2 w-2 rounded-full bg-cyan-glow shadow-glow-cyan-sm" />
+                                    <span className="text-xs text-text-secondary">
+                                      {order.payment.id?.slice(0, 8) ?? 'Pending'}
+                                    </span>
+                                  </div>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <div className="space-y-1">
+                                    <p className="text-xs font-semibold">Payment Details</p>
+                                    <p className="text-xs text-text-muted font-mono">
+                                      ID: {order.payment.id}
+                                    </p>
+                                    <p className="text-xs text-text-muted">
+                                      Status: {order.payment.status ?? 'N/A'}
+                                    </p>
+                                    {order.payment.provider && (
+                                      <p className="text-xs text-cyan-glow">
+                                        Provider: {order.payment.provider}
+                                      </p>
+                                    )}
+                                  </div>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          ) : (
+                            <span className="text-xs text-text-muted">No payment</span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <OrderStatusBadge status={order.status ?? 'waiting'} />
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex flex-col items-end">
+                            <span className="text-text-secondary text-sm">
+                              {order.createdAt != null
+                                ? new Date(order.createdAt).toLocaleDateString('en-US', { 
+                                    month: 'short', 
+                                    day: 'numeric',
+                                    year: 'numeric'
+                                  })
+                                : 'N/A'}
+                            </span>
+                            <span className="text-xs text-text-muted">
+                              {order.createdAt != null
+                                ? new Date(order.createdAt).toLocaleTimeString('en-US', { 
+                                    hour: '2-digit', 
+                                    minute: '2-digit'
+                                  })
+                                : ''}
+                            </span>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
                 ) : (
                   <TableRow className="border-border/50 hover:bg-bg-tertiary/30">
-                    <TableCell colSpan={5} className="text-center h-24 text-text-muted">
+                    <TableCell colSpan={6} className="text-center h-24 text-text-muted">
                       <div className="flex flex-col items-center gap-2">
                         <Package className="h-8 w-8 opacity-50" />
                         <span>No orders found</span>

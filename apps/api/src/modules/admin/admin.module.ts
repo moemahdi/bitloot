@@ -9,6 +9,9 @@ import { Payment } from '../payments/payment.entity';
 import { WebhookLog } from '../../database/entities/webhook-log.entity';
 import { Key } from '../orders/key.entity';
 import { User } from '../../database/entities/user.entity';
+import { EmailsModule } from '../emails/emails.module';
+import { StorageService } from '../storage/storage.service';
+import { FulfillmentModule } from '../fulfillment/fulfillment.module';
 
 /**
  * Admin Module - Management API for BitLoot operators
@@ -27,8 +30,10 @@ import { User } from '../../database/entities/user.entity';
   imports: [
     TypeOrmModule.forFeature([Order, Payment, WebhookLog, Key, User]),
     AdminOpsModule,
+    EmailsModule,
+    FulfillmentModule, // Provides R2StorageClient
   ],
-  providers: [AdminService],
+  providers: [AdminService, StorageService],
   controllers: [AdminController],
   exports: [AdminService],
 })

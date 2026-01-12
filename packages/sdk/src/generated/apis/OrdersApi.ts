@@ -16,11 +16,14 @@
 import * as runtime from '../runtime';
 import type {
   CreateOrderDto,
+  OrderAccessStatusDto,
   OrderResponseDto,
 } from '../models/index';
 import {
     CreateOrderDtoFromJSON,
     CreateOrderDtoToJSON,
+    OrderAccessStatusDtoFromJSON,
+    OrderAccessStatusDtoToJSON,
     OrderResponseDtoFromJSON,
     OrderResponseDtoToJSON,
 } from '../models/index';
@@ -31,6 +34,11 @@ export interface OrdersControllerCreateRequest {
 
 export interface OrdersControllerGetRequest {
     id: string;
+}
+
+export interface OrdersControllerGetAccessStatusRequest {
+    id: string;
+    xOrderSessionToken?: string;
 }
 
 export interface OrdersControllerGetForCheckoutRequest {
@@ -135,6 +143,55 @@ export class OrdersApi extends runtime.BaseAPI {
      */
     async ordersControllerGet(requestParameters: OrdersControllerGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<OrderResponseDto> {
         const response = await this.ordersControllerGetRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Check if current user can access keys for this order
+     */
+    async ordersControllerGetAccessStatusRaw(requestParameters: OrdersControllerGetAccessStatusRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<OrderAccessStatusDto>> {
+        if (requestParameters['id'] == null) {
+            throw new runtime.RequiredError(
+                'id',
+                'Required parameter "id" was null or undefined when calling ordersControllerGetAccessStatus().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (requestParameters['xOrderSessionToken'] != null) {
+            headerParameters['x-order-session-token'] = String(requestParameters['xOrderSessionToken']);
+        }
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("JWT-auth", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/orders/{id}/access-status`;
+        urlPath = urlPath.replace(`{${"id"}}`, encodeURIComponent(String(requestParameters['id'])));
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => OrderAccessStatusDtoFromJSON(jsonValue));
+    }
+
+    /**
+     * Check if current user can access keys for this order
+     */
+    async ordersControllerGetAccessStatus(requestParameters: OrdersControllerGetAccessStatusRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<OrderAccessStatusDto> {
+        const response = await this.ordersControllerGetAccessStatusRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

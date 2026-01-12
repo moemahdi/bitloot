@@ -11,6 +11,7 @@ import {
 } from './dto/nowpayments-ipn.dto';
 import { WebhookLog } from '../../database/entities/webhook-log.entity';
 import { Order } from '../orders/order.entity';
+import { Payment } from '../payments/payment.entity';
 import { MetricsService } from '../metrics/metrics.service';
 import { QUEUE_NAMES } from '../../jobs/queues';
 import { invalidateOrderCache } from '../orders/orders.service';
@@ -41,6 +42,8 @@ export class IpnHandlerService {
     private readonly webhookLogRepo: Repository<WebhookLog>,
     @InjectRepository(Order)
     private readonly orderRepo: Repository<Order>,
+    @InjectRepository(Payment)
+    private readonly paymentRepo: Repository<Payment>,
     private readonly metrics: MetricsService,
     @InjectQueue(QUEUE_NAMES.FULFILLMENT)
     private readonly fulfillmentQueue: Queue,
@@ -485,8 +488,32 @@ export class IpnHandlerService {
         this.logger.warn(`[IPN] Payment underpaid for order ${order.id} (non-refundable)`);
         break;
 
+      case 'sending':
+        // NOWPayments is broadcasting transaction to blockchain - treat like confirming
+        order.status = 'confirming';
+        this.logger.log(`[IPN] Payment sending (broadcasting) for order ${order.id}`);
+        break;
+
+      case 'partially_paid':
+        // Customer sent less than required - same as underpaid, non-refundable
+        order.status = 'underpaid';
+        this.logger.warn(`[IPN] Payment partially_paid for order ${order.id} (non-refundable)`);
+        break;
+
+      case 'expired':
+        // Payment window expired on NOWPayments side
+        order.status = 'expired';
+        this.logger.warn(`[IPN] Payment expired for order ${order.id}`);
+        break;
+
+      case 'refunded':
+        // NOWPayments processed a refund (rare, admin-initiated)
+        order.status = 'failed';
+        this.logger.warn(`[IPN] Payment refunded for order ${order.id}`);
+        break;
+
       default: {
-        // Unknown status - log and continue (don't fail)
+        // Truly unknown status - log and continue (don't fail)
         this.logger.warn(`[IPN] Unknown payment status: ${payload.payment_status}`);
         return {
           success: false,
@@ -499,12 +526,51 @@ export class IpnHandlerService {
     // 3. Save order with new status
     await this.orderRepo.save(order);
     
+    // 4. Update Payment record with new status (CRITICAL FIX)
+    // Find payment by externalId (payment_id from NOWPayments)
+    const payment = await this.paymentRepo.findOne({
+      where: { externalId: String(payload.payment_id) },
+    });
+    if (payment !== null) {
+      // Payment entity has a constrained enum, so map NOWPayments statuses to valid values
+      // Entity supports: 'created' | 'waiting' | 'confirmed' | 'finished' | 'underpaid' | 'failed'
+      type PaymentEntityStatus = 'created' | 'waiting' | 'confirmed' | 'finished' | 'underpaid' | 'failed';
+      
+      // Map NOWPayments status → Payment entity status
+      const statusMapping: Record<string, PaymentEntityStatus | null> = {
+        'created': 'created',
+        'waiting': 'waiting',
+        'confirming': 'waiting',      // Still waiting for confirmations
+        'sending': 'waiting',          // Broadcasting tx, still waiting
+        'confirmed': 'confirmed',
+        'finished': 'finished',
+        'partially_paid': 'underpaid', // Partial = underpaid
+        'underpaid': 'underpaid',
+        'expired': 'failed',           // Expired = failed
+        'refunded': 'failed',          // Refunded = failed (no product delivered)
+        'failed': 'failed',
+      };
+      
+      const mappedStatus = statusMapping[payload.payment_status];
+      
+      if (mappedStatus !== undefined && mappedStatus !== null) {
+        const previousPaymentStatus = payment.status;
+        payment.status = mappedStatus;
+        await this.paymentRepo.save(payment);
+        this.logger.log(`[IPN] Payment ${payment.id} status updated: ${previousPaymentStatus} → ${mappedStatus} (from ${payload.payment_status})`);
+      } else {
+        this.logger.warn(`[IPN] Unknown payment status for Payment record: ${payload.payment_status}`);
+      }
+    } else {
+      this.logger.warn(`[IPN] Payment record not found for externalId: ${payload.payment_id}`);
+    }
+    
     // CRITICAL: Invalidate order cache after status change
     // This ensures frontend gets fresh data on next poll
     invalidateOrderCache(order.id);
     this.logger.debug(`[IPN] Cache invalidated for order ${order.id}`);
 
-    // 4. Return processing result
+    // 5. Return processing result
     return {
       success: true,
       message: `Payment status updated: ${payload.payment_status}`,

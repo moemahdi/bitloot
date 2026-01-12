@@ -77,6 +77,27 @@ export class Key {
   viewedAt?: Date;
 
   /**
+   * Number of times the key has been downloaded/revealed
+   * Used for abuse detection (multiple downloads may indicate sharing)
+   */
+  @Column('int', { default: 0 })
+  downloadCount!: number;
+
+  /**
+   * IP address of the last access/reveal
+   * Used for security audit trail
+   */
+  @Column('text', { nullable: true })
+  lastAccessIp?: string;
+
+  /**
+   * User agent string of the last access/reveal
+   * Used for security audit trail (browser/device identification)
+   */
+  @Column('text', { nullable: true })
+  lastAccessUserAgent?: string;
+
+  /**
    * Timestamp when key record was created
    * Automatically set on insert
    */

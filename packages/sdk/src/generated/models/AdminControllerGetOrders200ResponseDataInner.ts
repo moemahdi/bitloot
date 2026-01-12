@@ -53,6 +53,12 @@ export interface AdminControllerGetOrders200ResponseDataInner {
     total?: string;
     /**
      * 
+     * @type {string}
+     * @memberof AdminControllerGetOrders200ResponseDataInner
+     */
+    sourceType?: AdminControllerGetOrders200ResponseDataInnerSourceTypeEnum;
+    /**
+     * 
      * @type {Date}
      * @memberof AdminControllerGetOrders200ResponseDataInner
      */
@@ -64,6 +70,17 @@ export interface AdminControllerGetOrders200ResponseDataInner {
      */
     payment?: AdminControllerGetOrders200ResponseDataInnerPayment | null;
 }
+
+
+/**
+ * @export
+ */
+export const AdminControllerGetOrders200ResponseDataInnerSourceTypeEnum = {
+    Custom: 'custom',
+    Kinguin: 'kinguin'
+} as const;
+export type AdminControllerGetOrders200ResponseDataInnerSourceTypeEnum = typeof AdminControllerGetOrders200ResponseDataInnerSourceTypeEnum[keyof typeof AdminControllerGetOrders200ResponseDataInnerSourceTypeEnum];
+
 
 /**
  * Check if a given object implements the AdminControllerGetOrders200ResponseDataInner interface.
@@ -86,6 +103,7 @@ export function AdminControllerGetOrders200ResponseDataInnerFromJSONTyped(json: 
         'email': json['email'] == null ? undefined : json['email'],
         'status': json['status'] == null ? undefined : json['status'],
         'total': json['total'] == null ? undefined : json['total'],
+        'sourceType': json['sourceType'] == null ? undefined : json['sourceType'],
         'createdAt': json['createdAt'] == null ? undefined : (new Date(json['createdAt'])),
         'payment': json['payment'] == null ? undefined : AdminControllerGetOrders200ResponseDataInnerPaymentFromJSON(json['payment']),
     };
@@ -106,6 +124,7 @@ export function AdminControllerGetOrders200ResponseDataInnerToJSONTyped(value?: 
         'email': value['email'],
         'status': value['status'],
         'total': value['total'],
+        'sourceType': value['sourceType'],
         'createdAt': value['createdAt'] == null ? value['createdAt'] : value['createdAt'].toISOString(),
         'payment': AdminControllerGetOrders200ResponseDataInnerPaymentToJSON(value['payment']),
     };

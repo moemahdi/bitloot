@@ -7,8 +7,12 @@
 Name | Type
 ------------ | -------------
 `id` | string
+`orderItemId` | string
 `viewed` | boolean
 `viewedAt` | Date
+`downloadCount` | number
+`lastAccessIp` | string
+`lastAccessUserAgent` | string
 `createdAt` | Date
 
 ## Example
@@ -19,8 +23,12 @@ import type { AdminControllerGetKeyAuditTrail200ResponseInner } from ''
 // TODO: Update the object below with actual values
 const example = {
   "id": null,
+  "orderItemId": null,
   "viewed": null,
   "viewedAt": null,
+  "downloadCount": null,
+  "lastAccessIp": null,
+  "lastAccessUserAgent": null,
   "createdAt": null,
 } satisfies AdminControllerGetKeyAuditTrail200ResponseInner
 

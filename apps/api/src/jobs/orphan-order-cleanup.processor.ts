@@ -3,6 +3,7 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, LessThan } from 'typeorm';
 import { Order } from '../modules/orders/order.entity';
+import { Payment } from '../modules/payments/payment.entity';
 
 /**
  * Orphan Order Cleanup Job
@@ -33,6 +34,8 @@ export class OrphanOrderCleanupService {
   constructor(
     @InjectRepository(Order)
     private readonly ordersRepo: Repository<Order>,
+    @InjectRepository(Payment)
+    private readonly paymentsRepo: Repository<Payment>,
   ) {}
 
   /**
@@ -68,9 +71,17 @@ export class OrphanOrderCleanupService {
       let cleanedCount = 0;
       for (const order of orphanedOrders) {
         try {
+          // Update order status to expired
           await this.ordersRepo.update(order.id, {
             status: 'expired',
           });
+          
+          // Also update associated payment record to expired/failed status
+          await this.paymentsRepo.update(
+            { orderId: order.id },
+            { status: 'failed' },
+          );
+          
           cleanedCount++;
           this.logger.debug(`Marked order ${order.id} as expired (payment window closed after ${this.ORPHAN_THRESHOLD_MINUTES}min)`);
         } catch (error) {
@@ -92,6 +103,22 @@ export class OrphanOrderCleanupService {
   async manualCleanup(): Promise<number> {
     const cutoffTime = new Date(Date.now() - this.ORPHAN_THRESHOLD_MINUTES * 60 * 1000);
 
+    // Get order IDs first for payment update
+    const orphanedOrders = await this.ordersRepo.find({
+      where: {
+        status: 'created',
+        createdAt: LessThan(cutoffTime),
+      },
+      select: ['id'],
+    });
+
+    if (orphanedOrders.length === 0) {
+      return 0;
+    }
+
+    const orderIds = orphanedOrders.map(o => o.id);
+
+    // Update orders to expired
     const result = await this.ordersRepo
       .createQueryBuilder()
       .update(Order)
@@ -100,9 +127,17 @@ export class OrphanOrderCleanupService {
       .andWhere('createdAt < :cutoff', { cutoff: cutoffTime })
       .execute();
 
+    // Update associated payments to failed
+    await this.paymentsRepo
+      .createQueryBuilder()
+      .update(Payment)
+      .set({ status: 'failed' })
+      .where('orderId IN (:...orderIds)', { orderIds })
+      .execute();
+
     const affected = result.affected ?? 0;
     if (affected > 0) {
-      this.logger.log(`Manual cleanup: ${affected} orphaned orders marked as expired`);
+      this.logger.log(`Manual cleanup: ${affected} orphaned orders marked as expired (payments also updated)`);
     }
     return affected;
   }

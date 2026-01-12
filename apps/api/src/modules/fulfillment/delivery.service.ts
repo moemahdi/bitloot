@@ -289,6 +289,23 @@ export class DeliveryService {
         }
       }
 
+      // Update viewedAt timestamp on key entity for audit trail
+      const revealedAt = new Date();
+      const isFirstReveal = keyEntity.viewedAt === null || keyEntity.viewedAt === undefined;
+      
+      if (isFirstReveal) {
+        // First time reveal - set the viewedAt timestamp
+        keyEntity.viewedAt = revealedAt;
+      }
+      
+      // Always increment download count and update access info
+      keyEntity.downloadCount = (keyEntity.downloadCount ?? 0) + 1;
+      keyEntity.lastAccessIp = accessInfo.ipAddress;
+      keyEntity.lastAccessUserAgent = accessInfo.userAgent;
+      await this.keyRepo.save(keyEntity);
+      
+      this.logger.debug(`[DELIVERY] Key access recorded for item ${itemId} (download #${keyEntity.downloadCount})`);
+
       // Log revelation event
       this.logKeyRevelation({
         orderId,
@@ -296,7 +313,7 @@ export class DeliveryService {
         email: order.email ?? 'unknown@example.com',
         ipAddress: accessInfo.ipAddress,
         userAgent: accessInfo.userAgent,
-        revealedAt: new Date(),
+        revealedAt,
       });
 
       this.logger.log(
@@ -310,9 +327,9 @@ export class DeliveryService {
         contentType,
         isBase64,
         signedUrl,
-        revealedAt: new Date(),
+        revealedAt,
         expiresAt,
-        downloadCount: 1,
+        downloadCount: keyEntity.downloadCount,
         accessInfo,
       };
     } catch (error) {

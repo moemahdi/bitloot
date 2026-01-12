@@ -6,6 +6,7 @@ All URIs are relative to *http://localhost*
 |------------- | ------------- | -------------|
 | [**usersControllerGetOrders**](UsersApi.md#userscontrollergetorders) | **GET** /users/me/orders | Get user\&#39;s orders |
 | [**usersControllerGetProfile**](UsersApi.md#userscontrollergetprofile) | **GET** /users/me | Get current user profile |
+| [**usersControllerGetStats**](UsersApi.md#userscontrollergetstats) | **GET** /users/me/stats | Get user\&#39;s order statistics (aggregated from all orders) |
 | [**usersControllerUpdatePassword**](UsersApi.md#userscontrollerupdatepassword) | **PATCH** /users/me/password | Update user password |
 
 
@@ -36,7 +37,7 @@ async function example() {
   const body = {
     // number | Page number (default: 1) (optional)
     page: 8.14,
-    // number | Items per page (default: 20, max: 100) (optional)
+    // number | Items per page (default: 20, max: 500) (optional)
     limit: 8.14,
   } satisfies UsersControllerGetOrdersRequest;
 
@@ -58,7 +59,7 @@ example().catch(console.error);
 | Name | Type | Description  | Notes |
 |------------- | ------------- | ------------- | -------------|
 | **page** | `number` | Page number (default: 1) | [Optional] [Defaults to `undefined`] |
-| **limit** | `number` | Items per page (default: 20, max: 100) | [Optional] [Defaults to `undefined`] |
+| **limit** | `number` | Items per page (default: 20, max: 500) | [Optional] [Defaults to `undefined`] |
 
 ### Return type
 
@@ -124,6 +125,67 @@ This endpoint does not need any parameter.
 ### Return type
 
 [**UserResponseDto**](UserResponseDto.md)
+
+### Authorization
+
+[JWT-auth](../README.md#JWT-auth)
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** |  |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## usersControllerGetStats
+
+> UserOrderStatsDto usersControllerGetStats()
+
+Get user\&#39;s order statistics (aggregated from all orders)
+
+### Example
+
+```ts
+import {
+  Configuration,
+  UsersApi,
+} from '';
+import type { UsersControllerGetStatsRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const config = new Configuration({ 
+    // Configure HTTP bearer authorization: JWT-auth
+    accessToken: "YOUR BEARER TOKEN",
+  });
+  const api = new UsersApi(config);
+
+  try {
+    const data = await api.usersControllerGetStats();
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+This endpoint does not need any parameter.
+
+### Return type
+
+[**UserOrderStatsDto**](UserOrderStatsDto.md)
 
 ### Authorization
 

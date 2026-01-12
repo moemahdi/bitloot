@@ -70,6 +70,12 @@ export interface OrderResponseDto {
      */
     total: string;
     /**
+     * Session token for immediate key access (valid 1 hour). Only included on order creation.
+     * @type {string}
+     * @memberof OrderResponseDto
+     */
+    orderSessionToken?: string;
+    /**
      * Cryptocurrency used for payment (e.g., btc, eth, ltc)
      * @type {string}
      * @memberof OrderResponseDto
@@ -138,6 +144,7 @@ export function OrderResponseDtoFromJSONTyped(json: any, ignoreDiscriminator: bo
         'sourceType': json['sourceType'],
         'kinguinReservationId': json['kinguinReservationId'] == null ? undefined : json['kinguinReservationId'],
         'total': json['total'],
+        'orderSessionToken': json['orderSessionToken'] == null ? undefined : json['orderSessionToken'],
         'payCurrency': json['payCurrency'] == null ? undefined : json['payCurrency'],
         'items': ((json['items'] as Array<any>).map(OrderItemResponseDtoFromJSON)),
         'createdAt': json['createdAt'],
@@ -163,6 +170,7 @@ export function OrderResponseDtoToJSONTyped(value?: OrderResponseDto | null, ign
         'sourceType': value['sourceType'],
         'kinguinReservationId': value['kinguinReservationId'],
         'total': value['total'],
+        'orderSessionToken': value['orderSessionToken'],
         'payCurrency': value['payCurrency'],
         'items': ((value['items'] as Array<any>).map(OrderItemResponseDtoToJSON)),
         'createdAt': value['createdAt'],

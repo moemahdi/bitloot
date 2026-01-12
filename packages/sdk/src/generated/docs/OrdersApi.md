@@ -6,6 +6,7 @@ All URIs are relative to *http://localhost*
 |------------- | ------------- | -------------|
 | [**ordersControllerCreate**](OrdersApi.md#orderscontrollercreate) | **POST** /orders | Create a new order |
 | [**ordersControllerGet**](OrdersApi.md#orderscontrollerget) | **GET** /orders/{id} | Get order by ID (requires ownership) |
+| [**ordersControllerGetAccessStatus**](OrdersApi.md#orderscontrollergetaccessstatus) | **GET** /orders/{id}/access-status | Check if current user can access keys for this order |
 | [**ordersControllerGetForCheckout**](OrdersApi.md#orderscontrollergetforcheckout) | **GET** /orders/{id}/checkout | Get order for checkout (public - UUID is auth) |
 | [**ordersControllerSetReservation**](OrdersApi.md#orderscontrollersetreservation) | **PATCH** /orders/{id}/reservation | Set Kinguin reservation ID (test/internal use) |
 
@@ -147,6 +148,79 @@ example().catch(console.error);
 | **200** |  |  -  |
 | **401** | Unauthorized - missing or invalid JWT |  -  |
 | **403** | Forbidden - order does not belong to user |  -  |
+| **404** | Order not found |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## ordersControllerGetAccessStatus
+
+> OrderAccessStatusDto ordersControllerGetAccessStatus(id, xOrderSessionToken)
+
+Check if current user can access keys for this order
+
+### Example
+
+```ts
+import {
+  Configuration,
+  OrdersApi,
+} from '';
+import type { OrdersControllerGetAccessStatusRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const config = new Configuration({ 
+    // Configure HTTP bearer authorization: JWT-auth
+    accessToken: "YOUR BEARER TOKEN",
+  });
+  const api = new OrdersApi(config);
+
+  const body = {
+    // string
+    id: id_example,
+    // string | Order session token for immediate guest access (received on order creation) (optional)
+    xOrderSessionToken: xOrderSessionToken_example,
+  } satisfies OrdersControllerGetAccessStatusRequest;
+
+  try {
+    const data = await api.ordersControllerGetAccessStatus(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **id** | `string` |  | [Defaults to `undefined`] |
+| **xOrderSessionToken** | `string` | Order session token for immediate guest access (received on order creation) | [Optional] [Defaults to `undefined`] |
+
+### Return type
+
+[**OrderAccessStatusDto**](OrderAccessStatusDto.md)
+
+### Authorization
+
+[JWT-auth](../README.md#JWT-auth)
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** |  |  -  |
 | **404** | Order not found |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)

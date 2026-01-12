@@ -7,6 +7,8 @@ import { useAuth } from '@/hooks/useAuth';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { Button } from '@/design-system/primitives/button';
+import { Input } from '@/design-system/primitives/input';
+import { Label } from '@/design-system/primitives/label';
 import { toast } from 'sonner';
 import {
   Loader2,
@@ -15,6 +17,8 @@ import {
   Sparkles,
   AlertCircle,
   RefreshCw,
+  Mail,
+  CheckCircle2,
 } from 'lucide-react';
 import { useMutation } from '@tanstack/react-query';
 import { OrdersApi } from '@bitloot/sdk';
@@ -164,15 +168,36 @@ function ErrorState({ message, onRetry }: { message: string; onRetry: () => void
 
 // ========== Main Checkout Page ==========
 // This page creates an order from cart items and redirects to /checkout/[id]
-// The unified checkout experience is in /checkout/[id]/page.tsx
+// Guest users must provide email before proceeding
 export default function CheckoutPage(): React.ReactElement {
   const { items, clearCart } = useCart();
   const { user } = useAuth();
   const router = useRouter();
   const [hasAttempted, setHasAttempted] = useState(false);
+  const [guestEmail, setGuestEmail] = useState('');
+  const [emailError, setEmailError] = useState('');
   
   // Use ref to track if order creation is in progress (survives re-renders and strict mode)
   const isCreatingOrderRef = useRef(false);
+
+  // Email validation
+  const validateEmail = (email: string): boolean => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
+  // Get the email to use for the order
+  const getOrderEmail = (): string | null => {
+    // If user is logged in, use their email
+    if (user?.email) {
+      return user.email;
+    }
+    // Otherwise, use guest email if valid
+    if (guestEmail && validateEmail(guestEmail)) {
+      return guestEmail;
+    }
+    return null;
+  };
 
   // Generate idempotency key from cart items (stable hash based on cart contents)
   const generateIdempotencyKey = (): string => {
@@ -200,9 +225,11 @@ export default function CheckoutPage(): React.ReactElement {
         quantity: item.quantity,
       }));
 
-      // Get email from user if authenticated, otherwise use placeholder
-      // The email will be collected/confirmed on /checkout/[id] page
-      const email = user?.email ?? 'pending@checkout.bitloot.io';
+      // Get email - must be provided (no more placeholder)
+      const email = getOrderEmail();
+      if (!email) {
+        throw new Error('Email is required to proceed with checkout');
+      }
 
       // Generate idempotency key to prevent duplicate orders
       const idempotencyKey = generateIdempotencyKey();
@@ -225,6 +252,12 @@ export default function CheckoutPage(): React.ReactElement {
     onSuccess: (order: OrderResponseDto) => {
       // Clear cart after successful order creation
       clearCart();
+      
+      // Store order session token for immediate guest access to keys
+      if (order.orderSessionToken) {
+        localStorage.setItem(`order_session_${order.id}`, order.orderSessionToken);
+      }
+      
       toast.success('Order created! Proceeding to payment...');
       // Redirect to unified checkout page
       router.replace(`/checkout/${order.id}`);
@@ -238,16 +271,38 @@ export default function CheckoutPage(): React.ReactElement {
     },
   });
 
-  // Auto-create order when page loads with cart items
-  // Using ref to prevent duplicate calls from React Strict Mode double-mount
-  useEffect(() => {
-    // Guard: Only attempt if we have items and not already creating
-    if (items.length > 0 && !isCreatingOrderRef.current && !hasAttempted) {
+  // Handle guest email submit
+  const handleGuestEmailSubmit = (e: React.FormEvent): void => {
+    e.preventDefault();
+    setEmailError('');
+    
+    if (!guestEmail.trim()) {
+      setEmailError('Email is required');
+      return;
+    }
+    
+    if (!validateEmail(guestEmail)) {
+      setEmailError('Please enter a valid email address');
+      return;
+    }
+
+    // Proceed with order creation
+    if (!isCreatingOrderRef.current) {
       isCreatingOrderRef.current = true;
       setHasAttempted(true);
       createOrderMutation.mutate();
     }
-  }, [items.length, hasAttempted, createOrderMutation]);
+  };
+
+  // Auto-create order when page loads IF user is logged in
+  useEffect(() => {
+    // Only auto-create if user is logged in with email
+    if (items.length > 0 && user?.email && !isCreatingOrderRef.current && !hasAttempted) {
+      isCreatingOrderRef.current = true;
+      setHasAttempted(true);
+      createOrderMutation.mutate();
+    }
+  }, [items.length, user?.email, hasAttempted, createOrderMutation]);
 
   // Show empty cart state if no items and haven't started processing
   if (items.length === 0 && !createOrderMutation.isPending && !hasAttempted) {
@@ -262,12 +317,129 @@ export default function CheckoutPage(): React.ReactElement {
         message={errorMsg !== undefined && errorMsg !== '' ? errorMsg : 'Failed to create order'}
         onRetry={() => {
           setHasAttempted(false);
+          isCreatingOrderRef.current = false;
           createOrderMutation.reset();
         }}
       />
     );
   }
 
-  // Show loading state while creating order
+  // Show loading state while creating order (for logged-in users)
+  if (createOrderMutation.isPending || (user?.email && hasAttempted)) {
+    return <CheckoutLoadingSkeleton />;
+  }
+
+  // Show email collection form for guest users
+  if (!user?.email) {
+    return (
+      <div className="min-h-screen bg-bg-primary flex items-center justify-center p-4 relative overflow-hidden">
+        {/* Background Effects */}
+        <div className="fixed inset-0 pointer-events-none">
+          <motion.div
+            className="absolute top-1/4 left-1/4 w-[400px] h-[400px] bg-cyan-glow/5 rounded-full blur-[100px]"
+            animate={{ opacity: [0.3, 0.5, 0.3], scale: [1, 1.1, 1] }}
+            transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
+          />
+          <motion.div
+            className="absolute bottom-1/4 right-1/4 w-[300px] h-[300px] bg-purple-neon/5 rounded-full blur-[80px]"
+            animate={{ opacity: [0.3, 0.5, 0.3], scale: [1, 1.05, 1] }}
+            transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut', delay: 1 }}
+          />
+        </div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20, scale: 0.95 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          className="relative glass-strong rounded-3xl p-8 max-w-md w-full shadow-card-lg border border-cyan-glow/30"
+        >
+          <div className="absolute top-0 left-0 right-0 h-1 bg-linear-to-r from-cyan-glow via-purple-neon to-cyan-glow" />
+
+          {/* Header */}
+          <div className="text-center mb-6">
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ type: 'spring', stiffness: 200, delay: 0.1 }}
+              className="w-16 h-16 rounded-2xl bg-linear-to-br from-cyan-glow/20 to-purple-neon/20 flex items-center justify-center mx-auto mb-4 border border-cyan-glow/30 shadow-glow-cyan-sm"
+            >
+              <Mail className="h-8 w-8 text-cyan-glow" />
+            </motion.div>
+            <h2 className="text-2xl font-bold text-text-primary mb-2">Enter Your Email</h2>
+            <p className="text-text-muted text-sm">
+              We&apos;ll send your game keys to this email address after payment
+            </p>
+          </div>
+
+          {/* Cart Summary */}
+          <div className="bg-bg-secondary/50 rounded-xl p-4 mb-6 border border-border-subtle">
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-text-muted">Items in cart:</span>
+              <span className="text-text-primary font-medium">{items.length} item{items.length !== 1 ? 's' : ''}</span>
+            </div>
+          </div>
+
+          {/* Email Form */}
+          <form onSubmit={handleGuestEmailSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="guest-email" className="text-text-secondary">
+                Email Address
+              </Label>
+              <Input
+                id="guest-email"
+                type="email"
+                placeholder="your@email.com"
+                value={guestEmail}
+                onChange={(e) => {
+                  setGuestEmail(e.target.value);
+                  setEmailError('');
+                }}
+                className={`bg-bg-secondary border-border-subtle focus:border-cyan-glow/50 ${
+                  emailError ? 'border-red-error' : ''
+                }`}
+                disabled={createOrderMutation.isPending}
+              />
+              {emailError && (
+                <p className="text-red-error text-sm flex items-center gap-1">
+                  <AlertCircle className="h-3 w-3" />
+                  {emailError}
+                </p>
+              )}
+            </div>
+
+            <Button
+              type="submit"
+              disabled={createOrderMutation.isPending}
+              className="w-full bg-linear-to-r from-cyan-glow to-purple-neon text-bg-primary hover:shadow-glow-cyan-lg font-bold text-lg py-6 group"
+            >
+              {createOrderMutation.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                  Creating Order...
+                </>
+              ) : (
+                <>
+                  <CheckCircle2 className="mr-2 h-5 w-5" />
+                  Continue to Payment
+                  <ArrowRight className="ml-2 h-5 w-5 transition-transform group-hover:translate-x-1" />
+                </>
+              )}
+            </Button>
+          </form>
+
+          {/* Login Link */}
+          <div className="mt-6 text-center">
+            <p className="text-text-muted text-sm">
+              Already have an account?{' '}
+              <Link href="/login" className="text-cyan-glow hover:underline">
+                Log in
+              </Link>
+            </p>
+          </div>
+        </motion.div>
+      </div>
+    );
+  }
+
+  // Fallback loading state
   return <CheckoutLoadingSkeleton />;
 }

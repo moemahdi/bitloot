@@ -4,15 +4,244 @@ All URIs are relative to *http://localhost*
 
 | Method | HTTP request | Description |
 |------------- | ------------- | -------------|
+| [**adminControllerAdminRevealKey**](AdminApi.md#admincontrolleradminrevealkey) | **GET** /admin/keys/{keyId}/reveal | Admin reveal key (for support) |
+| [**adminControllerBulkUpdateStatus**](AdminApi.md#admincontrollerbulkupdatestatus) | **PATCH** /admin/orders/bulk-status | Bulk update order status |
+| [**adminControllerExportOrders**](AdminApi.md#admincontrollerexportorders) | **GET** /admin/orders/export | Export orders with date range |
 | [**adminControllerGetDashboardStats**](AdminApi.md#admincontrollergetdashboardstats) | **GET** /admin/stats | Get dashboard statistics |
 | [**adminControllerGetKeyAuditTrail**](AdminApi.md#admincontrollergetkeyaudittrail) | **GET** /admin/key-audit/{orderId} | Get key access audit trail |
+| [**adminControllerGetOrderAnalytics**](AdminApi.md#admincontrollergetorderanalytics) | **GET** /admin/orders/analytics | Get order analytics |
 | [**adminControllerGetOrders**](AdminApi.md#admincontrollergetorders) | **GET** /admin/orders | Get paginated list of orders |
 | [**adminControllerGetPayments**](AdminApi.md#admincontrollergetpayments) | **GET** /admin/payments | Get paginated list of payments |
 | [**adminControllerGetReservations**](AdminApi.md#admincontrollergetreservations) | **GET** /admin/reservations | Get paginated list of Kinguin reservations |
 | [**adminControllerGetWebhookLog**](AdminApi.md#admincontrollergetwebhooklog) | **GET** /admin/webhook-logs/{id} | Get webhook log details |
 | [**adminControllerGetWebhookLogs**](AdminApi.md#admincontrollergetwebhooklogs) | **GET** /admin/webhook-logs | Get paginated list of webhook logs |
 | [**adminControllerReplayWebhook**](AdminApi.md#admincontrollerreplaywebhook) | **POST** /admin/webhook-logs/{id}/replay | Replay failed webhook |
+| [**adminControllerResendKeys**](AdminApi.md#admincontrollerresendkeys) | **POST** /admin/orders/{id}/resend-keys | Resend key delivery email |
+| [**adminControllerUpdateOrderStatus**](AdminApi.md#admincontrollerupdateorderstatus) | **PATCH** /admin/orders/{id}/status | Update order status |
 
+
+
+## adminControllerAdminRevealKey
+
+> AdminControllerAdminRevealKey200Response adminControllerAdminRevealKey(keyId)
+
+Admin reveal key (for support)
+
+Reveals key content for admin support purposes. This action is logged for audit.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  AdminApi,
+} from '';
+import type { AdminControllerAdminRevealKeyRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const config = new Configuration({ 
+    // Configure HTTP bearer authorization: JWT-auth
+    accessToken: "YOUR BEARER TOKEN",
+  });
+  const api = new AdminApi(config);
+
+  const body = {
+    // string
+    keyId: keyId_example,
+  } satisfies AdminControllerAdminRevealKeyRequest;
+
+  try {
+    const data = await api.adminControllerAdminRevealKey(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **keyId** | `string` |  | [Defaults to `undefined`] |
+
+### Return type
+
+[**AdminControllerAdminRevealKey200Response**](AdminControllerAdminRevealKey200Response.md)
+
+### Authorization
+
+[JWT-auth](../README.md#JWT-auth)
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Key content revealed |  -  |
+| **404** | Key not found |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## adminControllerBulkUpdateStatus
+
+> BulkUpdateStatusResponseDto adminControllerBulkUpdateStatus(bulkUpdateStatusDto)
+
+Bulk update order status
+
+Update status for multiple orders at once. Maximum 100 orders per request. All changes are logged.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  AdminApi,
+} from '';
+import type { AdminControllerBulkUpdateStatusRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const config = new Configuration({ 
+    // Configure HTTP bearer authorization: JWT-auth
+    accessToken: "YOUR BEARER TOKEN",
+  });
+  const api = new AdminApi(config);
+
+  const body = {
+    // BulkUpdateStatusDto
+    bulkUpdateStatusDto: ...,
+  } satisfies AdminControllerBulkUpdateStatusRequest;
+
+  try {
+    const data = await api.adminControllerBulkUpdateStatus(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **bulkUpdateStatusDto** | [BulkUpdateStatusDto](BulkUpdateStatusDto.md) |  | |
+
+### Return type
+
+[**BulkUpdateStatusResponseDto**](BulkUpdateStatusResponseDto.md)
+
+### Authorization
+
+[JWT-auth](../README.md#JWT-auth)
+
+### HTTP request headers
+
+- **Content-Type**: `application/json`
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Bulk update completed |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## adminControllerExportOrders
+
+> Array&lt;AdminControllerExportOrders200ResponseInner&gt; adminControllerExportOrders(startDate, endDate, status, sourceType)
+
+Export orders with date range
+
+Returns all orders matching filters for export. Client handles CSV generation.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  AdminApi,
+} from '';
+import type { AdminControllerExportOrdersRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const config = new Configuration({ 
+    // Configure HTTP bearer authorization: JWT-auth
+    accessToken: "YOUR BEARER TOKEN",
+  });
+  const api = new AdminApi(config);
+
+  const body = {
+    // string | Start date (ISO 8601)
+    startDate: 2025-01-01,
+    // string | End date (ISO 8601)
+    endDate: 2025-01-31,
+    // string (optional)
+    status: fulfilled,
+    // 'custom' | 'kinguin' (optional)
+    sourceType: sourceType_example,
+  } satisfies AdminControllerExportOrdersRequest;
+
+  try {
+    const data = await api.adminControllerExportOrders(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **startDate** | `string` | Start date (ISO 8601) | [Defaults to `undefined`] |
+| **endDate** | `string` | End date (ISO 8601) | [Defaults to `undefined`] |
+| **status** | `string` |  | [Optional] [Defaults to `undefined`] |
+| **sourceType** | `custom`, `kinguin` |  | [Optional] [Defaults to `undefined`] [Enum: custom, kinguin] |
+
+### Return type
+
+[**Array&lt;AdminControllerExportOrders200ResponseInner&gt;**](AdminControllerExportOrders200ResponseInner.md)
+
+### Authorization
+
+[JWT-auth](../README.md#JWT-auth)
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Orders for export |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
 
 ## adminControllerGetDashboardStats
@@ -84,7 +313,7 @@ This endpoint does not need any parameter.
 
 Get key access audit trail
 
-Returns when keys were revealed to the customer
+Returns when keys were revealed to the customer with product info
 
 ### Example
 
@@ -150,9 +379,80 @@ example().catch(console.error);
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
 
+## adminControllerGetOrderAnalytics
+
+> OrderAnalyticsDto adminControllerGetOrderAnalytics(days)
+
+Get order analytics
+
+Returns aggregated order statistics: by status, by source type, daily volume, and rates
+
+### Example
+
+```ts
+import {
+  Configuration,
+  AdminApi,
+} from '';
+import type { AdminControllerGetOrderAnalyticsRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const config = new Configuration({ 
+    // Configure HTTP bearer authorization: JWT-auth
+    accessToken: "YOUR BEARER TOKEN",
+  });
+  const api = new AdminApi(config);
+
+  const body = {
+    // number | Number of days to analyze (default 30) (optional)
+    days: 30,
+  } satisfies AdminControllerGetOrderAnalyticsRequest;
+
+  try {
+    const data = await api.adminControllerGetOrderAnalytics(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **days** | `number` | Number of days to analyze (default 30) | [Optional] [Defaults to `undefined`] |
+
+### Return type
+
+[**OrderAnalyticsDto**](OrderAnalyticsDto.md)
+
+### Authorization
+
+[JWT-auth](../README.md#JWT-auth)
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Order analytics |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
 ## adminControllerGetOrders
 
-> AdminControllerGetOrders200Response adminControllerGetOrders(limit, offset, email, status)
+> AdminControllerGetOrders200Response adminControllerGetOrders(limit, offset, email, search, status, startDate, endDate, sourceType)
 
 Get paginated list of orders
 
@@ -182,8 +482,16 @@ async function example() {
     offset: 0,
     // string (optional)
     email: user@example.com,
+    // string | Search by email or order ID (optional)
+    search: user@example.com,
     // string (optional)
     status: fulfilled,
+    // string | Filter orders created on or after this date (ISO 8601) (optional)
+    startDate: 2025-01-01,
+    // string | Filter orders created on or before this date (ISO 8601) (optional)
+    endDate: 2025-01-31,
+    // 'custom' | 'kinguin' | Filter by fulfillment source type (optional)
+    sourceType: sourceType_example,
   } satisfies AdminControllerGetOrdersRequest;
 
   try {
@@ -206,7 +514,11 @@ example().catch(console.error);
 | **limit** | `number` |  | [Optional] [Defaults to `undefined`] |
 | **offset** | `number` |  | [Optional] [Defaults to `undefined`] |
 | **email** | `string` |  | [Optional] [Defaults to `undefined`] |
+| **search** | `string` | Search by email or order ID | [Optional] [Defaults to `undefined`] |
 | **status** | `string` |  | [Optional] [Defaults to `undefined`] |
+| **startDate** | `string` | Filter orders created on or after this date (ISO 8601) | [Optional] [Defaults to `undefined`] |
+| **endDate** | `string` | Filter orders created on or before this date (ISO 8601) | [Optional] [Defaults to `undefined`] |
+| **sourceType** | `custom`, `kinguin` | Filter by fulfillment source type | [Optional] [Defaults to `undefined`] [Enum: custom, kinguin] |
 
 ### Return type
 
@@ -611,6 +923,155 @@ example().catch(console.error);
 | **200** | Webhook marked for replay |  -  |
 | **400** | Cannot replay processed webhook |  -  |
 | **404** | Webhook log not found |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## adminControllerResendKeys
+
+> AdminControllerResendKeys200Response adminControllerResendKeys(id)
+
+Resend key delivery email
+
+Regenerates signed URLs for keys and resends delivery email to customer. Only works for fulfilled orders.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  AdminApi,
+} from '';
+import type { AdminControllerResendKeysRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const config = new Configuration({ 
+    // Configure HTTP bearer authorization: JWT-auth
+    accessToken: "YOUR BEARER TOKEN",
+  });
+  const api = new AdminApi(config);
+
+  const body = {
+    // string
+    id: id_example,
+  } satisfies AdminControllerResendKeysRequest;
+
+  try {
+    const data = await api.adminControllerResendKeys(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **id** | `string` |  | [Defaults to `undefined`] |
+
+### Return type
+
+[**AdminControllerResendKeys200Response**](AdminControllerResendKeys200Response.md)
+
+### Authorization
+
+[JWT-auth](../README.md#JWT-auth)
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Keys email resent successfully |  -  |
+| **400** | Order not fulfilled - cannot resend keys |  -  |
+| **404** | Order not found |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## adminControllerUpdateOrderStatus
+
+> AdminControllerUpdateOrderStatus200Response adminControllerUpdateOrderStatus(id, updateOrderStatusDto)
+
+Update order status
+
+Admin override to update order status. Used for manual refunds or corrections. All changes are logged.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  AdminApi,
+} from '';
+import type { AdminControllerUpdateOrderStatusRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const config = new Configuration({ 
+    // Configure HTTP bearer authorization: JWT-auth
+    accessToken: "YOUR BEARER TOKEN",
+  });
+  const api = new AdminApi(config);
+
+  const body = {
+    // string
+    id: id_example,
+    // UpdateOrderStatusDto
+    updateOrderStatusDto: ...,
+  } satisfies AdminControllerUpdateOrderStatusRequest;
+
+  try {
+    const data = await api.adminControllerUpdateOrderStatus(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **id** | `string` |  | [Defaults to `undefined`] |
+| **updateOrderStatusDto** | [UpdateOrderStatusDto](UpdateOrderStatusDto.md) |  | |
+
+### Return type
+
+[**AdminControllerUpdateOrderStatus200Response**](AdminControllerUpdateOrderStatus200Response.md)
+
+### Authorization
+
+[JWT-auth](../README.md#JWT-auth)
+
+### HTTP request headers
+
+- **Content-Type**: `application/json`
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Order status updated successfully |  -  |
+| **400** | Invalid status transition |  -  |
+| **404** | Order not found |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
