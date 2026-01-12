@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -244,7 +244,7 @@ function OrderStatusCard({
   };
 
   const config = getStatusConfig();
-  if (!config) return <></>;
+  if (config === null || config === undefined) return <></>;
 
   const Icon = config.icon;
 
@@ -337,7 +337,7 @@ export default function CheckoutPage(): React.ReactElement {
 
   // Auto-redirect on fulfilled and set email from order
   useEffect(() => {
-    if (order) {
+    if (order !== null && order !== undefined) {
       // Redirect to success when fulfilled
       if (order.status === 'fulfilled') {
         router.replace(`/orders/${orderId}/success`);
@@ -360,7 +360,7 @@ export default function CheckoutPage(): React.ReactElement {
   const createPaymentMutation = useMutation({
     mutationFn: async (payCurrency: string): Promise<EmbeddedPaymentResponseDto> => {
       // Get the order total for payment creation
-      if (!order) {
+      if (order === null || order === undefined) {
         throw new Error('Order not found');
       }
       const response = await paymentsClient.paymentsControllerCreateEmbedded({
@@ -419,7 +419,7 @@ export default function CheckoutPage(): React.ReactElement {
   }
 
   // Error state
-  if (orderError || !order) {
+  if (orderError !== null && orderError !== undefined || order === null || order === undefined) {
     return (
       <div className="min-h-screen bg-bg-primary flex items-center justify-center p-4 relative overflow-hidden">
         <div className="fixed inset-0 pointer-events-none">
@@ -579,7 +579,7 @@ export default function CheckoutPage(): React.ReactElement {
                     </div>
 
                     <div className="p-6 md:p-8">
-                      {isAuthenticated && user?.email ? (
+                      {isAuthenticated && user?.email !== undefined && user?.email !== null && user?.email !== '' ? (
                         <div className="space-y-6">
                           <motion.div
                             initial={{ scale: 0.95, opacity: 0 }}
@@ -629,7 +629,7 @@ export default function CheckoutPage(): React.ReactElement {
                                 {...register('email')}
                               />
                             </div>
-                            {errors.email && (
+                            {errors.email !== null && errors.email !== undefined && (
                               <motion.p
                                 initial={{ opacity: 0, y: -5 }}
                                 animate={{ opacity: 1, y: 0 }}
@@ -696,7 +696,7 @@ export default function CheckoutPage(): React.ReactElement {
               )}
 
               {/* ========== STEP 3: PAYING ========== */}
-              {currentStep === 'paying' && embeddedPayment && (
+              {currentStep === 'paying' && embeddedPayment !== null && embeddedPayment !== undefined && (
                 <motion.div
                   key="paying-step"
                   initial={{ opacity: 0, y: 20 }}
@@ -736,7 +736,7 @@ export default function CheckoutPage(): React.ReactElement {
                     <h3 className="text-lg font-bold text-text-primary flex items-center gap-2">
                       <ShoppingBag className="h-5 w-5 text-cyan-glow" />
                       Order Summary
-                      {order.items && order.items.length > 0 && (
+                      {order.items !== null && order.items !== undefined && order.items.length > 0 && (
                         <span className="ml-1 inline-flex items-center px-2 py-0.5 rounded-full bg-purple-neon/10 text-xs font-medium text-purple-neon border border-purple-neon/20">
                           {order.items.length} {order.items.length === 1 ? 'item' : 'items'}
                         </span>

@@ -774,10 +774,17 @@ export class PaymentsService {
     // Check if any amount was actually paid
     // Use type assertion since IPN may include additional fields from NOWPayments
     const dtoAsRecord = dto as unknown as Record<string, unknown>;
-    const actuallyPaid = dtoAsRecord['actually_paid'] ?? 
-                         dtoAsRecord['actuallyPaid'] ?? 0;
+    const actuallyPaidRaw = dtoAsRecord['actually_paid'] ?? dtoAsRecord['actuallyPaid'];
     
-    const paidAmount = typeof actuallyPaid === 'number' ? actuallyPaid : parseFloat(String(actuallyPaid)) || 0;
+    // Convert to number safely
+    let actuallyPaid = 0;
+    if (typeof actuallyPaidRaw === 'number') {
+      actuallyPaid = actuallyPaidRaw;
+    } else if (typeof actuallyPaidRaw === 'string') {
+      actuallyPaid = parseFloat(actuallyPaidRaw);
+    }
+    
+    const paidAmount = !isNaN(actuallyPaid) && actuallyPaid !== 0 ? actuallyPaid : 0;
     
     // If no payment was ever received and status is failed → expired
     // If some payment was received → actual failure (not expiration)

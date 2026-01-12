@@ -247,7 +247,7 @@ export default function CheckoutPage(): React.ReactElement {
       setHasAttempted(true);
       createOrderMutation.mutate();
     }
-  }, [items.length, hasAttempted]); // Removed createOrderMutation from deps to prevent re-triggers
+  }, [items.length, hasAttempted, createOrderMutation]);
 
   // Show empty cart state if no items and haven't started processing
   if (items.length === 0 && !createOrderMutation.isPending && !hasAttempted) {

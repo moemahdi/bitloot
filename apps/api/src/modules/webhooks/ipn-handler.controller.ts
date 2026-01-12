@@ -247,7 +247,7 @@ export class IpnHandlerController {
     totalPages: number;
     hasNextPage: boolean;
   }> {
-    return await this.ipnHandlerService.listWebhooks({
+    const result = await this.ipnHandlerService.listWebhooks({
       page: Math.max(1, !Number.isNaN(parseInt(page, 10)) ? parseInt(page, 10) : 1),
       limit: Math.min(
         100,
@@ -258,5 +258,6 @@ export class IpnHandlerController {
       paymentStatus,
       orderId,
     });
+    return result;
   }
 }

@@ -107,7 +107,7 @@ function CurrencyCard({
         }
       `}
       aria-pressed={isSelected}
-      aria-label={`Select ${currency.name}${currency.network ? ` on ${currency.network}` : ''}`}
+      aria-label={`Select ${currency.name}${currency.network !== undefined && currency.network !== null && currency.network !== '' ? ` on ${currency.network}` : ''}`}
     >
       {/* Selected indicator */}
       {isSelected && (
@@ -129,7 +129,7 @@ function CurrencyCard({
       </span>
 
       {/* Network badge */}
-      {currency.network && (
+      {currency.network !== undefined && currency.network !== null && currency.network !== '' && (
         <Badge
           variant="outline"
           className="text-[10px] px-1.5 py-0 h-4 bg-bg-tertiary/50 border-border-subtle text-text-muted"
@@ -172,7 +172,7 @@ function CurrencyListItem({
         }
       `}
       aria-pressed={isSelected}
-      aria-label={`Select ${currency.name}${currency.network ? ` on ${currency.network}` : ''}`}
+      aria-label={`Select ${currency.name}${currency.network !== undefined && currency.network !== null && currency.network !== '' ? ` on ${currency.network}` : ''}`}
     >
       <div className="flex items-center gap-3">
         <CryptoIcon code={currency.code} size={28} className="flex-shrink-0" />
@@ -183,7 +183,7 @@ function CurrencyListItem({
             >
               {currency.symbol}
             </span>
-            {currency.network && (
+            {currency.network !== undefined && currency.network !== null && currency.network !== '' && (
               <Badge
                 variant="outline"
                 className="text-[10px] px-1 py-0 h-4 bg-bg-tertiary/50 border-border-subtle text-text-muted"
@@ -249,7 +249,7 @@ function SelectedCurrencyDisplay({ currency }: { currency: CryptoCurrency }) {
               </Badge>
             </div>
             <span className="text-text-secondary">{currency.name}</span>
-            {currency.network && (
+            {currency.network !== undefined && currency.network !== null && currency.network !== '' && (
               <span className="text-xs text-text-muted mt-0.5 flex items-center gap-1">
                 <span className="w-1.5 h-1.5 rounded-full bg-cyan-glow/50" />
                 Network: {currency.network}
@@ -328,7 +328,7 @@ export function PaymentMethodForm({
     const query = searchQuery.toLowerCase().trim();
 
     const filterFn = (currency: CryptoCurrency) => {
-      if (!query) return true;
+      if (query === '') return true;
       return (
         currency.code.toLowerCase().includes(query) ||
         currency.name.toLowerCase().includes(query) ||
@@ -385,7 +385,7 @@ export function PaymentMethodForm({
       <CardContent>
         <form onSubmit={handleSubmit(onFormSubmit)} className="space-y-6">
           {/* Selected Currency Display */}
-          {selectedCurrencyInfo && <SelectedCurrencyDisplay currency={selectedCurrencyInfo} />}
+          {selectedCurrencyInfo !== null && selectedCurrencyInfo !== undefined && <SelectedCurrencyDisplay currency={selectedCurrencyInfo} />}
 
           {/* Quick Select Section */}
           <div className="space-y-3">
@@ -455,7 +455,7 @@ export function PaymentMethodForm({
                       <p className="text-xs text-text-muted px-1">
                         Found <span className="font-medium text-text-secondary">{totalResults}</span>{' '}
                         currencies
-                        {searchQuery && (
+                        {searchQuery !== '' && (
                           <span>
                             {' '}
                             matching &quot;<span className="text-cyan-glow">{searchQuery}</span>
@@ -469,7 +469,7 @@ export function PaymentMethodForm({
                     <ScrollArea className="h-[360px] rounded-lg border border-border-subtle bg-bg-tertiary/30">
                       <div className="p-3 space-y-2">
                         {/* No results - Empty State */}
-                        {totalResults === 0 && searchQuery && (
+                        {totalResults === 0 && searchQuery !== '' && (
                           <motion.div
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
@@ -559,7 +559,7 @@ export function PaymentMethodForm({
 
           {/* Error Display */}
           <AnimatePresence>
-            {errors.payCurrency && (
+            {errors.payCurrency !== null && errors.payCurrency !== undefined && (
               <motion.div
                 initial={{ opacity: 0, y: -5 }}
                 animate={{ opacity: 1, y: 0 }}

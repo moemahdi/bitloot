@@ -138,7 +138,7 @@ export function AuthProvider({ children }: { children: ReactNode }): React.React
   }, [deleteCookie, queryClient]);
 
   // Helper to clear stale sessionId without full logout
-  const clearStaleSessionId = useCallback((): void => {
+  const _clearStaleSessionId = useCallback((): void => {
     if (typeof localStorage !== 'undefined') {
       localStorage.removeItem('sessionId');
     }
@@ -256,11 +256,11 @@ export function AuthProvider({ children }: { children: ReactNode }): React.React
       }
 
       refreshTimeoutRef.current = setTimeout(() => {
-        void (async () => {
+        void (() => {
           // ========== TOKEN REFRESH DEBOUNCE ==========
           // If a refresh is already in progress, skip - the other caller will handle it
           if (isRefreshingRef.current) {
-            console.debug('🔄 Scheduled refresh skipped - already in progress');
+            console.info('🔄 Scheduled refresh skipped - already in progress');
             return;
           }
           isRefreshingRef.current = true;
@@ -280,7 +280,7 @@ export function AuthProvider({ children }: { children: ReactNode }): React.React
                 refreshToken: result.refreshToken,
               }));
               
-              console.debug('✅ Scheduled token refresh completed');
+              console.info('✅ Scheduled token refresh completed');
               // Note: Don't call scheduleRefresh() here - the effect will re-run
               // due to state change and reschedule automatically
             } catch (error) {
@@ -343,7 +343,7 @@ export function AuthProvider({ children }: { children: ReactNode }): React.React
         }
       } catch (error) {
         // Network errors are OK, don't logout on network issues
-        console.debug('Session validation network error (ignored):', error);
+        console.info('Session validation network error (ignored):', error);
       }
     };
 
@@ -368,7 +368,7 @@ export function AuthProvider({ children }: { children: ReactNode }): React.React
     const handleFocus = (): void => {
       if (!state.isAuthenticated || state.sessionId === null || state.accessToken === null) return;
 
-      console.debug('👁️ Window focused - validating session...');
+      console.info('👁️ Window focused - validating session...');
       
       void (async () => {
         try {
@@ -392,7 +392,7 @@ export function AuthProvider({ children }: { children: ReactNode }): React.React
             logout();
           }
         } catch (error) {
-          console.debug('Session validation on focus failed (network):', error);
+          console.info('Session validation on focus failed (network):', error);
         }
       })();
     };
@@ -442,7 +442,7 @@ export function AuthProvider({ children }: { children: ReactNode }): React.React
     // If a refresh is already in progress, return the existing promise
     // This prevents duplicate API calls when multiple components request refresh simultaneously
     if (isRefreshingRef.current && refreshPromiseRef.current !== null) {
-      console.debug('🔄 Token refresh already in progress, awaiting existing promise');
+      console.info('🔄 Token refresh already in progress, awaiting existing promise');
       return refreshPromiseRef.current;
     }
     
@@ -463,7 +463,7 @@ export function AuthProvider({ children }: { children: ReactNode }): React.React
           refreshToken: result.refreshToken,
         }));
         
-        console.debug('✅ Token refreshed successfully');
+        console.info('✅ Token refreshed successfully');
       } catch (error) {
         console.error('Token refresh error:', error);
         logout();

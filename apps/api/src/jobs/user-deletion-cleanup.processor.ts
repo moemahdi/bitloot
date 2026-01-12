@@ -53,7 +53,7 @@ export class UserDeletionCleanupService {
         try {
           // Calculate when deletion was requested
           const deletionRequestedAt = user.deletionRequestedAt;
-          const gracePeriodDays = deletionRequestedAt
+          const gracePeriodDays = deletionRequestedAt !== null && deletionRequestedAt !== undefined
             ? Math.floor((Date.now() - deletionRequestedAt.getTime()) / (1000 * 60 * 60 * 24))
             : 30;
 

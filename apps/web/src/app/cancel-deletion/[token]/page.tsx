@@ -80,7 +80,7 @@ export default function CancelDeletionPage(): React.ReactElement {
     }
     hasExecutedRef.current = true;
     
-    if (!token) {
+    if (token === '') {
       setResult({
         status: 'invalid',
         message: 'No cancellation token provided.',
@@ -156,7 +156,7 @@ export default function CancelDeletionPage(): React.ReactElement {
             <CardDescription className="text-center text-text-secondary">
               {result.message}
             </CardDescription>
-            {result.email && (
+            {result.email !== undefined && result.email !== null && result.email !== '' && (
               <p className="text-center text-sm text-text-tertiary">
                 Account: {result.email}
               </p>
@@ -178,7 +178,7 @@ export default function CancelDeletionPage(): React.ReactElement {
             <CardDescription className="text-center text-text-secondary">
               {result.message}
             </CardDescription>
-            {result.email && (
+            {result.email !== undefined && result.email !== null && result.email !== '' && (
               <p className="text-center text-sm text-text-tertiary">
                 Account: {result.email}
               </p>

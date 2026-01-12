@@ -66,7 +66,7 @@ export function RealCryptoIcon({
     if (currentIndex < cdnList.length - 1) {
       // Try next CDN
       const nextUrl = cdnList[currentIndex + 1];
-      if (nextUrl) {
+      if (nextUrl !== undefined && nextUrl !== null && nextUrl !== '') {
         setCurrentUrl(nextUrl);
       }
     } else {
@@ -536,7 +536,7 @@ export function CryptoIcon({
   const IconComponent = CRYPTO_ICONS[normalizedCode];
   
   // For major cryptocurrencies, use handcrafted SVG icons for better quality
-  if (IconComponent) {
+  if (IconComponent !== null && IconComponent !== undefined) {
     return <IconComponent className={className} size={size} />;
   }
   

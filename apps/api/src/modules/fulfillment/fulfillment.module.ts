@@ -22,7 +22,7 @@ import { OrdersService } from '../orders/orders.service';
 import { CatalogModule } from '../catalog/catalog.module';
 import { AdminOpsModule } from '../admin/admin-ops.module';
 import { FulfillmentController } from './fulfillment.controller';
-import { FulfillmentGateway } from './fulfillment.gateway';
+import { FulfillmentGateway as _FulfillmentGateway } from './fulfillment.gateway';
 
 /**
  * Fulfillment Module

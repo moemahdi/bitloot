@@ -56,8 +56,10 @@ export class SessionController {
     @Query('page') pageStr?: string,
     @Query('limit') limitStr?: string,
   ): Promise<{ sessions: SessionResponseDto[]; total: number; page: number; limit: number; totalPages: number }> {
-    const page = Math.max(1, parseInt(pageStr ?? '1', 10) || 1);
-    const limit = Math.min(50, Math.max(1, parseInt(limitStr ?? '10', 10) || 10));
+    const parsedPage = parseInt(pageStr ?? '1', 10);
+    const page = Math.max(1, !isNaN(parsedPage) && parsedPage !== 0 ? parsedPage : 1);
+    const parsedLimit = parseInt(limitStr ?? '10', 10);
+    const limit = Math.min(50, Math.max(1, !isNaN(parsedLimit) && parsedLimit !== 0 ? parsedLimit : 10));
     
     this.logger.debug(`📋 Fetching sessions for user ${req.user.id}, currentSessionId: ${currentSessionId ?? 'not provided'}, page: ${page}, limit: ${limit}`);
     

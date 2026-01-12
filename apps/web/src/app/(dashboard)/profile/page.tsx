@@ -3,9 +3,10 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useAuth } from '@/hooks/useAuth';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { UsersApi, FulfillmentApi, AuthenticationApi, SessionsApi, type OrderResponseDto, type OrderItemResponseDto, type RecoveryResponseDto, type RecoveryItemDto } from '@bitloot/sdk';
+import { UsersApi, FulfillmentApi, AuthenticationApi, SessionsApi, type OrderResponseDto, type OrderItemResponseDto } from '@bitloot/sdk';
 import { apiConfig } from '@/lib/api-config';
 import { useWatchlist, useRemoveFromWatchlist } from '@/features/watchlist';
 import { useCart } from '@/context/CartContext';
@@ -16,7 +17,7 @@ import { Input } from '@/design-system/primitives/input';
 import { Separator } from '@/design-system/primitives/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/design-system/primitives/tabs';
 import { Badge } from '@/design-system/primitives/badge';
-import { Loader2, User, Shield, Key, Package, DollarSign, Check, Copy, ShoppingBag, LogOut, LayoutDashboard, Eye, HelpCircle, Mail, Hash, Crown, ShieldCheck, AlertCircle, Fingerprint, Info, Heart, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, RefreshCw, Download, Smartphone, Monitor, Trash2, X, AlertTriangle, MessageSquare, Book, LifeBuoy, Clock, Globe, Activity, Search, Bell, ShoppingCart, LayoutGrid, List } from 'lucide-react';
+import { Loader2, User, Shield, Key, Package, DollarSign, Check, Copy, ShoppingBag, LogOut, LayoutDashboard, Eye, HelpCircle, Mail, Hash, Crown, ShieldCheck, AlertCircle, Fingerprint, Info, Heart, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, RefreshCw, Smartphone, Monitor, Trash2, X, AlertTriangle, MessageSquare, Book, LifeBuoy, Clock, Globe, Activity, Search, Bell, ShoppingCart, LayoutGrid, List } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import { DashboardStatCard } from '@/components/dashboard/DashboardStatCard';
@@ -76,7 +77,7 @@ function WatchlistTabContent(): React.ReactElement {
   };
 
   // Computed values
-  const items = watchlistData?.data ?? [];
+  const items = useMemo(() => watchlistData?.data ?? [], [watchlistData?.data]);
   const total = watchlistData?.total ?? 0;
   const totalPages = watchlistData?.totalPages ?? 1;
   
@@ -503,9 +504,11 @@ function WatchlistTabContent(): React.ReactElement {
                       <Link href={`/product/${item.product.slug}`} className="shrink-0">
                         <div className="relative w-20 h-20 rounded-lg overflow-hidden bg-bg-tertiary">
                           {item.product.coverImageUrl !== undefined && item.product.coverImageUrl !== null && item.product.coverImageUrl !== '' ? (
-                            <img
+                            <Image
                               src={item.product.coverImageUrl}
                               alt={item.product.title}
+                              width={80}
+                              height={80}
                               className={`w-full h-full object-cover group-hover:scale-110 transition-transform duration-300 ${isUnavailable ? 'grayscale' : ''}`}
                             />
                           ) : (
@@ -676,7 +679,7 @@ export default function ProfilePage(): React.ReactElement {
   // State for expanded orders in Purchases tab
   const [expandedOrders, setExpandedOrders] = useState<Set<string>>(new Set());
   // State for tracking download in progress
-  const [downloadingOrder, setDownloadingOrder] = useState<string | null>(null);
+  const [_downloadingOrder, setDownloadingOrder] = useState<string | null>(null);
   // State for tracking key recovery in progress
   const [recoveringOrder, setRecoveringOrder] = useState<string | null>(null);
   
@@ -850,7 +853,7 @@ export default function ProfilePage(): React.ReactElement {
     daysRemaining: number | null;
   }
   
-  const { data: deletionStatus, refetch: refetchDeletionStatus } = useQuery<DeletionStatus | null>({
+  const { data: deletionStatus, refetch: _refetchDeletionStatus } = useQuery<DeletionStatus | null>({
     queryKey: ['deletion-status'],
     queryFn: async () => {
       try {
@@ -883,10 +886,12 @@ export default function ProfilePage(): React.ReactElement {
         requestEmailChangeDto: { newEmail: email }
       });
       if (!response.raw.ok) {
-        const error = await response.raw.json();
-        throw new Error((error as { message?: string }).message ?? 'Failed to request email change');
+        const errorResponse: unknown = await response.raw.json();
+        const error = errorResponse as { message?: string };
+        throw new Error(error.message ?? 'Failed to request email change');
       }
-      return response.raw.json();
+      const successResponse: unknown = await response.raw.json();
+      return successResponse as { message: string };
     },
     onSuccess: () => {
       setIsEmailChangeStep('otp');
@@ -903,10 +908,12 @@ export default function ProfilePage(): React.ReactElement {
         verifyEmailChangeDto: { oldEmailCode: oldCode, newEmailCode: newCode }
       });
       if (!response.raw.ok) {
-        const error = await response.raw.json();
-        throw new Error((error as { message?: string }).message ?? 'Failed to verify email change');
+        const errorResponse: unknown = await response.raw.json();
+        const error = errorResponse as { message?: string };
+        throw new Error(error.message ?? 'Failed to verify email change');
       }
-      return response.raw.json();
+      const successResponse: unknown = await response.raw.json();
+      return successResponse as { message: string };
     },
     onSuccess: () => {
       setIsEmailChangeStep('idle');
@@ -986,10 +993,12 @@ export default function ProfilePage(): React.ReactElement {
         requestDeletionDto: { confirmation: 'DELETE' }
       });
       if (!response.raw.ok) {
-        const error = await response.raw.json();
-        throw new Error((error as { message?: string }).message ?? 'Failed to request account deletion');
+        const errorResponse: unknown = await response.raw.json();
+        const error = errorResponse as { message?: string };
+        throw new Error(error.message ?? 'Failed to request account deletion');
       }
-      return response.raw.json();
+      const successResponse: unknown = await response.raw.json();
+      return successResponse as { message: string };
     },
     onSuccess: async () => {
       setShowDeleteConfirm(false);
@@ -1039,7 +1048,7 @@ export default function ProfilePage(): React.ReactElement {
 
   // Client-side filtering for purchases (applied to ALL orders)
   const filteredOrders = useMemo(() => {
-    if (!allOrders) return [];
+    if (allOrders === null || allOrders === undefined) return [];
     
     let filtered = [...allOrders];
     
@@ -1064,7 +1073,7 @@ export default function ProfilePage(): React.ReactElement {
     }
     
     // Filter by search query (Order ID - matches both full ID and short ID)
-    if (purchasesSearchQuery.trim()) {
+    if (purchasesSearchQuery.trim() !== '') {
       const query = purchasesSearchQuery.toLowerCase().replace('#', '');
       filtered = filtered.filter((order: OrderResponseDto) => 
         order.id.toLowerCase().includes(query) ||
@@ -1082,7 +1091,7 @@ export default function ProfilePage(): React.ReactElement {
   }, [filteredOrders, purchasesPage, purchasesPerPage]);
 
   // Calculate pagination info
-  const purchasesTotalPages = Math.ceil(filteredOrders.length / purchasesPerPage) || 1;
+  const purchasesTotalPages = filteredOrders.length > 0 ? Math.ceil(filteredOrders.length / purchasesPerPage) : 1;
 
   // Reset to page 1 when filter or search changes
   useEffect(() => {
@@ -1090,7 +1099,7 @@ export default function ProfilePage(): React.ReactElement {
   }, [purchasesStatusFilter, purchasesSearchQuery]);
 
   // Download keys for a fulfilled order
-  const handleDownloadKeys = async (orderId: string): Promise<void> => {
+  const _handleDownloadKeys = async (orderId: string): Promise<void> => {
     setDownloadingOrder(orderId);
     try {
       const response = await fulfillmentClient.fulfillmentControllerGetDownloadLink({ id: orderId });
@@ -1101,22 +1110,25 @@ export default function ProfilePage(): React.ReactElement {
       } else {
         toast.error('Download link not available. Keys may not be ready yet or have expired. Please contact support.');
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to get download link:', error);
       
       // Parse error message for better user feedback
       let errorMessage = 'Failed to download keys. Please try again.';
       
-      if (error?.response?.status === 404) {
-        errorMessage = 'Order not found. Please refresh the page and try again.';
-      } else if (error?.response?.status === 403) {
-        errorMessage = 'You do not have permission to access this order.';
-      } else if (error?.response?.status === 410) {
-        errorMessage = 'Download link has expired. Keys are still available - please use the "View & Copy Keys" option instead.';
-      } else if (error?.message?.includes('network') || error?.message?.includes('fetch')) {
-        errorMessage = 'Network error. Please check your connection and try again.';
-      } else if (error?.response?.data?.message) {
-        errorMessage = `Download failed: ${error.response.data.message}`;
+      if (error !== null && typeof error === 'object' && 'response' in error) {
+        const err = error as { response?: { status?: number; data?: { message?: string } }; message?: string };
+        if (err.response?.status === 404) {
+          errorMessage = 'Order not found. Please refresh the page and try again.';
+        } else if (err.response?.status === 403) {
+          errorMessage = 'You do not have permission to access this order.';
+        } else if (err.response?.status === 410) {
+          errorMessage = 'Download link has expired. Keys are still available - please use the "View & Copy Keys" option instead.';
+        } else if (err.message !== undefined && err.message !== null && (err.message.includes('network') || err.message.includes('fetch'))) {
+          errorMessage = 'Network error. Please check your connection and try again.';
+        } else if (err.response?.data?.message !== undefined && err.response?.data?.message !== null) {
+          errorMessage = `Download failed: ${err.response.data.message}`;
+        }
       }
       
       toast.error(errorMessage);
@@ -1149,22 +1161,25 @@ export default function ProfilePage(): React.ReactElement {
         // Recovery failed
         toast.error('Failed to recover keys. Keys may not be ready yet or there was an issue. Please contact support if this continues.');
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to recover keys:', error);
       
       // Parse error message for better user feedback
       let errorMessage = 'Failed to recover keys. Please contact support.';
       
-      if (error?.response?.status === 404) {
-        errorMessage = 'Order not found. Please refresh the page and try again.';
-      } else if (error?.response?.status === 403) {
-        errorMessage = 'You do not have permission to access this order.';
-      } else if (error?.response?.status === 400) {
-        errorMessage = 'Invalid request. The order may not be eligible for key recovery.';
-      } else if (error?.message?.includes('network') || error?.message?.includes('fetch')) {
-        errorMessage = 'Network error. Please check your connection and try again.';
-      } else if (error?.response?.data?.message) {
-        errorMessage = `Recovery failed: ${error.response.data.message}`;
+      if (error !== null && typeof error === 'object' && 'response' in error) {
+        const err = error as { response?: { status?: number; data?: { message?: string } }; message?: string };
+        if (err.response?.status === 404) {
+          errorMessage = 'Order not found. Please refresh the page and try again.';
+        } else if (err.response?.status === 403) {
+          errorMessage = 'You do not have permission to access this order.';
+        } else if (err.response?.status === 400) {
+          errorMessage = 'Invalid request. The order may not be eligible for key recovery.';
+        } else if (err.message !== undefined && err.message !== null && (err.message.includes('network') || err.message.includes('fetch'))) {
+          errorMessage = 'Network error. Please check your connection and try again.';
+        } else if (err.response?.data?.message !== undefined && err.response?.data?.message !== null) {
+          errorMessage = `Recovery failed: ${err.response.data.message}`;
+        }
       }
       
       toast.error(errorMessage);
@@ -1421,7 +1436,7 @@ export default function ProfilePage(): React.ReactElement {
                       </div>
                     )}
                     
-                    {deletionStatus?.deletionRequested && (
+                    {deletionStatus?.deletionRequested === true && (
                       <div className="rounded-lg border border-red-500/30 bg-red-500/5 p-3">
                         <div className="flex items-start justify-between gap-3">
                           <div className="flex-1">
@@ -1470,7 +1485,7 @@ export default function ProfilePage(): React.ReactElement {
                       </div>
                       <div>
                         <CardTitle className="text-text-primary text-base">Your Watchlist</CardTitle>
-                        <p className="text-xs text-text-muted">Games you're tracking</p>
+                        <p className="text-xs text-text-muted">Games you&apos;re tracking</p>
                       </div>
                     </div>
                     <Button 
@@ -1570,7 +1585,7 @@ export default function ProfilePage(): React.ReactElement {
                         </div>
                         <CardTitle className="text-text-primary text-base">Activity Insights</CardTitle>
                       </div>
-                      {allOrders && allOrders.length > 0 && (
+                      {allOrders !== null && allOrders !== undefined && allOrders.length > 0 && (
                         <Button
                           variant="ghost"
                           size="sm"
@@ -1588,7 +1603,7 @@ export default function ProfilePage(): React.ReactElement {
                       <div className="flex items-center justify-center h-24">
                         <Loader2 className="h-6 w-6 animate-spin text-cyan-glow" />
                       </div>
-                    ) : !allOrders || allOrders.length === 0 ? (
+                    ) : allOrders === null || allOrders === undefined || allOrders.length === 0 ? (
                       <div className="flex flex-col items-center justify-center h-24 text-center">
                         <Activity className="h-8 w-8 text-text-muted mb-2" />
                         <p className="text-sm text-text-muted">No activity yet</p>
@@ -1599,11 +1614,11 @@ export default function ProfilePage(): React.ReactElement {
                         {(() => {
                           const lastOrder = allOrders[0];
                           const lastOrderItems = lastOrder?.items ?? [];
-                          const daysSinceLastOrder = lastOrder 
+                          const daysSinceLastOrder = lastOrder !== null && lastOrder !== undefined
                             ? Math.floor((Date.now() - new Date(lastOrder.createdAt ?? new Date()).getTime()) / (1000 * 60 * 60 * 24))
                             : 0;
                           
-                          return lastOrder && (
+                          return lastOrder !== null && lastOrder !== undefined && (
                             <div className="rounded-lg border border-cyan-glow/20 bg-cyan-glow/5 p-3">
                               <div className="flex items-center justify-between mb-1.5">
                                 <p className="text-xs font-medium text-text-muted">Last Purchase</p>
@@ -1692,7 +1707,7 @@ export default function ProfilePage(): React.ReactElement {
                     <CardTitle className="text-text-primary">Recent Orders</CardTitle>
                     <CardDescription className="text-text-secondary">Your latest purchases and their status</CardDescription>
                   </div>
-                  {allOrders && allOrders.length > 0 && (
+                  {allOrders !== null && allOrders !== undefined && allOrders.length > 0 && (
                     <Button 
                       variant="outline" 
                       size="sm"
@@ -1710,7 +1725,7 @@ export default function ProfilePage(): React.ReactElement {
                   <div className="flex h-40 items-center justify-center">
                     <Loader2 className="h-8 w-8 animate-spin text-cyan-glow" />
                   </div>
-                ) : !allOrders || allOrders.length === 0 ? (
+                ) : (allOrders === null || allOrders === undefined || allOrders.length === 0) ? (
                   <div className="flex h-64 flex-col items-center justify-center text-center px-4">
                     <div className="mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-cyan-glow/10 to-purple-neon/10 border border-cyan-glow/20">
                       <Package className="h-10 w-10 text-cyan-glow" />
@@ -1772,7 +1787,7 @@ export default function ProfilePage(): React.ReactElement {
                               </div>
                               
                               {/* Product Title(s) */}
-                              {firstItem && (
+                              {firstItem !== null && firstItem !== undefined && (
                                 <p className="text-sm text-text-primary mb-1 truncate">
                                   {firstItem.productTitle}
                                   {hasMultipleItems && (
@@ -1928,7 +1943,7 @@ export default function ProfilePage(): React.ReactElement {
                   <Loader2 className="h-10 w-10 animate-spin text-purple-neon" />
                   <p className="text-text-secondary">Loading your purchase history...</p>
                 </div>
-              ) : !allOrders || allOrders.length === 0 ? (
+              ) : (allOrders === null || allOrders === undefined || allOrders.length === 0) ? (
                 <div className="flex flex-col items-center justify-center py-12 text-center">
                   <ShoppingBag className="h-16 w-16 text-text-muted/30 mb-4" />
                   <h3 className="text-lg font-semibold text-text-primary mb-2">No purchases yet</h3>
@@ -2472,7 +2487,7 @@ export default function ProfilePage(): React.ReactElement {
                           />
                           <Button
                             onClick={() => void requestEmailChangeMutation.mutateAsync(newEmail)}
-                            disabled={!newEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newEmail) || requestEmailChangeMutation.isPending}
+                            disabled={newEmail === '' || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newEmail) || requestEmailChangeMutation.isPending}
                             className="bg-cyan-glow/10 text-cyan-glow hover:bg-cyan-glow/20 border border-cyan-glow/30"
                           >
                             {requestEmailChangeMutation.isPending ? (
@@ -2739,7 +2754,7 @@ export default function ProfilePage(): React.ReactElement {
                 </div>
               </CardHeader>
               <CardContent>
-                {deletionStatus?.deletionRequested ? (
+                {deletionStatus?.deletionRequested === true ? (
                   <div className="space-y-4">
                     <div className="p-4 rounded-lg bg-orange-warning/10 border border-orange-warning/30">
                       <div className="flex items-start gap-3">
@@ -2752,7 +2767,7 @@ export default function ProfilePage(): React.ReactElement {
                             Your account will be permanently deleted in <span className="font-bold text-orange-warning">{deletionStatus.daysRemaining} days</span>.
                             All your data, orders, and keys will be removed.
                           </p>
-                          {deletionStatus.deletionScheduledAt && (
+                          {(deletionStatus.deletionScheduledAt !== null && deletionStatus.deletionScheduledAt !== undefined && deletionStatus.deletionScheduledAt !== '') && (
                             <p className="text-xs text-text-muted mt-2">
                               Scheduled for: {new Date(deletionStatus.deletionScheduledAt).toLocaleDateString('en-US', {
                                 weekday: 'long',

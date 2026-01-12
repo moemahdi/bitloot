@@ -424,7 +424,7 @@ export class IpnHandlerService {
         order.status = 'confirming';
         break;
 
-      case 'finished':
+      case 'finished': {
         // Payment complete - trigger fulfillment
         order.status = 'paid';
 
@@ -438,6 +438,7 @@ export class IpnHandlerService {
             fulfillmentTriggered = false;
           } else {
             // Previous job completed/failed, queue a new one
+            this.logger.log(`[IPN] Previous fulfillment job ${jobState}, queuing new job for order ${order.id}`);
             await this.fulfillmentQueue.add(
               'reserve',
               {
@@ -471,6 +472,7 @@ export class IpnHandlerService {
 
         this.logger.log(`[IPN] Payment finished for order ${order.id}, fulfillment ${fulfillmentTriggered ? 'queued' : 'already in queue'}`);
         break;
+      }
 
       case 'failed':
         order.status = 'failed';

@@ -220,11 +220,11 @@ export function EmbeddedPaymentUI({
   const [copied, setCopied] = useState<'address' | 'amount' | null>(null);
   const [isExpired, setIsExpired] = useState(false);
   const [npPaymentStatus, setNpPaymentStatus] = useState<string | null>(null);
-  const [confirmations, setConfirmations] = useState<{current: number, required: number}>({current: 0, required: 3});
-  const [txHash, setTxHash] = useState<string | null>(null);
+  const [confirmations, _setConfirmations] = useState<{current: number, required: number}>({current: 0, required: 3});
+  const [txHash, _setTxHash] = useState<string | null>(null);
   const networkFee = 0.50; // Mock network fee - should come from backend
-  const [amountReceived, setAmountReceived] = useState<number>(0);
-  const [amountNeeded, setAmountNeeded] = useState<number>(0);
+  const [amountReceived, _setAmountReceived] = useState<number>(0);
+  const [amountNeeded, _setAmountNeeded] = useState<number>(0);
 
   // Poll order status every 5 seconds
   const { data: order, refetch } = useQuery<OrderResponseDto>({
@@ -306,7 +306,7 @@ export function EmbeddedPaymentUI({
   useEffect(() => {
     if (paymentStatus === 'finished') {
       // Trigger confetti
-      confetti({
+      void confetti({
         particleCount: 100,
         spread: 70,
         origin: { y: 0.6 },
@@ -331,7 +331,7 @@ export function EmbeddedPaymentUI({
   // Download QR Code
   const downloadQR = () => {
     const svg = document.querySelector('.qr-code-svg');
-    if (!svg) return;
+    if (svg === null || svg === undefined) return;
     
     const svgData = new XMLSerializer().serializeToString(svg);
     const blob = new Blob([svgData], { type: 'image/svg+xml' });
@@ -778,7 +778,7 @@ export function EmbeddedPaymentUI({
         </div>
 
         {/* Transaction Hash Display */}
-        {txHash && (
+        {txHash !== null && txHash !== undefined && txHash !== '' && (
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}

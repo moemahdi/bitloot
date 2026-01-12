@@ -42,7 +42,7 @@ export class UserService {
       withDeleted: true, // Include soft-deleted users
     });
     // User exists with deletedAt set = account was deleted
-    return deletedUser !== null && deletedUser.deletedAt !== null && deletedUser.deletedAt !== undefined;
+    return deletedUser?.deletedAt !== null && deletedUser?.deletedAt !== undefined;
   }
 
   /**
@@ -183,7 +183,7 @@ export class UserService {
       throw new NotFoundException(`User ${userId} not found`);
     }
 
-    if (!user.pendingEmail) {
+    if (user.pendingEmail === undefined || user.pendingEmail === null || user.pendingEmail === '') {
       throw new Error('No pending email change found');
     }
 
@@ -223,7 +223,7 @@ export class UserService {
     }
 
     // Already has deletion request?
-    if (user.deletionRequestedAt) {
+    if (user.deletionRequestedAt !== null && user.deletionRequestedAt !== undefined) {
       const deletionDate = new Date(user.deletionRequestedAt);
       deletionDate.setDate(deletionDate.getDate() + 30);
       return deletionDate;
@@ -251,7 +251,7 @@ export class UserService {
       throw new NotFoundException(`User ${userId} not found`);
     }
 
-    if (!user.deletionRequestedAt) {
+    if (user.deletionRequestedAt === null || user.deletionRequestedAt === undefined) {
       throw new Error('No deletion request found');
     }
 
@@ -273,7 +273,7 @@ export class UserService {
   ): Promise<{ deletionRequestedAt: Date; deletionDate: Date; daysRemaining: number } | null> {
     const user = await this.findById(userId);
 
-    if (!user?.deletionRequestedAt) {
+    if (user?.deletionRequestedAt === null || user?.deletionRequestedAt === undefined) {
       return null;
     }
 

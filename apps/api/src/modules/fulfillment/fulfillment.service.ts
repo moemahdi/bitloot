@@ -474,7 +474,7 @@ export class FulfillmentService {
   private async sendCompletionEmail(order: Order, results: ItemFulfillmentResult[]): Promise<void> {
     try {
       // IDEMPOTENCY CHECK: Only send email once per order
-      if (order.completionEmailSent === true) {
+      if (order.completionEmailSent) {
         this.logger.debug(`[FULFILLMENT] Completion email already sent for order ${order.id}, skipping`);
         return;
       }

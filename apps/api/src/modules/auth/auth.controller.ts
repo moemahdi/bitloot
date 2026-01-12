@@ -907,7 +907,7 @@ export class AuthController {
 
     if (!verification.valid) {
       // Check if token is expired vs invalid
-      if (verification.expired && verification.userId !== undefined) {
+      if (verification.expired === true && verification.userId !== undefined) {
         this.logger.warn(
           `⏰ Expired deletion cancellation token for user ${verification.userId}`,
         );
@@ -932,7 +932,7 @@ export class AuthController {
       // Get user to check their deletion status
       const user = await this.userService.findById(userId);
 
-      if (!user) {
+      if (user === null || user === undefined) {
         this.logger.warn(`❌ User not found for deletion cancellation: ${userId}`);
         return {
           status: 'invalid',

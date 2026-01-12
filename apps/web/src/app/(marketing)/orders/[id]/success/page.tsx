@@ -2,7 +2,7 @@
 
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useParams, useRouter } from 'next/navigation';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import {
@@ -45,7 +45,7 @@ const ordersClient = new OrdersApi(apiConfig);
 export default function OrderSuccessPage(): React.ReactElement {
   const params = useParams();
   const router = useRouter();
-  const queryClient = useQueryClient();
+  const _queryClient = useQueryClient();
   const orderId = String(params.id);
   const [showConfetti, _setShowConfetti] = useState(true);
 

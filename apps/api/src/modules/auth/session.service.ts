@@ -62,7 +62,7 @@ export class SessionService {
    * Parse User-Agent to extract device/browser info
    */
   private parseUserAgent(userAgent?: string): DeviceInfo {
-    if (!userAgent) {
+    if (userAgent === undefined || userAgent === null || userAgent === '') {
       return {
         browser: 'Unknown',
         os: 'Unknown',
@@ -78,16 +78,16 @@ export class SessionService {
     // Detect browser
     if (userAgent.includes('Chrome') && !userAgent.includes('Edg')) {
       const match = userAgent.match(/Chrome\/(\d+)/);
-      browser = match ? `Chrome ${match[1]}` : 'Chrome';
+      browser = match?.[1] !== undefined ? `Chrome ${match[1]}` : 'Chrome';
     } else if (userAgent.includes('Firefox')) {
       const match = userAgent.match(/Firefox\/(\d+)/);
-      browser = match ? `Firefox ${match[1]}` : 'Firefox';
+      browser = match?.[1] !== undefined ? `Firefox ${match[1]}` : 'Firefox';
     } else if (userAgent.includes('Safari') && !userAgent.includes('Chrome')) {
       const match = userAgent.match(/Version\/(\d+)/);
-      browser = match ? `Safari ${match[1]}` : 'Safari';
+      browser = match?.[1] !== undefined ? `Safari ${match[1]}` : 'Safari';
     } else if (userAgent.includes('Edg')) {
       const match = userAgent.match(/Edg\/(\d+)/);
-      browser = match ? `Edge ${match[1]}` : 'Edge';
+      browser = match?.[1] !== undefined ? `Edge ${match[1]}` : 'Edge';
     }
 
     // Detect OS
@@ -173,7 +173,7 @@ export class SessionService {
       lastActiveAt: new Date(),
     };
 
-    if (newRefreshToken) {
+    if (newRefreshToken !== undefined && newRefreshToken !== null && newRefreshToken !== '') {
       updates.refreshTokenHash = this.hashToken(newRefreshToken);
       // Extend expiration for 7 more days
       const expiresAt = new Date();
@@ -200,7 +200,9 @@ export class SessionService {
       order: { lastActiveAt: 'DESC' },
     });
 
-    const currentTokenHash = currentRefreshToken ? this.hashToken(currentRefreshToken) : null;
+    const currentTokenHash = currentRefreshToken !== undefined && currentRefreshToken !== null && currentRefreshToken !== '' 
+                             ? this.hashToken(currentRefreshToken) 
+                             : null;
 
     return sessions.map((session) => ({
       id: session.id,
@@ -209,7 +211,9 @@ export class SessionService {
       location: session.location ?? null,
       lastActiveAt: session.lastActiveAt ?? null,
       createdAt: session.createdAt,
-      isCurrent: currentTokenHash ? session.refreshTokenHash === currentTokenHash : false,
+      isCurrent: currentTokenHash !== null && currentTokenHash !== undefined
+                 ? session.refreshTokenHash === currentTokenHash 
+                 : false,
     }));
   }
 
@@ -236,7 +240,9 @@ export class SessionService {
       location: session.location ?? null,
       lastActiveAt: session.lastActiveAt ?? null,
       createdAt: session.createdAt,
-      isCurrent: currentSessionId ? session.id === currentSessionId : false,
+      isCurrent: currentSessionId !== undefined && currentSessionId !== null && currentSessionId !== ''
+                 ? session.id === currentSessionId 
+                 : false,
     }));
   }
 
@@ -269,7 +275,9 @@ export class SessionService {
       location: session.location ?? null,
       lastActiveAt: session.lastActiveAt ?? null,
       createdAt: session.createdAt,
-      isCurrent: currentSessionId ? session.id === currentSessionId : false,
+      isCurrent: currentSessionId !== undefined && currentSessionId !== null && currentSessionId !== ''
+                 ? session.id === currentSessionId 
+                 : false,
     }));
 
     return {
@@ -289,7 +297,7 @@ export class SessionService {
       where: { id: sessionId },
     });
 
-    if (!session) {
+    if (session === null || session === undefined) {
       throw new NotFoundException('Session not found');
     }
 
@@ -320,7 +328,7 @@ export class SessionService {
       .where('userId = :userId', { userId })
       .andWhere('isRevoked = false');
 
-    if (excludeSessionId) {
+    if (excludeSessionId !== undefined && excludeSessionId !== null && excludeSessionId !== '') {
       query.andWhere('id != :excludeSessionId', { excludeSessionId });
     }
 

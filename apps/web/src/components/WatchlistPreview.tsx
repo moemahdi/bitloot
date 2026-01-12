@@ -103,7 +103,7 @@ export function WatchlistPreview() {
         </div>
         <p className="text-sm font-medium text-text-secondary mb-1">Your watchlist is empty</p>
         <p className="text-xs text-text-muted mb-4">
-          Save games you're interested in to track prices
+          Save games you&apos;re interested in to track prices
         </p>
         <Button 
           variant="outline" 
@@ -132,7 +132,7 @@ export function WatchlistPreview() {
             href={`/product/${item.product.slug}`}
             className="relative w-12 h-12 rounded-md overflow-hidden bg-bg-tertiary/50 flex-shrink-0"
           >
-            {item.product.coverImageUrl ? (
+            {item.product.coverImageUrl !== undefined && item.product.coverImageUrl !== null && item.product.coverImageUrl !== '' ? (
               <Image
                 src={item.product.coverImageUrl}
                 alt={item.product.title}
@@ -158,7 +158,7 @@ export function WatchlistPreview() {
               <span className="text-sm font-bold text-cyan-glow">
                 €{item.product.price.toFixed(2)}
               </span>
-              {item.product.platform && (
+              {item.product.platform !== undefined && item.product.platform !== null && item.product.platform !== '' && (
                 <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 border-border/50 text-text-muted">
                   {item.product.platform}
                 </Badge>
