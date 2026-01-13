@@ -284,7 +284,7 @@ export default function AdminReservationsPage(): React.ReactElement {
   // Check if order is stuck (paid > 30 mins ago but not fulfilled)
   const isStuckOrder = (item: ReservationItem): boolean => {
     if (item.status !== 'paid') return false;
-    if (!item.createdAt) return false;
+    if (item.createdAt === null || item.createdAt === undefined) return false;
     const createdAt = item.createdAt instanceof Date ? item.createdAt : new Date(item.createdAt);
     const thirtyMinsAgo = new Date(Date.now() - 30 * 60 * 1000);
     return createdAt < thirtyMinsAgo;
@@ -622,7 +622,7 @@ export default function AdminReservationsPage(): React.ReactElement {
               <div className="space-y-2">
                 <label className="text-sm text-text-muted font-medium">Status</label>
                 <Select
-                  value={statusFilter || "all"}
+                  value={statusFilter !== null && statusFilter !== undefined && statusFilter !== '' ? statusFilter : "all"}
                   onValueChange={(val) => handleStatusFilterChange(val === "all" ? "" : val)}
                 >
                   <SelectTrigger className="bg-bg-tertiary border-border-subtle focus:border-cyan-glow focus:ring-cyan-glow/20">
@@ -681,7 +681,7 @@ export default function AdminReservationsPage(): React.ReactElement {
             {/* Loading State */}
             {isLoading ? (
               <div className="p-6 space-y-4">
-                {[...Array(5)].map((_, i) => (
+                {Array.from({ length: 5 }).map((_, i) => (
                   <div key={i} className="flex items-center gap-4">
                     <Skeleton className="h-5 w-5 rounded" />
                     <Skeleton className="h-5 flex-1" />
@@ -803,7 +803,7 @@ export default function AdminReservationsPage(): React.ReactElement {
                                   <Tooltip>
                                     <TooltipTrigger asChild>
                                       <div className="flex items-center gap-1.5 cursor-help">
-                                        {kinguinStatus.hasKey ? (
+                                        {kinguinStatus.hasKey === true ? (
                                           <CheckCircle className="h-4 w-4 text-green-success" />
                                         ) : kinguinStatus.status === 'pending' ? (
                                           <Clock className="h-4 w-4 text-purple-neon" />
@@ -812,10 +812,10 @@ export default function AdminReservationsPage(): React.ReactElement {
                                         ) : (
                                           <CheckCircle className="h-4 w-4 text-cyan-glow" />
                                         )}
-                                        <span className={`text-xs font-medium ${kinguinStatus.hasKey ? 'text-green-success' : kinguinStatus.status === 'error' ? 'text-pink-featured' : 'text-text-secondary'}`}>
+                                        <span className={`text-xs font-medium ${kinguinStatus.hasKey === true ? 'text-green-success' : kinguinStatus.status === 'error' ? 'text-pink-featured' : 'text-text-secondary'}`}>
                                           {kinguinStatus.kinguinStatus ?? kinguinStatus.message}
                                         </span>
-                                        {kinguinStatus.hasKey && (
+                                        {kinguinStatus.hasKey === true && (
                                           <Badge variant="outline" className="h-5 text-[10px] px-1.5 bg-green-success/10 text-green-success border-green-success/30">
                                             Key Ready
                                           </Badge>
@@ -825,7 +825,7 @@ export default function AdminReservationsPage(): React.ReactElement {
                                     <TooltipContent className="bg-bg-tertiary border-border-subtle shadow-card-md">
                                       <div className="text-xs space-y-1">
                                         <p><span className="text-text-muted">Status:</span> <span className="text-text-primary font-medium">{kinguinStatus.kinguinStatus ?? 'N/A'}</span></p>
-                                        <p><span className="text-text-muted">Key Available:</span> <span className={kinguinStatus.hasKey ? 'text-green-success' : 'text-orange-warning'}>{kinguinStatus.hasKey ? 'Yes' : 'No'}</span></p>
+                                        <p><span className="text-text-muted">Key Available:</span> <span className={kinguinStatus.hasKey === true ? 'text-green-success' : 'text-orange-warning'}>{kinguinStatus.hasKey === true ? 'Yes' : 'No'}</span></p>
                                         <p><span className="text-text-muted">Checked:</span> <span className="text-text-secondary">{kinguinStatus.checkedAt.toLocaleTimeString()}</span></p>
                                       </div>
                                     </TooltipContent>
@@ -834,7 +834,7 @@ export default function AdminReservationsPage(): React.ReactElement {
                                   <Button
                                     variant="ghost"
                                     size="sm"
-                                    onClick={() => { if (reservationId) handleCheckKinguinStatus(reservationId); }}
+                                    onClick={() => { if (reservationId !== null && reservationId !== undefined && reservationId !== '') handleCheckKinguinStatus(reservationId); }}
                                     disabled={isChecking}
                                     className="h-7 text-xs text-cyan-glow hover:text-cyan-glow hover:bg-cyan-glow/10"
                                   >
@@ -941,7 +941,7 @@ export default function AdminReservationsPage(): React.ReactElement {
                   <span className="text-sm text-text-muted">Page</span>
                   <span className="text-sm font-bold text-cyan-glow tabular-nums">{page}</span>
                   <span className="text-sm text-text-muted">of</span>
-                  <span className="text-sm font-medium text-text-secondary tabular-nums">{totalPages || 1}</span>
+                  <span className="text-sm font-medium text-text-secondary tabular-nums">{(totalPages !== null && totalPages !== undefined && totalPages !== 0 && !Number.isNaN(totalPages)) ? totalPages : 1}</span>
                 </div>
                 
                 <Button

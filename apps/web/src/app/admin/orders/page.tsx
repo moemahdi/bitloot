@@ -218,13 +218,13 @@ export default function AdminOrdersPage(): React.ReactElement {
   }, []);
 
   const handleBulkStatusUpdate = async (): Promise<void> => {
-    if (selectedOrders.length === 0 || !bulkStatus) return;
+    if (selectedOrders.length === 0 || bulkStatus === null || bulkStatus === undefined || bulkStatus === '') return;
     
     try {
       await bulkUpdate({
         orderIds: selectedOrders,
         status: bulkStatus,
-        reason: bulkReason || undefined,
+        reason: (bulkReason !== null && bulkReason !== undefined && bulkReason !== '') ? bulkReason : undefined,
       });
       setSelectedOrders([]);
       setBulkStatusDialogOpen(false);
@@ -239,15 +239,15 @@ export default function AdminOrdersPage(): React.ReactElement {
   const handleExport = async (): Promise<void> => {
     try {
       const data = await exportOrders({
-        startDate: exportStartDate || undefined,
-        endDate: exportEndDate || undefined,
+        startDate: (exportStartDate !== null && exportStartDate !== undefined && exportStartDate !== '') ? exportStartDate : undefined,
+        endDate: (exportEndDate !== null && exportEndDate !== undefined && exportEndDate !== '') ? exportEndDate : undefined,
         status: exportStatus !== 'all' ? exportStatus : undefined,
         sourceType: exportSourceType !== 'all' ? exportSourceType : undefined,
       });
       
       // Generate CSV from data
       const exportData = data as Order[];
-      if (exportData && exportData.length > 0) {
+      if (exportData !== null && exportData !== undefined && exportData.length > 0) {
         const headers = ['ID', 'Email', 'Total', 'Status', 'Source', 'Payment Status', 'Created At'];
         const csvContent = [
           headers.join(','),
@@ -279,7 +279,7 @@ export default function AdminOrdersPage(): React.ReactElement {
     }
   };
 
-  const exportToCSV = (): void => {
+  const _exportToCSV = (): void => {
     if ((orders?.length ?? 0) === 0) return;
 
     const headers = ['Order ID', 'Customer', 'Total (EUR)', 'Order Status', 'Payment Status', 'Payment Provider', 'Payment ID', 'Date'];
@@ -621,7 +621,7 @@ export default function AdminOrdersPage(): React.ReactElement {
                       </Button>
                       <Button 
                         onClick={() => void handleBulkStatusUpdate()} 
-                        disabled={!bulkStatus || isUpdating}
+                        disabled={bulkStatus === null || bulkStatus === undefined || bulkStatus === '' || isUpdating}
                         className="btn-primary"
                       >
                         {isUpdating ? (
@@ -763,7 +763,7 @@ export default function AdminOrdersPage(): React.ReactElement {
           {isLoading ? (
             <div className="space-y-3">
               {/* Skeleton loading rows */}
-              {[...Array(5)].map((_, i) => (
+              {Array.from({ length: 5 }).map((_, i) => (
                 <div key={i} className="flex items-center gap-4 p-4 rounded-lg bg-bg-tertiary/50">
                   <div className="skeleton h-4 w-4 rounded" />
                   <div className="skeleton h-4 w-20 rounded" />
@@ -810,7 +810,7 @@ export default function AdminOrdersPage(): React.ReactElement {
                       <TableHead className="w-[50px]">
                         <Checkbox
                           checked={orders.length > 0 && selectedOrders.length === orders.length}
-                          onCheckedChange={(checked) => handleSelectAll(!!checked)}
+                          onCheckedChange={(checked) => handleSelectAll(Boolean(checked))}
                           aria-label="Select all orders"
                           className="border-border-accent data-[state=checked]:bg-cyan-glow data-[state=checked]:border-cyan-glow"
                         />
@@ -840,7 +840,7 @@ export default function AdminOrdersPage(): React.ReactElement {
                       <TableCell>
                         <Checkbox
                           checked={selectedOrders.includes(order.id)}
-                          onCheckedChange={(checked) => handleSelectOrder(order.id, !!checked)}
+                          onCheckedChange={(checked) => handleSelectOrder(order.id, Boolean(checked))}
                           aria-label={`Select order ${order.id}`}
                           className="border-border-accent data-[state=checked]:bg-cyan-glow data-[state=checked]:border-cyan-glow"
                         />
@@ -892,7 +892,7 @@ export default function AdminOrdersPage(): React.ReactElement {
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        {order.payment ? (
+                        {order.payment !== null && order.payment !== undefined ? (
                           <Tooltip>
                             <TooltipTrigger asChild>
                               <Badge className={`${getPaymentStatusBadgeClass(order.payment.status)} gap-1 cursor-help`}>
@@ -962,7 +962,7 @@ export default function AdminOrdersPage(): React.ReactElement {
                     </Button>
                     <div className="flex items-center gap-1 px-3">
                       {/* Page number indicators */}
-                      {[...Array(Math.min(5, totalPages))].map((_, i) => {
+                      {Array.from({ length: Math.min(5, totalPages) }).map((_, i) => {
                         const pageNum = page <= 3 ? i + 1 : page + i - 2;
                         if (pageNum > totalPages || pageNum < 1) return null;
                         return (

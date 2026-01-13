@@ -662,8 +662,22 @@ export class OrdersService {
     totalSpent: string;
     digitalDownloads: number;
   }> {
+    // Define type for query result
+    interface StatsResult {
+      totalOrders: number;
+      completedOrders: number;
+      pendingOrders: number;
+      processingOrders: number;
+      failedOrders: number;
+      totalSpent: string;
+    }
+
+    interface DownloadsResult {
+      count: number;
+    }
+
     // Use raw query for efficient aggregation
-    const result = await this.ordersRepo.query(
+    const result = await this.ordersRepo.query<StatsResult[]>(
       `
       SELECT 
         COUNT(*)::int as "totalOrders",
@@ -679,7 +693,7 @@ export class OrdersService {
     );
 
     // Get digital downloads count (items from fulfilled orders)
-    const downloadsResult = await this.ordersRepo.query(
+    const downloadsResult = await this.ordersRepo.query<DownloadsResult[]>(
       `
       SELECT COUNT(*)::int as count
       FROM order_items oi
@@ -689,7 +703,7 @@ export class OrdersService {
       [userId],
     );
 
-    const stats = result[0] ?? {
+    const stats: StatsResult = (result[0] as StatsResult | undefined) ?? {
       totalOrders: 0,
       completedOrders: 0,
       pendingOrders: 0,
@@ -698,14 +712,16 @@ export class OrdersService {
       totalSpent: '0',
     };
 
+    const downloads = (downloadsResult[0] as DownloadsResult | undefined) ?? { count: 0 };
+
     return {
       totalOrders: stats.totalOrders,
       completedOrders: stats.completedOrders,
       pendingOrders: stats.pendingOrders,
       processingOrders: stats.processingOrders,
       failedOrders: stats.failedOrders,
-      totalSpent: parseFloat(stats.totalSpent).toFixed(2),
-      digitalDownloads: downloadsResult[0]?.count ?? 0,
+      totalSpent: String(stats.totalSpent),
+      digitalDownloads: downloads.count,
     };
   }
 }

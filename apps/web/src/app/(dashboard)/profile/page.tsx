@@ -1067,7 +1067,7 @@ export default function ProfilePage(): React.ReactElement {
   // Dynamic filter categories based on actual orders present
   // Groups raw statuses into filter categories and counts orders per category
   const dynamicFilterCategories = useMemo(() => {
-    if (!allOrders || allOrders.length === 0) {
+    if (allOrders === null || allOrders === undefined || allOrders.length === 0) {
       return [];
     }
 
@@ -1981,14 +1981,15 @@ export default function ProfilePage(): React.ReactElement {
                   {/* Dynamic filter buttons - only show categories with orders */}
                   {dynamicFilterCategories.map((category) => {
                     // Map icon string to component
-                    const IconComponent = {
+                    const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
                       'Key': Key,
                       'RefreshCw': RefreshCw,
                       'Clock': Clock,
                       'AlertTriangle': AlertTriangle,
                       'RotateCcw': RotateCcw,
                       'XCircle': XCircle,
-                    }[category.icon];
+                    };
+                    const IconComponent = iconMap[category.icon];
                     
                     return (
                       <Button
@@ -1998,7 +1999,7 @@ export default function ProfilePage(): React.ReactElement {
                         onClick={() => setPurchasesStatusFilter(category.key)}
                         className={purchasesStatusFilter === category.key ? category.activeClass : ''}
                       >
-                        {IconComponent && <IconComponent className="h-3 w-3 mr-1" />}
+                        {IconComponent !== undefined ? <IconComponent className="h-3 w-3 mr-1" /> : null}
                         {category.label} ({category.count})
                       </Button>
                     );

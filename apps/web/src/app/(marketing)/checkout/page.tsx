@@ -189,11 +189,11 @@ export default function CheckoutPage(): React.ReactElement {
   // Get the email to use for the order
   const getOrderEmail = (): string | null => {
     // If user is logged in, use their email
-    if (user?.email) {
+    if (user?.email !== undefined && user.email !== null && user.email !== '') {
       return user.email;
     }
     // Otherwise, use guest email if valid
-    if (guestEmail && validateEmail(guestEmail)) {
+    if (guestEmail !== '' && validateEmail(guestEmail)) {
       return guestEmail;
     }
     return null;
@@ -227,7 +227,7 @@ export default function CheckoutPage(): React.ReactElement {
 
       // Get email - must be provided (no more placeholder)
       const email = getOrderEmail();
-      if (!email) {
+      if (email === null || email === '') {
         throw new Error('Email is required to proceed with checkout');
       }
 
@@ -243,7 +243,7 @@ export default function CheckoutPage(): React.ReactElement {
         },
       });
 
-      if (order?.id === undefined || order.id === '') {
+      if (order?.id === undefined || order?.id === null || order.id === '') {
         throw new Error('Failed to create order');
       }
 
@@ -254,7 +254,7 @@ export default function CheckoutPage(): React.ReactElement {
       clearCart();
       
       // Store order session token for immediate guest access to keys
-      if (order.orderSessionToken) {
+      if (order.orderSessionToken !== null && order.orderSessionToken !== undefined && order.orderSessionToken !== '') {
         localStorage.setItem(`order_session_${order.id}`, order.orderSessionToken);
       }
       
@@ -264,7 +264,7 @@ export default function CheckoutPage(): React.ReactElement {
     },
     onError: (error: Error) => {
       console.error('Failed to create order:', error);
-      const errorMessage = error.message !== '' ? error.message : 'Failed to create order. Please try again.';
+      const errorMessage = error.message !== undefined && error.message !== null && error.message !== '' ? error.message : 'Failed to create order. Please try again.';
       toast.error(errorMessage);
       // Reset the ref so user can retry
       isCreatingOrderRef.current = false;
@@ -276,7 +276,7 @@ export default function CheckoutPage(): React.ReactElement {
     e.preventDefault();
     setEmailError('');
     
-    if (!guestEmail.trim()) {
+    if (guestEmail.trim() === '') {
       setEmailError('Email is required');
       return;
     }
@@ -297,7 +297,7 @@ export default function CheckoutPage(): React.ReactElement {
   // Auto-create order when page loads IF user is logged in
   useEffect(() => {
     // Only auto-create if user is logged in with email
-    if (items.length > 0 && user?.email && !isCreatingOrderRef.current && !hasAttempted) {
+    if (items.length > 0 && user?.email !== undefined && user?.email !== null && user.email !== '' && !isCreatingOrderRef.current && !hasAttempted) {
       isCreatingOrderRef.current = true;
       setHasAttempted(true);
       createOrderMutation.mutate();
@@ -325,12 +325,12 @@ export default function CheckoutPage(): React.ReactElement {
   }
 
   // Show loading state while creating order (for logged-in users)
-  if (createOrderMutation.isPending || (user?.email && hasAttempted)) {
+  if (createOrderMutation.isPending || (user?.email !== undefined && user?.email !== null && user.email !== '' && hasAttempted)) {
     return <CheckoutLoadingSkeleton />;
   }
 
   // Show email collection form for guest users
-  if (!user?.email) {
+  if (user?.email === undefined || user?.email === null || user.email === '') {
     return (
       <div className="min-h-screen bg-bg-primary flex items-center justify-center p-4 relative overflow-hidden">
         {/* Background Effects */}
@@ -394,11 +394,11 @@ export default function CheckoutPage(): React.ReactElement {
                   setEmailError('');
                 }}
                 className={`bg-bg-secondary border-border-subtle focus:border-cyan-glow/50 ${
-                  emailError ? 'border-red-error' : ''
+                  emailError !== '' ? 'border-red-error' : ''
                 }`}
                 disabled={createOrderMutation.isPending}
               />
-              {emailError && (
+              {emailError !== '' && (
                 <p className="text-red-error text-sm flex items-center gap-1">
                   <AlertCircle className="h-3 w-3" />
                   {emailError}

@@ -149,7 +149,7 @@ export function useBulkUpdateStatus() {
 
     try {
       const token = getAccessTokenFromCookies();
-      if (!token) {
+      if (token === null || token === undefined || token === '') {
         throw new Error('No access token - please log in');
       }
 
@@ -198,15 +198,15 @@ export function useExportOrders() {
 
     try {
       const token = getAccessTokenFromCookies();
-      if (!token) {
+      if (token === null || token === undefined || token === '') {
         throw new Error('No access token - please log in');
       }
 
       const queryParams = new URLSearchParams();
-      if (params.startDate) queryParams.append('startDate', params.startDate);
-      if (params.endDate) queryParams.append('endDate', params.endDate);
-      if (params.status) queryParams.append('status', params.status);
-      if (params.sourceType) queryParams.append('sourceType', params.sourceType);
+      if (params.startDate !== null && params.startDate !== undefined && params.startDate !== '') queryParams.append('startDate', params.startDate);
+      if (params.endDate !== null && params.endDate !== undefined && params.endDate !== '') queryParams.append('endDate', params.endDate);
+      if (params.status !== null && params.status !== undefined && params.status !== '') queryParams.append('status', params.status);
+      if (params.sourceType !== null && params.sourceType !== undefined && params.sourceType !== '') queryParams.append('sourceType', params.sourceType);
 
       const url = `${process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000'}/admin/orders/export?${queryParams.toString()}`;
       

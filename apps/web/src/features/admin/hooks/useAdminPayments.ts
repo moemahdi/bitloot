@@ -127,7 +127,7 @@ export function useAdminPayments(state: TableState & { autoRefresh?: boolean }):
   const payments: Payment[] = (query.data?.data ?? []).map((item) => {
     // Format timestamps
     const formatDate = (date: Date | string | undefined): string | undefined => {
-      if (!date) return undefined;
+      if (date === undefined || date === null) return undefined;
       return date instanceof Date ? date.toISOString() : String(date);
     };
     
@@ -183,7 +183,7 @@ export function useAdminPayments(state: TableState & { autoRefresh?: boolean }):
 
   // Extract stats from API response (aggregate stats for ALL payments, not just paginated)
   // Stats come directly from the SDK response - map to our interface with defaults
-  const apiStats: PaymentStats | undefined = query.data?.stats ? {
+  const apiStats: PaymentStats | undefined = query.data?.stats !== null && query.data?.stats !== undefined ? {
     totalPayments: query.data.stats.totalPayments ?? 0,
     successfulPayments: query.data.stats.successfulPayments ?? 0,
     failedPayments: query.data.stats.failedPayments ?? 0,

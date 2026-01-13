@@ -186,7 +186,7 @@ export default function CheckoutForm(): React.ReactElement {
       const createdOrder = await createOrderMutation.mutateAsync(data.email);
       
       // Store order session token for immediate guest access to keys
-      if (createdOrder.orderSessionToken) {
+      if (createdOrder.orderSessionToken !== null && createdOrder.orderSessionToken !== undefined && createdOrder.orderSessionToken !== '') {
         localStorage.setItem(`order_session_${createdOrder.id}`, createdOrder.orderSessionToken);
       }
       

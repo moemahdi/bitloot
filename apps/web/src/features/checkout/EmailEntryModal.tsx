@@ -100,7 +100,7 @@ export function EmailEntryModal({
       const order = await createOrderMutation.mutateAsync(data.email);
       
       // Store order session token for immediate guest access to keys
-      if (order.orderSessionToken) {
+      if (order.orderSessionToken !== null && order.orderSessionToken !== undefined && order.orderSessionToken !== '') {
         localStorage.setItem(`order_session_${order.id}`, order.orderSessionToken);
       }
       

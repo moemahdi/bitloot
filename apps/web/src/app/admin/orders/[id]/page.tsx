@@ -93,7 +93,7 @@ function getOrderStatusBadge(status: string): { variant: 'default' | 'secondary'
  * Format date with time - handles both Date objects and string dates
  */
 function formatDateTime(dateInput: string | Date | undefined): string {
-    if (!dateInput) return '-';
+    if (dateInput === undefined || dateInput === null) return '-';
     const date = typeof dateInput === 'string' ? new Date(dateInput) : dateInput;
     return date.toLocaleString('en-US', {
         year: 'numeric',
@@ -217,8 +217,8 @@ export default function AdminOrderDetailPage(): React.ReactElement | null {
     const canRetryFulfillment = ['paid', 'failed', 'waiting', 'confirming'].includes(order?.status?.toLowerCase() ?? '');
 
     const handleStatusUpdate = () => {
-        if (!newStatus) return;
-        updateStatusMutation.mutate({ status: newStatus, reason: statusReason || undefined });
+        if (newStatus === null || newStatus === undefined || newStatus === '') return;
+        updateStatusMutation.mutate({ status: newStatus, reason: (statusReason !== null && statusReason !== undefined && statusReason !== '') ? statusReason : undefined });
     };
 
     const handleResendKeys = () => {
@@ -354,7 +354,7 @@ export default function AdminOrderDetailPage(): React.ReactElement | null {
                                 </Button>
                                 <Button 
                                     onClick={handleStatusUpdate} 
-                                    disabled={!newStatus || updateStatusMutation.isPending}
+                                    disabled={(newStatus === null || newStatus === undefined || newStatus === '') || updateStatusMutation.isPending}
                                     className="btn-primary"
                                 >
                                     {updateStatusMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
@@ -430,7 +430,7 @@ export default function AdminOrderDetailPage(): React.ReactElement | null {
                                 {order.sourceType === 'custom' ? '⚡ Custom' : '🎮 Kinguin'}
                             </Badge>
                         </div>
-                        {order.kinguinReservationId && (
+                        {order.kinguinReservationId !== null && order.kinguinReservationId !== undefined && order.kinguinReservationId !== '' && (
                             <div className="flex justify-between items-center py-2 border-b border-border-subtle/50">
                                 <span className="text-text-secondary text-sm">Kinguin Reservation</span>
                                 <CopyableId id={order.kinguinReservationId} label="Kinguin Reservation ID" className="text-cyan-glow" />
@@ -489,7 +489,7 @@ export default function AdminOrderDetailPage(): React.ReactElement | null {
                         </div>
 
                         {/* Payment Currency */}
-                        {order.payCurrency && (
+                        {order.payCurrency !== null && order.payCurrency !== undefined && order.payCurrency !== '' && (
                             <div className="flex justify-between items-center py-2 border-b border-border-subtle/50">
                                 <span className="text-text-secondary text-sm">Payment Currency</span>
                                 <Badge className="uppercase font-mono bg-cyan-glow/10 text-cyan-glow border-cyan-glow/30 shadow-glow-cyan-sm">
@@ -525,7 +525,7 @@ export default function AdminOrderDetailPage(): React.ReactElement | null {
                         </div>
 
                         {/* User ID */}
-                        {order.userId && (
+                        {order.userId !== null && order.userId !== undefined && order.userId !== '' && (
                             <div className="flex justify-between items-center py-2 border-b border-border-subtle/50">
                                 <span className="text-text-secondary text-sm">User ID</span>
                                 <CopyableId id={order.userId} label="User ID" className="text-purple-neon" />
@@ -588,7 +588,7 @@ export default function AdminOrderDetailPage(): React.ReactElement | null {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {order.items.map((item, index) => (
+                                {order.items.map((item, _index) => (
                                     <TableRow 
                                         key={item.id} 
                                         className="border-border-subtle hover:bg-bg-tertiary/30 transition-colors duration-200"
@@ -653,7 +653,7 @@ export default function AdminOrderDetailPage(): React.ReactElement | null {
                                 Secure log of all key reveal events, downloads, and access details
                             </CardDescription>
                         </div>
-                        {auditTrail && auditTrail.length > 0 && (
+                        {auditTrail !== null && auditTrail !== undefined && auditTrail.length > 0 && (
                             <Badge className="badge-info">
                                 {auditTrail.length} Key{auditTrail.length !== 1 ? 's' : ''}
                             </Badge>
@@ -666,7 +666,7 @@ export default function AdminOrderDetailPage(): React.ReactElement | null {
                             <Loader2 className="h-10 w-10 animate-spin-glow text-cyan-glow" />
                             <p className="text-text-muted text-sm">Loading audit trail...</p>
                         </div>
-                    ) : !auditTrail || auditTrail.length === 0 ? (
+                    ) : auditTrail === null || auditTrail === undefined || auditTrail.length === 0 ? (
                         <div className="empty-state py-8 px-4">
                             <EyeOff className="empty-state-icon text-text-muted" />
                             <h3 className="empty-state-title">No Keys Found</h3>
@@ -702,14 +702,14 @@ export default function AdminOrderDetailPage(): React.ReactElement | null {
                                                 className="border-border-subtle hover:bg-bg-tertiary/30 transition-colors duration-200"
                                             >
                                                 <TableCell>
-                                                    {entry.id ? (
+                                                    {entry.id !== null && entry.id !== undefined && entry.id !== '' ? (
                                                         <CopyableId id={entry.id} label="Key ID" className="text-cyan-glow" truncate />
                                                     ) : (
                                                         <span className="text-text-muted">-</span>
                                                     )}
                                                 </TableCell>
                                                 <TableCell>
-                                                    {entry.viewed ? (
+                                                    {entry.viewed === true ? (
                                                         <Badge className="badge-success">
                                                             <Eye className="mr-1 h-3 w-3" /> Revealed
                                                         </Badge>
@@ -733,13 +733,13 @@ export default function AdminOrderDetailPage(): React.ReactElement | null {
                                                     </div>
                                                 </TableCell>
                                                 <TableCell>
-                                                    {extendedEntry.lastAccessIp ? (
+                                                    {extendedEntry.lastAccessIp !== null && extendedEntry.lastAccessIp !== undefined && extendedEntry.lastAccessIp !== '' ? (
                                                         <div className="flex flex-col gap-0.5">
                                                             <div className="flex items-center gap-1 text-xs text-text-primary">
                                                                 <Globe className="h-3 w-3 text-text-muted" />
                                                                 <span className="font-mono">{extendedEntry.lastAccessIp}</span>
                                                             </div>
-                                                            {extendedEntry.lastAccessUserAgent && (
+                                                            {extendedEntry.lastAccessUserAgent !== null && extendedEntry.lastAccessUserAgent !== undefined && extendedEntry.lastAccessUserAgent !== '' && (
                                                                 <div className="flex items-center gap-1 text-xs text-text-muted" title={extendedEntry.lastAccessUserAgent}>
                                                                     <Monitor className="h-3 w-3" />
                                                                     <span className="truncate max-w-[120px]">
@@ -757,7 +757,7 @@ export default function AdminOrderDetailPage(): React.ReactElement | null {
                                                     )}
                                                 </TableCell>
                                                 <TableCell>
-                                                    {entry.viewedAt ? (
+                                                    {entry.viewedAt !== null && entry.viewedAt !== undefined ? (
                                                         <span className="font-mono text-xs text-green-success">
                                                             {formatDateTime(entry.viewedAt)}
                                                         </span>
@@ -780,7 +780,7 @@ export default function AdminOrderDetailPage(): React.ReactElement | null {
                                                                 const parts = cookieValue.split('; accessToken=');
                                                                 const token = parts.length === 2 ? parts[1]?.split(';')[0] : null;
                                                                 
-                                                                if (!token) {
+                                                                if (token === null || token === undefined || token === '') {
                                                                     toast.error('Not authenticated. Please log in again.');
                                                                     return;
                                                                 }

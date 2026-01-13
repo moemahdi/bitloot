@@ -172,7 +172,7 @@ function SystemStatusBadge({ health }: { health: SystemHealth }): React.ReactEle
   };
 
   const config = statusConfig[health.status];
-  const Icon = config.icon;
+  const _Icon = config.icon;
 
   return (
     <TooltipProvider>
@@ -456,7 +456,7 @@ export default function AdminDashboardPage(): React.ReactElement | null {
   const alerts = useMemo<Alert[]>(() => {
     const alertsList: Alert[] = [];
 
-    if (!recentOrders?.data || !stats) return alertsList;
+    if (recentOrders?.data === null || recentOrders?.data === undefined || stats === null || stats === undefined) return alertsList;
 
     // Critical: Failed orders
     const failedOrders = recentOrders.data.filter((o) => o.status === 'failed');
@@ -885,7 +885,7 @@ export default function AdminDashboardPage(): React.ReactElement | null {
                           </span>
                         </TableCell>
                         <TableCell>
-                          {order.payment ? (
+                          {order.payment !== null && order.payment !== undefined ? (
                             <TooltipProvider>
                               <Tooltip>
                                 <TooltipTrigger>
@@ -905,7 +905,7 @@ export default function AdminDashboardPage(): React.ReactElement | null {
                                     <p className="text-xs text-text-muted">
                                       Status: {order.payment.status ?? 'N/A'}
                                     </p>
-                                    {order.payment.provider && (
+                                    {order.payment.provider !== null && order.payment.provider !== undefined && order.payment.provider !== '' && (
                                       <p className="text-xs text-cyan-glow">
                                         Provider: {order.payment.provider}
                                       </p>

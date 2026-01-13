@@ -639,7 +639,7 @@ export class AdminService {
     let isBase64 = false;
 
     try {
-      if (key.encryptionKey !== null && key.encryptionKey !== undefined && key.encryptionKey.startsWith('raw:')) {
+      if (key.encryptionKey?.startsWith('raw:') === true) {
         // ===== RAW KEY (New format - no encryption) =====
         contentType = key.encryptionKey.substring(4);
         this.logger.debug(`[ADMIN REVEAL] Fetching raw key with content type: ${contentType}`);

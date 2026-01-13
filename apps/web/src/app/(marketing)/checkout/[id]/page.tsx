@@ -328,7 +328,7 @@ export default function CheckoutPage(): React.ReactElement {
       }
       // Use email from order (collected before order creation)
       const orderEmail = order.email ?? '';
-      if (!orderEmail || orderEmail.includes('pending@checkout')) {
+      if (orderEmail === '' || orderEmail.includes('pending@checkout')) {
         throw new Error('Valid email is required. Please go back and enter your email.');
       }
       const response = await paymentsClient.paymentsControllerCreateEmbedded({
@@ -689,7 +689,7 @@ export default function CheckoutPage(): React.ReactElement {
                   </motion.div>
 
                   <div className="border-t border-border-subtle pt-4 space-y-2">
-                    {order.email && order.email !== '' && (
+                    {order.email !== null && order.email !== undefined && order.email !== '' && (
                       <div className="flex items-center gap-2 text-sm text-text-muted">
                         <Mail className="h-4 w-4" />
                         <span className="truncate">{order.email}</span>
