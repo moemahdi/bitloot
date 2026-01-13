@@ -52,7 +52,7 @@ import { apiConfig } from '@/lib/api-config';
 const ordersClient = new OrdersApi(apiConfig);
 
 // ========== Types ==========
-type OrderStatus = 'created' | 'waiting' | 'pending' | 'confirming' | 'paid' | 'fulfilled' | 'failed' | 'expired' | 'underpaid';
+type OrderStatus = 'created' | 'waiting' | 'pending' | 'confirming' | 'paid' | 'fulfilled' | 'failed' | 'expired' | 'underpaid' | 'refunded' | 'cancelled';
 
 // ========== Status Config ==========
 const STATUS_CONFIG: Record<OrderStatus, {
@@ -147,6 +147,24 @@ const STATUS_CONFIG: Record<OrderStatus, {
     color: 'text-orange-warning',
     bgColor: 'bg-orange-warning/10',
     borderColor: 'border-orange-warning/30',
+    progress: 0,
+  },
+  refunded: {
+    label: 'Refunded',
+    description: 'This order has been refunded.',
+    icon: <XCircle className="h-6 w-6" />,
+    color: 'text-purple-neon',
+    bgColor: 'bg-purple-neon/10',
+    borderColor: 'border-purple-neon/30',
+    progress: 0,
+  },
+  cancelled: {
+    label: 'Cancelled',
+    description: 'This order has been cancelled.',
+    icon: <XCircle className="h-6 w-6" />,
+    color: 'text-gray-400',
+    bgColor: 'bg-gray-500/10',
+    borderColor: 'border-gray-500/30',
     progress: 0,
   },
 };

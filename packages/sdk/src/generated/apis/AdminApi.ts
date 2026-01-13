@@ -24,6 +24,8 @@ import type {
   AdminControllerGetWebhookLog200Response,
   AdminControllerGetWebhookLogs200Response,
   AdminControllerResendKeys200Response,
+  AdminControllerRetryFulfillment200Response,
+  AdminControllerRetryFulfillmentRequest,
   AdminControllerUpdateOrderStatus200Response,
   BulkUpdateStatusDto,
   BulkUpdateStatusResponseDto,
@@ -50,6 +52,10 @@ import {
     AdminControllerGetWebhookLogs200ResponseToJSON,
     AdminControllerResendKeys200ResponseFromJSON,
     AdminControllerResendKeys200ResponseToJSON,
+    AdminControllerRetryFulfillment200ResponseFromJSON,
+    AdminControllerRetryFulfillment200ResponseToJSON,
+    AdminControllerRetryFulfillmentRequestFromJSON,
+    AdminControllerRetryFulfillmentRequestToJSON,
     AdminControllerUpdateOrderStatus200ResponseFromJSON,
     AdminControllerUpdateOrderStatus200ResponseToJSON,
     BulkUpdateStatusDtoFromJSON,
@@ -129,6 +135,11 @@ export interface AdminControllerReplayWebhookRequest {
 
 export interface AdminControllerResendKeysRequest {
     id: string;
+}
+
+export interface AdminControllerRetryFulfillmentOperationRequest {
+    id: string;
+    adminControllerRetryFulfillmentRequest?: AdminControllerRetryFulfillmentRequest;
 }
 
 export interface AdminControllerUpdateOrderStatusRequest {
@@ -808,6 +819,56 @@ export class AdminApi extends runtime.BaseAPI {
      */
     async adminControllerResendKeys(requestParameters: AdminControllerResendKeysRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<AdminControllerResendKeys200Response> {
         const response = await this.adminControllerResendKeysRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Triggers the fulfillment process for orders stuck at paid/failed/waiting status. This actually reserves keys, encrypts them, and stores in R2. Use this instead of manually changing status to fulfilled.
+     * Retry fulfillment for stuck order
+     */
+    async adminControllerRetryFulfillmentRaw(requestParameters: AdminControllerRetryFulfillmentOperationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<AdminControllerRetryFulfillment200Response>> {
+        if (requestParameters['id'] == null) {
+            throw new runtime.RequiredError(
+                'id',
+                'Required parameter "id" was null or undefined when calling adminControllerRetryFulfillment().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("JWT-auth", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/admin/orders/{id}/retry-fulfillment`;
+        urlPath = urlPath.replace(`{${"id"}}`, encodeURIComponent(String(requestParameters['id'])));
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+            body: AdminControllerRetryFulfillmentRequestToJSON(requestParameters['adminControllerRetryFulfillmentRequest']),
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => AdminControllerRetryFulfillment200ResponseFromJSON(jsonValue));
+    }
+
+    /**
+     * Triggers the fulfillment process for orders stuck at paid/failed/waiting status. This actually reserves keys, encrypts them, and stores in R2. Use this instead of manually changing status to fulfilled.
+     * Retry fulfillment for stuck order
+     */
+    async adminControllerRetryFulfillment(requestParameters: AdminControllerRetryFulfillmentOperationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<AdminControllerRetryFulfillment200Response> {
+        const response = await this.adminControllerRetryFulfillmentRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

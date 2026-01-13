@@ -588,10 +588,56 @@ export class FulfillmentService {
     );
     
     // Use placeOrderV2 with all products in a single Kinguin order
-    const kinguinOrder = await this.kinguinClient.placeOrderV2({
-      products: kinguinProducts,
-      orderExternalId: orderId, // Link to our order for tracking
-    });
+    // Handle "orderExternalId already used" error by recovering existing order
+    let kinguinOrder: { orderId: string; status: string };
+    
+    try {
+      kinguinOrder = await this.kinguinClient.placeOrderV2({
+        products: kinguinProducts,
+        orderExternalId: orderId, // Link to our order for tracking
+      });
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      
+      // Check if this is a "orderExternalId already used" error
+      if (errorMessage.includes('already used') || errorMessage.includes('ConstraintViolation')) {
+        this.logger.warn(
+          `[FULFILLMENT] Order ${orderId} already exists in Kinguin, attempting to recover...`,
+        );
+        
+        // Search for the existing order by orderExternalId
+        const searchResult = await this.kinguinClient.searchOrders({
+          orderExternalId: orderId,
+          limit: 1,
+        });
+        
+        if (searchResult.results.length === 0) {
+          throw new BadRequestException(
+            `Kinguin order creation failed and could not find existing order: ${errorMessage}`,
+          );
+        }
+        
+        const existingOrder = searchResult.results[0];
+        if (existingOrder === undefined) {
+          throw new BadRequestException(
+            `Kinguin order creation failed and recovery returned undefined: ${errorMessage}`,
+          );
+        }
+        
+        // Found the existing order - use it
+        kinguinOrder = {
+          orderId: existingOrder.orderId,
+          status: existingOrder.status,
+        };
+        
+        this.logger.log(
+          `[FULFILLMENT] Recovered existing Kinguin order: ${kinguinOrder.orderId} (status: ${kinguinOrder.status})`,
+        );
+      } else {
+        // Not a duplicate error, rethrow
+        throw error;
+      }
+    }
 
     await this.ordersService.setReservationId(orderId, kinguinOrder.orderId);
 
@@ -615,7 +661,9 @@ export class FulfillmentService {
     }
 
     this.logger.debug(`[FULFILLMENT] Finalizing delivery for reservation: ${reservationId}`);
-    const status = await this.kinguinClient.getOrderStatus(order.id);
+    
+    // IMPORTANT: Use reservationId (Kinguin order ID), not order.id (BitLoot order ID)
+    const status = await this.kinguinClient.getOrderStatus(reservationId);
     if (status.status !== 'ready' || status.key === undefined || status.key === null || status.key === '') {
       throw new BadRequestException(
         `Reservation not ready for delivery: status=${status.status}`,

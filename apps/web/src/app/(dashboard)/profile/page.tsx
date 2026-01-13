@@ -17,7 +17,7 @@ import { Input } from '@/design-system/primitives/input';
 import { Separator } from '@/design-system/primitives/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/design-system/primitives/tabs';
 import { Badge } from '@/design-system/primitives/badge';
-import { Loader2, User, Shield, Key, Package, DollarSign, Check, Copy, ShoppingBag, LogOut, LayoutDashboard, Eye, HelpCircle, Mail, Hash, Crown, ShieldCheck, AlertCircle, Fingerprint, Info, Heart, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, RefreshCw, Smartphone, Monitor, Trash2, X, AlertTriangle, MessageSquare, Book, LifeBuoy, Clock, Globe, Activity, Search, Bell, ShoppingCart, LayoutGrid, List } from 'lucide-react';
+import { Loader2, User, Shield, Key, Package, DollarSign, Check, Copy, ShoppingBag, LogOut, LayoutDashboard, Eye, HelpCircle, Mail, Hash, Crown, ShieldCheck, AlertCircle, Fingerprint, Info, Heart, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, RefreshCw, Smartphone, Monitor, Trash2, X, AlertTriangle, MessageSquare, Book, LifeBuoy, Clock, Globe, Activity, Search, Bell, ShoppingCart, LayoutGrid, List, RotateCcw, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import { DashboardStatCard } from '@/components/dashboard/DashboardStatCard';
@@ -686,7 +686,8 @@ export default function ProfilePage(): React.ReactElement {
   // Purchases pagination, filtering, and search state
   const [purchasesPage, setPurchasesPage] = useState(1);
   const purchasesPerPage = 10;
-  const [purchasesStatusFilter, setPurchasesStatusFilter] = useState<'all' | 'fulfilled' | 'paid' | 'pending' | 'failed'>('all');
+  // Dynamic filter type - supports all status categories including new ones
+  const [purchasesStatusFilter, setPurchasesStatusFilter] = useState<'all' | 'fulfilled' | 'paid' | 'pending' | 'failed' | 'refunded' | 'cancelled'>('all');
   const [purchasesSearchQuery, setPurchasesSearchQuery] = useState('');
 
   // Security tab state
@@ -1063,6 +1064,78 @@ export default function ProfilePage(): React.ReactElement {
     digitalDownloads: apiStats?.digitalDownloads ?? 0,
   }), [apiStats]);
 
+  // Dynamic filter categories based on actual orders present
+  // Groups raw statuses into filter categories and counts orders per category
+  const dynamicFilterCategories = useMemo(() => {
+    if (!allOrders || allOrders.length === 0) {
+      return [];
+    }
+
+    // Define status groupings (same as filtering logic)
+    const statusToCategory: Record<string, string> = {
+      // Fulfilled/Completed
+      'fulfilled': 'fulfilled',
+      // Paid/Processing
+      'paid': 'paid',
+      // Pending states
+      'pending': 'pending',
+      'waiting': 'pending',
+      'confirming': 'pending',
+      'created': 'pending',
+      // Failed states
+      'failed': 'failed',
+      'underpaid': 'failed',
+      'expired': 'failed',
+      // Refunded
+      'refunded': 'refunded',
+      // Cancelled
+      'cancelled': 'cancelled',
+    };
+
+    // Count orders per category
+    const categoryCounts: Record<string, number> = {};
+    
+    allOrders.forEach((order: OrderResponseDto) => {
+      const status = order.status ?? 'pending';
+      const category = statusToCategory[status] ?? 'pending';
+      categoryCounts[category] = (categoryCounts[category] ?? 0) + 1;
+    });
+
+    // Define display order and styling for each category
+    type FilterCategoryKey = 'fulfilled' | 'paid' | 'pending' | 'failed' | 'refunded' | 'cancelled';
+    type FilterCategory = {
+      key: FilterCategoryKey;
+      label: string;
+      count: number;
+      icon: 'Key' | 'RefreshCw' | 'Clock' | 'AlertTriangle' | 'RotateCcw' | 'XCircle';
+      activeClass: string;
+    };
+
+    const categoryConfig: Record<FilterCategoryKey, Omit<FilterCategory, 'key' | 'count'>> = {
+      'fulfilled': { label: 'Completed', icon: 'Key', activeClass: 'bg-green-success text-black' },
+      'paid': { label: 'Processing', icon: 'RefreshCw', activeClass: 'bg-blue-500 text-white' },
+      'pending': { label: 'Pending', icon: 'Clock', activeClass: 'bg-orange-warning text-black' },
+      'failed': { label: 'Failed', icon: 'AlertTriangle', activeClass: 'bg-red-500 text-white' },
+      'refunded': { label: 'Refunded', icon: 'RotateCcw', activeClass: 'bg-purple-500 text-white' },
+      'cancelled': { label: 'Cancelled', icon: 'XCircle', activeClass: 'bg-gray-500 text-white' },
+    };
+
+    // Build array of categories that have orders (in display order)
+    const displayOrder: FilterCategoryKey[] = ['fulfilled', 'paid', 'pending', 'failed', 'refunded', 'cancelled'];
+    
+    const result: FilterCategory[] = displayOrder
+      .filter(key => (categoryCounts[key] ?? 0) > 0)
+      .map(key => ({
+        key,
+        count: categoryCounts[key] ?? 0,
+        label: categoryConfig[key].label,
+        icon: categoryConfig[key].icon,
+        activeClass: categoryConfig[key].activeClass,
+      }));
+
+    return result;
+  }, [allOrders]);
+
   // Client-side filtering for purchases (applied to ALL orders)
   const filteredOrders = useMemo(() => {
     if (allOrders === null || allOrders === undefined) return [];
@@ -1080,11 +1153,11 @@ export default function ProfilePage(): React.ReactElement {
         }
         
         if (purchasesStatusFilter === 'pending') {
-          // 'pending' filter includes: pending, waiting, confirming
-          return status === 'pending' || status === 'waiting' || status === 'confirming';
+          // 'pending' filter includes: pending, waiting, confirming, created
+          return status === 'pending' || status === 'waiting' || status === 'confirming' || status === 'created';
         }
         
-        // Direct match for: fulfilled, paid
+        // Direct match for: fulfilled, paid, refunded, cancelled
         return status === purchasesStatusFilter;
       });
     }
@@ -1893,8 +1966,9 @@ export default function ProfilePage(): React.ReactElement {
                   </Button>
                 </div>
 
-                {/* Filter Tabs */}
+                {/* Filter Tabs - Dynamic based on existing order statuses */}
                 <div className="flex flex-wrap gap-2">
+                  {/* All button is always visible */}
                   <Button
                     variant={purchasesStatusFilter === 'all' ? 'default' : 'outline'}
                     size="sm"
@@ -1903,42 +1977,32 @@ export default function ProfilePage(): React.ReactElement {
                   >
                     All ({orderStats.totalOrders})
                   </Button>
-                  <Button
-                    variant={purchasesStatusFilter === 'fulfilled' ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => setPurchasesStatusFilter('fulfilled')}
-                    className={purchasesStatusFilter === 'fulfilled' ? 'bg-green-success text-black' : ''}
-                  >
-                    <Key className="h-3 w-3 mr-1" />
-                    Completed ({orderStats.completedOrders})
-                  </Button>
-                  <Button
-                    variant={purchasesStatusFilter === 'paid' ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => setPurchasesStatusFilter('paid')}
-                    className={purchasesStatusFilter === 'paid' ? 'bg-blue-500 text-white' : ''}
-                  >
-                    <RefreshCw className="h-3 w-3 mr-1" />
-                    Processing ({orderStats.processingOrders})
-                  </Button>
-                  <Button
-                    variant={purchasesStatusFilter === 'pending' ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => setPurchasesStatusFilter('pending')}
-                    className={purchasesStatusFilter === 'pending' ? 'bg-orange-warning text-black' : ''}
-                  >
-                    <Clock className="h-3 w-3 mr-1" />
-                    Pending ({orderStats.pendingOrders})
-                  </Button>
-                  <Button
-                    variant={purchasesStatusFilter === 'failed' ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => setPurchasesStatusFilter('failed')}
-                    className={purchasesStatusFilter === 'failed' ? 'bg-red-500 text-white' : ''}
-                  >
-                    <AlertTriangle className="h-3 w-3 mr-1" />
-                    Failed ({orderStats.failedOrders})
-                  </Button>
+                  
+                  {/* Dynamic filter buttons - only show categories with orders */}
+                  {dynamicFilterCategories.map((category) => {
+                    // Map icon string to component
+                    const IconComponent = {
+                      'Key': Key,
+                      'RefreshCw': RefreshCw,
+                      'Clock': Clock,
+                      'AlertTriangle': AlertTriangle,
+                      'RotateCcw': RotateCcw,
+                      'XCircle': XCircle,
+                    }[category.icon];
+                    
+                    return (
+                      <Button
+                        key={category.key}
+                        variant={purchasesStatusFilter === category.key ? 'default' : 'outline'}
+                        size="sm"
+                        onClick={() => setPurchasesStatusFilter(category.key)}
+                        className={purchasesStatusFilter === category.key ? category.activeClass : ''}
+                      >
+                        {IconComponent && <IconComponent className="h-3 w-3 mr-1" />}
+                        {category.label} ({category.count})
+                      </Button>
+                    );
+                  })}
                 </div>
 
                 {/* Search Bar */}

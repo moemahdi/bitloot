@@ -43,7 +43,7 @@ const paymentsClient = new PaymentsApi(apiConfig);
 type CheckoutStep = 'payment' | 'paying';
 
 // Order status type
-type OrderStatus = 'pending' | 'confirming' | 'paid' | 'fulfilled' | 'failed' | 'expired' | 'underpaid';
+type OrderStatus = 'pending' | 'confirming' | 'paid' | 'fulfilled' | 'failed' | 'expired' | 'underpaid' | 'refunded' | 'cancelled';
 
 // Group order items by productId to show combined quantity
 interface GroupedOrderItem {

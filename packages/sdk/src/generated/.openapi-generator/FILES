@@ -46,6 +46,8 @@ docs/AdminControllerGetWebhookLog200Response.md
 docs/AdminControllerGetWebhookLogs200Response.md
 docs/AdminControllerGetWebhookLogs200ResponseDataInner.md
 docs/AdminControllerResendKeys200Response.md
+docs/AdminControllerRetryFulfillment200Response.md
+docs/AdminControllerRetryFulfillmentRequest.md
 docs/AdminControllerUpdateOrderStatus200Response.md
 docs/AdminCreateReviewDto.md
 docs/AdminOperationsApi.md
@@ -221,6 +223,8 @@ models/AdminControllerGetWebhookLog200Response.ts
 models/AdminControllerGetWebhookLogs200Response.ts
 models/AdminControllerGetWebhookLogs200ResponseDataInner.ts
 models/AdminControllerResendKeys200Response.ts
+models/AdminControllerRetryFulfillment200Response.ts
+models/AdminControllerRetryFulfillmentRequest.ts
 models/AdminControllerUpdateOrderStatus200Response.ts
 models/AdminCreateReviewDto.ts
 models/AdminOpsControllerCreateFeatureFlag201Response.ts

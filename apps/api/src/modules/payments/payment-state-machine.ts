@@ -119,7 +119,9 @@ export type OrderStatus =
   | 'paid' // Payment Complete: Ready to fulfill
   | 'underpaid' // Terminal Error: Insufficient payment (non-refundable)
   | 'failed' // Terminal Error: Payment failed
-  | 'fulfilled'; // Terminal Success: Keys delivered
+  | 'fulfilled' // Terminal Success: Keys delivered
+  | 'refunded' // Terminal: Admin refunded the order
+  | 'cancelled'; // Terminal: Order cancelled
 
 /**
  * ============================================================================
@@ -138,13 +140,15 @@ export const PAYMENT_STATE_TRANSITIONS: Record<PaymentStatus, PaymentStatus[]> =
 };
 
 export const ORDER_STATE_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
-  created: ['waiting', 'failed'], // New order awaits payment or fails
-  waiting: ['confirming', 'failed'], // Awaiting payment confirmation
-  confirming: ['paid', 'underpaid', 'failed'], // Can become paid, underpaid, or fail
-  paid: ['fulfilled'], // Enqueue fulfillment, then transition
-  underpaid: [], // Terminal: immutable (non-refundable)
-  failed: [], // Terminal: immutable
-  fulfilled: [], // Terminal: immutable (success)
+  created: ['waiting', 'failed', 'cancelled'], // New order awaits payment or fails/cancelled
+  waiting: ['confirming', 'failed', 'cancelled'], // Awaiting payment confirmation
+  confirming: ['paid', 'underpaid', 'failed', 'cancelled'], // Can become paid, underpaid, or fail
+  paid: ['fulfilled', 'refunded', 'cancelled'], // Enqueue fulfillment, or admin refund/cancel
+  underpaid: ['refunded'], // Can be refunded by admin
+  failed: ['refunded'], // Can be refunded by admin
+  fulfilled: ['refunded'], // Can be refunded by admin (e.g., key issue)
+  refunded: [], // Terminal: immutable
+  cancelled: [], // Terminal: immutable
 };
 
 /**

@@ -27,6 +27,8 @@ import type { ProductSourceType } from '../catalog/entities/product.entity';
  * - 'expired':      Payment expired (invoice timed out) - TERMINAL, can retry with new payment
  * - 'failed':       Payment failed (IPN: payment_status = 'failed') - TERMINAL
  * - 'fulfilled':    Fulfillment complete, keys delivered - TERMINAL success
+ * - 'refunded':     Admin manually refunded the order - TERMINAL
+ * - 'cancelled':    Order cancelled by admin or customer - TERMINAL
  */
 export type OrderStatus =
   | 'created' // Initial: Order created, awaiting payment
@@ -36,7 +38,9 @@ export type OrderStatus =
   | 'underpaid' // Payment failed: Insufficient amount (non-refundable)
   | 'expired' // Payment window expired: Customer can retry with new payment
   | 'failed' // Payment failed: Error or rejected (refundable)
-  | 'fulfilled'; // Success: Keys delivered, order complete
+  | 'fulfilled' // Success: Keys delivered, order complete
+  | 'refunded' // Admin manually refunded the order
+  | 'cancelled'; // Order cancelled by admin or customer
 
 @Entity('orders')
 @Index(['userId', 'createdAt']) // For user order lookups sorted by date

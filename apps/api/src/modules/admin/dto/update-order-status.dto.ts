@@ -4,7 +4,6 @@ import { IsEnum, IsOptional, IsString, MaxLength } from 'class-validator';
 /**
  * Valid order statuses for admin override
  * Must match OrderStatus from order.entity.ts
- * Note: 'refunded' and 'cancelled' are not in the database enum but can be manually tracked
  */
 export enum AdminOrderStatus {
   CREATED = 'created',
@@ -15,6 +14,8 @@ export enum AdminOrderStatus {
   EXPIRED = 'expired',
   FAILED = 'failed',
   FULFILLED = 'fulfilled',
+  REFUNDED = 'refunded',
+  CANCELLED = 'cancelled',
 }
 
 /**

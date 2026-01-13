@@ -455,6 +455,47 @@ export class AdminController {
   }
 
   /**
+   * Retry fulfillment for a stuck order
+   * Triggers the actual fulfillment process (reserves keys, encrypts, stores in R2)
+   */
+  @Post('orders/:id/retry-fulfillment')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Retry fulfillment for stuck order',
+    description: 'Triggers the fulfillment process for orders stuck at paid/failed/waiting status. This actually reserves keys, encrypts them, and stores in R2. Use this instead of manually changing status to fulfilled.',
+  })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        reason: { type: 'string', description: 'Optional reason for retry (audit trail)' },
+      },
+    },
+    required: false,
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Fulfillment job queued successfully',
+    schema: {
+      type: 'object',
+      properties: {
+        ok: { type: 'boolean' },
+        orderId: { type: 'string' },
+        jobId: { type: 'string', description: 'BullMQ job ID for tracking' },
+        previousStatus: { type: 'string' },
+      },
+    },
+  })
+  @ApiResponse({ status: 404, description: 'Order not found' })
+  @ApiResponse({ status: 400, description: 'Order not in retryable status' })
+  async retryFulfillment(
+    @Param('id') id: string,
+    @Body() body?: { reason?: string },
+  ): Promise<{ ok: boolean; orderId: string; jobId: string; previousStatus: string }> {
+    return this.admin.retryFulfillment(id, body?.reason);
+  }
+
+  /**
    * Resend key delivery email to customer
    * Regenerates signed URLs and sends new email
    */

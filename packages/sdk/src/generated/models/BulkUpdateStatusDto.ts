@@ -51,7 +51,9 @@ export const BulkUpdateStatusDtoStatusEnum = {
     Underpaid: 'underpaid',
     Expired: 'expired',
     Failed: 'failed',
-    Fulfilled: 'fulfilled'
+    Fulfilled: 'fulfilled',
+    Refunded: 'refunded',
+    Cancelled: 'cancelled'
 } as const;
 export type BulkUpdateStatusDtoStatusEnum = typeof BulkUpdateStatusDtoStatusEnum[keyof typeof BulkUpdateStatusDtoStatusEnum];
 

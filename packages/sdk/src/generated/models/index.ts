@@ -16,6 +16,8 @@ export * from './AdminControllerGetWebhookLog200Response';
 export * from './AdminControllerGetWebhookLogs200Response';
 export * from './AdminControllerGetWebhookLogs200ResponseDataInner';
 export * from './AdminControllerResendKeys200Response';
+export * from './AdminControllerRetryFulfillment200Response';
+export * from './AdminControllerRetryFulfillmentRequest';
 export * from './AdminControllerUpdateOrderStatus200Response';
 export * from './AdminCreateReviewDto';
 export * from './AdminOpsControllerCreateFeatureFlag201Response';

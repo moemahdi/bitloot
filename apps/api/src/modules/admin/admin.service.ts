@@ -13,6 +13,7 @@ import { R2StorageClient } from '../storage/r2.client';
 import { decryptKey } from '../storage/encryption.util';
 import { AdminOrderStatus } from './dto/update-order-status.dto';
 import type { OrderAnalyticsDto, BulkUpdateStatusResponseDto, StatusCountDto, SourceTypeCountDto, DailyVolumeDto } from './dto/bulk-operations.dto';
+import { FulfillmentService } from '../fulfillment/fulfillment.service';
 
 /**
  * Admin Service - Business logic for admin operations
@@ -39,6 +40,7 @@ export class AdminService {
     private readonly emailsService: EmailsService,
     private readonly storageService: StorageService,
     private readonly r2StorageClient: R2StorageClient,
+    private readonly fulfillmentService: FulfillmentService,
   ) { }
 
   /**
@@ -617,6 +619,58 @@ export class AdminService {
       orderId,
       previousStatus,
       newStatus,
+    };
+  }
+
+  /**
+   * Retry fulfillment for a stuck order
+   * This triggers the actual fulfillment process (reserve keys, encrypt, store in R2)
+   * Use this when an order is stuck at 'paid' status or when fulfillment failed.
+   *
+   * @param orderId Order ID to retry fulfillment for
+   * @param reason Optional reason for the retry (audit trail)
+   * @returns Job ID and order status
+   */
+  async retryFulfillment(
+    orderId: string,
+    reason?: string,
+  ): Promise<{ ok: boolean; orderId: string; jobId: string; previousStatus: string }> {
+    const order = await this.ordersRepo.findOne({ where: { id: orderId } });
+
+    if (order === null || order === undefined) {
+      throw new NotFoundException(`Order not found: ${orderId}`);
+    }
+
+    // Check if order is in a retryable state
+    const retryableStatuses = ['paid', 'failed', 'waiting', 'confirming'];
+    if (!retryableStatuses.includes(order.status)) {
+      throw new BadRequestException(
+        `Order ${orderId} is in status '${order.status}' which cannot be retried. ` +
+        `Retryable statuses: ${retryableStatuses.join(', ')}`,
+      );
+    }
+
+    const previousStatus = order.status;
+
+    // If order is at 'paid' but stuck, keep it at paid and enqueue fulfillment
+    // The fulfillment processor will handle the actual work
+    this.logger.log(
+      `[ADMIN] Retrying fulfillment for order ${orderId} (status: ${previousStatus})` +
+      (reason !== undefined && reason.length > 0 ? ` (Reason: ${reason})` : ''),
+    );
+
+    // Enqueue the fulfillment job
+    const jobId = await this.fulfillmentService.enqueueFulfillment(orderId);
+
+    this.logger.log(
+      `[ADMIN] Fulfillment job queued for order ${orderId}: jobId=${jobId}`,
+    );
+
+    return {
+      ok: true,
+      orderId,
+      jobId,
+      previousStatus,
     };
   }
 

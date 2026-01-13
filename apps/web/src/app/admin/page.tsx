@@ -380,6 +380,8 @@ function OrderStatusBadge({ status }: { status: string }): React.ReactElement {
     waiting: { color: 'text-orange-warning', bg: 'bg-orange-warning/10', icon: Clock },
     confirming: { color: 'text-cyan-glow', bg: 'bg-cyan-glow/10', icon: Activity },
     failed: { color: 'text-destructive', bg: 'bg-destructive/10', icon: XCircle },
+    refunded: { color: 'text-purple-neon', bg: 'bg-purple-neon/10', icon: DollarSign },
+    cancelled: { color: 'text-gray-400', bg: 'bg-gray-500/10', icon: XCircle },
   };
 
   const config = statusConfig[status] ?? statusConfig.waiting;

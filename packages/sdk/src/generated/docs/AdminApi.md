@@ -17,6 +17,7 @@ All URIs are relative to *http://localhost*
 | [**adminControllerGetWebhookLogs**](AdminApi.md#admincontrollergetwebhooklogs) | **GET** /admin/webhook-logs | Get paginated list of webhook logs |
 | [**adminControllerReplayWebhook**](AdminApi.md#admincontrollerreplaywebhook) | **POST** /admin/webhook-logs/{id}/replay | Replay failed webhook |
 | [**adminControllerResendKeys**](AdminApi.md#admincontrollerresendkeys) | **POST** /admin/orders/{id}/resend-keys | Resend key delivery email |
+| [**adminControllerRetryFulfillment**](AdminApi.md#admincontrollerretryfulfillmentoperation) | **POST** /admin/orders/{id}/retry-fulfillment | Retry fulfillment for stuck order |
 | [**adminControllerUpdateOrderStatus**](AdminApi.md#admincontrollerupdateorderstatus) | **PATCH** /admin/orders/{id}/status | Update order status |
 
 
@@ -995,6 +996,82 @@ example().catch(console.error);
 |-------------|-------------|------------------|
 | **200** | Keys email resent successfully |  -  |
 | **400** | Order not fulfilled - cannot resend keys |  -  |
+| **404** | Order not found |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## adminControllerRetryFulfillment
+
+> AdminControllerRetryFulfillment200Response adminControllerRetryFulfillment(id, adminControllerRetryFulfillmentRequest)
+
+Retry fulfillment for stuck order
+
+Triggers the fulfillment process for orders stuck at paid/failed/waiting status. This actually reserves keys, encrypts them, and stores in R2. Use this instead of manually changing status to fulfilled.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  AdminApi,
+} from '';
+import type { AdminControllerRetryFulfillmentOperationRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const config = new Configuration({ 
+    // Configure HTTP bearer authorization: JWT-auth
+    accessToken: "YOUR BEARER TOKEN",
+  });
+  const api = new AdminApi(config);
+
+  const body = {
+    // string
+    id: id_example,
+    // AdminControllerRetryFulfillmentRequest (optional)
+    adminControllerRetryFulfillmentRequest: ...,
+  } satisfies AdminControllerRetryFulfillmentOperationRequest;
+
+  try {
+    const data = await api.adminControllerRetryFulfillment(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **id** | `string` |  | [Defaults to `undefined`] |
+| **adminControllerRetryFulfillmentRequest** | [AdminControllerRetryFulfillmentRequest](AdminControllerRetryFulfillmentRequest.md) |  | [Optional] |
+
+### Return type
+
+[**AdminControllerRetryFulfillment200Response**](AdminControllerRetryFulfillment200Response.md)
+
+### Authorization
+
+[JWT-auth](../README.md#JWT-auth)
+
+### HTTP request headers
+
+- **Content-Type**: `application/json`
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Fulfillment job queued successfully |  -  |
+| **400** | Order not in retryable status |  -  |
 | **404** | Order not found |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)

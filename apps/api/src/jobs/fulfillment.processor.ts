@@ -6,6 +6,7 @@ import type { Job, Queue } from 'bullmq';
 import { FulfillmentService } from '../modules/fulfillment/fulfillment.service';
 import { OrdersService } from '../modules/orders/orders.service';
 import { FulfillmentGateway } from '../modules/fulfillment/fulfillment.gateway';
+import { KinguinClient } from '../modules/fulfillment/kinguin.client';
 import { QUEUE_NAMES } from './queues';
 import { WebhookLog } from '../database/entities/webhook-log.entity';
 
@@ -49,6 +50,7 @@ export class FulfillmentProcessor extends WorkerHost {
     private readonly fulfillmentService: FulfillmentService,
     private readonly ordersService: OrdersService,
     private readonly fulfillmentGateway: FulfillmentGateway,
+    private readonly kinguinClient: KinguinClient,
     @InjectRepository(WebhookLog)
     private readonly webhookLogsRepo: Repository<WebhookLog>,
     @InjectQueue(QUEUE_NAMES.FULFILLMENT)
@@ -176,9 +178,38 @@ export class FulfillmentProcessor extends WorkerHost {
             { delay: 500, attempts: 3, backoff: { type: 'exponential', delay: 1000 } },
           );
         } else {
+          // Real Kinguin order - poll status to check if keys are already ready
+          // This handles cases where the webhook was missed or delayed
           this.logger.log(
-            `[Fulfillment] 📡 Real Kinguin order created: ${result.reservationId} - waiting for Kinguin webhook`,
+            `[Fulfillment] 📡 Polling Kinguin order status for: ${result.reservationId}`,
           );
+          
+          try {
+            const kinguinOrder = await this.kinguinClient.getOrder(result.reservationId);
+            
+            if (kinguinOrder.status === 'completed') {
+              // Keys are ready! Queue fetch-keys immediately
+              this.logger.log(
+                `[Fulfillment] ✅ Kinguin order ${result.reservationId} is COMPLETED - queuing fetch-keys`,
+              );
+              await this.fulfillmentQueue.add(
+                'fetch-keys',
+                { kinguinOrderId: result.reservationId, orderId },
+                { attempts: 3, backoff: { type: 'exponential', delay: 1000 } },
+              );
+            } else {
+              // Still processing - wait for webhook
+              this.logger.log(
+                `[Fulfillment] 📡 Kinguin order ${result.reservationId} status: ${kinguinOrder.status} - waiting for webhook`,
+              );
+            }
+          } catch (pollError) {
+            // Failed to poll - fallback to waiting for webhook
+            const pollMsg = pollError instanceof Error ? pollError.message : String(pollError);
+            this.logger.warn(
+              `[Fulfillment] Failed to poll Kinguin order status: ${pollMsg} - will wait for webhook`,
+            );
+          }
         }
 
         // Do not mark fulfilled here; wait for webhook/fetch-keys to finalize

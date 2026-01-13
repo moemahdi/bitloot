@@ -8,7 +8,7 @@ import { OrdersApi, AdminApi, UpdateOrderStatusDtoStatusEnum as StatusEnum } fro
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/design-system/primitives/card';
 import { Badge } from '@/design-system/primitives/badge';
 import { Button } from '@/design-system/primitives/button';
-import { Loader2, ArrowLeft, Clock, Package, CreditCard, Eye, EyeOff, History, AlertTriangle, Mail, Zap, CheckCircle2, XCircle, Copy, Wallet, Hash, ExternalLink, Download, Globe, Monitor, Key } from 'lucide-react';
+import { Loader2, ArrowLeft, Clock, Package, CreditCard, Eye, EyeOff, History, AlertTriangle, Mail, Zap, CheckCircle2, XCircle, Copy, Wallet, Hash, ExternalLink, Download, Globe, Monitor, Key, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import Link from 'next/link';
 import { useAdminGuard } from '@/features/admin/hooks/useAdminGuard';
@@ -191,6 +191,31 @@ export default function AdminOrderDetailPage(): React.ReactElement | null {
         },
     });
 
+    // Retry fulfillment mutation
+    const retryFulfillmentMutation = useMutation({
+        mutationFn: async () => {
+            return await adminApi.adminControllerRetryFulfillment({
+                id,
+                adminControllerRetryFulfillmentRequest: { reason: 'Admin triggered retry' },
+            });
+        },
+        onSuccess: (data) => {
+            toast.success(`Fulfillment job queued! Job ID: ${data.jobId ?? 'pending'}`);
+            void refetch();
+            void queryClient.invalidateQueries({ queryKey: ['admin-orders'] });
+        },
+        onError: (error: Error) => {
+            toast.error(`Failed to retry fulfillment: ${error.message}`);
+        },
+    });
+
+    const handleRetryFulfillment = () => {
+        retryFulfillmentMutation.mutate();
+    };
+
+    // Check if order status allows retry fulfillment
+    const canRetryFulfillment = ['paid', 'failed', 'waiting', 'confirming'].includes(order?.status?.toLowerCase() ?? '');
+
     const handleStatusUpdate = () => {
         if (!newStatus) return;
         updateStatusMutation.mutate({ status: newStatus, reason: statusReason || undefined });
@@ -294,6 +319,8 @@ export default function AdminOrderDetailPage(): React.ReactElement | null {
                                             <SelectItem value={StatusEnum.Failed}>✕ Failed</SelectItem>
                                             <SelectItem value={StatusEnum.Expired}>⏱ Expired</SelectItem>
                                             <SelectItem value={StatusEnum.Underpaid}>⚠ Underpaid</SelectItem>
+                                            <SelectItem value={StatusEnum.Refunded}>↩ Refunded</SelectItem>
+                                            <SelectItem value={StatusEnum.Cancelled}>⊘ Cancelled</SelectItem>
                                         </SelectContent>
                                     </Select>
                                 </div>
@@ -349,6 +376,21 @@ export default function AdminOrderDetailPage(): React.ReactElement | null {
                                 <Mail className="mr-2 h-4 w-4" />
                             )}
                             Resend Keys
+                        </Button>
+                    )}
+
+                    {canRetryFulfillment && (
+                        <Button
+                            onClick={handleRetryFulfillment}
+                            disabled={retryFulfillmentMutation.isPending}
+                            className="bg-orange-warning/10 text-orange-warning border border-orange-warning/30 hover:bg-orange-warning/20 hover:shadow-glow-warning transition-all duration-300"
+                        >
+                            {retryFulfillmentMutation.isPending ? (
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            ) : (
+                                <RefreshCw className="mr-2 h-4 w-4" />
+                            )}
+                            Retry Fulfillment
                         </Button>
                     )}
                 </div>

@@ -45,7 +45,9 @@ export const UpdateOrderStatusDtoStatusEnum = {
     Underpaid: 'underpaid',
     Expired: 'expired',
     Failed: 'failed',
-    Fulfilled: 'fulfilled'
+    Fulfilled: 'fulfilled',
+    Refunded: 'refunded',
+    Cancelled: 'cancelled'
 } as const;
 export type UpdateOrderStatusDtoStatusEnum = typeof UpdateOrderStatusDtoStatusEnum[keyof typeof UpdateOrderStatusDtoStatusEnum];
 

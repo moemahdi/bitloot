@@ -87,6 +87,10 @@ function getOrderStatusBadgeClass(status: string): string {
     case 'underpaid':
     case 'expired':
       return 'bg-destructive/20 text-destructive border border-destructive/30';
+    case 'refunded':
+      return 'bg-purple-neon/20 text-purple-neon border border-purple-neon/30';
+    case 'cancelled':
+      return 'bg-gray-500/20 text-gray-400 border border-gray-500/30';
     default:
       return 'bg-purple-neon/20 text-purple-neon border border-purple-neon/30';
   }
@@ -592,6 +596,8 @@ export default function AdminOrdersPage(): React.ReactElement {
                             <SelectItem value="paid">Paid</SelectItem>
                             <SelectItem value="fulfilled">Fulfilled</SelectItem>
                             <SelectItem value="failed">Failed</SelectItem>
+                            <SelectItem value="refunded">Refunded</SelectItem>
+                            <SelectItem value="cancelled">Cancelled</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
@@ -682,6 +688,8 @@ export default function AdminOrdersPage(): React.ReactElement {
                     <SelectItem value="failed">Failed</SelectItem>
                     <SelectItem value="underpaid">Underpaid</SelectItem>
                     <SelectItem value="confirming">Confirming</SelectItem>
+                    <SelectItem value="refunded">Refunded</SelectItem>
+                    <SelectItem value="cancelled">Cancelled</SelectItem>
                   </SelectContent>
                 </Select>
                 <Select
