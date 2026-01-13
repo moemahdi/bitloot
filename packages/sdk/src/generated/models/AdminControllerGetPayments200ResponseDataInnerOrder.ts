@@ -20,7 +20,7 @@ import { mapValues } from '../runtime';
  */
 export interface AdminControllerGetPayments200ResponseDataInnerOrder {
     /**
-     * 
+     * Customer email
      * @type {string}
      * @memberof AdminControllerGetPayments200ResponseDataInnerOrder
      */

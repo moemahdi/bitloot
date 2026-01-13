@@ -10,6 +10,7 @@ Name | Type
 `total` | number
 `limit` | number
 `offset` | number
+`stats` | [AdminControllerGetPayments200ResponseStats](AdminControllerGetPayments200ResponseStats.md)
 
 ## Example
 
@@ -22,6 +23,7 @@ const example = {
   "total": null,
   "limit": null,
   "offset": null,
+  "stats": null,
 } satisfies AdminControllerGetPayments200Response
 
 console.log(example)

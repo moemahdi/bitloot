@@ -19,6 +19,7 @@ All URIs are relative to *http://localhost*
 | [**adminControllerResendKeys**](AdminApi.md#admincontrollerresendkeys) | **POST** /admin/orders/{id}/resend-keys | Resend key delivery email |
 | [**adminControllerRetryFulfillment**](AdminApi.md#admincontrollerretryfulfillmentoperation) | **POST** /admin/orders/{id}/retry-fulfillment | Retry fulfillment for stuck order |
 | [**adminControllerUpdateOrderStatus**](AdminApi.md#admincontrollerupdateorderstatus) | **PATCH** /admin/orders/{id}/status | Update order status |
+| [**adminControllerUpdatePaymentStatus**](AdminApi.md#admincontrollerupdatepaymentstatus) | **PATCH** /admin/payments/{id}/status | Manually update payment status (admin override) |
 
 
 
@@ -549,7 +550,7 @@ example().catch(console.error);
 
 Get paginated list of payments
 
-Returns payments with order info, filtered by provider and status
+Returns payments with order info and extended transaction details, filtered by provider and status
 
 ### Example
 
@@ -618,7 +619,7 @@ example().catch(console.error);
 ### HTTP response details
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
-| **200** | Paginated payments list |  -  |
+| **200** | Paginated payments list with extended transaction data |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
@@ -777,7 +778,7 @@ example().catch(console.error);
 
 ## adminControllerGetWebhookLogs
 
-> AdminControllerGetWebhookLogs200Response adminControllerGetWebhookLogs(limit, offset, webhookType, paymentStatus)
+> AdminControllerGetWebhookLogs200Response adminControllerGetWebhookLogs(limit, offset, webhookType, paymentStatus, paymentId, orderId)
 
 Get paginated list of webhook logs
 
@@ -809,6 +810,10 @@ async function example() {
     webhookType: nowpayments_ipn,
     // string (optional)
     paymentStatus: processed,
+    // string | Filter webhook logs by payment ID (for IPN history) (optional)
+    paymentId: paymentId_example,
+    // string | Filter webhook logs by order ID (optional)
+    orderId: orderId_example,
   } satisfies AdminControllerGetWebhookLogsRequest;
 
   try {
@@ -832,6 +837,8 @@ example().catch(console.error);
 | **offset** | `number` |  | [Optional] [Defaults to `undefined`] |
 | **webhookType** | `string` |  | [Optional] [Defaults to `undefined`] |
 | **paymentStatus** | `string` |  | [Optional] [Defaults to `undefined`] |
+| **paymentId** | `string` | Filter webhook logs by payment ID (for IPN history) | [Optional] [Defaults to `undefined`] |
+| **orderId** | `string` | Filter webhook logs by order ID | [Optional] [Defaults to `undefined`] |
 
 ### Return type
 
@@ -1149,6 +1156,82 @@ example().catch(console.error);
 | **200** | Order status updated successfully |  -  |
 | **400** | Invalid status transition |  -  |
 | **404** | Order not found |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## adminControllerUpdatePaymentStatus
+
+> UpdatePaymentStatusResponseDto adminControllerUpdatePaymentStatus(id, updatePaymentStatusDto)
+
+Manually update payment status (admin override)
+
+Updates payment status for support edge cases. Requires reason for audit trail. Cannot change finalized payments.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  AdminApi,
+} from '';
+import type { AdminControllerUpdatePaymentStatusRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const config = new Configuration({ 
+    // Configure HTTP bearer authorization: JWT-auth
+    accessToken: "YOUR BEARER TOKEN",
+  });
+  const api = new AdminApi(config);
+
+  const body = {
+    // string
+    id: id_example,
+    // UpdatePaymentStatusDto
+    updatePaymentStatusDto: ...,
+  } satisfies AdminControllerUpdatePaymentStatusRequest;
+
+  try {
+    const data = await api.adminControllerUpdatePaymentStatus(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **id** | `string` |  | [Defaults to `undefined`] |
+| **updatePaymentStatusDto** | [UpdatePaymentStatusDto](UpdatePaymentStatusDto.md) |  | |
+
+### Return type
+
+[**UpdatePaymentStatusResponseDto**](UpdatePaymentStatusResponseDto.md)
+
+### Authorization
+
+[JWT-auth](../README.md#JWT-auth)
+
+### HTTP request headers
+
+- **Content-Type**: `application/json`
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Payment status updated successfully |  -  |
+| **400** | Cannot update payment to this status (e.g., payment already finalized) |  -  |
+| **404** | Payment not found |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 

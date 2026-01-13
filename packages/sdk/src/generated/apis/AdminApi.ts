@@ -32,6 +32,8 @@ import type {
   DashboardStatsDto,
   OrderAnalyticsDto,
   UpdateOrderStatusDto,
+  UpdatePaymentStatusDto,
+  UpdatePaymentStatusResponseDto,
 } from '../models/index';
 import {
     AdminControllerAdminRevealKey200ResponseFromJSON,
@@ -68,6 +70,10 @@ import {
     OrderAnalyticsDtoToJSON,
     UpdateOrderStatusDtoFromJSON,
     UpdateOrderStatusDtoToJSON,
+    UpdatePaymentStatusDtoFromJSON,
+    UpdatePaymentStatusDtoToJSON,
+    UpdatePaymentStatusResponseDtoFromJSON,
+    UpdatePaymentStatusResponseDtoToJSON,
 } from '../models/index';
 
 export interface AdminControllerAdminRevealKeyRequest {
@@ -127,6 +133,8 @@ export interface AdminControllerGetWebhookLogsRequest {
     offset?: number;
     webhookType?: string;
     paymentStatus?: string;
+    paymentId?: string;
+    orderId?: string;
 }
 
 export interface AdminControllerReplayWebhookRequest {
@@ -145,6 +153,11 @@ export interface AdminControllerRetryFulfillmentOperationRequest {
 export interface AdminControllerUpdateOrderStatusRequest {
     id: string;
     updateOrderStatusDto: UpdateOrderStatusDto;
+}
+
+export interface AdminControllerUpdatePaymentStatusRequest {
+    id: string;
+    updatePaymentStatusDto: UpdatePaymentStatusDto;
 }
 
 /**
@@ -518,7 +531,7 @@ export class AdminApi extends runtime.BaseAPI {
     }
 
     /**
-     * Returns payments with order info, filtered by provider and status
+     * Returns payments with order info and extended transaction details, filtered by provider and status
      * Get paginated list of payments
      */
     async adminControllerGetPaymentsRaw(requestParameters: AdminControllerGetPaymentsRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<AdminControllerGetPayments200Response>> {
@@ -564,7 +577,7 @@ export class AdminApi extends runtime.BaseAPI {
     }
 
     /**
-     * Returns payments with order info, filtered by provider and status
+     * Returns payments with order info and extended transaction details, filtered by provider and status
      * Get paginated list of payments
      */
     async adminControllerGetPayments(requestParameters: AdminControllerGetPaymentsRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<AdminControllerGetPayments200Response> {
@@ -695,6 +708,14 @@ export class AdminApi extends runtime.BaseAPI {
 
         if (requestParameters['paymentStatus'] != null) {
             queryParameters['paymentStatus'] = requestParameters['paymentStatus'];
+        }
+
+        if (requestParameters['paymentId'] != null) {
+            queryParameters['paymentId'] = requestParameters['paymentId'];
+        }
+
+        if (requestParameters['orderId'] != null) {
+            queryParameters['orderId'] = requestParameters['orderId'];
         }
 
         const headerParameters: runtime.HTTPHeaders = {};
@@ -926,6 +947,63 @@ export class AdminApi extends runtime.BaseAPI {
      */
     async adminControllerUpdateOrderStatus(requestParameters: AdminControllerUpdateOrderStatusRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<AdminControllerUpdateOrderStatus200Response> {
         const response = await this.adminControllerUpdateOrderStatusRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Updates payment status for support edge cases. Requires reason for audit trail. Cannot change finalized payments.
+     * Manually update payment status (admin override)
+     */
+    async adminControllerUpdatePaymentStatusRaw(requestParameters: AdminControllerUpdatePaymentStatusRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<UpdatePaymentStatusResponseDto>> {
+        if (requestParameters['id'] == null) {
+            throw new runtime.RequiredError(
+                'id',
+                'Required parameter "id" was null or undefined when calling adminControllerUpdatePaymentStatus().'
+            );
+        }
+
+        if (requestParameters['updatePaymentStatusDto'] == null) {
+            throw new runtime.RequiredError(
+                'updatePaymentStatusDto',
+                'Required parameter "updatePaymentStatusDto" was null or undefined when calling adminControllerUpdatePaymentStatus().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("JWT-auth", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/admin/payments/{id}/status`;
+        urlPath = urlPath.replace(`{${"id"}}`, encodeURIComponent(String(requestParameters['id'])));
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'PATCH',
+            headers: headerParameters,
+            query: queryParameters,
+            body: UpdatePaymentStatusDtoToJSON(requestParameters['updatePaymentStatusDto']),
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => UpdatePaymentStatusResponseDtoFromJSON(jsonValue));
+    }
+
+    /**
+     * Updates payment status for support edge cases. Requires reason for audit trail. Cannot change finalized payments.
+     * Manually update payment status (admin override)
+     */
+    async adminControllerUpdatePaymentStatus(requestParameters: AdminControllerUpdatePaymentStatusRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<UpdatePaymentStatusResponseDto> {
+        const response = await this.adminControllerUpdatePaymentStatusRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

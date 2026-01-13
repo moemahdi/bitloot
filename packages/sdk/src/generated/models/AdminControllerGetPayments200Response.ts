@@ -13,6 +13,13 @@
  */
 
 import { mapValues } from '../runtime';
+import type { AdminControllerGetPayments200ResponseStats } from './AdminControllerGetPayments200ResponseStats';
+import {
+    AdminControllerGetPayments200ResponseStatsFromJSON,
+    AdminControllerGetPayments200ResponseStatsFromJSONTyped,
+    AdminControllerGetPayments200ResponseStatsToJSON,
+    AdminControllerGetPayments200ResponseStatsToJSONTyped,
+} from './AdminControllerGetPayments200ResponseStats';
 import type { AdminControllerGetPayments200ResponseDataInner } from './AdminControllerGetPayments200ResponseDataInner';
 import {
     AdminControllerGetPayments200ResponseDataInnerFromJSON,
@@ -34,23 +41,29 @@ export interface AdminControllerGetPayments200Response {
      */
     data?: Array<AdminControllerGetPayments200ResponseDataInner>;
     /**
-     * 
+     * Total number of payments matching filters
      * @type {number}
      * @memberof AdminControllerGetPayments200Response
      */
     total?: number;
     /**
-     * 
+     * Page size limit
      * @type {number}
      * @memberof AdminControllerGetPayments200Response
      */
     limit?: number;
     /**
-     * 
+     * Pagination offset
      * @type {number}
      * @memberof AdminControllerGetPayments200Response
      */
     offset?: number;
+    /**
+     * 
+     * @type {AdminControllerGetPayments200ResponseStats}
+     * @memberof AdminControllerGetPayments200Response
+     */
+    stats?: AdminControllerGetPayments200ResponseStats;
 }
 
 /**
@@ -74,6 +87,7 @@ export function AdminControllerGetPayments200ResponseFromJSONTyped(json: any, ig
         'total': json['total'] == null ? undefined : json['total'],
         'limit': json['limit'] == null ? undefined : json['limit'],
         'offset': json['offset'] == null ? undefined : json['offset'],
+        'stats': json['stats'] == null ? undefined : AdminControllerGetPayments200ResponseStatsFromJSON(json['stats']),
     };
 }
 
@@ -92,6 +106,7 @@ export function AdminControllerGetPayments200ResponseToJSONTyped(value?: AdminCo
         'total': value['total'],
         'limit': value['limit'],
         'offset': value['offset'],
+        'stats': AdminControllerGetPayments200ResponseStatsToJSON(value['stats']),
     };
 }
 

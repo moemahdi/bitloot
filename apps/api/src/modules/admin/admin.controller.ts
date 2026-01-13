@@ -6,6 +6,7 @@ import { AdminGuard } from '../../common/guards/admin.guard';
 import { AdminService } from './admin.service';
 import { DashboardStatsDto } from './dto/dashboard-stats.dto';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
+import { UpdatePaymentStatusDto, UpdatePaymentStatusResponseDto } from './dto/update-payment-status.dto';
 import { BulkUpdateStatusDto, BulkUpdateStatusResponseDto, OrderAnalyticsDto } from './dto/bulk-operations.dto';
 
 /**
@@ -119,7 +120,7 @@ export class AdminController {
   @Get('payments')
   @ApiOperation({
     summary: 'Get paginated list of payments',
-    description: 'Returns payments with order info, filtered by provider and status',
+    description: 'Returns payments with order info and extended transaction details, filtered by provider and status',
   })
   @ApiQuery({ name: 'limit', type: Number, required: false, example: 50 })
   @ApiQuery({ name: 'offset', type: Number, required: false, example: 0 })
@@ -127,7 +128,7 @@ export class AdminController {
   @ApiQuery({ name: 'status', type: String, required: false, example: 'finished' })
   @ApiResponse({
     status: 200,
-    description: 'Paginated payments list',
+    description: 'Paginated payments list with extended transaction data',
     schema: {
       type: 'object',
       properties: {
@@ -136,26 +137,45 @@ export class AdminController {
           items: {
             type: 'object',
             properties: {
-              id: { type: 'string' },
-              orderId: { type: 'string' },
-              externalId: { type: 'string' },
-              status: { type: 'string' },
-              provider: { type: 'string' },
-              priceAmount: { type: 'string' },
-              priceCurrency: { type: 'string' },
-              payAmount: { type: 'string' },
-              payCurrency: { type: 'string' },
+              id: { type: 'string', description: 'Internal payment UUID' },
+              orderId: { type: 'string', description: 'Associated order UUID' },
+              externalId: { type: 'string', description: 'NOWPayments payment ID' },
+              status: { type: 'string', description: 'Payment status (created, waiting, confirmed, finished, underpaid, failed)' },
+              provider: { type: 'string', description: 'Payment provider (nowpayments)' },
+              priceAmount: { type: 'string', description: 'Price in fiat currency' },
+              priceCurrency: { type: 'string', description: 'Fiat currency code (usd, eur)' },
+              payAmount: { type: 'string', description: 'Amount to pay in crypto' },
+              payCurrency: { type: 'string', description: 'Crypto currency code (btc, eth)' },
+              actuallyPaid: { type: 'string', description: 'Amount actually received in crypto' },
+              payAddress: { type: 'string', description: 'Cryptocurrency payment address' },
+              txHash: { type: 'string', description: 'Blockchain transaction hash' },
+              networkConfirmations: { type: 'number', description: 'Current blockchain confirmations' },
+              requiredConfirmations: { type: 'number', description: 'Required confirmations for completion' },
+              createdAt: { type: 'string', format: 'date-time', description: 'Payment creation timestamp' },
+              updatedAt: { type: 'string', format: 'date-time', description: 'Last update timestamp' },
+              expiresAt: { type: 'string', format: 'date-time', description: 'Payment expiration timestamp' },
               order: {
                 type: 'object',
-                properties: { email: { type: 'string' } },
+                properties: { email: { type: 'string', description: 'Customer email' } },
               },
-              createdAt: { type: 'string', format: 'date-time' },
             },
           },
         },
-        total: { type: 'number' },
-        limit: { type: 'number' },
-        offset: { type: 'number' },
+        total: { type: 'number', description: 'Total number of payments matching filters' },
+        limit: { type: 'number', description: 'Page size limit' },
+        offset: { type: 'number', description: 'Pagination offset' },
+        stats: {
+          type: 'object',
+          description: 'Aggregate statistics for all payments (ignores pagination)',
+          properties: {
+            totalPayments: { type: 'number', description: 'Total number of all payments' },
+            successfulPayments: { type: 'number', description: 'Number of successful payments (finished/confirmed)' },
+            failedPayments: { type: 'number', description: 'Number of failed/expired payments' },
+            pendingPayments: { type: 'number', description: 'Number of pending payments (waiting/confirming)' },
+            totalRevenue: { type: 'string', description: 'Total revenue from successful payments in EUR' },
+            successRate: { type: 'number', description: 'Success rate percentage' },
+          },
+        },
       },
     },
   })
@@ -256,6 +276,18 @@ export class AdminController {
     required: false,
     example: 'processed',
   })
+  @ApiQuery({
+    name: 'paymentId',
+    type: String,
+    required: false,
+    description: 'Filter webhook logs by payment ID (for IPN history)',
+  })
+  @ApiQuery({
+    name: 'orderId',
+    type: String,
+    required: false,
+    description: 'Filter webhook logs by order ID',
+  })
   @ApiResponse({
     status: 200,
     description: 'Paginated webhook logs',
@@ -296,12 +328,16 @@ export class AdminController {
     @Query('offset') offset?: string,
     @Query('webhookType') webhookType?: string,
     @Query('paymentStatus') paymentStatus?: string,
+    @Query('paymentId') paymentId?: string,
+    @Query('orderId') orderId?: string,
   ): Promise<unknown> {
     return this.admin.getWebhookLogs({
       limit: typeof limit === 'string' && limit.length > 0 ? parseInt(limit, 10) : undefined,
       offset: typeof offset === 'string' && offset.length > 0 ? parseInt(offset, 10) : undefined,
       webhookType,
       paymentStatus: paymentStatus as 'pending' | 'processed' | 'failed' | 'duplicate' | undefined,
+      paymentId: typeof paymentId === 'string' && paymentId.length > 0 ? paymentId : undefined,
+      orderId: typeof orderId === 'string' && orderId.length > 0 ? orderId : undefined,
     });
   }
 
@@ -621,5 +657,38 @@ export class AdminController {
     @Query('days') days?: string,
   ): Promise<OrderAnalyticsDto> {
     return this.admin.getOrderAnalytics(days !== undefined ? parseInt(days, 10) : 30);
+  }
+
+  /**
+   * Manually update payment status (admin override)
+   * ⚠️ Security: This action is logged for audit purposes
+   * Use for edge cases where automatic status detection fails
+   */
+  @Patch('payments/:id/status')
+  @ApiOperation({
+    summary: 'Manually update payment status (admin override)',
+    description: 'Updates payment status for support edge cases. Requires reason for audit trail. Cannot change finalized payments.',
+  })
+  @ApiBody({ type: UpdatePaymentStatusDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Payment status updated successfully',
+    type: UpdatePaymentStatusResponseDto,
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Cannot update payment to this status (e.g., payment already finalized)',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Payment not found',
+  })
+  async updatePaymentStatus(
+    @Param('id') paymentId: string,
+    @Body() dto: UpdatePaymentStatusDto,
+    @Req() req: Request,
+  ): Promise<UpdatePaymentStatusResponseDto> {
+    const adminUser = (req as Request & { user?: { id: string; email: string } }).user;
+    return this.admin.updatePaymentStatus(paymentId, dto, adminUser?.email ?? 'unknown-admin');
   }
 }

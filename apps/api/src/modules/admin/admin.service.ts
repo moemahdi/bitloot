@@ -12,6 +12,7 @@ import { StorageService } from '../storage/storage.service';
 import { R2StorageClient } from '../storage/r2.client';
 import { decryptKey } from '../storage/encryption.util';
 import { AdminOrderStatus } from './dto/update-order-status.dto';
+import type { UpdatePaymentStatusDto, UpdatePaymentStatusResponseDto } from './dto/update-payment-status.dto';
 import type { OrderAnalyticsDto, BulkUpdateStatusResponseDto, StatusCountDto, SourceTypeCountDto, DailyVolumeDto } from './dto/bulk-operations.dto';
 import { FulfillmentService } from '../fulfillment/fulfillment.service';
 
@@ -221,7 +222,7 @@ export class AdminService {
    * Get paginated list of payments with filtering
    *
    * @param options Pagination and filter options
-   * @returns Paginated payments with order info
+   * @returns Paginated payments with order info and extended transaction data
    */
   async getPayments(options: {
     limit?: number;
@@ -235,12 +236,31 @@ export class AdminService {
       externalId: string;
       provider: string;
       status: string;
+      priceAmount?: string;
+      priceCurrency?: string;
+      payAmount?: string;
+      payCurrency?: string;
+      actuallyPaid?: string;
+      payAddress?: string;
+      txHash?: string;
+      networkConfirmations?: number;
+      requiredConfirmations?: number;
       createdAt: Date;
+      updatedAt?: Date;
+      expiresAt?: Date;
       order?: { email: string };
     }>;
     total: number;
     limit: number;
     offset: number;
+    stats: {
+      totalPayments: number;
+      successfulPayments: number;
+      failedPayments: number;
+      pendingPayments: number;
+      totalRevenue: string;
+      successRate: number;
+    };
   }> {
     const limit = Math.min(options.limit ?? 50, 100);
     const offset = options.offset ?? 0;
@@ -259,19 +279,104 @@ export class AdminService {
 
     const [data, total] = await query.getManyAndCount();
 
+    // Calculate stats from ALL payments (ignoring pagination/filters for global stats)
+    // Valid enum values: 'created', 'waiting', 'confirmed', 'finished', 'underpaid', 'failed'
+    const [allPaymentsCount, successfulCount, failedCount, pendingCount, revenueResult] = await Promise.all([
+      // Total payments count
+      this.paymentsRepo.createQueryBuilder('p').getCount(),
+      // Successful payments (finished or confirmed)
+      this.paymentsRepo.createQueryBuilder('p')
+        .where('p.status IN (:...statuses)', { statuses: ['finished', 'confirmed'] })
+        .getCount(),
+      // Failed payments (failed or underpaid)
+      this.paymentsRepo.createQueryBuilder('p')
+        .where('p.status IN (:...statuses)', { statuses: ['failed', 'underpaid'] })
+        .getCount(),
+      // Pending payments (created or waiting)
+      this.paymentsRepo.createQueryBuilder('p')
+        .where('p.status IN (:...statuses)', { statuses: ['created', 'waiting'] })
+        .getCount(),
+      // Total revenue from successful payments
+      this.paymentsRepo.createQueryBuilder('p')
+        .select('COALESCE(SUM(CAST(p.priceAmount AS DECIMAL(20,8))), 0)', 'totalRevenue')
+        .where('p.status IN (:...statuses)', { statuses: ['finished', 'confirmed'] })
+        .getRawOne<{ totalRevenue: string }>(),
+    ]);
+    
+    const totalRevenue = parseFloat(revenueResult?.totalRevenue ?? '0');
+    const successRate = allPaymentsCount > 0 ? (successfulCount / allPaymentsCount) * 100 : 0;
+
     return {
-      data: data.map((p) => ({
-        id: p.id,
-        orderId: p.orderId,
-        externalId: p.externalId,
-        provider: p.provider,
-        status: p.status,
-        createdAt: p.createdAt,
-        order: p.order !== null && p.order !== undefined ? { email: p.order.email } : undefined,
-      })),
+      data: data.map((p) => {
+        // Extract extended data from rawPayload (NOWPayments IPN data)
+        const raw = p.rawPayload ?? {};
+        
+        // Extract transaction hash (may be stored as txn_id, tx_hash, or txid)
+        const txHash = 
+          (typeof raw.txn_id === 'string' ? raw.txn_id : null) ??
+          (typeof raw.tx_hash === 'string' ? raw.tx_hash : null) ??
+          (typeof raw.txid === 'string' ? raw.txid : null) ??
+          undefined;
+        
+        // Extract actually paid amount
+        const actuallyPaid = 
+          (typeof raw.actually_paid === 'number' ? raw.actually_paid.toString() : null) ??
+          (typeof raw.actually_paid === 'string' ? raw.actually_paid : null) ??
+          undefined;
+        
+        // Extract pay address
+        const payAddress = 
+          (typeof raw.pay_address === 'string' ? raw.pay_address : null) ??
+          undefined;
+        
+        // Extract confirmations (current and required)
+        const networkConfirmations = 
+          (typeof raw.confirmations === 'number' ? raw.confirmations : null) ??
+          (typeof p.confirmations === 'number' ? p.confirmations : null) ??
+          undefined;
+        
+        const requiredConfirmations = 
+          (typeof raw.confirmations_required === 'number' ? raw.confirmations_required : null) ??
+          undefined;
+        
+        // Extract expiration time
+        const expiresAt = 
+          (typeof raw.expiration_estimate_date === 'string' ? new Date(raw.expiration_estimate_date) : null) ??
+          (typeof raw.valid_until === 'string' ? new Date(raw.valid_until) : null) ??
+          undefined;
+        
+        return {
+          id: p.id,
+          orderId: p.orderId,
+          externalId: p.externalId,
+          provider: p.provider,
+          status: p.status,
+          priceAmount: p.priceAmount ?? undefined,
+          priceCurrency: p.priceCurrency ?? undefined,
+          payAmount: p.payAmount ?? undefined,
+          payCurrency: p.payCurrency ?? undefined,
+          actuallyPaid,
+          payAddress,
+          txHash,
+          networkConfirmations,
+          requiredConfirmations,
+          createdAt: p.createdAt,
+          updatedAt: p.updatedAt ?? undefined,
+          expiresAt,
+          order: p.order !== null && p.order !== undefined ? { email: p.order.email } : undefined,
+        };
+      }),
       total,
       limit,
       offset,
+      stats: {
+        totalPayments: allPaymentsCount,
+        successfulPayments: successfulCount,
+        failedPayments: failedCount,
+        pendingPayments: pendingCount,
+        totalRevenue: totalRevenue.toFixed(2),
+        successRate,
+      },
     };
   }
 
@@ -342,12 +447,18 @@ export class AdminService {
     offset?: number;
     webhookType?: string;
     paymentStatus?: 'pending' | 'processed' | 'failed' | 'duplicate';
+    paymentId?: string;
+    orderId?: string;
   }): Promise<{
     data: Array<{
       id: string;
       webhookType: string;
       externalId: string;
       paymentStatus: string;
+      processed: boolean;
+      signatureValid: boolean;
+      orderId?: string;
+      paymentId?: string;
       error?: string;
       createdAt: Date;
     }>;
@@ -368,6 +479,28 @@ export class AdminService {
       query.andWhere('wl.paymentStatus = :paymentStatus', { paymentStatus: options.paymentStatus });
     }
 
+    // Filter by paymentId (for IPN History tab)
+    // Look up the payment's orderId and query by orderId instead, since older webhook_logs
+    // may have orderId populated but paymentId as NULL (pre-fix records)
+    if (typeof options.paymentId === 'string' && options.paymentId.length > 0) {
+      const payment = await this.paymentsRepo.findOne({
+        where: { id: options.paymentId },
+        select: ['orderId'],
+      });
+      if (payment?.orderId) {
+        // Query by orderId which is reliably populated on all webhook_logs
+        query.andWhere('wl.orderId = :orderId', { orderId: payment.orderId });
+      } else {
+        // Fallback: try direct paymentId match (for future records)
+        query.andWhere('wl.paymentId = :paymentId', { paymentId: options.paymentId });
+      }
+    }
+
+    // Direct filter by orderId (if explicitly provided)
+    if (typeof options.orderId === 'string' && options.orderId.length > 0) {
+      query.andWhere('wl.orderId = :orderId', { orderId: options.orderId });
+    }
+
     query.orderBy('wl.createdAt', 'DESC').skip(offset).take(limit);
 
     const [data, total] = await query.getManyAndCount();
@@ -378,6 +511,10 @@ export class AdminService {
         webhookType: wl.webhookType,
         externalId: wl.externalId,
         paymentStatus: wl.paymentStatus ?? 'unknown',
+        processed: wl.processed,
+        signatureValid: wl.signatureValid,
+        orderId: wl.orderId !== null && typeof wl.orderId === 'string' ? wl.orderId : undefined,
+        paymentId: wl.paymentId !== null && typeof wl.paymentId === 'string' ? wl.paymentId : undefined,
         error: wl.error !== null && typeof wl.error === 'string' && wl.error.length > 0 ? wl.error : undefined,
         createdAt: wl.createdAt,
       })),
@@ -939,6 +1076,75 @@ export class AdminService {
       totalRevenue: Math.round(totalRevenue * 100) / 100,
       fulfillmentRate: Math.round(fulfillmentRate * 10) / 10,
       failedRate: Math.round(failedRate * 10) / 10,
+    };
+  }
+
+  /**
+   * Manually update payment status (admin override)
+   * Used for edge cases where automatic status detection fails
+   *
+   * @param paymentId Payment ID to update
+   * @param dto Update data including new status and reason
+   * @param adminEmail Admin email for audit trail
+   * @returns Update result
+   */
+  async updatePaymentStatus(
+    paymentId: string,
+    dto: UpdatePaymentStatusDto,
+    adminEmail: string,
+  ): Promise<UpdatePaymentStatusResponseDto> {
+    const payment = await this.paymentsRepo.findOne({ where: { id: paymentId } });
+
+    if (payment === null || payment === undefined) {
+      throw new NotFoundException(`Payment not found: ${paymentId}`);
+    }
+
+    const previousStatus = payment.status;
+
+    // Validate: Cannot change finalized payments back to pending states
+    const finalizedStatuses = ['finished', 'failed'];
+    if (finalizedStatuses.includes(previousStatus) && !finalizedStatuses.includes(dto.status)) {
+      throw new BadRequestException(
+        `Cannot change payment from '${previousStatus}' to '${dto.status}'. Payment is already finalized.`,
+      );
+    }
+
+    // Update payment status
+    payment.status = dto.status;
+    await this.paymentsRepo.save(payment);
+
+    // Log the action for audit trail
+    this.logger.warn(
+      `⚠️ ADMIN OVERRIDE: Payment ${paymentId} status changed from '${previousStatus}' to '${dto.status}' by ${adminEmail}. Reason: ${dto.reason}`,
+    );
+
+    // Create audit log entry via webhook_logs (reusing existing table for admin actions)
+    const auditLog = this.webhookLogsRepo.create({
+      webhookType: 'admin_status_override',
+      externalId: `admin-override-${paymentId}-${Date.now()}`,
+      paymentId: paymentId,
+      orderId: payment.orderId,
+      paymentStatus: dto.status,
+      processed: true,
+      signatureValid: true, // Not applicable for admin actions
+      payload: {
+        action: 'payment_status_override',
+        previousStatus,
+        newStatus: dto.status,
+        reason: dto.reason,
+        adminEmail,
+        timestamp: new Date().toISOString(),
+      },
+    });
+    await this.webhookLogsRepo.save(auditLog);
+
+    return {
+      success: true,
+      paymentId,
+      previousStatus,
+      newStatus: dto.status,
+      changedBy: adminEmail,
+      changedAt: new Date(),
     };
   }
 }

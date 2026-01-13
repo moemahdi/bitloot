@@ -28,71 +28,113 @@ import {
  */
 export interface AdminControllerGetPayments200ResponseDataInner {
     /**
-     * 
+     * Internal payment UUID
      * @type {string}
      * @memberof AdminControllerGetPayments200ResponseDataInner
      */
     id?: string;
     /**
-     * 
+     * Associated order UUID
      * @type {string}
      * @memberof AdminControllerGetPayments200ResponseDataInner
      */
     orderId?: string;
     /**
-     * 
+     * NOWPayments payment ID
      * @type {string}
      * @memberof AdminControllerGetPayments200ResponseDataInner
      */
     externalId?: string;
     /**
-     * 
+     * Payment status (created, waiting, confirmed, finished, underpaid, failed)
      * @type {string}
      * @memberof AdminControllerGetPayments200ResponseDataInner
      */
     status?: string;
     /**
-     * 
+     * Payment provider (nowpayments)
      * @type {string}
      * @memberof AdminControllerGetPayments200ResponseDataInner
      */
     provider?: string;
     /**
-     * 
+     * Price in fiat currency
      * @type {string}
      * @memberof AdminControllerGetPayments200ResponseDataInner
      */
     priceAmount?: string;
     /**
-     * 
+     * Fiat currency code (usd, eur)
      * @type {string}
      * @memberof AdminControllerGetPayments200ResponseDataInner
      */
     priceCurrency?: string;
     /**
-     * 
+     * Amount to pay in crypto
      * @type {string}
      * @memberof AdminControllerGetPayments200ResponseDataInner
      */
     payAmount?: string;
     /**
-     * 
+     * Crypto currency code (btc, eth)
      * @type {string}
      * @memberof AdminControllerGetPayments200ResponseDataInner
      */
     payCurrency?: string;
+    /**
+     * Amount actually received in crypto
+     * @type {string}
+     * @memberof AdminControllerGetPayments200ResponseDataInner
+     */
+    actuallyPaid?: string;
+    /**
+     * Cryptocurrency payment address
+     * @type {string}
+     * @memberof AdminControllerGetPayments200ResponseDataInner
+     */
+    payAddress?: string;
+    /**
+     * Blockchain transaction hash
+     * @type {string}
+     * @memberof AdminControllerGetPayments200ResponseDataInner
+     */
+    txHash?: string;
+    /**
+     * Current blockchain confirmations
+     * @type {number}
+     * @memberof AdminControllerGetPayments200ResponseDataInner
+     */
+    networkConfirmations?: number;
+    /**
+     * Required confirmations for completion
+     * @type {number}
+     * @memberof AdminControllerGetPayments200ResponseDataInner
+     */
+    requiredConfirmations?: number;
+    /**
+     * Payment creation timestamp
+     * @type {Date}
+     * @memberof AdminControllerGetPayments200ResponseDataInner
+     */
+    createdAt?: Date;
+    /**
+     * Last update timestamp
+     * @type {Date}
+     * @memberof AdminControllerGetPayments200ResponseDataInner
+     */
+    updatedAt?: Date;
+    /**
+     * Payment expiration timestamp
+     * @type {Date}
+     * @memberof AdminControllerGetPayments200ResponseDataInner
+     */
+    expiresAt?: Date;
     /**
      * 
      * @type {AdminControllerGetPayments200ResponseDataInnerOrder}
      * @memberof AdminControllerGetPayments200ResponseDataInner
      */
     order?: AdminControllerGetPayments200ResponseDataInnerOrder;
-    /**
-     * 
-     * @type {Date}
-     * @memberof AdminControllerGetPayments200ResponseDataInner
-     */
-    createdAt?: Date;
 }
 
 /**
@@ -121,8 +163,15 @@ export function AdminControllerGetPayments200ResponseDataInnerFromJSONTyped(json
         'priceCurrency': json['priceCurrency'] == null ? undefined : json['priceCurrency'],
         'payAmount': json['payAmount'] == null ? undefined : json['payAmount'],
         'payCurrency': json['payCurrency'] == null ? undefined : json['payCurrency'],
-        'order': json['order'] == null ? undefined : AdminControllerGetPayments200ResponseDataInnerOrderFromJSON(json['order']),
+        'actuallyPaid': json['actuallyPaid'] == null ? undefined : json['actuallyPaid'],
+        'payAddress': json['payAddress'] == null ? undefined : json['payAddress'],
+        'txHash': json['txHash'] == null ? undefined : json['txHash'],
+        'networkConfirmations': json['networkConfirmations'] == null ? undefined : json['networkConfirmations'],
+        'requiredConfirmations': json['requiredConfirmations'] == null ? undefined : json['requiredConfirmations'],
         'createdAt': json['createdAt'] == null ? undefined : (new Date(json['createdAt'])),
+        'updatedAt': json['updatedAt'] == null ? undefined : (new Date(json['updatedAt'])),
+        'expiresAt': json['expiresAt'] == null ? undefined : (new Date(json['expiresAt'])),
+        'order': json['order'] == null ? undefined : AdminControllerGetPayments200ResponseDataInnerOrderFromJSON(json['order']),
     };
 }
 
@@ -146,8 +195,15 @@ export function AdminControllerGetPayments200ResponseDataInnerToJSONTyped(value?
         'priceCurrency': value['priceCurrency'],
         'payAmount': value['payAmount'],
         'payCurrency': value['payCurrency'],
-        'order': AdminControllerGetPayments200ResponseDataInnerOrderToJSON(value['order']),
+        'actuallyPaid': value['actuallyPaid'],
+        'payAddress': value['payAddress'],
+        'txHash': value['txHash'],
+        'networkConfirmations': value['networkConfirmations'],
+        'requiredConfirmations': value['requiredConfirmations'],
         'createdAt': value['createdAt'] == null ? value['createdAt'] : value['createdAt'].toISOString(),
+        'updatedAt': value['updatedAt'] == null ? value['updatedAt'] : value['updatedAt'].toISOString(),
+        'expiresAt': value['expiresAt'] == null ? value['expiresAt'] : value['expiresAt'].toISOString(),
+        'order': AdminControllerGetPayments200ResponseDataInnerOrderToJSON(value['order']),
     };
 }
 

@@ -15,8 +15,15 @@ Name | Type
 `priceCurrency` | string
 `payAmount` | string
 `payCurrency` | string
-`order` | [AdminControllerGetPayments200ResponseDataInnerOrder](AdminControllerGetPayments200ResponseDataInnerOrder.md)
+`actuallyPaid` | string
+`payAddress` | string
+`txHash` | string
+`networkConfirmations` | number
+`requiredConfirmations` | number
 `createdAt` | Date
+`updatedAt` | Date
+`expiresAt` | Date
+`order` | [AdminControllerGetPayments200ResponseDataInnerOrder](AdminControllerGetPayments200ResponseDataInnerOrder.md)
 
 ## Example
 
@@ -34,8 +41,15 @@ const example = {
   "priceCurrency": null,
   "payAmount": null,
   "payCurrency": null,
-  "order": null,
+  "actuallyPaid": null,
+  "payAddress": null,
+  "txHash": null,
+  "networkConfirmations": null,
+  "requiredConfirmations": null,
   "createdAt": null,
+  "updatedAt": null,
+  "expiresAt": null,
+  "order": null,
 } satisfies AdminControllerGetPayments200ResponseDataInner
 
 console.log(example)

@@ -559,6 +559,11 @@ export interface WebhookProcessingResult {
   orderId?: string;
 
   /**
+   * Payment ID (internal UUID) that was updated (if applicable)
+   */
+  paymentId?: string;
+
+  /**
    * Previous order status
    */
   previousStatus?: string;

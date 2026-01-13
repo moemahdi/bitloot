@@ -40,6 +40,7 @@ docs/AdminControllerGetOrders200ResponseDataInnerPayment.md
 docs/AdminControllerGetPayments200Response.md
 docs/AdminControllerGetPayments200ResponseDataInner.md
 docs/AdminControllerGetPayments200ResponseDataInnerOrder.md
+docs/AdminControllerGetPayments200ResponseStats.md
 docs/AdminControllerGetReservations200Response.md
 docs/AdminControllerGetReservations200ResponseDataInner.md
 docs/AdminControllerGetWebhookLog200Response.md
@@ -191,6 +192,8 @@ docs/UnsubscribeEmailDto.md
 docs/UnsubscribeResponseDto.md
 docs/UpdateOrderStatusDto.md
 docs/UpdatePasswordDto.md
+docs/UpdatePaymentStatusDto.md
+docs/UpdatePaymentStatusResponseDto.md
 docs/UpdatePricingRuleDto.md
 docs/UpdateProductDto.md
 docs/UpdateProductGroupDto.md
@@ -217,6 +220,7 @@ models/AdminControllerGetOrders200ResponseDataInnerPayment.ts
 models/AdminControllerGetPayments200Response.ts
 models/AdminControllerGetPayments200ResponseDataInner.ts
 models/AdminControllerGetPayments200ResponseDataInnerOrder.ts
+models/AdminControllerGetPayments200ResponseStats.ts
 models/AdminControllerGetReservations200Response.ts
 models/AdminControllerGetReservations200ResponseDataInner.ts
 models/AdminControllerGetWebhookLog200Response.ts
@@ -352,6 +356,8 @@ models/UnsubscribeEmailDto.ts
 models/UnsubscribeResponseDto.ts
 models/UpdateOrderStatusDto.ts
 models/UpdatePasswordDto.ts
+models/UpdatePaymentStatusDto.ts
+models/UpdatePaymentStatusResponseDto.ts
 models/UpdatePricingRuleDto.ts
 models/UpdateProductDto.ts
 models/UpdateProductGroupDto.ts

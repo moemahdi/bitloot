@@ -678,7 +678,7 @@ export function EmbeddedPaymentUI({
                     {payAmount}
                   </span>
                   <p className="text-sm text-text-muted mt-0.5 font-mono tabular-nums">
-                    ≈ ${priceAmount} {priceCurrency.toUpperCase()}
+                    ≈ €{priceAmount} {priceCurrency.toUpperCase()}
                   </p>
                 </div>
               </div>
@@ -722,7 +722,7 @@ export function EmbeddedPaymentUI({
             <span className="text-sm font-semibold text-orange-warning">Network Fee Notice</span>
           </div>
           <p className="text-xs text-text-muted">
-            Amount shown is exact. Your wallet will add network fees separately (≈ ${networkFee.toFixed(2)} USD)
+            Amount shown is exact. Your wallet will add network fees separately (≈ €{networkFee.toFixed(2)} EUR)
           </p>
         </motion.div>
 

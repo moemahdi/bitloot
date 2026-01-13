@@ -196,6 +196,7 @@ export class IpnHandlerService {
         result: result as unknown as Record<string, unknown>,
         processed: result.success ?? false,
         orderId: result.orderId,
+        paymentId: result.paymentId, // Link to internal Payment entity UUID
         paymentStatus: payload.payment_status,
       });
 
@@ -531,7 +532,9 @@ export class IpnHandlerService {
     const payment = await this.paymentRepo.findOne({
       where: { externalId: String(payload.payment_id) },
     });
+    let paymentUuid: string | undefined;
     if (payment !== null) {
+      paymentUuid = payment.id; // Capture payment UUID for webhook log linking
       // Payment entity has a constrained enum, so map NOWPayments statuses to valid values
       // Entity supports: 'created' | 'waiting' | 'confirmed' | 'finished' | 'underpaid' | 'failed'
       type PaymentEntityStatus = 'created' | 'waiting' | 'confirmed' | 'finished' | 'underpaid' | 'failed';
@@ -556,6 +559,30 @@ export class IpnHandlerService {
       if (mappedStatus !== undefined && mappedStatus !== null) {
         const previousPaymentStatus = payment.status;
         payment.status = mappedStatus;
+        
+        // Store IPN payload as rawPayload for extended data access
+        // This includes: pay_address, actually_paid, tx_hash, network confirmations, etc.
+        payment.rawPayload = payload as unknown as Record<string, string | number | boolean | null>;
+        
+        // Update confirmations if available
+        if (typeof payload.confirmations === 'number') {
+          payment.confirmations = payload.confirmations;
+        }
+        
+        // Update amounts from IPN if available (more accurate than initial estimate)
+        if (typeof payload.price_amount === 'number') {
+          payment.priceAmount = payload.price_amount.toString();
+        }
+        if (typeof payload.price_currency === 'string') {
+          payment.priceCurrency = payload.price_currency;
+        }
+        if (typeof payload.pay_amount === 'number') {
+          payment.payAmount = payload.pay_amount.toString();
+        }
+        if (typeof payload.pay_currency === 'string') {
+          payment.payCurrency = payload.pay_currency;
+        }
+        
         await this.paymentRepo.save(payment);
         this.logger.log(`[IPN] Payment ${payment.id} status updated: ${previousPaymentStatus} → ${mappedStatus} (from ${payload.payment_status})`);
       } else {
@@ -575,6 +602,7 @@ export class IpnHandlerService {
       success: true,
       message: `Payment status updated: ${payload.payment_status}`,
       orderId: order.id,
+      paymentId: paymentUuid, // Link webhook log to Payment entity
       previousStatus,
       newStatus: order.status,
       fulfillmentTriggered,

@@ -593,7 +593,7 @@ function HeroWithTrendingSection(): React.ReactElement {
                                                         </h3>
                                                         <div className="flex items-center justify-between gap-2">
                                                             <span className="text-base font-bold text-cyan-glow drop-shadow-lg">
-                                                                {product.currency === 'EUR' ? '€' : '$'}{product.price}
+                                                                €{product.price}
                                                             </span>
                                                             {product.rating !== undefined && (
                                                                 <span className="flex items-center gap-1 text-xs text-yellow-400">

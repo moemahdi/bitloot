@@ -336,7 +336,7 @@ export default function CheckoutPage(): React.ReactElement {
           orderId,
           email: orderEmail,
           priceAmount: order.total,
-          priceCurrency: 'USD',
+          priceCurrency: 'eur',
           payCurrency,
         },
       });

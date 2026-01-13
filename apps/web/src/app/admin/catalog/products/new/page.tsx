@@ -583,7 +583,7 @@ export default function AdminCreateProductPage(): React.JSX.Element {
                                     </Label>
                                     <div className="relative">
                                         <span className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted">
-                                            {formData.currency === 'USD' ? '$' : formData.currency === 'EUR' ? '€' : '£'}
+                                            €
                                         </span>
                                         <Input
                                             id="cost"
@@ -609,7 +609,7 @@ export default function AdminCreateProductPage(): React.JSX.Element {
                                     </Label>
                                     <div className="relative">
                                         <span className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted">
-                                            {formData.currency === 'USD' ? '$' : formData.currency === 'EUR' ? '€' : '£'}
+                                            €
                                         </span>
                                         <Input
                                             id="price"
@@ -638,8 +638,7 @@ export default function AdminCreateProductPage(): React.JSX.Element {
                                                     ? 'text-green-success'
                                                     : 'text-red-500'
                                                 }`}>
-                                                {formData.currency === 'USD' ? '$' : formData.currency === 'EUR' ? '€' : '£'}
-                                                {(parseFloat(formData.price) - parseFloat(formData.cost)).toFixed(2)}
+                                                €{(parseFloat(formData.price) - parseFloat(formData.cost)).toFixed(2)}
                                             </span>
                                         </div>
                                     </div>
