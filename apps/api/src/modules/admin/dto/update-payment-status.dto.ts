@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEnum, IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
+import { IsEnum, IsString, MaxLength, MinLength } from 'class-validator';
 
 /**
  * Valid payment statuses for manual override

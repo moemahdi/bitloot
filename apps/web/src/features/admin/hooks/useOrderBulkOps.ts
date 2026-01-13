@@ -84,14 +84,14 @@ export function useOrderAnalytics(days: number = 30) {
       
       // Debug: Log the token being used
       const tokenForDebug = getAccessTokenFromCookies();
-      console.log('[useOrderAnalytics] Token available:', tokenForDebug ? `${tokenForDebug.slice(0, 20)}...` : 'NONE');
+      console.info('[useOrderAnalytics] Token available:', tokenForDebug !== null && tokenForDebug !== undefined && tokenForDebug.length > 0 ? `${tokenForDebug.slice(0, 20)}...` : 'NONE');
       
       // Create fresh API client to ensure we get the current token
       const adminApi = createAdminApi();
       const data: OrderAnalyticsDto = await adminApi.adminControllerGetOrderAnalytics({ days });
       
       // Debug: Log the response
-      console.log('[useOrderAnalytics] Response received:', {
+      console.info('[useOrderAnalytics] Response received:', {
         totalOrders: data.totalOrders,
         totalRevenue: data.totalRevenue,
         fulfillmentRate: data.fulfillmentRate,

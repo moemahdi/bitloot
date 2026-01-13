@@ -12,7 +12,6 @@ import { User } from '../../database/entities/user.entity';
 import { EmailsModule } from '../emails/emails.module';
 import { StorageService } from '../storage/storage.service';
 import { FulfillmentModule } from '../fulfillment/fulfillment.module';
-import { FulfillmentService } from '../fulfillment/fulfillment.service';
 
 /**
  * Admin Module - Management API for BitLoot operators

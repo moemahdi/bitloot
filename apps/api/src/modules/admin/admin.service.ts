@@ -1,6 +1,6 @@
 import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, In } from 'typeorm';
+import { Repository } from 'typeorm';
 import { Order, type OrderStatus } from '../orders/order.entity';
 import { Payment } from '../payments/payment.entity';
 import { WebhookLog } from '../../database/entities/webhook-log.entity';
@@ -13,7 +13,7 @@ import { R2StorageClient } from '../storage/r2.client';
 import { decryptKey } from '../storage/encryption.util';
 import { AdminOrderStatus } from './dto/update-order-status.dto';
 import type { UpdatePaymentStatusDto, UpdatePaymentStatusResponseDto } from './dto/update-payment-status.dto';
-import type { OrderAnalyticsDto, BulkUpdateStatusResponseDto, StatusCountDto, SourceTypeCountDto, DailyVolumeDto } from './dto/bulk-operations.dto';
+import type { OrderAnalyticsDto, BulkUpdateStatusResponseDto } from './dto/bulk-operations.dto';
 import { FulfillmentService } from '../fulfillment/fulfillment.service';
 
 /**
@@ -487,7 +487,7 @@ export class AdminService {
         where: { id: options.paymentId },
         select: ['orderId'],
       });
-      if (payment?.orderId) {
+      if (payment?.orderId !== null && payment?.orderId !== undefined) {
         // Query by orderId which is reliably populated on all webhook_logs
         query.andWhere('wl.orderId = :orderId', { orderId: payment.orderId });
       } else {
@@ -639,7 +639,7 @@ export class AdminService {
     let isBase64 = false;
 
     try {
-      if (key.encryptionKey?.startsWith('raw:')) {
+      if (key.encryptionKey !== null && key.encryptionKey !== undefined && key.encryptionKey.startsWith('raw:')) {
         // ===== RAW KEY (New format - no encryption) =====
         contentType = key.encryptionKey.substring(4);
         this.logger.debug(`[ADMIN REVEAL] Fetching raw key with content type: ${contentType}`);
