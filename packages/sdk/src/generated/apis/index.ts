@@ -6,6 +6,8 @@ export * from './AdminCatalogPricingApi';
 export * from './AdminCatalogProductsApi';
 export * from './AdminCatalogRepricingApi';
 export * from './AdminCatalogSyncApi';
+export * from './AdminKinguinBalanceApi';
+export * from './AdminKinguinProfitAnalyticsApi';
 export * from './AdminOperationsApi';
 export * from './AdminProductGroupsApi';
 export * from './AdminReviewsApi';

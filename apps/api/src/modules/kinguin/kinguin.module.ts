@@ -2,10 +2,18 @@ import { Module, Logger } from '@nestjs/common';
 import { HttpModule } from '@nestjs/axios';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { BullModule } from '@nestjs/bullmq';
+import { ConfigModule } from '@nestjs/config';
 import { QUEUE_NAMES } from '../../jobs/queues';
 import { WebhookLog } from '../../database/entities/webhook-log.entity';
+import { Order } from '../orders/order.entity';
+import { OrderItem } from '../orders/order-item.entity';
+import { Product } from '../catalog/entities/product.entity';
 import { KinguinService } from './kinguin.service';
 import { KinguinController } from './kinguin.controller';
+import { KinguinBalanceService } from './kinguin-balance.service';
+import { KinguinBalanceController } from './kinguin-balance.controller';
+import { KinguinProfitService } from './kinguin-profit.service';
+import { KinguinProfitController } from './kinguin-profit.controller';
 import { KinguinClient } from '../fulfillment/kinguin.client';
 import { MockKinguinClient } from '../fulfillment/kinguin.mock';
 import { OrdersModule } from '../orders/orders.module';
@@ -42,7 +50,8 @@ import { MetricsModule } from '../metrics/metrics.module';
   imports: [
     HttpModule,
     OrdersModule,
-    TypeOrmModule.forFeature([WebhookLog]),
+    ConfigModule,
+    TypeOrmModule.forFeature([WebhookLog, Order, OrderItem, Product]),
     BullModule.registerQueue({ name: QUEUE_NAMES.FULFILLMENT }),
     MetricsModule,
   ],
@@ -73,8 +82,10 @@ import { MetricsModule } from '../metrics/metrics.module';
       },
     },
     KinguinService,
+    KinguinBalanceService,
+    KinguinProfitService,
   ],
-  controllers: [KinguinController],
+  controllers: [KinguinController, KinguinBalanceController, KinguinProfitController],
   exports: [KinguinService, KinguinClient],
 })
 export class KinguinModule {}
