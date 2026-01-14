@@ -341,6 +341,174 @@ export class AdminController {
     });
   }
 
+  // ============================================================================
+  // STATIC WEBHOOK ROUTES - Must come BEFORE :id routes to avoid conflicts
+  // ============================================================================
+
+  /**
+   * Get webhook statistics for dashboard
+   */
+  @Get('webhook-logs/stats')
+  @ApiOperation({
+    summary: 'Get webhook statistics',
+    description: 'Returns aggregated webhook statistics for the specified period',
+  })
+  @ApiQuery({
+    name: 'period',
+    type: String,
+    required: false,
+    enum: ['24h', '7d', '30d'],
+    example: '7d',
+    description: 'Time period for statistics',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Webhook statistics',
+  })
+  async getWebhookStats(
+    @Query('period') period?: string,
+  ): Promise<unknown> {
+    const validPeriod = ['24h', '7d', '30d'].includes(period ?? '') 
+      ? (period as '24h' | '7d' | '30d') 
+      : '7d';
+    return this.admin.getWebhookStats(validPeriod);
+  }
+
+  /**
+   * Get webhook activity timeline for charts
+   */
+  @Get('webhook-logs/timeline')
+  @ApiOperation({
+    summary: 'Get webhook activity timeline',
+    description: 'Returns time-series data for webhook activity visualization',
+  })
+  @ApiQuery({
+    name: 'period',
+    type: String,
+    required: false,
+    enum: ['24h', '7d', '30d'],
+    example: '7d',
+  })
+  @ApiQuery({
+    name: 'interval',
+    type: String,
+    required: false,
+    enum: ['hour', 'day'],
+    example: 'day',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Timeline data',
+  })
+  async getWebhookTimeline(
+    @Query('period') period?: string,
+    @Query('interval') interval?: string,
+  ): Promise<unknown> {
+    const validPeriod = ['24h', '7d', '30d'].includes(period ?? '') 
+      ? (period as '24h' | '7d' | '30d') 
+      : '7d';
+    const validInterval = ['hour', 'day'].includes(interval ?? '') 
+      ? (interval as 'hour' | 'day') 
+      : 'day';
+    return this.admin.getWebhookTimeline(validPeriod, validInterval);
+  }
+
+  /**
+   * Get enhanced paginated webhook logs with advanced filtering
+   */
+  @Get('webhook-logs/enhanced')
+  @ApiOperation({
+    summary: 'Get enhanced webhook logs with advanced filtering',
+    description: 'Returns paginated webhook logs with full filter options',
+  })
+  @ApiQuery({ name: 'limit', type: Number, required: false, example: 20 })
+  @ApiQuery({ name: 'offset', type: Number, required: false, example: 0 })
+  @ApiQuery({ name: 'webhookType', type: String, required: false })
+  @ApiQuery({ name: 'paymentStatus', type: String, required: false })
+  @ApiQuery({ name: 'signatureValid', type: String, required: false, enum: ['true', 'false'] })
+  @ApiQuery({ name: 'startDate', type: String, required: false })
+  @ApiQuery({ name: 'endDate', type: String, required: false })
+  @ApiQuery({ name: 'search', type: String, required: false })
+  @ApiQuery({ name: 'sourceIp', type: String, required: false })
+  @ApiQuery({ name: 'orderId', type: String, required: false })
+  @ApiQuery({ name: 'paymentId', type: String, required: false })
+  @ApiQuery({ name: 'sortBy', type: String, required: false, enum: ['createdAt', 'paymentStatus', 'webhookType'] })
+  @ApiQuery({ name: 'sortOrder', type: String, required: false, enum: ['ASC', 'DESC'] })
+  @ApiResponse({
+    status: 200,
+    description: 'Paginated enhanced webhook logs',
+  })
+  async getWebhookLogsEnhanced(
+    @Query('limit') limit?: string,
+    @Query('offset') offset?: string,
+    @Query('webhookType') webhookType?: string,
+    @Query('paymentStatus') paymentStatus?: string,
+    @Query('signatureValid') signatureValid?: string,
+    @Query('startDate') startDate?: string,
+    @Query('endDate') endDate?: string,
+    @Query('search') search?: string,
+    @Query('sourceIp') sourceIp?: string,
+    @Query('orderId') orderId?: string,
+    @Query('paymentId') paymentId?: string,
+    @Query('sortBy') sortBy?: string,
+    @Query('sortOrder') sortOrder?: string,
+  ): Promise<unknown> {
+    return this.admin.getWebhookLogsEnhanced({
+      limit: typeof limit === 'string' && limit.length > 0 ? parseInt(limit, 10) : undefined,
+      offset: typeof offset === 'string' && offset.length > 0 ? parseInt(offset, 10) : undefined,
+      webhookType: typeof webhookType === 'string' && webhookType.length > 0 ? webhookType : undefined,
+      paymentStatus: typeof paymentStatus === 'string' && paymentStatus.length > 0 ? paymentStatus : undefined,
+      signatureValid: signatureValid === 'true' ? true : signatureValid === 'false' ? false : undefined,
+      startDate: typeof startDate === 'string' && startDate.length > 0 ? new Date(startDate) : undefined,
+      endDate: typeof endDate === 'string' && endDate.length > 0 ? new Date(endDate) : undefined,
+      search: typeof search === 'string' && search.length > 0 ? search : undefined,
+      sourceIp: typeof sourceIp === 'string' && sourceIp.length > 0 ? sourceIp : undefined,
+      orderId: typeof orderId === 'string' && orderId.length > 0 ? orderId : undefined,
+      paymentId: typeof paymentId === 'string' && paymentId.length > 0 ? paymentId : undefined,
+      sortBy: ['createdAt', 'paymentStatus', 'webhookType'].includes(sortBy ?? '') 
+        ? (sortBy as 'createdAt' | 'paymentStatus' | 'webhookType') 
+        : undefined,
+      sortOrder: ['ASC', 'DESC'].includes(sortOrder ?? '') 
+        ? (sortOrder as 'ASC' | 'DESC') 
+        : undefined,
+    });
+  }
+
+  /**
+   * Bulk replay multiple failed webhooks
+   */
+  @Post('webhook-logs/bulk-replay')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Bulk replay failed webhooks',
+    description: 'Marks multiple webhooks for reprocessing',
+  })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        ids: {
+          type: 'array',
+          items: { type: 'string' },
+        },
+      },
+      required: ['ids'],
+    },
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Bulk replay results',
+  })
+  async bulkReplayWebhooks(
+    @Body() body: { ids: string[] },
+  ): Promise<{ replayed: number; failed: number; errors: Array<{ id: string; error: string }> }> {
+    return this.admin.bulkReplayWebhooks(body.ids);
+  }
+
+  // ============================================================================
+  // DYNAMIC WEBHOOK ROUTES - :id routes must come AFTER static routes
+  // ============================================================================
+
   /**
    * Get webhook log details by ID with full payload
    */
@@ -368,6 +536,43 @@ export class AdminController {
   @ApiResponse({ status: 404, description: 'Webhook log not found' })
   async getWebhookLog(@Param('id') id: string): Promise<unknown> {
     return this.admin.getWebhookLog(id);
+  }
+
+  /**
+   * Get full webhook log details with complete payload and metadata
+   */
+  @Get('webhook-logs/:id/detail')
+  @ApiOperation({
+    summary: 'Get full webhook log details',
+    description: 'Returns complete webhook log including payload, result, and all metadata',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Full webhook log details',
+    schema: {
+      type: 'object',
+      properties: {
+        id: { type: 'string' },
+        externalId: { type: 'string' },
+        webhookType: { type: 'string' },
+        paymentStatus: { type: 'string' },
+        payload: { type: 'object' },
+        signatureValid: { type: 'boolean' },
+        processed: { type: 'boolean' },
+        orderId: { type: 'string' },
+        paymentId: { type: 'string' },
+        result: { type: 'object' },
+        error: { type: 'string' },
+        sourceIp: { type: 'string' },
+        attemptCount: { type: 'number' },
+        createdAt: { type: 'string', format: 'date-time' },
+        updatedAt: { type: 'string', format: 'date-time' },
+      },
+    },
+  })
+  @ApiResponse({ status: 404, description: 'Webhook log not found' })
+  async getWebhookLogDetail(@Param('id') id: string): Promise<unknown> {
+    return this.admin.getWebhookLogDetail(id);
   }
 
   /**
@@ -690,5 +895,63 @@ export class AdminController {
   ): Promise<UpdatePaymentStatusResponseDto> {
     const adminUser = (req as Request & { user?: { id: string; email: string } }).user;
     return this.admin.updatePaymentStatus(paymentId, dto, adminUser?.email ?? 'unknown-admin');
+  }
+
+  /**
+   * Get all webhooks for a specific order
+   */
+  @Get('orders/:orderId/webhooks')
+  @ApiOperation({
+    summary: 'Get webhooks for an order',
+    description: 'Returns all webhooks associated with a specific order (timeline view)',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Order webhook history',
+    schema: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          id: { type: 'string' },
+          externalId: { type: 'string' },
+          webhookType: { type: 'string' },
+          paymentStatus: { type: 'string' },
+          processed: { type: 'boolean' },
+          signatureValid: { type: 'boolean' },
+          error: { type: 'string' },
+          createdAt: { type: 'string', format: 'date-time' },
+        },
+      },
+    },
+  })
+  async getOrderWebhooks(
+    @Param('orderId') orderId: string,
+  ): Promise<unknown> {
+    return this.admin.getOrderWebhooks(orderId);
+  }
+
+  /**
+   * Get adjacent webhook IDs for navigation
+   */
+  @Get('webhook-logs/:id/adjacent')
+  @ApiOperation({
+    summary: 'Get adjacent webhooks for navigation',
+    description: 'Returns previous and next webhook IDs for detail page navigation',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Adjacent webhook IDs',
+    schema: {
+      type: 'object',
+      properties: {
+        previous: { type: 'string', nullable: true },
+        next: { type: 'string', nullable: true },
+      },
+    },
+  })
+  @ApiResponse({ status: 404, description: 'Webhook log not found' })
+  async getAdjacentWebhooks(@Param('id') id: string): Promise<{ previous?: string; next?: string }> {
+    return this.admin.getAdjacentWebhooks(id);
   }
 }

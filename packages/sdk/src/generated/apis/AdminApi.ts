@@ -16,13 +16,21 @@
 import * as runtime from '../runtime';
 import type {
   AdminControllerAdminRevealKey200Response,
+  AdminControllerBulkReplayWebhooks200Response,
+  AdminControllerBulkReplayWebhooksRequest,
   AdminControllerExportOrders200ResponseInner,
+  AdminControllerGetAdjacentWebhooks200Response,
   AdminControllerGetKeyAuditTrail200ResponseInner,
+  AdminControllerGetOrderWebhooks200ResponseInner,
   AdminControllerGetOrders200Response,
   AdminControllerGetPayments200Response,
   AdminControllerGetReservations200Response,
   AdminControllerGetWebhookLog200Response,
+  AdminControllerGetWebhookLogDetail200Response,
   AdminControllerGetWebhookLogs200Response,
+  AdminControllerGetWebhookLogsEnhanced200Response,
+  AdminControllerGetWebhookStats200Response,
+  AdminControllerGetWebhookTimeline200Response,
   AdminControllerResendKeys200Response,
   AdminControllerRetryFulfillment200Response,
   AdminControllerRetryFulfillmentRequest,
@@ -38,10 +46,18 @@ import type {
 import {
     AdminControllerAdminRevealKey200ResponseFromJSON,
     AdminControllerAdminRevealKey200ResponseToJSON,
+    AdminControllerBulkReplayWebhooks200ResponseFromJSON,
+    AdminControllerBulkReplayWebhooks200ResponseToJSON,
+    AdminControllerBulkReplayWebhooksRequestFromJSON,
+    AdminControllerBulkReplayWebhooksRequestToJSON,
     AdminControllerExportOrders200ResponseInnerFromJSON,
     AdminControllerExportOrders200ResponseInnerToJSON,
+    AdminControllerGetAdjacentWebhooks200ResponseFromJSON,
+    AdminControllerGetAdjacentWebhooks200ResponseToJSON,
     AdminControllerGetKeyAuditTrail200ResponseInnerFromJSON,
     AdminControllerGetKeyAuditTrail200ResponseInnerToJSON,
+    AdminControllerGetOrderWebhooks200ResponseInnerFromJSON,
+    AdminControllerGetOrderWebhooks200ResponseInnerToJSON,
     AdminControllerGetOrders200ResponseFromJSON,
     AdminControllerGetOrders200ResponseToJSON,
     AdminControllerGetPayments200ResponseFromJSON,
@@ -50,8 +66,16 @@ import {
     AdminControllerGetReservations200ResponseToJSON,
     AdminControllerGetWebhookLog200ResponseFromJSON,
     AdminControllerGetWebhookLog200ResponseToJSON,
+    AdminControllerGetWebhookLogDetail200ResponseFromJSON,
+    AdminControllerGetWebhookLogDetail200ResponseToJSON,
     AdminControllerGetWebhookLogs200ResponseFromJSON,
     AdminControllerGetWebhookLogs200ResponseToJSON,
+    AdminControllerGetWebhookLogsEnhanced200ResponseFromJSON,
+    AdminControllerGetWebhookLogsEnhanced200ResponseToJSON,
+    AdminControllerGetWebhookStats200ResponseFromJSON,
+    AdminControllerGetWebhookStats200ResponseToJSON,
+    AdminControllerGetWebhookTimeline200ResponseFromJSON,
+    AdminControllerGetWebhookTimeline200ResponseToJSON,
     AdminControllerResendKeys200ResponseFromJSON,
     AdminControllerResendKeys200ResponseToJSON,
     AdminControllerRetryFulfillment200ResponseFromJSON,
@@ -80,6 +104,10 @@ export interface AdminControllerAdminRevealKeyRequest {
     keyId: string;
 }
 
+export interface AdminControllerBulkReplayWebhooksOperationRequest {
+    adminControllerBulkReplayWebhooksRequest: AdminControllerBulkReplayWebhooksRequest;
+}
+
 export interface AdminControllerBulkUpdateStatusRequest {
     bulkUpdateStatusDto: BulkUpdateStatusDto;
 }
@@ -91,12 +119,20 @@ export interface AdminControllerExportOrdersRequest {
     sourceType?: AdminControllerExportOrdersSourceTypeEnum;
 }
 
+export interface AdminControllerGetAdjacentWebhooksRequest {
+    id: string;
+}
+
 export interface AdminControllerGetKeyAuditTrailRequest {
     orderId: string;
 }
 
 export interface AdminControllerGetOrderAnalyticsRequest {
     days?: number;
+}
+
+export interface AdminControllerGetOrderWebhooksRequest {
+    orderId: string;
 }
 
 export interface AdminControllerGetOrdersRequest {
@@ -128,6 +164,10 @@ export interface AdminControllerGetWebhookLogRequest {
     id: string;
 }
 
+export interface AdminControllerGetWebhookLogDetailRequest {
+    id: string;
+}
+
 export interface AdminControllerGetWebhookLogsRequest {
     limit?: number;
     offset?: number;
@@ -135,6 +175,31 @@ export interface AdminControllerGetWebhookLogsRequest {
     paymentStatus?: string;
     paymentId?: string;
     orderId?: string;
+}
+
+export interface AdminControllerGetWebhookLogsEnhancedRequest {
+    limit?: number;
+    offset?: number;
+    webhookType?: string;
+    paymentStatus?: string;
+    signatureValid?: AdminControllerGetWebhookLogsEnhancedSignatureValidEnum;
+    startDate?: string;
+    endDate?: string;
+    search?: string;
+    sourceIp?: string;
+    orderId?: string;
+    paymentId?: string;
+    sortBy?: AdminControllerGetWebhookLogsEnhancedSortByEnum;
+    sortOrder?: AdminControllerGetWebhookLogsEnhancedSortOrderEnum;
+}
+
+export interface AdminControllerGetWebhookStatsRequest {
+    period?: AdminControllerGetWebhookStatsPeriodEnum;
+}
+
+export interface AdminControllerGetWebhookTimelineRequest {
+    period?: AdminControllerGetWebhookTimelinePeriodEnum;
+    interval?: AdminControllerGetWebhookTimelineIntervalEnum;
 }
 
 export interface AdminControllerReplayWebhookRequest {
@@ -209,6 +274,55 @@ export class AdminApi extends runtime.BaseAPI {
      */
     async adminControllerAdminRevealKey(requestParameters: AdminControllerAdminRevealKeyRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<AdminControllerAdminRevealKey200Response> {
         const response = await this.adminControllerAdminRevealKeyRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Marks multiple webhooks for reprocessing. Only works for non-processed webhooks.
+     * Bulk replay failed webhooks
+     */
+    async adminControllerBulkReplayWebhooksRaw(requestParameters: AdminControllerBulkReplayWebhooksOperationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<AdminControllerBulkReplayWebhooks200Response>> {
+        if (requestParameters['adminControllerBulkReplayWebhooksRequest'] == null) {
+            throw new runtime.RequiredError(
+                'adminControllerBulkReplayWebhooksRequest',
+                'Required parameter "adminControllerBulkReplayWebhooksRequest" was null or undefined when calling adminControllerBulkReplayWebhooks().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("JWT-auth", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/admin/webhook-logs/bulk-replay`;
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+            body: AdminControllerBulkReplayWebhooksRequestToJSON(requestParameters['adminControllerBulkReplayWebhooksRequest']),
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => AdminControllerBulkReplayWebhooks200ResponseFromJSON(jsonValue));
+    }
+
+    /**
+     * Marks multiple webhooks for reprocessing. Only works for non-processed webhooks.
+     * Bulk replay failed webhooks
+     */
+    async adminControllerBulkReplayWebhooks(requestParameters: AdminControllerBulkReplayWebhooksOperationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<AdminControllerBulkReplayWebhooks200Response> {
+        const response = await this.adminControllerBulkReplayWebhooksRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
@@ -327,6 +441,53 @@ export class AdminApi extends runtime.BaseAPI {
      */
     async adminControllerExportOrders(requestParameters: AdminControllerExportOrdersRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<AdminControllerExportOrders200ResponseInner>> {
         const response = await this.adminControllerExportOrdersRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Returns previous and next webhook IDs for detail page navigation
+     * Get adjacent webhooks for navigation
+     */
+    async adminControllerGetAdjacentWebhooksRaw(requestParameters: AdminControllerGetAdjacentWebhooksRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<AdminControllerGetAdjacentWebhooks200Response>> {
+        if (requestParameters['id'] == null) {
+            throw new runtime.RequiredError(
+                'id',
+                'Required parameter "id" was null or undefined when calling adminControllerGetAdjacentWebhooks().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("JWT-auth", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/admin/webhook-logs/{id}/adjacent`;
+        urlPath = urlPath.replace(`{${"id"}}`, encodeURIComponent(String(requestParameters['id'])));
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => AdminControllerGetAdjacentWebhooks200ResponseFromJSON(jsonValue));
+    }
+
+    /**
+     * Returns previous and next webhook IDs for detail page navigation
+     * Get adjacent webhooks for navigation
+     */
+    async adminControllerGetAdjacentWebhooks(requestParameters: AdminControllerGetAdjacentWebhooksRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<AdminControllerGetAdjacentWebhooks200Response> {
+        const response = await this.adminControllerGetAdjacentWebhooksRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
@@ -456,6 +617,53 @@ export class AdminApi extends runtime.BaseAPI {
      */
     async adminControllerGetOrderAnalytics(requestParameters: AdminControllerGetOrderAnalyticsRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<OrderAnalyticsDto> {
         const response = await this.adminControllerGetOrderAnalyticsRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Returns all webhooks associated with a specific order (timeline view)
+     * Get webhooks for an order
+     */
+    async adminControllerGetOrderWebhooksRaw(requestParameters: AdminControllerGetOrderWebhooksRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<AdminControllerGetOrderWebhooks200ResponseInner>>> {
+        if (requestParameters['orderId'] == null) {
+            throw new runtime.RequiredError(
+                'orderId',
+                'Required parameter "orderId" was null or undefined when calling adminControllerGetOrderWebhooks().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("JWT-auth", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/admin/orders/{orderId}/webhooks`;
+        urlPath = urlPath.replace(`{${"orderId"}}`, encodeURIComponent(String(requestParameters['orderId'])));
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => jsonValue.map(AdminControllerGetOrderWebhooks200ResponseInnerFromJSON));
+    }
+
+    /**
+     * Returns all webhooks associated with a specific order (timeline view)
+     * Get webhooks for an order
+     */
+    async adminControllerGetOrderWebhooks(requestParameters: AdminControllerGetOrderWebhooksRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<AdminControllerGetOrderWebhooks200ResponseInner>> {
+        const response = await this.adminControllerGetOrderWebhooksRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
@@ -688,6 +896,53 @@ export class AdminApi extends runtime.BaseAPI {
     }
 
     /**
+     * Returns complete webhook log including payload, result, and all metadata
+     * Get full webhook log details
+     */
+    async adminControllerGetWebhookLogDetailRaw(requestParameters: AdminControllerGetWebhookLogDetailRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<AdminControllerGetWebhookLogDetail200Response>> {
+        if (requestParameters['id'] == null) {
+            throw new runtime.RequiredError(
+                'id',
+                'Required parameter "id" was null or undefined when calling adminControllerGetWebhookLogDetail().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("JWT-auth", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/admin/webhook-logs/{id}/detail`;
+        urlPath = urlPath.replace(`{${"id"}}`, encodeURIComponent(String(requestParameters['id'])));
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => AdminControllerGetWebhookLogDetail200ResponseFromJSON(jsonValue));
+    }
+
+    /**
+     * Returns complete webhook log including payload, result, and all metadata
+     * Get full webhook log details
+     */
+    async adminControllerGetWebhookLogDetail(requestParameters: AdminControllerGetWebhookLogDetailRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<AdminControllerGetWebhookLogDetail200Response> {
+        const response = await this.adminControllerGetWebhookLogDetailRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
      * Returns webhook history with processing status
      * Get paginated list of webhook logs
      */
@@ -747,6 +1002,187 @@ export class AdminApi extends runtime.BaseAPI {
      */
     async adminControllerGetWebhookLogs(requestParameters: AdminControllerGetWebhookLogsRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<AdminControllerGetWebhookLogs200Response> {
         const response = await this.adminControllerGetWebhookLogsRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Returns paginated webhook logs with full filter options
+     * Get enhanced webhook logs with advanced filtering
+     */
+    async adminControllerGetWebhookLogsEnhancedRaw(requestParameters: AdminControllerGetWebhookLogsEnhancedRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<AdminControllerGetWebhookLogsEnhanced200Response>> {
+        const queryParameters: any = {};
+
+        if (requestParameters['limit'] != null) {
+            queryParameters['limit'] = requestParameters['limit'];
+        }
+
+        if (requestParameters['offset'] != null) {
+            queryParameters['offset'] = requestParameters['offset'];
+        }
+
+        if (requestParameters['webhookType'] != null) {
+            queryParameters['webhookType'] = requestParameters['webhookType'];
+        }
+
+        if (requestParameters['paymentStatus'] != null) {
+            queryParameters['paymentStatus'] = requestParameters['paymentStatus'];
+        }
+
+        if (requestParameters['signatureValid'] != null) {
+            queryParameters['signatureValid'] = requestParameters['signatureValid'];
+        }
+
+        if (requestParameters['startDate'] != null) {
+            queryParameters['startDate'] = requestParameters['startDate'];
+        }
+
+        if (requestParameters['endDate'] != null) {
+            queryParameters['endDate'] = requestParameters['endDate'];
+        }
+
+        if (requestParameters['search'] != null) {
+            queryParameters['search'] = requestParameters['search'];
+        }
+
+        if (requestParameters['sourceIp'] != null) {
+            queryParameters['sourceIp'] = requestParameters['sourceIp'];
+        }
+
+        if (requestParameters['orderId'] != null) {
+            queryParameters['orderId'] = requestParameters['orderId'];
+        }
+
+        if (requestParameters['paymentId'] != null) {
+            queryParameters['paymentId'] = requestParameters['paymentId'];
+        }
+
+        if (requestParameters['sortBy'] != null) {
+            queryParameters['sortBy'] = requestParameters['sortBy'];
+        }
+
+        if (requestParameters['sortOrder'] != null) {
+            queryParameters['sortOrder'] = requestParameters['sortOrder'];
+        }
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("JWT-auth", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/admin/webhook-logs/enhanced`;
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => AdminControllerGetWebhookLogsEnhanced200ResponseFromJSON(jsonValue));
+    }
+
+    /**
+     * Returns paginated webhook logs with full filter options
+     * Get enhanced webhook logs with advanced filtering
+     */
+    async adminControllerGetWebhookLogsEnhanced(requestParameters: AdminControllerGetWebhookLogsEnhancedRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<AdminControllerGetWebhookLogsEnhanced200Response> {
+        const response = await this.adminControllerGetWebhookLogsEnhancedRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Returns aggregated webhook statistics for the specified period
+     * Get webhook statistics
+     */
+    async adminControllerGetWebhookStatsRaw(requestParameters: AdminControllerGetWebhookStatsRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<AdminControllerGetWebhookStats200Response>> {
+        const queryParameters: any = {};
+
+        if (requestParameters['period'] != null) {
+            queryParameters['period'] = requestParameters['period'];
+        }
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("JWT-auth", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/admin/webhook-logs/stats`;
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => AdminControllerGetWebhookStats200ResponseFromJSON(jsonValue));
+    }
+
+    /**
+     * Returns aggregated webhook statistics for the specified period
+     * Get webhook statistics
+     */
+    async adminControllerGetWebhookStats(requestParameters: AdminControllerGetWebhookStatsRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<AdminControllerGetWebhookStats200Response> {
+        const response = await this.adminControllerGetWebhookStatsRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Returns time-series data for webhook activity visualization
+     * Get webhook activity timeline
+     */
+    async adminControllerGetWebhookTimelineRaw(requestParameters: AdminControllerGetWebhookTimelineRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<AdminControllerGetWebhookTimeline200Response>> {
+        const queryParameters: any = {};
+
+        if (requestParameters['period'] != null) {
+            queryParameters['period'] = requestParameters['period'];
+        }
+
+        if (requestParameters['interval'] != null) {
+            queryParameters['interval'] = requestParameters['interval'];
+        }
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("JWT-auth", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/admin/webhook-logs/timeline`;
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => AdminControllerGetWebhookTimeline200ResponseFromJSON(jsonValue));
+    }
+
+    /**
+     * Returns time-series data for webhook activity visualization
+     * Get webhook activity timeline
+     */
+    async adminControllerGetWebhookTimeline(requestParameters: AdminControllerGetWebhookTimelineRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<AdminControllerGetWebhookTimeline200Response> {
+        const response = await this.adminControllerGetWebhookTimelineRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
@@ -1025,3 +1461,54 @@ export const AdminControllerGetOrdersSourceTypeEnum = {
     Kinguin: 'kinguin'
 } as const;
 export type AdminControllerGetOrdersSourceTypeEnum = typeof AdminControllerGetOrdersSourceTypeEnum[keyof typeof AdminControllerGetOrdersSourceTypeEnum];
+/**
+ * @export
+ */
+export const AdminControllerGetWebhookLogsEnhancedSignatureValidEnum = {
+    True: 'true',
+    False: 'false'
+} as const;
+export type AdminControllerGetWebhookLogsEnhancedSignatureValidEnum = typeof AdminControllerGetWebhookLogsEnhancedSignatureValidEnum[keyof typeof AdminControllerGetWebhookLogsEnhancedSignatureValidEnum];
+/**
+ * @export
+ */
+export const AdminControllerGetWebhookLogsEnhancedSortByEnum = {
+    CreatedAt: 'createdAt',
+    PaymentStatus: 'paymentStatus',
+    WebhookType: 'webhookType'
+} as const;
+export type AdminControllerGetWebhookLogsEnhancedSortByEnum = typeof AdminControllerGetWebhookLogsEnhancedSortByEnum[keyof typeof AdminControllerGetWebhookLogsEnhancedSortByEnum];
+/**
+ * @export
+ */
+export const AdminControllerGetWebhookLogsEnhancedSortOrderEnum = {
+    Asc: 'ASC',
+    Desc: 'DESC'
+} as const;
+export type AdminControllerGetWebhookLogsEnhancedSortOrderEnum = typeof AdminControllerGetWebhookLogsEnhancedSortOrderEnum[keyof typeof AdminControllerGetWebhookLogsEnhancedSortOrderEnum];
+/**
+ * @export
+ */
+export const AdminControllerGetWebhookStatsPeriodEnum = {
+    _24h: '24h',
+    _7d: '7d',
+    _30d: '30d'
+} as const;
+export type AdminControllerGetWebhookStatsPeriodEnum = typeof AdminControllerGetWebhookStatsPeriodEnum[keyof typeof AdminControllerGetWebhookStatsPeriodEnum];
+/**
+ * @export
+ */
+export const AdminControllerGetWebhookTimelinePeriodEnum = {
+    _24h: '24h',
+    _7d: '7d',
+    _30d: '30d'
+} as const;
+export type AdminControllerGetWebhookTimelinePeriodEnum = typeof AdminControllerGetWebhookTimelinePeriodEnum[keyof typeof AdminControllerGetWebhookTimelinePeriodEnum];
+/**
+ * @export
+ */
+export const AdminControllerGetWebhookTimelineIntervalEnum = {
+    Hour: 'hour',
+    Day: 'day'
+} as const;
+export type AdminControllerGetWebhookTimelineIntervalEnum = typeof AdminControllerGetWebhookTimelineIntervalEnum[keyof typeof AdminControllerGetWebhookTimelineIntervalEnum];

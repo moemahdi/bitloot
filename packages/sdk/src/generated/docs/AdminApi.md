@@ -5,16 +5,23 @@ All URIs are relative to *http://localhost*
 | Method | HTTP request | Description |
 |------------- | ------------- | -------------|
 | [**adminControllerAdminRevealKey**](AdminApi.md#admincontrolleradminrevealkey) | **GET** /admin/keys/{keyId}/reveal | Admin reveal key (for support) |
+| [**adminControllerBulkReplayWebhooks**](AdminApi.md#admincontrollerbulkreplaywebhooksoperation) | **POST** /admin/webhook-logs/bulk-replay | Bulk replay failed webhooks |
 | [**adminControllerBulkUpdateStatus**](AdminApi.md#admincontrollerbulkupdatestatus) | **PATCH** /admin/orders/bulk-status | Bulk update order status |
 | [**adminControllerExportOrders**](AdminApi.md#admincontrollerexportorders) | **GET** /admin/orders/export | Export orders with date range |
+| [**adminControllerGetAdjacentWebhooks**](AdminApi.md#admincontrollergetadjacentwebhooks) | **GET** /admin/webhook-logs/{id}/adjacent | Get adjacent webhooks for navigation |
 | [**adminControllerGetDashboardStats**](AdminApi.md#admincontrollergetdashboardstats) | **GET** /admin/stats | Get dashboard statistics |
 | [**adminControllerGetKeyAuditTrail**](AdminApi.md#admincontrollergetkeyaudittrail) | **GET** /admin/key-audit/{orderId} | Get key access audit trail |
 | [**adminControllerGetOrderAnalytics**](AdminApi.md#admincontrollergetorderanalytics) | **GET** /admin/orders/analytics | Get order analytics |
+| [**adminControllerGetOrderWebhooks**](AdminApi.md#admincontrollergetorderwebhooks) | **GET** /admin/orders/{orderId}/webhooks | Get webhooks for an order |
 | [**adminControllerGetOrders**](AdminApi.md#admincontrollergetorders) | **GET** /admin/orders | Get paginated list of orders |
 | [**adminControllerGetPayments**](AdminApi.md#admincontrollergetpayments) | **GET** /admin/payments | Get paginated list of payments |
 | [**adminControllerGetReservations**](AdminApi.md#admincontrollergetreservations) | **GET** /admin/reservations | Get paginated list of Kinguin reservations |
 | [**adminControllerGetWebhookLog**](AdminApi.md#admincontrollergetwebhooklog) | **GET** /admin/webhook-logs/{id} | Get webhook log details |
+| [**adminControllerGetWebhookLogDetail**](AdminApi.md#admincontrollergetwebhooklogdetail) | **GET** /admin/webhook-logs/{id}/detail | Get full webhook log details |
 | [**adminControllerGetWebhookLogs**](AdminApi.md#admincontrollergetwebhooklogs) | **GET** /admin/webhook-logs | Get paginated list of webhook logs |
+| [**adminControllerGetWebhookLogsEnhanced**](AdminApi.md#admincontrollergetwebhooklogsenhanced) | **GET** /admin/webhook-logs/enhanced | Get enhanced webhook logs with advanced filtering |
+| [**adminControllerGetWebhookStats**](AdminApi.md#admincontrollergetwebhookstats) | **GET** /admin/webhook-logs/stats | Get webhook statistics |
+| [**adminControllerGetWebhookTimeline**](AdminApi.md#admincontrollergetwebhooktimeline) | **GET** /admin/webhook-logs/timeline | Get webhook activity timeline |
 | [**adminControllerReplayWebhook**](AdminApi.md#admincontrollerreplaywebhook) | **POST** /admin/webhook-logs/{id}/replay | Replay failed webhook |
 | [**adminControllerResendKeys**](AdminApi.md#admincontrollerresendkeys) | **POST** /admin/orders/{id}/resend-keys | Resend key delivery email |
 | [**adminControllerRetryFulfillment**](AdminApi.md#admincontrollerretryfulfillmentoperation) | **POST** /admin/orders/{id}/retry-fulfillment | Retry fulfillment for stuck order |
@@ -91,6 +98,77 @@ example().catch(console.error);
 |-------------|-------------|------------------|
 | **200** | Key content revealed |  -  |
 | **404** | Key not found |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## adminControllerBulkReplayWebhooks
+
+> AdminControllerBulkReplayWebhooks200Response adminControllerBulkReplayWebhooks(adminControllerBulkReplayWebhooksRequest)
+
+Bulk replay failed webhooks
+
+Marks multiple webhooks for reprocessing. Only works for non-processed webhooks.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  AdminApi,
+} from '';
+import type { AdminControllerBulkReplayWebhooksOperationRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const config = new Configuration({ 
+    // Configure HTTP bearer authorization: JWT-auth
+    accessToken: "YOUR BEARER TOKEN",
+  });
+  const api = new AdminApi(config);
+
+  const body = {
+    // AdminControllerBulkReplayWebhooksRequest
+    adminControllerBulkReplayWebhooksRequest: ...,
+  } satisfies AdminControllerBulkReplayWebhooksOperationRequest;
+
+  try {
+    const data = await api.adminControllerBulkReplayWebhooks(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **adminControllerBulkReplayWebhooksRequest** | [AdminControllerBulkReplayWebhooksRequest](AdminControllerBulkReplayWebhooksRequest.md) |  | |
+
+### Return type
+
+[**AdminControllerBulkReplayWebhooks200Response**](AdminControllerBulkReplayWebhooks200Response.md)
+
+### Authorization
+
+[JWT-auth](../README.md#JWT-auth)
+
+### HTTP request headers
+
+- **Content-Type**: `application/json`
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Bulk replay results |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
@@ -242,6 +320,78 @@ example().catch(console.error);
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
 | **200** | Orders for export |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## adminControllerGetAdjacentWebhooks
+
+> AdminControllerGetAdjacentWebhooks200Response adminControllerGetAdjacentWebhooks(id)
+
+Get adjacent webhooks for navigation
+
+Returns previous and next webhook IDs for detail page navigation
+
+### Example
+
+```ts
+import {
+  Configuration,
+  AdminApi,
+} from '';
+import type { AdminControllerGetAdjacentWebhooksRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const config = new Configuration({ 
+    // Configure HTTP bearer authorization: JWT-auth
+    accessToken: "YOUR BEARER TOKEN",
+  });
+  const api = new AdminApi(config);
+
+  const body = {
+    // string
+    id: id_example,
+  } satisfies AdminControllerGetAdjacentWebhooksRequest;
+
+  try {
+    const data = await api.adminControllerGetAdjacentWebhooks(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **id** | `string` |  | [Defaults to `undefined`] |
+
+### Return type
+
+[**AdminControllerGetAdjacentWebhooks200Response**](AdminControllerGetAdjacentWebhooks200Response.md)
+
+### Authorization
+
+[JWT-auth](../README.md#JWT-auth)
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Adjacent webhook IDs |  -  |
+| **404** | Webhook log not found |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
@@ -448,6 +598,77 @@ example().catch(console.error);
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
 | **200** | Order analytics |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## adminControllerGetOrderWebhooks
+
+> Array&lt;AdminControllerGetOrderWebhooks200ResponseInner&gt; adminControllerGetOrderWebhooks(orderId)
+
+Get webhooks for an order
+
+Returns all webhooks associated with a specific order (timeline view)
+
+### Example
+
+```ts
+import {
+  Configuration,
+  AdminApi,
+} from '';
+import type { AdminControllerGetOrderWebhooksRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const config = new Configuration({ 
+    // Configure HTTP bearer authorization: JWT-auth
+    accessToken: "YOUR BEARER TOKEN",
+  });
+  const api = new AdminApi(config);
+
+  const body = {
+    // string
+    orderId: orderId_example,
+  } satisfies AdminControllerGetOrderWebhooksRequest;
+
+  try {
+    const data = await api.adminControllerGetOrderWebhooks(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **orderId** | `string` |  | [Defaults to `undefined`] |
+
+### Return type
+
+[**Array&lt;AdminControllerGetOrderWebhooks200ResponseInner&gt;**](AdminControllerGetOrderWebhooks200ResponseInner.md)
+
+### Authorization
+
+[JWT-auth](../README.md#JWT-auth)
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Order webhook history |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
@@ -776,6 +997,78 @@ example().catch(console.error);
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
 
+## adminControllerGetWebhookLogDetail
+
+> AdminControllerGetWebhookLogDetail200Response adminControllerGetWebhookLogDetail(id)
+
+Get full webhook log details
+
+Returns complete webhook log including payload, result, and all metadata
+
+### Example
+
+```ts
+import {
+  Configuration,
+  AdminApi,
+} from '';
+import type { AdminControllerGetWebhookLogDetailRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const config = new Configuration({ 
+    // Configure HTTP bearer authorization: JWT-auth
+    accessToken: "YOUR BEARER TOKEN",
+  });
+  const api = new AdminApi(config);
+
+  const body = {
+    // string
+    id: id_example,
+  } satisfies AdminControllerGetWebhookLogDetailRequest;
+
+  try {
+    const data = await api.adminControllerGetWebhookLogDetail(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **id** | `string` |  | [Defaults to `undefined`] |
+
+### Return type
+
+[**AdminControllerGetWebhookLogDetail200Response**](AdminControllerGetWebhookLogDetail200Response.md)
+
+### Authorization
+
+[JWT-auth](../README.md#JWT-auth)
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Full webhook log details |  -  |
+| **404** | Webhook log not found |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
 ## adminControllerGetWebhookLogs
 
 > AdminControllerGetWebhookLogs200Response adminControllerGetWebhookLogs(limit, offset, webhookType, paymentStatus, paymentId, orderId)
@@ -858,6 +1151,258 @@ example().catch(console.error);
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
 | **200** | Paginated webhook logs |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## adminControllerGetWebhookLogsEnhanced
+
+> AdminControllerGetWebhookLogsEnhanced200Response adminControllerGetWebhookLogsEnhanced(limit, offset, webhookType, paymentStatus, signatureValid, startDate, endDate, search, sourceIp, orderId, paymentId, sortBy, sortOrder)
+
+Get enhanced webhook logs with advanced filtering
+
+Returns paginated webhook logs with full filter options
+
+### Example
+
+```ts
+import {
+  Configuration,
+  AdminApi,
+} from '';
+import type { AdminControllerGetWebhookLogsEnhancedRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const config = new Configuration({ 
+    // Configure HTTP bearer authorization: JWT-auth
+    accessToken: "YOUR BEARER TOKEN",
+  });
+  const api = new AdminApi(config);
+
+  const body = {
+    // number (optional)
+    limit: 20,
+    // number (optional)
+    offset: 0,
+    // string (optional)
+    webhookType: nowpayments_ipn,
+    // string (optional)
+    paymentStatus: finished,
+    // 'true' | 'false' | Filter by signature validity (optional)
+    signatureValid: signatureValid_example,
+    // string (optional)
+    startDate: 2026-01-01T00:00:00Z,
+    // string (optional)
+    endDate: 2026-01-14T23:59:59Z,
+    // string | Search by externalId, orderId, or paymentId (optional)
+    search: search_example,
+    // string | Filter by source IP (optional)
+    sourceIp: sourceIp_example,
+    // string (optional)
+    orderId: orderId_example,
+    // string (optional)
+    paymentId: paymentId_example,
+    // 'createdAt' | 'paymentStatus' | 'webhookType' (optional)
+    sortBy: sortBy_example,
+    // 'ASC' | 'DESC' (optional)
+    sortOrder: sortOrder_example,
+  } satisfies AdminControllerGetWebhookLogsEnhancedRequest;
+
+  try {
+    const data = await api.adminControllerGetWebhookLogsEnhanced(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **limit** | `number` |  | [Optional] [Defaults to `undefined`] |
+| **offset** | `number` |  | [Optional] [Defaults to `undefined`] |
+| **webhookType** | `string` |  | [Optional] [Defaults to `undefined`] |
+| **paymentStatus** | `string` |  | [Optional] [Defaults to `undefined`] |
+| **signatureValid** | `true`, `false` | Filter by signature validity | [Optional] [Defaults to `undefined`] [Enum: true, false] |
+| **startDate** | `string` |  | [Optional] [Defaults to `undefined`] |
+| **endDate** | `string` |  | [Optional] [Defaults to `undefined`] |
+| **search** | `string` | Search by externalId, orderId, or paymentId | [Optional] [Defaults to `undefined`] |
+| **sourceIp** | `string` | Filter by source IP | [Optional] [Defaults to `undefined`] |
+| **orderId** | `string` |  | [Optional] [Defaults to `undefined`] |
+| **paymentId** | `string` |  | [Optional] [Defaults to `undefined`] |
+| **sortBy** | `createdAt`, `paymentStatus`, `webhookType` |  | [Optional] [Defaults to `undefined`] [Enum: createdAt, paymentStatus, webhookType] |
+| **sortOrder** | `ASC`, `DESC` |  | [Optional] [Defaults to `undefined`] [Enum: ASC, DESC] |
+
+### Return type
+
+[**AdminControllerGetWebhookLogsEnhanced200Response**](AdminControllerGetWebhookLogsEnhanced200Response.md)
+
+### Authorization
+
+[JWT-auth](../README.md#JWT-auth)
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Paginated enhanced webhook logs |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## adminControllerGetWebhookStats
+
+> AdminControllerGetWebhookStats200Response adminControllerGetWebhookStats(period)
+
+Get webhook statistics
+
+Returns aggregated webhook statistics for the specified period
+
+### Example
+
+```ts
+import {
+  Configuration,
+  AdminApi,
+} from '';
+import type { AdminControllerGetWebhookStatsRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const config = new Configuration({ 
+    // Configure HTTP bearer authorization: JWT-auth
+    accessToken: "YOUR BEARER TOKEN",
+  });
+  const api = new AdminApi(config);
+
+  const body = {
+    // '24h' | '7d' | '30d' | Time period for statistics (optional)
+    period: period_example,
+  } satisfies AdminControllerGetWebhookStatsRequest;
+
+  try {
+    const data = await api.adminControllerGetWebhookStats(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **period** | `24h`, `7d`, `30d` | Time period for statistics | [Optional] [Defaults to `undefined`] [Enum: 24h, 7d, 30d] |
+
+### Return type
+
+[**AdminControllerGetWebhookStats200Response**](AdminControllerGetWebhookStats200Response.md)
+
+### Authorization
+
+[JWT-auth](../README.md#JWT-auth)
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Webhook statistics |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## adminControllerGetWebhookTimeline
+
+> AdminControllerGetWebhookTimeline200Response adminControllerGetWebhookTimeline(period, interval)
+
+Get webhook activity timeline
+
+Returns time-series data for webhook activity visualization
+
+### Example
+
+```ts
+import {
+  Configuration,
+  AdminApi,
+} from '';
+import type { AdminControllerGetWebhookTimelineRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const config = new Configuration({ 
+    // Configure HTTP bearer authorization: JWT-auth
+    accessToken: "YOUR BEARER TOKEN",
+  });
+  const api = new AdminApi(config);
+
+  const body = {
+    // '24h' | '7d' | '30d' (optional)
+    period: period_example,
+    // 'hour' | 'day' (optional)
+    interval: interval_example,
+  } satisfies AdminControllerGetWebhookTimelineRequest;
+
+  try {
+    const data = await api.adminControllerGetWebhookTimeline(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **period** | `24h`, `7d`, `30d` |  | [Optional] [Defaults to `undefined`] [Enum: 24h, 7d, 30d] |
+| **interval** | `hour`, `day` |  | [Optional] [Defaults to `undefined`] [Enum: hour, day] |
+
+### Return type
+
+[**AdminControllerGetWebhookTimeline200Response**](AdminControllerGetWebhookTimeline200Response.md)
+
+### Authorization
+
+[JWT-auth](../README.md#JWT-auth)
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Timeline data |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 

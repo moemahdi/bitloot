@@ -12,6 +12,8 @@ import { Loader2, ArrowLeft, Clock, Package, CreditCard, Eye, EyeOff, History, A
 import { toast } from 'sonner';
 import Link from 'next/link';
 import { useAdminGuard } from '@/features/admin/hooks/useAdminGuard';
+import { useOrderWebhooks } from '@/features/admin/hooks/useOrderWebhooks';
+import { OrderWebhookHistory } from '@/features/admin/components/webhooks';
 import {
     Table,
     TableBody,
@@ -155,6 +157,12 @@ export default function AdminOrderDetailPage(): React.ReactElement | null {
             return await adminApi.adminControllerGetKeyAuditTrail({ orderId: id });
         },
         enabled: isAdmin && (id !== null && id !== undefined && id.length > 0),
+    });
+
+    // Order webhook history
+    const { webhooks: orderWebhooks, isLoading: webhooksLoading } = useOrderWebhooks({
+        orderId: id,
+        enabled: isAdmin && Boolean(id),
     });
 
     // Update order status mutation
@@ -846,6 +854,16 @@ export default function AdminOrderDetailPage(): React.ReactElement | null {
                     )}
                 </CardContent>
             </Card>
+
+            {/* Webhook History Section */}
+            <OrderWebhookHistory
+                webhooks={orderWebhooks}
+                orderId={id}
+                isLoading={webhooksLoading}
+                className="mt-6"
+                maxItems={10}
+                showViewAll={true}
+            />
         </main>
     );
 }

@@ -1,6 +1,6 @@
 import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, Between, MoreThanOrEqual, LessThanOrEqual } from 'typeorm';
 import { Order, type OrderStatus } from '../orders/order.entity';
 import { Payment } from '../payments/payment.entity';
 import { WebhookLog } from '../../database/entities/webhook-log.entity';
@@ -472,11 +472,11 @@ export class AdminService {
     const query = this.webhookLogsRepo.createQueryBuilder('wl');
 
     if (typeof options.webhookType === 'string' && options.webhookType.length > 0) {
-      query.andWhere('wl.webhookType = :webhookType', { webhookType: options.webhookType });
+      query.andWhere('wl."webhookType" = :webhookType', { webhookType: options.webhookType });
     }
 
     if (typeof options.paymentStatus === 'string' && options.paymentStatus.length > 0) {
-      query.andWhere('wl.paymentStatus = :paymentStatus', { paymentStatus: options.paymentStatus });
+      query.andWhere('wl."paymentStatus" = :paymentStatus', { paymentStatus: options.paymentStatus });
     }
 
     // Filter by paymentId (for IPN History tab)
@@ -489,19 +489,19 @@ export class AdminService {
       });
       if (payment?.orderId !== null && payment?.orderId !== undefined) {
         // Query by orderId which is reliably populated on all webhook_logs
-        query.andWhere('wl.orderId = :orderId', { orderId: payment.orderId });
+        query.andWhere('wl."orderId" = :orderId', { orderId: payment.orderId });
       } else {
         // Fallback: try direct paymentId match (for future records)
-        query.andWhere('wl.paymentId = :paymentId', { paymentId: options.paymentId });
+        query.andWhere('wl."paymentId" = :paymentId', { paymentId: options.paymentId });
       }
     }
 
     // Direct filter by orderId (if explicitly provided)
     if (typeof options.orderId === 'string' && options.orderId.length > 0) {
-      query.andWhere('wl.orderId = :orderId', { orderId: options.orderId });
+      query.andWhere('wl."orderId" = :orderId', { orderId: options.orderId });
     }
 
-    query.orderBy('wl.createdAt', 'DESC').skip(offset).take(limit);
+    query.orderBy('wl."createdAt"', 'DESC').skip(offset).take(limit);
 
     const [data, total] = await query.getManyAndCount();
 
@@ -1146,5 +1146,540 @@ export class AdminService {
       changedBy: adminEmail,
       changedAt: new Date(),
     };
+  }
+
+  // ============================================================================
+  // WEBHOOK STATISTICS & ANALYTICS
+  // ============================================================================
+
+  /**
+   * Get webhook statistics for a given time period
+   *
+   * @param period Time period: '24h', '7d', or '30d'
+   * @returns Webhook statistics including totals, success rates, and breakdowns
+   */
+  async getWebhookStats(period: '24h' | '7d' | '30d'): Promise<{
+    total: number;
+    processed: number;
+    pending: number;
+    failed: number;
+    invalidSignature: number;
+    duplicates: number;
+    successRate: number;
+    byType: Array<{ type: string; count: number }>;
+    byStatus: Array<{ status: string; count: number }>;
+    periodStart: string;
+    periodEnd: string;
+  }> {
+    const now = new Date();
+    const periodStart = new Date();
+
+    switch (period) {
+      case '24h':
+        periodStart.setHours(periodStart.getHours() - 24);
+        break;
+      case '7d':
+        periodStart.setDate(periodStart.getDate() - 7);
+        break;
+      case '30d':
+        periodStart.setDate(periodStart.getDate() - 30);
+        break;
+    }
+
+    // Get total count
+    const total = await this.webhookLogsRepo.count({
+      where: {
+        createdAt: this.betweenDates(periodStart, now),
+      },
+    });
+
+    // Get processed count
+    const processed = await this.webhookLogsRepo.count({
+      where: {
+        createdAt: this.betweenDates(periodStart, now),
+        processed: true,
+      },
+    });
+
+    // Get pending count (not processed and no error)
+    const pendingQuery = await this.webhookLogsRepo
+      .createQueryBuilder('wl')
+      .where('wl."createdAt" >= :start', { start: periodStart })
+      .andWhere('wl."createdAt" <= :end', { end: now })
+      .andWhere('wl.processed = :processed', { processed: false })
+      .andWhere('(wl.error IS NULL OR wl.error = :empty)', { empty: '' })
+      .getCount();
+
+    // Get failed count (has error)
+    const failed = await this.webhookLogsRepo
+      .createQueryBuilder('wl')
+      .where('wl."createdAt" >= :start', { start: periodStart })
+      .andWhere('wl."createdAt" <= :end', { end: now })
+      .andWhere('wl.error IS NOT NULL')
+      .andWhere("wl.error != :empty", { empty: '' })
+      .getCount();
+
+    // Get invalid signature count
+    const invalidSignature = await this.webhookLogsRepo.count({
+      where: {
+        createdAt: this.betweenDates(periodStart, now),
+        signatureValid: false,
+      },
+    });
+
+    // Get duplicates count (paymentStatus = 'duplicate')
+    const duplicates = await this.webhookLogsRepo.count({
+      where: {
+        createdAt: this.betweenDates(periodStart, now),
+        paymentStatus: 'duplicate',
+      },
+    });
+
+    // Calculate success rate
+    const successRate = total > 0 ? Math.round((processed / total) * 10000) / 100 : 0;
+
+    // Get breakdown by type
+    const byTypeRaw = await this.webhookLogsRepo
+      .createQueryBuilder('wl')
+      .select('wl.webhookType', 'type')
+      .addSelect('COUNT(*)', 'count')
+      .where('wl.createdAt >= :start', { start: periodStart })
+      .andWhere('wl.createdAt <= :end', { end: now })
+      .groupBy('wl.webhookType')
+      .getRawMany<{ type: string; count: string }>();
+
+    const byType = byTypeRaw.map((item) => ({
+      type: item.type,
+      count: parseInt(item.count, 10),
+    }));
+
+    // Get breakdown by payment status
+    const byStatusRaw = await this.webhookLogsRepo
+      .createQueryBuilder('wl')
+      .select('wl.paymentStatus', 'status')
+      .addSelect('COUNT(*)', 'count')
+      .where('wl.createdAt >= :start', { start: periodStart })
+      .andWhere('wl.createdAt <= :end', { end: now })
+      .groupBy('wl.paymentStatus')
+      .getRawMany<{ status: string; count: string }>();
+
+    const byStatus = byStatusRaw.map((item) => ({
+      status: item.status ?? 'unknown',
+      count: parseInt(item.count, 10),
+    }));
+
+    return {
+      total,
+      processed,
+      pending: pendingQuery,
+      failed,
+      invalidSignature,
+      duplicates,
+      successRate,
+      byType,
+      byStatus,
+      periodStart: periodStart.toISOString(),
+      periodEnd: now.toISOString(),
+    };
+  }
+
+  /**
+   * Get webhook activity timeline for visualization
+   *
+   * @param period Time period: '24h', '7d', or '30d'
+   * @param interval Grouping interval: 'hour' or 'day'
+   * @returns Array of timeline data points
+   */
+  async getWebhookTimeline(
+    period: '24h' | '7d' | '30d',
+    interval: 'hour' | 'day',
+  ): Promise<{
+    data: Array<{
+      timestamp: string;
+      total: number;
+      processed: number;
+      failed: number;
+      invalidSig: number;
+    }>;
+    interval: 'hour' | 'day';
+    period: '24h' | '7d' | '30d';
+  }> {
+    const now = new Date();
+    const periodStart = new Date();
+
+    switch (period) {
+      case '24h':
+        periodStart.setHours(periodStart.getHours() - 24);
+        break;
+      case '7d':
+        periodStart.setDate(periodStart.getDate() - 7);
+        break;
+      case '30d':
+        periodStart.setDate(periodStart.getDate() - 30);
+        break;
+    }
+
+    const truncFunc = interval === 'hour' ? 'hour' : 'day';
+
+    // Get total counts grouped by interval
+    const rawData = await this.webhookLogsRepo
+      .createQueryBuilder('wl')
+      .select(`DATE_TRUNC('${truncFunc}', wl."createdAt")`, 'timestamp')
+      .addSelect('COUNT(*)', 'total')
+      .addSelect('SUM(CASE WHEN wl.processed = true THEN 1 ELSE 0 END)', 'processed')
+      .addSelect("SUM(CASE WHEN wl.error IS NOT NULL AND wl.error != '' THEN 1 ELSE 0 END)", 'failed')
+      .addSelect('SUM(CASE WHEN wl."signatureValid" = false THEN 1 ELSE 0 END)', 'invalidSig')
+      .where('wl."createdAt" >= :start', { start: periodStart })
+      .andWhere('wl."createdAt" <= :end', { end: now })
+      .groupBy('timestamp')
+      .orderBy('timestamp', 'ASC')
+      .getRawMany<{ timestamp: string; total: string; processed: string; failed: string; invalidSig: string }>();
+
+    // Generate all time slots and fill with data
+    const data: Array<{
+      timestamp: string;
+      total: number;
+      processed: number;
+      failed: number;
+      invalidSig: number;
+    }> = [];
+
+    const dataMap = new Map(
+      rawData.map((item) => [
+        new Date(item.timestamp).toISOString(),
+        {
+          total: parseInt(item.total, 10),
+          processed: parseInt(item.processed, 10),
+          failed: parseInt(item.failed, 10),
+          invalidSig: parseInt(item.invalidSig, 10),
+        },
+      ]),
+    );
+
+    // Generate time slots
+    const current = new Date(periodStart);
+    if (interval === 'hour') {
+      current.setMinutes(0, 0, 0);
+    } else {
+      current.setHours(0, 0, 0, 0);
+    }
+
+    while (current <= now) {
+      const key = current.toISOString();
+      const existing = dataMap.get(key);
+
+      data.push({
+        timestamp: key,
+        total: existing?.total ?? 0,
+        processed: existing?.processed ?? 0,
+        failed: existing?.failed ?? 0,
+        invalidSig: existing?.invalidSig ?? 0,
+      });
+
+      if (interval === 'hour') {
+        current.setHours(current.getHours() + 1);
+      } else {
+        current.setDate(current.getDate() + 1);
+      }
+    }
+
+    return { data, interval, period };
+  }
+
+  /**
+   * Get enhanced paginated webhook logs with advanced filtering
+   *
+   * @param options Advanced filter options
+   * @returns Paginated webhook logs
+   */
+  async getWebhookLogsEnhanced(options: {
+    limit?: number;
+    offset?: number;
+    webhookType?: string;
+    paymentStatus?: string;
+    signatureValid?: boolean;
+    startDate?: Date;
+    endDate?: Date;
+    search?: string;
+    sourceIp?: string;
+    orderId?: string;
+    paymentId?: string;
+    sortBy?: 'createdAt' | 'paymentStatus' | 'webhookType';
+    sortOrder?: 'ASC' | 'DESC';
+  }): Promise<{
+    data: Array<{
+      id: string;
+      externalId: string;
+      webhookType: string;
+      paymentStatus: string;
+      processed: boolean;
+      signatureValid: boolean;
+      orderId?: string;
+      paymentId?: string;
+      error?: string;
+      sourceIp?: string;
+      attemptCount: number;
+      createdAt: Date;
+      updatedAt: Date;
+    }>;
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+    hasNextPage: boolean;
+  }> {
+    const limit = Math.min(options.limit ?? 20, 100);
+    const offset = options.offset ?? 0;
+    const page = Math.floor(offset / limit) + 1;
+
+    const query = this.webhookLogsRepo.createQueryBuilder('wl');
+
+    // Apply filters
+    if (typeof options.webhookType === 'string' && options.webhookType.length > 0) {
+      query.andWhere('wl."webhookType" = :webhookType', { webhookType: options.webhookType });
+    }
+
+    if (typeof options.paymentStatus === 'string' && options.paymentStatus.length > 0) {
+      query.andWhere('wl."paymentStatus" = :paymentStatus', { paymentStatus: options.paymentStatus });
+    }
+
+    if (typeof options.signatureValid === 'boolean') {
+      query.andWhere('wl."signatureValid" = :signatureValid', { signatureValid: options.signatureValid });
+    }
+
+    if (options.startDate !== undefined) {
+      query.andWhere('wl."createdAt" >= :startDate', { startDate: options.startDate });
+    }
+
+    if (options.endDate !== undefined) {
+      query.andWhere('wl."createdAt" <= :endDate', { endDate: options.endDate });
+    }
+
+    if (typeof options.search === 'string' && options.search.length > 0) {
+      query.andWhere(
+        '(wl."externalId" ILIKE :search OR wl."orderId"::text ILIKE :search OR wl."paymentId" ILIKE :search)',
+        { search: `%${options.search}%` },
+      );
+    }
+
+    if (typeof options.sourceIp === 'string' && options.sourceIp.length > 0) {
+      query.andWhere('wl."sourceIp" = :sourceIp', { sourceIp: options.sourceIp });
+    }
+
+    if (typeof options.orderId === 'string' && options.orderId.length > 0) {
+      query.andWhere('wl."orderId" = :orderId', { orderId: options.orderId });
+    }
+
+    if (typeof options.paymentId === 'string' && options.paymentId.length > 0) {
+      // Look up payment's orderId for fallback query
+      const payment = await this.paymentsRepo.findOne({
+        where: { id: options.paymentId },
+        select: ['orderId'],
+      });
+      if (payment?.orderId !== null && payment?.orderId !== undefined) {
+        query.andWhere('wl."orderId" = :orderId', { orderId: payment.orderId });
+      } else {
+        query.andWhere('wl."paymentId" = :paymentId', { paymentId: options.paymentId });
+      }
+    }
+
+    // Apply sorting - quote the column name for PostgreSQL camelCase columns
+    const sortBy = options.sortBy ?? 'createdAt';
+    const sortOrder = options.sortOrder ?? 'DESC';
+    query.orderBy(`wl."${sortBy}"`, sortOrder);
+
+    // Apply pagination
+    query.skip(offset).take(limit);
+
+    const [data, total] = await query.getManyAndCount();
+
+    const totalPages = Math.ceil(total / limit);
+    const hasNextPage = page < totalPages;
+
+    return {
+      data: data.map((wl) => ({
+        id: wl.id,
+        externalId: wl.externalId,
+        webhookType: wl.webhookType,
+        paymentStatus: wl.paymentStatus ?? 'unknown',
+        processed: wl.processed,
+        signatureValid: wl.signatureValid,
+        orderId: wl.orderId !== null && typeof wl.orderId === 'string' ? wl.orderId : undefined,
+        paymentId: wl.paymentId !== null && typeof wl.paymentId === 'string' ? wl.paymentId : undefined,
+        error: wl.error !== null && typeof wl.error === 'string' && wl.error.length > 0 ? wl.error : undefined,
+        sourceIp: wl.sourceIp !== null && typeof wl.sourceIp === 'string' ? wl.sourceIp : undefined,
+        attemptCount: wl.attemptCount,
+        createdAt: wl.createdAt,
+        updatedAt: wl.updatedAt,
+      })),
+      total,
+      page,
+      limit,
+      totalPages,
+      hasNextPage,
+    };
+  }
+
+  /**
+   * Get full webhook log details including payload and result
+   *
+   * @param id WebhookLog ID
+   * @returns Full webhook log details
+   */
+  async getWebhookLogDetail(id: string): Promise<{
+    id: string;
+    externalId: string;
+    webhookType: string;
+    paymentStatus: string;
+    payload: Record<string, unknown>;
+    signatureValid: boolean;
+    processed: boolean;
+    orderId?: string;
+    paymentId?: string;
+    result?: Record<string, unknown>;
+    error?: string;
+    sourceIp?: string;
+    attemptCount: number;
+    createdAt: Date;
+    updatedAt: Date;
+  }> {
+    const log = await this.webhookLogsRepo.findOne({ where: { id } });
+
+    if (log === null || log === undefined) {
+      throw new NotFoundException(`Webhook log not found: ${id}`);
+    }
+
+    return {
+      id: log.id,
+      externalId: log.externalId,
+      webhookType: log.webhookType,
+      paymentStatus: log.paymentStatus ?? 'unknown',
+      payload: log.payload !== null && typeof log.payload === 'object' ? log.payload : {},
+      signatureValid: log.signatureValid,
+      processed: log.processed,
+      orderId: log.orderId !== null && typeof log.orderId === 'string' ? log.orderId : undefined,
+      paymentId: log.paymentId !== null && typeof log.paymentId === 'string' ? log.paymentId : undefined,
+      result: log.result !== null && typeof log.result === 'object' ? log.result : undefined,
+      error: log.error !== null && typeof log.error === 'string' && log.error.length > 0 ? log.error : undefined,
+      sourceIp: log.sourceIp !== null && typeof log.sourceIp === 'string' ? log.sourceIp : undefined,
+      attemptCount: log.attemptCount,
+      createdAt: log.createdAt,
+      updatedAt: log.updatedAt,
+    };
+  }
+
+  /**
+   * Bulk replay multiple failed webhooks
+   *
+   * @param ids Array of webhook log IDs to replay
+   * @returns Summary of replay results
+   */
+  async bulkReplayWebhooks(ids: string[]): Promise<{
+    replayed: number;
+    failed: number;
+    errors: Array<{ id: string; error: string }>;
+  }> {
+    let replayed = 0;
+    const errors: Array<{ id: string; error: string }> = [];
+
+    for (const id of ids) {
+      try {
+        await this.markWebhookForReplay(id);
+        replayed++;
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        errors.push({ id, error: message });
+      }
+    }
+
+    return {
+      replayed,
+      failed: errors.length,
+      errors,
+    };
+  }
+
+  /**
+   * Get all webhooks for a specific order
+   *
+   * @param orderId Order ID
+   * @returns Array of webhook logs for this order
+   */
+  async getOrderWebhooks(orderId: string): Promise<Array<{
+    id: string;
+    externalId: string;
+    webhookType: string;
+    paymentStatus: string;
+    processed: boolean;
+    signatureValid: boolean;
+    error?: string;
+    createdAt: Date;
+  }>> {
+    const logs = await this.webhookLogsRepo.find({
+      where: { orderId },
+      order: { createdAt: 'ASC' },
+    });
+
+    return logs.map((log) => ({
+      id: log.id,
+      externalId: log.externalId,
+      webhookType: log.webhookType,
+      paymentStatus: log.paymentStatus ?? 'unknown',
+      processed: log.processed,
+      signatureValid: log.signatureValid,
+      error: log.error !== null && typeof log.error === 'string' && log.error.length > 0 ? log.error : undefined,
+      createdAt: log.createdAt,
+    }));
+  }
+
+  /**
+   * Get adjacent webhook IDs for navigation (prev/next)
+   *
+   * @param id Current webhook ID
+   * @returns Previous and next webhook IDs
+   */
+  async getAdjacentWebhooks(id: string): Promise<{
+    previous?: string;
+    next?: string;
+  }> {
+    const current = await this.webhookLogsRepo.findOne({ where: { id } });
+
+    if (current === null || current === undefined) {
+      throw new NotFoundException(`Webhook log not found: ${id}`);
+    }
+
+    // Get previous (older) webhook
+    const previous = await this.webhookLogsRepo
+      .createQueryBuilder('wl')
+      .select('wl.id')
+      .where('wl."createdAt" < :createdAt', { createdAt: current.createdAt })
+      .orderBy('wl."createdAt"', 'DESC')
+      .limit(1)
+      .getOne();
+
+    // Get next (newer) webhook
+    const next = await this.webhookLogsRepo
+      .createQueryBuilder('wl')
+      .select('wl.id')
+      .where('wl."createdAt" > :createdAt', { createdAt: current.createdAt })
+      .orderBy('wl."createdAt"', 'ASC')
+      .limit(1)
+      .getOne();
+
+    return {
+      previous: previous?.id,
+      next: next?.id,
+    };
+  }
+
+  // ============================================================================
+  // HELPER METHODS
+  // ============================================================================
+
+  /**
+   * Helper to create between dates query condition using TypeORM Between
+   */
+  private betweenDates(start: Date, end: Date): ReturnType<typeof Between<Date>> {
+    return Between(start, end);
   }
 }
