@@ -378,6 +378,7 @@ export default function AdminReviewsPage(): React.ReactElement {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Customer</TableHead>
+                    <TableHead>Order ID</TableHead>
                     <TableHead>Product</TableHead>
                     <TableHead>Rating</TableHead>
                     <TableHead>Title</TableHead>
@@ -400,7 +401,41 @@ export default function AdminReviewsPage(): React.ReactElement {
                           )}
                         </div>
                       </TableCell>
-                      <TableCell className="max-w-[150px] truncate">{(review.productName as string | undefined) ?? 'N/A'}</TableCell>
+                      <TableCell>
+                        {review.orderId != null ? (
+                          <code className="text-xs bg-muted px-1.5 py-0.5 rounded font-mono">
+                            {review.orderId.slice(0, 8)}...
+                          </code>
+                        ) : (
+                          <span className="text-muted-foreground text-sm">—</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="max-w-[200px]">
+                        {review.orderItems && review.orderItems.length > 0 ? (
+                          <div className="space-y-0.5">
+                            {(() => {
+                              // Aggregate items with the same productId
+                              const aggregatedItems = review.orderItems.reduce((acc, item) => {
+                                const existing = acc.find(i => i.productId === item.productId);
+                                if (existing) {
+                                  existing.quantity += item.quantity;
+                                } else {
+                                  acc.push({ ...item });
+                                }
+                                return acc;
+                              }, [] as typeof review.orderItems);
+                              
+                              return aggregatedItems.map((item) => (
+                                <div key={item.productId} className="text-sm truncate" title={item.productTitle}>
+                                  {item.quantity > 1 ? `${item.quantity}× ` : ''}{item.productTitle}
+                                </div>
+                              ));
+                            })()}
+                          </div>
+                        ) : (
+                          <span className="truncate">{(review.productName as string | undefined) ?? 'N/A'}</span>
+                        )}
+                      </TableCell>
                       <TableCell>
                         <StarRating rating={review.rating} />
                       </TableCell>
@@ -594,8 +629,41 @@ export default function AdminReviewsPage(): React.ReactElement {
                   )}
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-muted-foreground">Product</label>
-                  <p className="font-medium">{selectedReview.productName != null ? String(selectedReview.productName) : 'N/A'}</p>
+                  <label className="text-sm font-medium text-muted-foreground">Order ID</label>
+                  {selectedReview.orderId != null ? (
+                    <p className="font-mono text-sm bg-muted px-2 py-1 rounded w-fit">
+                      {String(selectedReview.orderId)}
+                    </p>
+                  ) : (
+                    <p className="text-muted-foreground">No linked order</p>
+                  )}
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Product(s)</label>
+                  {selectedReview.orderItems && selectedReview.orderItems.length > 0 ? (
+                    <div className="space-y-1 mt-1">
+                      {(() => {
+                        // Aggregate items with the same productId
+                        const aggregatedItems = selectedReview.orderItems.reduce((acc, item) => {
+                          const existing = acc.find(i => i.productId === item.productId);
+                          if (existing) {
+                            existing.quantity += item.quantity;
+                          } else {
+                            acc.push({ ...item });
+                          }
+                          return acc;
+                        }, [] as typeof selectedReview.orderItems);
+                        
+                        return aggregatedItems.map((item) => (
+                          <p key={item.productId} className="font-medium">
+                            {item.quantity > 1 ? `${item.quantity}× ` : ''}{item.productTitle}
+                          </p>
+                        ));
+                      })()}
+                    </div>
+                  ) : (
+                    <p className="font-medium">{selectedReview.productName != null ? String(selectedReview.productName) : 'N/A'}</p>
+                  )}
                 </div>
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">Rating</label>

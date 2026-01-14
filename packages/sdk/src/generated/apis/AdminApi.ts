@@ -16,7 +16,6 @@
 import * as runtime from '../runtime';
 import type {
   AdminControllerAdminRevealKey200Response,
-  AdminControllerBulkReplayWebhooks200Response,
   AdminControllerBulkReplayWebhooksRequest,
   AdminControllerExportOrders200ResponseInner,
   AdminControllerGetAdjacentWebhooks200Response,
@@ -28,9 +27,6 @@ import type {
   AdminControllerGetWebhookLog200Response,
   AdminControllerGetWebhookLogDetail200Response,
   AdminControllerGetWebhookLogs200Response,
-  AdminControllerGetWebhookLogsEnhanced200Response,
-  AdminControllerGetWebhookStats200Response,
-  AdminControllerGetWebhookTimeline200Response,
   AdminControllerResendKeys200Response,
   AdminControllerRetryFulfillment200Response,
   AdminControllerRetryFulfillmentRequest,
@@ -46,8 +42,6 @@ import type {
 import {
     AdminControllerAdminRevealKey200ResponseFromJSON,
     AdminControllerAdminRevealKey200ResponseToJSON,
-    AdminControllerBulkReplayWebhooks200ResponseFromJSON,
-    AdminControllerBulkReplayWebhooks200ResponseToJSON,
     AdminControllerBulkReplayWebhooksRequestFromJSON,
     AdminControllerBulkReplayWebhooksRequestToJSON,
     AdminControllerExportOrders200ResponseInnerFromJSON,
@@ -70,12 +64,6 @@ import {
     AdminControllerGetWebhookLogDetail200ResponseToJSON,
     AdminControllerGetWebhookLogs200ResponseFromJSON,
     AdminControllerGetWebhookLogs200ResponseToJSON,
-    AdminControllerGetWebhookLogsEnhanced200ResponseFromJSON,
-    AdminControllerGetWebhookLogsEnhanced200ResponseToJSON,
-    AdminControllerGetWebhookStats200ResponseFromJSON,
-    AdminControllerGetWebhookStats200ResponseToJSON,
-    AdminControllerGetWebhookTimeline200ResponseFromJSON,
-    AdminControllerGetWebhookTimeline200ResponseToJSON,
     AdminControllerResendKeys200ResponseFromJSON,
     AdminControllerResendKeys200ResponseToJSON,
     AdminControllerRetryFulfillment200ResponseFromJSON,
@@ -278,10 +266,10 @@ export class AdminApi extends runtime.BaseAPI {
     }
 
     /**
-     * Marks multiple webhooks for reprocessing. Only works for non-processed webhooks.
+     * Marks multiple webhooks for reprocessing
      * Bulk replay failed webhooks
      */
-    async adminControllerBulkReplayWebhooksRaw(requestParameters: AdminControllerBulkReplayWebhooksOperationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<AdminControllerBulkReplayWebhooks200Response>> {
+    async adminControllerBulkReplayWebhooksRaw(requestParameters: AdminControllerBulkReplayWebhooksOperationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<void>> {
         if (requestParameters['adminControllerBulkReplayWebhooksRequest'] == null) {
             throw new runtime.RequiredError(
                 'adminControllerBulkReplayWebhooksRequest',
@@ -314,16 +302,15 @@ export class AdminApi extends runtime.BaseAPI {
             body: AdminControllerBulkReplayWebhooksRequestToJSON(requestParameters['adminControllerBulkReplayWebhooksRequest']),
         }, initOverrides);
 
-        return new runtime.JSONApiResponse(response, (jsonValue) => AdminControllerBulkReplayWebhooks200ResponseFromJSON(jsonValue));
+        return new runtime.VoidApiResponse(response);
     }
 
     /**
-     * Marks multiple webhooks for reprocessing. Only works for non-processed webhooks.
+     * Marks multiple webhooks for reprocessing
      * Bulk replay failed webhooks
      */
-    async adminControllerBulkReplayWebhooks(requestParameters: AdminControllerBulkReplayWebhooksOperationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<AdminControllerBulkReplayWebhooks200Response> {
-        const response = await this.adminControllerBulkReplayWebhooksRaw(requestParameters, initOverrides);
-        return await response.value();
+    async adminControllerBulkReplayWebhooks(requestParameters: AdminControllerBulkReplayWebhooksOperationRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<void> {
+        await this.adminControllerBulkReplayWebhooksRaw(requestParameters, initOverrides);
     }
 
     /**
@@ -1009,7 +996,7 @@ export class AdminApi extends runtime.BaseAPI {
      * Returns paginated webhook logs with full filter options
      * Get enhanced webhook logs with advanced filtering
      */
-    async adminControllerGetWebhookLogsEnhancedRaw(requestParameters: AdminControllerGetWebhookLogsEnhancedRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<AdminControllerGetWebhookLogsEnhanced200Response>> {
+    async adminControllerGetWebhookLogsEnhancedRaw(requestParameters: AdminControllerGetWebhookLogsEnhancedRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<void>> {
         const queryParameters: any = {};
 
         if (requestParameters['limit'] != null) {
@@ -1084,23 +1071,22 @@ export class AdminApi extends runtime.BaseAPI {
             query: queryParameters,
         }, initOverrides);
 
-        return new runtime.JSONApiResponse(response, (jsonValue) => AdminControllerGetWebhookLogsEnhanced200ResponseFromJSON(jsonValue));
+        return new runtime.VoidApiResponse(response);
     }
 
     /**
      * Returns paginated webhook logs with full filter options
      * Get enhanced webhook logs with advanced filtering
      */
-    async adminControllerGetWebhookLogsEnhanced(requestParameters: AdminControllerGetWebhookLogsEnhancedRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<AdminControllerGetWebhookLogsEnhanced200Response> {
-        const response = await this.adminControllerGetWebhookLogsEnhancedRaw(requestParameters, initOverrides);
-        return await response.value();
+    async adminControllerGetWebhookLogsEnhanced(requestParameters: AdminControllerGetWebhookLogsEnhancedRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<void> {
+        await this.adminControllerGetWebhookLogsEnhancedRaw(requestParameters, initOverrides);
     }
 
     /**
      * Returns aggregated webhook statistics for the specified period
      * Get webhook statistics
      */
-    async adminControllerGetWebhookStatsRaw(requestParameters: AdminControllerGetWebhookStatsRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<AdminControllerGetWebhookStats200Response>> {
+    async adminControllerGetWebhookStatsRaw(requestParameters: AdminControllerGetWebhookStatsRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<void>> {
         const queryParameters: any = {};
 
         if (requestParameters['period'] != null) {
@@ -1127,23 +1113,22 @@ export class AdminApi extends runtime.BaseAPI {
             query: queryParameters,
         }, initOverrides);
 
-        return new runtime.JSONApiResponse(response, (jsonValue) => AdminControllerGetWebhookStats200ResponseFromJSON(jsonValue));
+        return new runtime.VoidApiResponse(response);
     }
 
     /**
      * Returns aggregated webhook statistics for the specified period
      * Get webhook statistics
      */
-    async adminControllerGetWebhookStats(requestParameters: AdminControllerGetWebhookStatsRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<AdminControllerGetWebhookStats200Response> {
-        const response = await this.adminControllerGetWebhookStatsRaw(requestParameters, initOverrides);
-        return await response.value();
+    async adminControllerGetWebhookStats(requestParameters: AdminControllerGetWebhookStatsRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<void> {
+        await this.adminControllerGetWebhookStatsRaw(requestParameters, initOverrides);
     }
 
     /**
      * Returns time-series data for webhook activity visualization
      * Get webhook activity timeline
      */
-    async adminControllerGetWebhookTimelineRaw(requestParameters: AdminControllerGetWebhookTimelineRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<AdminControllerGetWebhookTimeline200Response>> {
+    async adminControllerGetWebhookTimelineRaw(requestParameters: AdminControllerGetWebhookTimelineRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<void>> {
         const queryParameters: any = {};
 
         if (requestParameters['period'] != null) {
@@ -1174,16 +1159,15 @@ export class AdminApi extends runtime.BaseAPI {
             query: queryParameters,
         }, initOverrides);
 
-        return new runtime.JSONApiResponse(response, (jsonValue) => AdminControllerGetWebhookTimeline200ResponseFromJSON(jsonValue));
+        return new runtime.VoidApiResponse(response);
     }
 
     /**
      * Returns time-series data for webhook activity visualization
      * Get webhook activity timeline
      */
-    async adminControllerGetWebhookTimeline(requestParameters: AdminControllerGetWebhookTimelineRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<AdminControllerGetWebhookTimeline200Response> {
-        const response = await this.adminControllerGetWebhookTimelineRaw(requestParameters, initOverrides);
-        return await response.value();
+    async adminControllerGetWebhookTimeline(requestParameters: AdminControllerGetWebhookTimelineRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<void> {
+        await this.adminControllerGetWebhookTimelineRaw(requestParameters, initOverrides);
     }
 
     /**

@@ -74,6 +74,9 @@ export class OrderItemResponseDto {
   @ApiProperty({ description: 'Product title/name for display' })
   productTitle!: string;
 
+  @ApiProperty({ description: 'Product slug for navigation', required: false, type: String, nullable: true })
+  productSlug?: string | null;
+
   @ApiProperty({ description: 'Quantity of this item', example: 1 })
   quantity!: number;
 

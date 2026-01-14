@@ -13,6 +13,9 @@ Name | Type
 `authorName` | string
 `isVerifiedPurchase` | boolean
 `productName` | string
+`productId` | string
+`productSlug` | string
+`orderItems` | [Array&lt;ReviewOrderItemDto&gt;](ReviewOrderItemDto.md)
 `createdAt` | Date
 
 ## Example
@@ -29,6 +32,9 @@ const example = {
   "authorName": John D.,
   "isVerifiedPurchase": true,
   "productName": Product Name,
+  "productId": 550e8400-e29b-41d4-a716-446655440001,
+  "productSlug": grand-theft-auto-v,
+  "orderItems": null,
   "createdAt": 2025-01-15T10:30Z,
 } satisfies ReviewResponseDto
 

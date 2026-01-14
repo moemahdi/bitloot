@@ -20,7 +20,7 @@ import { mapValues } from '../runtime';
  */
 export interface AdminControllerBulkReplayWebhooksRequest {
     /**
-     * Array of webhook log IDs to replay
+     * 
      * @type {Array<string>}
      * @memberof AdminControllerBulkReplayWebhooksRequest
      */

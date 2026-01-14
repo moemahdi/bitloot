@@ -1,36 +1,28 @@
 
-# OrderItemResponseDto
+# ReviewOrderItemDto
 
 
 ## Properties
 
 Name | Type
 ------------ | -------------
-`id` | string
 `productId` | string
 `productTitle` | string
 `productSlug` | string
 `quantity` | number
-`unitPrice` | string
-`sourceType` | string
-`signedUrl` | object
 
 ## Example
 
 ```typescript
-import type { OrderItemResponseDto } from ''
+import type { ReviewOrderItemDto } from ''
 
 // TODO: Update the object below with actual values
 const example = {
-  "id": null,
-  "productId": null,
-  "productTitle": null,
-  "productSlug": null,
+  "productId": 550e8400-e29b-41d4-a716-446655440001,
+  "productTitle": Grand Theft Auto V,
+  "productSlug": grand-theft-auto-v,
   "quantity": 1,
-  "unitPrice": 29.99,
-  "sourceType": custom,
-  "signedUrl": null,
-} satisfies OrderItemResponseDto
+} satisfies ReviewOrderItemDto
 
 console.log(example)
 
@@ -39,7 +31,7 @@ const exampleJSON: string = JSON.stringify(example)
 console.log(exampleJSON)
 
 // Parse the JSON string back to an object
-const exampleParsed = JSON.parse(exampleJSON) as OrderItemResponseDto
+const exampleParsed = JSON.parse(exampleJSON) as ReviewOrderItemDto
 console.log(exampleParsed)
 ```
 

@@ -13,11 +13,13 @@ Name | Type
 `authorName` | string
 `isVerifiedPurchase` | boolean
 `productName` | string
+`productId` | string
+`productSlug` | string
+`orderItems` | [Array&lt;ReviewOrderItemDto&gt;](ReviewOrderItemDto.md)
 `createdAt` | Date
 `orderId` | string
 `userId` | string
 `userEmail` | string
-`productId` | string
 `status` | string
 `displayOnHomepage` | boolean
 `adminNotes` | string
@@ -40,11 +42,13 @@ const example = {
   "authorName": John D.,
   "isVerifiedPurchase": true,
   "productName": Product Name,
+  "productId": 550e8400-e29b-41d4-a716-446655440001,
+  "productSlug": grand-theft-auto-v,
+  "orderItems": null,
   "createdAt": 2025-01-15T10:30Z,
   "orderId": 550e8400-e29b-41d4-a716-446655440000,
   "userId": 550e8400-e29b-41d4-a716-446655440001,
   "userEmail": user@example.com,
-  "productId": 550e8400-e29b-41d4-a716-446655440002,
   "status": pending,
   "displayOnHomepage": false,
   "adminNotes": Internal notes here,

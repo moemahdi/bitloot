@@ -38,6 +38,12 @@ export interface OrderItemResponseDto {
      */
     productTitle: string;
     /**
+     * Product slug for navigation
+     * @type {string}
+     * @memberof OrderItemResponseDto
+     */
+    productSlug?: string | null;
+    /**
      * Quantity of this item
      * @type {number}
      * @memberof OrderItemResponseDto
@@ -101,6 +107,7 @@ export function OrderItemResponseDtoFromJSONTyped(json: any, ignoreDiscriminator
         'id': json['id'],
         'productId': json['productId'],
         'productTitle': json['productTitle'],
+        'productSlug': json['productSlug'] == null ? undefined : json['productSlug'],
         'quantity': json['quantity'],
         'unitPrice': json['unitPrice'],
         'sourceType': json['sourceType'],
@@ -122,6 +129,7 @@ export function OrderItemResponseDtoToJSONTyped(value?: OrderItemResponseDto | n
         'id': value['id'],
         'productId': value['productId'],
         'productTitle': value['productTitle'],
+        'productSlug': value['productSlug'],
         'quantity': value['quantity'],
         'unitPrice': value['unitPrice'],
         'sourceType': value['sourceType'],

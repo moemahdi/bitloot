@@ -13,6 +13,14 @@
  */
 
 import { mapValues } from '../runtime';
+import type { ReviewOrderItemDto } from './ReviewOrderItemDto';
+import {
+    ReviewOrderItemDtoFromJSON,
+    ReviewOrderItemDtoFromJSONTyped,
+    ReviewOrderItemDtoToJSON,
+    ReviewOrderItemDtoToJSONTyped,
+} from './ReviewOrderItemDto';
+
 /**
  * 
  * @export
@@ -63,6 +71,24 @@ export interface ReviewResponseDto {
     productName?: string | null;
     /**
      * 
+     * @type {string}
+     * @memberof ReviewResponseDto
+     */
+    productId?: string | null;
+    /**
+     * 
+     * @type {string}
+     * @memberof ReviewResponseDto
+     */
+    productSlug?: string | null;
+    /**
+     * Order items for multi-product orders
+     * @type {Array<ReviewOrderItemDto>}
+     * @memberof ReviewResponseDto
+     */
+    orderItems?: Array<ReviewOrderItemDto>;
+    /**
+     * 
      * @type {Date}
      * @memberof ReviewResponseDto
      */
@@ -99,6 +125,9 @@ export function ReviewResponseDtoFromJSONTyped(json: any, ignoreDiscriminator: b
         'authorName': json['authorName'],
         'isVerifiedPurchase': json['isVerifiedPurchase'],
         'productName': json['productName'] == null ? undefined : json['productName'],
+        'productId': json['productId'] == null ? undefined : json['productId'],
+        'productSlug': json['productSlug'] == null ? undefined : json['productSlug'],
+        'orderItems': json['orderItems'] == null ? undefined : ((json['orderItems'] as Array<any>).map(ReviewOrderItemDtoFromJSON)),
         'createdAt': (new Date(json['createdAt'])),
     };
 }
@@ -121,6 +150,9 @@ export function ReviewResponseDtoToJSONTyped(value?: ReviewResponseDto | null, i
         'authorName': value['authorName'],
         'isVerifiedPurchase': value['isVerifiedPurchase'],
         'productName': value['productName'],
+        'productId': value['productId'],
+        'productSlug': value['productSlug'],
+        'orderItems': value['orderItems'] == null ? undefined : ((value['orderItems'] as Array<any>).map(ReviewOrderItemDtoToJSON)),
         'createdAt': value['createdAt'].toISOString(),
     };
 }

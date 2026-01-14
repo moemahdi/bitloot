@@ -13,6 +13,14 @@
  */
 
 import { mapValues } from '../runtime';
+import type { ReviewOrderItemDto } from './ReviewOrderItemDto';
+import {
+    ReviewOrderItemDtoFromJSON,
+    ReviewOrderItemDtoFromJSONTyped,
+    ReviewOrderItemDtoToJSON,
+    ReviewOrderItemDtoToJSONTyped,
+} from './ReviewOrderItemDto';
+
 /**
  * 
  * @export
@@ -63,6 +71,24 @@ export interface AdminReviewResponseDto {
     productName?: string | null;
     /**
      * 
+     * @type {string}
+     * @memberof AdminReviewResponseDto
+     */
+    productId?: string | null;
+    /**
+     * 
+     * @type {string}
+     * @memberof AdminReviewResponseDto
+     */
+    productSlug?: string | null;
+    /**
+     * Order items for multi-product orders
+     * @type {Array<ReviewOrderItemDto>}
+     * @memberof AdminReviewResponseDto
+     */
+    orderItems?: Array<ReviewOrderItemDto>;
+    /**
+     * 
      * @type {Date}
      * @memberof AdminReviewResponseDto
      */
@@ -85,12 +111,6 @@ export interface AdminReviewResponseDto {
      * @memberof AdminReviewResponseDto
      */
     userEmail?: string | null;
-    /**
-     * 
-     * @type {string}
-     * @memberof AdminReviewResponseDto
-     */
-    productId?: string | null;
     /**
      * 
      * @type {string}
@@ -180,11 +200,13 @@ export function AdminReviewResponseDtoFromJSONTyped(json: any, ignoreDiscriminat
         'authorName': json['authorName'],
         'isVerifiedPurchase': json['isVerifiedPurchase'],
         'productName': json['productName'] == null ? undefined : json['productName'],
+        'productId': json['productId'] == null ? undefined : json['productId'],
+        'productSlug': json['productSlug'] == null ? undefined : json['productSlug'],
+        'orderItems': json['orderItems'] == null ? undefined : ((json['orderItems'] as Array<any>).map(ReviewOrderItemDtoFromJSON)),
         'createdAt': (new Date(json['createdAt'])),
         'orderId': json['orderId'] == null ? undefined : json['orderId'],
         'userId': json['userId'] == null ? undefined : json['userId'],
         'userEmail': json['userEmail'] == null ? undefined : json['userEmail'],
-        'productId': json['productId'] == null ? undefined : json['productId'],
         'status': json['status'],
         'displayOnHomepage': json['displayOnHomepage'],
         'adminNotes': json['adminNotes'] == null ? undefined : json['adminNotes'],
@@ -213,11 +235,13 @@ export function AdminReviewResponseDtoToJSONTyped(value?: AdminReviewResponseDto
         'authorName': value['authorName'],
         'isVerifiedPurchase': value['isVerifiedPurchase'],
         'productName': value['productName'],
+        'productId': value['productId'],
+        'productSlug': value['productSlug'],
+        'orderItems': value['orderItems'] == null ? undefined : ((value['orderItems'] as Array<any>).map(ReviewOrderItemDtoToJSON)),
         'createdAt': value['createdAt'].toISOString(),
         'orderId': value['orderId'],
         'userId': value['userId'],
         'userEmail': value['userEmail'],
-        'productId': value['productId'],
         'status': value['status'],
         'displayOnHomepage': value['displayOnHomepage'],
         'adminNotes': value['adminNotes'],

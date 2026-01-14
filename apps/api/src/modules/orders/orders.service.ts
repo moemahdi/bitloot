@@ -638,6 +638,7 @@ export class OrdersService {
           id: item.id,
           productId: item.productId,
           productTitle: productMap.get(item.productId)?.title ?? item.productId,
+          productSlug: productMap.get(item.productId)?.slug ?? null,
           quantity: item.quantity ?? 1,
           unitPrice: item.unitPrice ?? '0.00',
           sourceType: item.productSourceType ?? 'custom',

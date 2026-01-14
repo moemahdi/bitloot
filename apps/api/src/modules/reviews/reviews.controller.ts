@@ -105,7 +105,8 @@ export class ReviewsController {
       content: review.content,
       authorName: review.getDisplayName(),
       isVerifiedPurchase: review.isVerifiedPurchase,
-      productName: null,
+      productName: review.product?.title ?? null,
+      productSlug: review.product?.slug ?? null,
       createdAt: review.createdAt,
     };
   }

@@ -336,6 +336,23 @@ export class ModerateReviewDto {
 // ============ RESPONSE DTOs ============
 
 /**
+ * Represents an order item in a review response
+ */
+export class ReviewOrderItemDto {
+  @ApiProperty({ example: '550e8400-e29b-41d4-a716-446655440001' })
+  productId!: string;
+
+  @ApiProperty({ example: 'Grand Theft Auto V' })
+  productTitle!: string;
+
+  @ApiPropertyOptional({ type: 'string', nullable: true, example: 'grand-theft-auto-v' })
+  productSlug?: string | null;
+
+  @ApiProperty({ example: 1 })
+  quantity!: number;
+}
+
+/**
  * Public review response (for customers viewing reviews)
  */
 export class ReviewResponseDto {
@@ -360,6 +377,15 @@ export class ReviewResponseDto {
   @ApiPropertyOptional({ type: 'string', nullable: true, example: 'Product Name' })
   productName?: string | null;
 
+  @ApiPropertyOptional({ type: 'string', nullable: true, example: '550e8400-e29b-41d4-a716-446655440001' })
+  productId?: string | null;
+
+  @ApiPropertyOptional({ type: 'string', nullable: true, example: 'grand-theft-auto-v' })
+  productSlug?: string | null;
+
+  @ApiPropertyOptional({ type: [ReviewOrderItemDto], description: 'Order items for multi-product orders' })
+  orderItems?: ReviewOrderItemDto[];
+
   @ApiProperty({ example: '2025-01-15T10:30:00.000Z' })
   createdAt!: Date;
 }
@@ -376,9 +402,6 @@ export class AdminReviewResponseDto extends ReviewResponseDto {
 
   @ApiPropertyOptional({ type: 'string', nullable: true, example: 'user@example.com' })
   userEmail?: string | null;
-
-  @ApiPropertyOptional({ type: 'string', nullable: true, example: '550e8400-e29b-41d4-a716-446655440002' })
-  productId?: string | null;
 
   @ApiProperty({ enum: ReviewStatus, example: ReviewStatus.PENDING })
   status!: ReviewStatus;

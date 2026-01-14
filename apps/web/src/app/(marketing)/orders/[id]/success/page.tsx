@@ -39,6 +39,7 @@ import { Confetti } from '@/components/animations/Confetti';
 import { cn } from '@/design-system/utils/utils';
 import { KeyReveal } from '@/features/orders';
 import { useOrderAccess } from '@/hooks/useOrderAccess';
+import { OrderReviewPrompt } from '@/features/reviews';
 
 // Initialize SDK client
 const ordersClient = new OrdersApi(apiConfig);
@@ -268,6 +269,19 @@ export default function OrderSuccessPage(): React.ReactElement {
                 </AlertDescription>
               </Alert>
               )}
+
+              {/* Review Prompt - Shows for fulfilled orders */}
+              <OrderReviewPrompt
+                orderId={orderId}
+                items={orderItems}
+                isOrderFulfilled={isOrderFulfilled}
+                accessStatus={orderAccess.isLoading ? undefined : {
+                  canAccess: orderAccess.canAccess,
+                  reason: orderAccess.reason,
+                  isAuthenticated: orderAccess.isAuthenticated,
+                  message: orderAccess.message,
+                }}
+              />
             </motion.div>
 
             {/* Sidebar */}

@@ -20,6 +20,7 @@ import {
     Gift,
     Repeat,
     Sparkles,
+    Star,
 } from 'lucide-react';
 import { Sheet, SheetContent, SheetTrigger, SheetClose } from '@/design-system/primitives/sheet';
 import { useState, useEffect } from 'react';
@@ -61,7 +62,7 @@ export function Header(): React.ReactElement {
         { href: '/catalog', label: 'Software', icon: Monitor },
         { href: '/catalog', label: 'Gift Cards', icon: Gift },
         { href: '/catalog', label: 'Subscriptions', icon: Repeat },
-        { href: '/catalog', label: 'A.I', icon: Sparkles },
+        { href: '/reviews', label: 'Reviews', icon: Star },
     ];
 
     return (

@@ -22,6 +22,7 @@ import {
   PaginatedReviewsDto,
   PaginatedAdminReviewsDto,
   ReviewStatsDto,
+  ReviewOrderItemDto,
 } from './dto';
 
 export interface ReviewFilters {
@@ -127,7 +128,15 @@ export class ReviewsService {
       displayOnHomepage: false,
     });
 
-    return this.reviewRepo.save(review);
+    const savedReview = await this.reviewRepo.save(review);
+
+    // Reload with user relation to enable getDisplayName() to work correctly
+    const reloadedReview = await this.reviewRepo.findOne({
+      where: { id: savedReview.id },
+      relations: ['user', 'product'],
+    });
+
+    return reloadedReview ?? savedReview;
   }
 
   /**
@@ -140,6 +149,7 @@ export class ReviewsService {
   ): Promise<Review> {
     const review = await this.reviewRepo.findOne({
       where: { id: reviewId },
+      relations: ['user', 'product'],
     });
 
     if (review === undefined || review === null) {
@@ -160,7 +170,15 @@ export class ReviewsService {
     if (dto.content !== undefined) review.content = dto.content;
     if (dto.authorName !== undefined) review.authorName = dto.authorName;
 
-    return this.reviewRepo.save(review);
+    const savedReview = await this.reviewRepo.save(review);
+
+    // Reload with relations to ensure getDisplayName() works
+    const reloadedReview = await this.reviewRepo.findOne({
+      where: { id: savedReview.id },
+      relations: ['user', 'product'],
+    });
+
+    return reloadedReview ?? savedReview;
   }
 
   /**
@@ -193,7 +211,7 @@ export class ReviewsService {
 
     const [reviews, total] = await this.reviewRepo.findAndCount({
       where: { userId, deletedAt: IsNull() } as FindOptionsWhere<Review>,
-      relations: ['product'],
+      relations: ['product', 'user'],
       order: { createdAt: 'DESC' },
       skip: (page - 1) * limit,
       take: limit,
@@ -403,6 +421,8 @@ export class ReviewsService {
       .leftJoinAndSelect('review.user', 'user')
       .leftJoinAndSelect('review.product', 'product')
       .leftJoinAndSelect('review.approvedBy', 'approvedBy')
+      .leftJoinAndSelect('review.order', 'order')
+      .leftJoinAndSelect('order.items', 'items')
       .where('review.deletedAt IS NULL');
 
     // Apply filters
@@ -462,8 +482,30 @@ export class ReviewsService {
 
     const [reviews, total] = await queryBuilder.getManyAndCount();
 
+    // Collect all unique product IDs from order items
+    const allProductIds = new Set<string>();
+    for (const review of reviews) {
+      if (review.order?.items !== undefined && review.order.items !== null) {
+        for (const item of review.order.items) {
+          allProductIds.add(item.productId);
+        }
+      }
+      if (review.productId !== undefined && review.productId !== null) {
+        allProductIds.add(review.productId);
+      }
+    }
+
+    // Fetch all products at once
+    const productMap = new Map<string, Product>();
+    if (allProductIds.size > 0) {
+      const products = await this.productRepo.findByIds([...allProductIds]);
+      for (const product of products) {
+        productMap.set(product.id, product);
+      }
+    }
+
     return {
-      data: reviews.map((r) => this.toAdminResponse(r)),
+      data: reviews.map((r) => this.toAdminResponseWithItems(r, productMap)),
       total,
       page,
       limit,
@@ -558,13 +600,21 @@ export class ReviewsService {
     const queryBuilder = this.reviewRepo
       .createQueryBuilder('review')
       .leftJoinAndSelect('review.product', 'product')
+      .leftJoinAndSelect('review.user', 'user')
+      .leftJoinAndSelect('review.order', 'order')
+      .leftJoinAndSelect('order.items', 'items')
       .where('review.status = :status', { status: ReviewStatus.APPROVED })
       .andWhere('review.deletedAt IS NULL');
 
     if (options?.productId !== undefined && options.productId !== null && options.productId !== '') {
-      queryBuilder.andWhere('review.productId = :productId', {
-        productId: options.productId,
-      });
+      // Include reviews where:
+      // 1. The review's direct productId matches, OR
+      // 2. The product is in the order's items (for multi-item orders)
+      // Use CAST to handle uuid/varchar type difference between review.productId and items.productId
+      queryBuilder.andWhere(
+        '(review.productId = :productId OR items.productId = CAST(:productId AS VARCHAR))',
+        { productId: options.productId },
+      );
     }
 
     if (options?.homepageOnly === true) {
@@ -578,8 +628,30 @@ export class ReviewsService {
 
     const [reviews, total] = await queryBuilder.getManyAndCount();
 
+    // Collect all unique product IDs from order items
+    const allProductIds = new Set<string>();
+    for (const review of reviews) {
+      if (review.order?.items !== undefined && review.order.items !== null) {
+        for (const item of review.order.items) {
+          allProductIds.add(item.productId);
+        }
+      }
+      if (review.productId !== undefined && review.productId !== null) {
+        allProductIds.add(review.productId);
+      }
+    }
+
+    // Fetch all products at once
+    const productMap = new Map<string, Product>();
+    if (allProductIds.size > 0) {
+      const products = await this.productRepo.findByIds([...allProductIds]);
+      for (const product of products) {
+        productMap.set(product.id, product);
+      }
+    }
+
     return {
-      data: reviews.map((r) => this.toPublicResponse(r)),
+      data: reviews.map((r) => this.toPublicResponseWithItems(r, productMap)),
       total,
       page,
       limit,
@@ -597,15 +669,73 @@ export class ReviewsService {
         displayOnHomepage: true,
         deletedAt: IsNull(),
       } as FindOptionsWhere<Review>,
-      relations: ['product'],
+      relations: ['product', 'user', 'order', 'order.items'],
       order: { createdAt: 'DESC' },
       take: limit,
     });
 
-    return reviews.map((r) => this.toPublicResponse(r));
+    // Collect all unique product IDs from order items
+    const allProductIds = new Set<string>();
+    for (const review of reviews) {
+      if (review.order?.items !== undefined && review.order.items !== null) {
+        for (const item of review.order.items) {
+          allProductIds.add(item.productId);
+        }
+      }
+      if (review.productId !== undefined && review.productId !== null) {
+        allProductIds.add(review.productId);
+      }
+    }
+
+    // Fetch all products at once
+    const productMap = new Map<string, Product>();
+    if (allProductIds.size > 0) {
+      const products = await this.productRepo.findByIds([...allProductIds]);
+      for (const product of products) {
+        productMap.set(product.id, product);
+      }
+    }
+
+    return reviews.map((r) => this.toPublicResponseWithItems(r, productMap));
   }
 
   // ============ RESPONSE MAPPERS ============
+
+  /**
+   * Map review to public response with order items
+   */
+  private toPublicResponseWithItems(
+    review: Review,
+    productMap: Map<string, Product>,
+  ): ReviewResponseDto {
+    // Build order items array if order has items
+    const orderItems: ReviewResponseDto['orderItems'] = [];
+    if (review.order?.items !== undefined && review.order.items !== null && review.order.items.length > 0) {
+      for (const item of review.order.items) {
+        const product = productMap.get(item.productId);
+        orderItems.push({
+          productId: item.productId,
+          productTitle: product?.title ?? item.productId,
+          productSlug: product?.slug ?? null,
+          quantity: item.quantity ?? 1,
+        });
+      }
+    }
+
+    return {
+      id: review.id,
+      rating: review.rating,
+      title: review.title,
+      content: review.content,
+      authorName: review.getDisplayName(),
+      isVerifiedPurchase: review.isVerifiedPurchase,
+      productName: review.product?.title ?? null,
+      productId: review.productId ?? null,
+      productSlug: review.product?.slug ?? null,
+      orderItems: orderItems.length > 0 ? orderItems : undefined,
+      createdAt: review.createdAt,
+    };
+  }
 
   private toPublicResponse(review: Review): ReviewResponseDto {
     return {
@@ -616,6 +746,8 @@ export class ReviewsService {
       authorName: review.getDisplayName(),
       isVerifiedPurchase: review.isVerifiedPurchase,
       productName: review.product?.title ?? null,
+      productId: review.productId ?? null,
+      productSlug: review.product?.slug ?? null,
       createdAt: review.createdAt,
     };
   }
@@ -641,6 +773,54 @@ export class ReviewsService {
       approvedAt: review.approvedAt,
       createdAt: review.createdAt,
       updatedAt: review.updatedAt,
+    };
+  }
+
+  private toAdminResponseWithItems(
+    review: Review,
+    productMap: Map<string, Product>,
+  ): AdminReviewResponseDto {
+    // Build orderItems array from order.items
+    const orderItems: AdminReviewResponseDto['orderItems'] = [];
+    if (review.order?.items !== undefined && review.order.items !== null && review.order.items.length > 0) {
+      for (const item of review.order.items) {
+        const product = productMap.get(item.productId);
+        orderItems.push({
+          productId: item.productId,
+          productTitle: product?.title ?? item.productId,
+          productSlug: product?.slug ?? null,
+          quantity: item.quantity ?? 1,
+        });
+      }
+    }
+
+    // Get the first product name for backward compatibility
+    let productName: string | null = review.product?.title ?? null;
+    if (productName === null && orderItems.length > 0 && orderItems[0] !== undefined) {
+      productName = orderItems[0].productTitle;
+    }
+
+    return {
+      id: review.id,
+      orderId: review.orderId ?? null,
+      userId: review.userId,
+      userEmail: review.user?.email ?? null,
+      productId: review.productId,
+      productName,
+      rating: review.rating,
+      title: review.title,
+      content: review.content,
+      authorName: review.authorName ?? review.getDisplayName(),
+      isVerifiedPurchase: review.isVerifiedPurchase,
+      status: review.status,
+      displayOnHomepage: review.displayOnHomepage,
+      adminNotes: review.adminNotes,
+      approvedById: review.approvedById,
+      approvedByEmail: review.approvedBy?.email ?? null,
+      approvedAt: review.approvedAt,
+      createdAt: review.createdAt,
+      updatedAt: review.updatedAt,
+      orderItems: orderItems.length > 0 ? orderItems : undefined,
     };
   }
 }

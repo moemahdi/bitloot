@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { AlertCircle, CheckCircle, Loader2, Star } from 'lucide-react';
+import { toast } from 'sonner';
 import { Alert, AlertTitle, AlertDescription } from '@/design-system/primitives/alert';
 import { Button } from '@/design-system/primitives/button';
 import {
@@ -93,6 +94,7 @@ export function ReviewForm({
   const [errors, setErrors] = useState<{
     rating?: string;
     content?: string;
+    authorName?: string;
   }>({});
 
   const validate = (): boolean => {
@@ -108,6 +110,12 @@ export function ReviewForm({
 
     if (content.length > 2000) {
       newErrors.content = 'Review must be less than 2000 characters';
+    }
+
+    if (authorName.trim().length === 0) {
+      newErrors.authorName = 'Please enter a display name';
+    } else if (authorName.trim().length < 2) {
+      newErrors.authorName = 'Display name must be at least 2 characters';
     }
 
     setErrors(newErrors);
@@ -129,10 +137,22 @@ export function ReviewForm({
         authorName: authorName.trim().length > 0 ? authorName.trim() : undefined,
       });
 
-      onSuccess?.();
+      // Show success toast
+      toast.success('Review Submitted!', {
+        description: 'Thank you! Your review has been submitted.',
+        duration: 3000,
+      });
+
+      // Wait 2 seconds before closing to let user see the success message
+      setTimeout(() => {
+        onSuccess?.();
+      }, 2000);
     } catch (err) {
       // Error is handled by the mutation state
       console.error('Failed to submit review:', err);
+      toast.error('Failed to submit review', {
+        description: 'Please try again later.',
+      });
     }
   };
 
@@ -267,20 +287,22 @@ export function ReviewForm({
             </div>
           </div>
 
-          {/* Author Name (Optional) */}
+          {/* Author Name (Required) */}
           <div className="space-y-2">
-            <Label htmlFor="author-name">Display Name (Optional)</Label>
+            <Label htmlFor="author-name">
+              Display Name <span className="text-destructive">*</span>
+            </Label>
             <Input
               id="author-name"
-              placeholder="How should we display your name?"
+              placeholder="Enter your display name"
               value={authorName}
               onChange={(e) => setAuthorName(e.target.value)}
               disabled={isSubmitting}
               maxLength={50}
             />
-            <p className="text-xs text-muted-foreground">
-              If left blank, your email username will be used
-            </p>
+            {errors.authorName != null && (
+              <p className="text-sm text-destructive">{errors.authorName}</p>
+            )}
           </div>
 
           {/* Actions */}

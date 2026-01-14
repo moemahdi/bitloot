@@ -34,8 +34,6 @@ docs/AdminCatalogProductsApi.md
 docs/AdminCatalogRepricingApi.md
 docs/AdminCatalogSyncApi.md
 docs/AdminControllerAdminRevealKey200Response.md
-docs/AdminControllerBulkReplayWebhooks200Response.md
-docs/AdminControllerBulkReplayWebhooks200ResponseErrorsInner.md
 docs/AdminControllerBulkReplayWebhooksRequest.md
 docs/AdminControllerExportOrders200ResponseInner.md
 docs/AdminControllerGetAdjacentWebhooks200Response.md
@@ -54,13 +52,6 @@ docs/AdminControllerGetWebhookLog200Response.md
 docs/AdminControllerGetWebhookLogDetail200Response.md
 docs/AdminControllerGetWebhookLogs200Response.md
 docs/AdminControllerGetWebhookLogs200ResponseDataInner.md
-docs/AdminControllerGetWebhookLogsEnhanced200Response.md
-docs/AdminControllerGetWebhookLogsEnhanced200ResponseDataInner.md
-docs/AdminControllerGetWebhookStats200Response.md
-docs/AdminControllerGetWebhookStats200ResponseByStatusInner.md
-docs/AdminControllerGetWebhookStats200ResponseByTypeInner.md
-docs/AdminControllerGetWebhookTimeline200Response.md
-docs/AdminControllerGetWebhookTimeline200ResponseDataInner.md
 docs/AdminControllerResendKeys200Response.md
 docs/AdminControllerRetryFulfillment200Response.md
 docs/AdminControllerRetryFulfillmentRequest.md
@@ -209,6 +200,7 @@ docs/RequestOtpDto.md
 docs/ResetPasswordDto.md
 docs/ResetPasswordResponseDto.md
 docs/RevealedKeyDto.md
+docs/ReviewOrderItemDto.md
 docs/ReviewResponseDto.md
 docs/ReviewStatsDto.md
 docs/ReviewsApi.md
@@ -248,8 +240,6 @@ docs/WebhooksApi.md
 index.ts
 models/AddToWatchlistDto.ts
 models/AdminControllerAdminRevealKey200Response.ts
-models/AdminControllerBulkReplayWebhooks200Response.ts
-models/AdminControllerBulkReplayWebhooks200ResponseErrorsInner.ts
 models/AdminControllerBulkReplayWebhooksRequest.ts
 models/AdminControllerExportOrders200ResponseInner.ts
 models/AdminControllerGetAdjacentWebhooks200Response.ts
@@ -268,13 +258,6 @@ models/AdminControllerGetWebhookLog200Response.ts
 models/AdminControllerGetWebhookLogDetail200Response.ts
 models/AdminControllerGetWebhookLogs200Response.ts
 models/AdminControllerGetWebhookLogs200ResponseDataInner.ts
-models/AdminControllerGetWebhookLogsEnhanced200Response.ts
-models/AdminControllerGetWebhookLogsEnhanced200ResponseDataInner.ts
-models/AdminControllerGetWebhookStats200Response.ts
-models/AdminControllerGetWebhookStats200ResponseByStatusInner.ts
-models/AdminControllerGetWebhookStats200ResponseByTypeInner.ts
-models/AdminControllerGetWebhookTimeline200Response.ts
-models/AdminControllerGetWebhookTimeline200ResponseDataInner.ts
 models/AdminControllerResendKeys200Response.ts
 models/AdminControllerRetryFulfillment200Response.ts
 models/AdminControllerRetryFulfillmentRequest.ts
@@ -407,6 +390,7 @@ models/RequestOtpDto.ts
 models/ResetPasswordDto.ts
 models/ResetPasswordResponseDto.ts
 models/RevealedKeyDto.ts
+models/ReviewOrderItemDto.ts
 models/ReviewResponseDto.ts
 models/ReviewStatsDto.ts
 models/ReviewsControllerCanReviewOrder200Response.ts

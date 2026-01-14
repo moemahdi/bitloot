@@ -104,11 +104,11 @@ example().catch(console.error);
 
 ## adminControllerBulkReplayWebhooks
 
-> AdminControllerBulkReplayWebhooks200Response adminControllerBulkReplayWebhooks(adminControllerBulkReplayWebhooksRequest)
+> adminControllerBulkReplayWebhooks(adminControllerBulkReplayWebhooksRequest)
 
 Bulk replay failed webhooks
 
-Marks multiple webhooks for reprocessing. Only works for non-processed webhooks.
+Marks multiple webhooks for reprocessing
 
 ### Example
 
@@ -153,7 +153,7 @@ example().catch(console.error);
 
 ### Return type
 
-[**AdminControllerBulkReplayWebhooks200Response**](AdminControllerBulkReplayWebhooks200Response.md)
+`void` (Empty response body)
 
 ### Authorization
 
@@ -162,7 +162,7 @@ example().catch(console.error);
 ### HTTP request headers
 
 - **Content-Type**: `application/json`
-- **Accept**: `application/json`
+- **Accept**: Not defined
 
 
 ### HTTP response details
@@ -1157,7 +1157,7 @@ example().catch(console.error);
 
 ## adminControllerGetWebhookLogsEnhanced
 
-> AdminControllerGetWebhookLogsEnhanced200Response adminControllerGetWebhookLogsEnhanced(limit, offset, webhookType, paymentStatus, signatureValid, startDate, endDate, search, sourceIp, orderId, paymentId, sortBy, sortOrder)
+> adminControllerGetWebhookLogsEnhanced(limit, offset, webhookType, paymentStatus, signatureValid, startDate, endDate, search, sourceIp, orderId, paymentId, sortBy, sortOrder)
 
 Get enhanced webhook logs with advanced filtering
 
@@ -1186,18 +1186,18 @@ async function example() {
     // number (optional)
     offset: 0,
     // string (optional)
-    webhookType: nowpayments_ipn,
+    webhookType: webhookType_example,
     // string (optional)
-    paymentStatus: finished,
-    // 'true' | 'false' | Filter by signature validity (optional)
+    paymentStatus: paymentStatus_example,
+    // 'true' | 'false' (optional)
     signatureValid: signatureValid_example,
     // string (optional)
-    startDate: 2026-01-01T00:00:00Z,
+    startDate: startDate_example,
     // string (optional)
-    endDate: 2026-01-14T23:59:59Z,
-    // string | Search by externalId, orderId, or paymentId (optional)
+    endDate: endDate_example,
+    // string (optional)
     search: search_example,
-    // string | Filter by source IP (optional)
+    // string (optional)
     sourceIp: sourceIp_example,
     // string (optional)
     orderId: orderId_example,
@@ -1230,11 +1230,11 @@ example().catch(console.error);
 | **offset** | `number` |  | [Optional] [Defaults to `undefined`] |
 | **webhookType** | `string` |  | [Optional] [Defaults to `undefined`] |
 | **paymentStatus** | `string` |  | [Optional] [Defaults to `undefined`] |
-| **signatureValid** | `true`, `false` | Filter by signature validity | [Optional] [Defaults to `undefined`] [Enum: true, false] |
+| **signatureValid** | `true`, `false` |  | [Optional] [Defaults to `undefined`] [Enum: true, false] |
 | **startDate** | `string` |  | [Optional] [Defaults to `undefined`] |
 | **endDate** | `string` |  | [Optional] [Defaults to `undefined`] |
-| **search** | `string` | Search by externalId, orderId, or paymentId | [Optional] [Defaults to `undefined`] |
-| **sourceIp** | `string` | Filter by source IP | [Optional] [Defaults to `undefined`] |
+| **search** | `string` |  | [Optional] [Defaults to `undefined`] |
+| **sourceIp** | `string` |  | [Optional] [Defaults to `undefined`] |
 | **orderId** | `string` |  | [Optional] [Defaults to `undefined`] |
 | **paymentId** | `string` |  | [Optional] [Defaults to `undefined`] |
 | **sortBy** | `createdAt`, `paymentStatus`, `webhookType` |  | [Optional] [Defaults to `undefined`] [Enum: createdAt, paymentStatus, webhookType] |
@@ -1242,7 +1242,7 @@ example().catch(console.error);
 
 ### Return type
 
-[**AdminControllerGetWebhookLogsEnhanced200Response**](AdminControllerGetWebhookLogsEnhanced200Response.md)
+`void` (Empty response body)
 
 ### Authorization
 
@@ -1251,7 +1251,7 @@ example().catch(console.error);
 ### HTTP request headers
 
 - **Content-Type**: Not defined
-- **Accept**: `application/json`
+- **Accept**: Not defined
 
 
 ### HTTP response details
@@ -1264,7 +1264,7 @@ example().catch(console.error);
 
 ## adminControllerGetWebhookStats
 
-> AdminControllerGetWebhookStats200Response adminControllerGetWebhookStats(period)
+> adminControllerGetWebhookStats(period)
 
 Get webhook statistics
 
@@ -1313,7 +1313,7 @@ example().catch(console.error);
 
 ### Return type
 
-[**AdminControllerGetWebhookStats200Response**](AdminControllerGetWebhookStats200Response.md)
+`void` (Empty response body)
 
 ### Authorization
 
@@ -1322,7 +1322,7 @@ example().catch(console.error);
 ### HTTP request headers
 
 - **Content-Type**: Not defined
-- **Accept**: `application/json`
+- **Accept**: Not defined
 
 
 ### HTTP response details
@@ -1335,7 +1335,7 @@ example().catch(console.error);
 
 ## adminControllerGetWebhookTimeline
 
-> AdminControllerGetWebhookTimeline200Response adminControllerGetWebhookTimeline(period, interval)
+> adminControllerGetWebhookTimeline(period, interval)
 
 Get webhook activity timeline
 
@@ -1387,7 +1387,7 @@ example().catch(console.error);
 
 ### Return type
 
-[**AdminControllerGetWebhookTimeline200Response**](AdminControllerGetWebhookTimeline200Response.md)
+`void` (Empty response body)
 
 ### Authorization
 
@@ -1396,7 +1396,7 @@ example().catch(console.error);
 ### HTTP request headers
 
 - **Content-Type**: Not defined
-- **Accept**: `application/json`
+- **Accept**: Not defined
 
 
 ### HTTP response details

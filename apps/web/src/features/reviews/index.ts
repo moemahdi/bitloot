@@ -13,6 +13,7 @@ export {
 
 // Components
 export { ReviewForm } from './components/ReviewForm';
+export { OrderReviewPrompt } from './components/OrderReviewPrompt';
 export {
   HomepageReviews,
   ProductReviews,
