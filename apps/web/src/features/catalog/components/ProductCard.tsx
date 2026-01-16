@@ -9,6 +9,19 @@ import { Badge } from '@/design-system/primitives/badge';
 import { Button } from '@/design-system/primitives/button';
 import { Eye, ShoppingCart, Star, Zap, Package, Sparkles, Gamepad2 } from 'lucide-react';
 
+// Currency symbol helper
+function getCurrencySymbol(currency?: string): string {
+  switch (currency?.toUpperCase()) {
+    case 'EUR': return '€';
+    case 'GBP': return '£';
+    case 'USD': return '$';
+    case 'JPY': return '¥';
+    case 'CAD': return 'C$';
+    case 'AUD': return 'A$';
+    default: return currency ?? '€';
+  }
+}
+
 export interface Product {
     id: string;
     slug: string;
@@ -82,6 +95,7 @@ export function ProductCard({
     
     // Calculate original price if discount exists
     const currentPrice = parseFloat(product.price);
+    const currencySymbol = getCurrencySymbol(product.currency);
     const hasDiscount = product.discount !== undefined && product.discount !== null && product.discount > 0;
     const originalPrice = hasDiscount
         ? currentPrice / (1 - (product.discount ?? 0) / 100) 
@@ -136,7 +150,7 @@ export function ProductCard({
                 <Link 
                     href={`/product/${product.slug}`} 
                     className="block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-glow focus-visible:ring-offset-2 focus-visible:ring-offset-bg-primary rounded-t-lg"
-                    aria-label={`View ${product.name} - €${currentPrice.toFixed(2)}${isOutOfStock ? ' (Out of Stock)' : ''}`}
+                    aria-label={`View ${product.name} - ${currencySymbol}${currentPrice.toFixed(2)}${isOutOfStock ? ' (Out of Stock)' : ''}`}
                 >
                     {/* Image Section */}
                     <div className="relative aspect-4/3 overflow-hidden bg-bg-tertiary">
@@ -240,11 +254,11 @@ export function ProductCard({
                         <div className="flex items-center justify-between w-full">
                             <div className="flex items-baseline gap-1.5">
                                 <span className={`text-base font-bold crypto-amount ${isOutOfStock ? 'text-text-muted' : 'text-cyan-glow text-glow-cyan'}`}>
-                                    €{currentPrice.toFixed(2)}
+                                    {currencySymbol}{currentPrice.toFixed(2)}
                                 </span>
                                 {originalPrice !== null && !isOutOfStock && (
                                     <span className="text-xs text-text-muted line-through decoration-text-muted/50">
-                                        €{originalPrice.toFixed(2)}
+                                        {currencySymbol}{originalPrice.toFixed(2)}
                                     </span>
                                 )}
                             </div>

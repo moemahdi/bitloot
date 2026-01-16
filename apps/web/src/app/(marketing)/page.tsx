@@ -82,6 +82,9 @@ import { StatCard } from '@/components/StatCard';
 import { LivePurchaseFeed, TrustSection } from '@/components/SocialProof';
 import { useCart } from '@/context/CartContext';
 
+// Marketing Components
+import { FlashDealSection, BundleDealsSection, StickyFlashDealBanner } from '@/components/marketing';
+
 // ============================================================================
 // TYPE DEFINITIONS
 // ============================================================================
@@ -1573,8 +1576,11 @@ function CTASection(): React.ReactElement {
 export default function HomePage(): React.ReactElement {
     return (
         <main className="min-h-screen bg-bg-primary">
+            <StickyFlashDealBanner />
             <HeroWithTrendingSection />
+            <FlashDealSection />
             <FeaturedProductsSection />
+            <BundleDealsSection />
             <CategoriesSection />
             <BenefitsSection />
             <SocialProofSection />

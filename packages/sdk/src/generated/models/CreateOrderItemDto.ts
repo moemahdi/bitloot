@@ -31,6 +31,18 @@ export interface CreateOrderItemDto {
      * @memberof CreateOrderItemDto
      */
     quantity?: number;
+    /**
+     * Discount percentage for bundle purchases (0-100)
+     * @type {number}
+     * @memberof CreateOrderItemDto
+     */
+    discountPercent?: number;
+    /**
+     * Bundle ID if this item is part of a bundle purchase
+     * @type {string}
+     * @memberof CreateOrderItemDto
+     */
+    bundleId?: string;
 }
 
 /**
@@ -53,6 +65,8 @@ export function CreateOrderItemDtoFromJSONTyped(json: any, ignoreDiscriminator: 
         
         'productId': json['productId'],
         'quantity': json['quantity'] == null ? undefined : json['quantity'],
+        'discountPercent': json['discountPercent'] == null ? undefined : json['discountPercent'],
+        'bundleId': json['bundleId'] == null ? undefined : json['bundleId'],
     };
 }
 
@@ -69,6 +83,8 @@ export function CreateOrderItemDtoToJSONTyped(value?: CreateOrderItemDto | null,
         
         'productId': value['productId'],
         'quantity': value['quantity'],
+        'discountPercent': value['discountPercent'],
+        'bundleId': value['bundleId'],
     };
 }
 

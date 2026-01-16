@@ -21,6 +21,7 @@ import { MetricsModule } from '../metrics/metrics.module';
 import { OrdersService } from '../orders/orders.service';
 import { CatalogModule } from '../catalog/catalog.module';
 import { AdminOpsModule } from '../admin/admin-ops.module';
+import { MarketingModule } from '../marketing/marketing.module';
 import { FulfillmentController } from './fulfillment.controller';
 import { FulfillmentGateway as _FulfillmentGateway } from './fulfillment.gateway';
 
@@ -66,6 +67,9 @@ import { FulfillmentGateway as _FulfillmentGateway } from './fulfillment.gateway
 
     // Catalog module (provides CatalogService for OrdersService)
     CatalogModule,
+
+    // Marketing module (provides MarketingService for OrdersService flash deal pricing)
+    MarketingModule,
 
     // Admin ops module (provides AdminOpsService for feature flags)
     AdminOpsModule,

@@ -219,10 +219,13 @@ export default function CheckoutPage(): React.ReactElement {
         throw new Error('Cart is empty');
       }
 
-      // Build items array for multi-item order support
+      // Build items array for multi-item order support (including bundle discounts)
       const orderItems = items.map((item) => ({
         productId: item.productId,
         quantity: item.quantity,
+        // Include bundle discount information if present
+        discountPercent: item.discountPercent,
+        bundleId: item.bundleId,
       }));
 
       // Get email - must be provided (no more placeholder)

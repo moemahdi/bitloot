@@ -9,6 +9,7 @@ import { Payment } from '../payments/payment.entity';
 import { CreateOrderDto, OrderResponseDto, OrderItemResponseDto } from './dto/create-order.dto';
 import { EmailsService } from '../emails/emails.service';
 import { CatalogService } from '../catalog/catalog.service';
+import { MarketingService } from '../marketing/marketing.service';
 import { Product } from '../catalog/entities/product.entity';
 
 // In-memory cache for idempotency keys (in production, use Redis)
@@ -58,6 +59,7 @@ export class OrdersService {
     @InjectRepository(Payment) private readonly paymentsRepo: Repository<Payment>,
     private readonly emailsService: EmailsService,
     private readonly catalogService: CatalogService,
+    private readonly marketingService: MarketingService,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
   ) {
@@ -115,13 +117,15 @@ export class OrdersService {
     }
 
     // Normalize items: support both single productId and items array
-    let itemsToCreate: Array<{ productId: string; quantity: number }> = [];
+    let itemsToCreate: Array<{ productId: string; quantity: number; discountPercent?: number; bundleId?: string }> = [];
     
     if (dto.items !== undefined && dto.items.length > 0) {
       // Multi-item order
       itemsToCreate = dto.items.map((item) => ({
         productId: item.productId,
         quantity: item.quantity ?? 1,
+        discountPercent: item.discountPercent,
+        bundleId: item.bundleId,
       }));
     } else if (dto.productId !== undefined) {
       // Single item (backward compatibility)
@@ -129,6 +133,10 @@ export class OrdersService {
     } else {
       throw new BadRequestException('Either productId or items array is required');
     }
+
+    // Check if this is a bundle purchase (any item has bundleId)
+    const isBundlePurchase = itemsToCreate.some(item => item.bundleId !== undefined);
+    const bundleId = itemsToCreate.find(item => item.bundleId !== undefined)?.bundleId;
 
     // Fetch all products
     const productIds = itemsToCreate.map((item) => item.productId);
@@ -150,13 +158,52 @@ export class OrdersService {
       throw new NotFoundException(`Products not found: ${notFound.join(', ')}`);
     }
 
-    // Calculate total price
+    // ========== GET EFFECTIVE PRICES (considering flash deals AND bundle discounts) ==========
+    // For bundle purchases, bundle discounts take priority over flash deals
+    // For regular purchases, flash deals apply as SOURCE OF TRUTH
+    const productPricingInputs = products.map((p) => ({
+      id: p.id,
+      price: p.price,
+      currency: p.currency,
+    }));
+    const effectivePrices = await this.marketingService.getEffectivePricesForProducts(productPricingInputs);
+
+    // Calculate total price with appropriate discounts
     let totalPrice = 0;
+    const itemPrices: Array<{ productId: string; effectivePrice: string; isDiscounted: boolean; discountSource: 'bundle' | 'flash' | 'none' }> = [];
+    
     for (let i = 0; i < itemsToCreate.length; i++) {
       const item = itemsToCreate[i];
       const product = products[i];
       if (item !== undefined && product !== undefined) {
-        totalPrice += parseFloat(product.price) * item.quantity;
+        const flashPricing = effectivePrices.get(product.id);
+        const basePrice = parseFloat(product.price);
+        let effectivePrice: number;
+        let discountSource: 'bundle' | 'flash' | 'none' = 'none';
+        
+        // Bundle discount takes priority if this is a bundle purchase with discount
+        if (isBundlePurchase && item.discountPercent !== undefined && item.discountPercent > 0) {
+          effectivePrice = basePrice * (1 - item.discountPercent / 100);
+          discountSource = 'bundle';
+          this.logger.log(`🎁 Bundle discount applied: ${product.title} ${basePrice.toFixed(2)} → ${effectivePrice.toFixed(2)} (${item.discountPercent}% off)`);
+        } else if (flashPricing?.isDiscounted) {
+          // Flash deal discount
+          effectivePrice = parseFloat(flashPricing.effectivePrice);
+          discountSource = 'flash';
+          this.logger.log(`📦 Flash deal discount: ${product.title} ${flashPricing.originalPrice} → ${flashPricing.effectivePrice} (${flashPricing.discountPercent}% off)`);
+        } else {
+          // No discount
+          effectivePrice = basePrice;
+        }
+        
+        totalPrice += effectivePrice * item.quantity;
+        
+        itemPrices.push({
+          productId: item.productId,
+          effectivePrice: effectivePrice.toFixed(2),
+          isDiscounted: discountSource !== 'none',
+          discountSource,
+        });
       }
     }
 
@@ -164,7 +211,8 @@ export class OrdersService {
     const hasKinguinProduct = products.some((p) => p.sourceType === 'kinguin');
     const sourceType = hasKinguinProduct ? 'kinguin' : 'custom';
 
-    this.logger.log(`Creating order with ${itemsToCreate.length} item(s), total: €${totalPrice.toFixed(2)}, sourceType: ${sourceType}${userId !== null && userId !== undefined && userId !== '' ? `, userId: ${userId}` : ' (guest)'}`);
+    const orderType = isBundlePurchase ? `bundle (${bundleId})` : 'regular';
+    this.logger.log(`Creating ${orderType} order with ${itemsToCreate.length} item(s), total: €${totalPrice.toFixed(2)}, sourceType: ${sourceType}${userId !== null && userId !== undefined && userId !== '' ? `, userId: ${userId}` : ' (guest)'}`);
 
     // Create order
     const order = this.ordersRepo.create({
@@ -176,12 +224,16 @@ export class OrdersService {
     });
     const savedOrder = await this.ordersRepo.save(order);
 
-    // Create order items
+    // Create order items with EFFECTIVE prices (flash deal discounted if applicable)
     const savedItems: OrderItem[] = [];
     for (let i = 0; i < itemsToCreate.length; i++) {
       const itemData = itemsToCreate[i];
       const product = products[i];
       if (itemData !== undefined && product !== undefined) {
+        // Get effective price for this product (may be discounted via flash deal)
+        const itemPricing = itemPrices.find((ip) => ip.productId === itemData.productId);
+        const effectivePrice = itemPricing?.effectivePrice ?? product.price;
+        
         // For quantity > 1, create multiple order items (each gets a separate key)
         for (let q = 0; q < itemData.quantity; q++) {
           const item = this.itemsRepo.create({
@@ -189,7 +241,7 @@ export class OrdersService {
             productId: itemData.productId,
             productSourceType: product.sourceType ?? 'custom',
             quantity: 1, // Each item represents 1 unit (for key delivery)
-            unitPrice: product.price, // Capture price at time of purchase
+            unitPrice: effectivePrice, // Capture EFFECTIVE price (with flash deal discount if applicable)
             signedUrl: null,
           });
           const savedItem = await this.itemsRepo.save(item);

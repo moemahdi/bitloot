@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEmail, IsNotEmpty, IsOptional, IsString, IsArray, ValidateNested, IsInt, Min, IsUUID } from 'class-validator';
+import { IsEmail, IsNotEmpty, IsOptional, IsString, IsArray, ValidateNested, IsInt, Min, IsUUID, IsNumber, Max } from 'class-validator';
 import { Type } from 'class-transformer';
 
 /**
@@ -15,6 +15,28 @@ export class CreateOrderItemDto {
   @IsInt()
   @Min(1)
   quantity?: number;
+
+  @ApiProperty({ 
+    description: 'Discount percentage for bundle purchases (0-100)', 
+    example: 15, 
+    required: false,
+    minimum: 0,
+    maximum: 100
+  })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  @Max(100)
+  discountPercent?: number;
+
+  @ApiProperty({ 
+    description: 'Bundle ID if this item is part of a bundle purchase', 
+    example: '52b45262-731b-4730-a409-709e1bd16797',
+    required: false 
+  })
+  @IsOptional()
+  @IsUUID()
+  bundleId?: string;
 }
 
 export class CreateOrderDto {

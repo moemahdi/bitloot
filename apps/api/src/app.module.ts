@@ -32,6 +32,7 @@ import { AuditModule } from './modules/audit/audit.module';
 import { CatalogModule } from './modules/catalog/catalog.module';
 import { ReviewsModule } from './modules/reviews/reviews.module';
 import { WatchlistModule } from './modules/watchlist/watchlist.module';
+import { MarketingModule } from './modules/marketing/marketing.module';
 
 @Module({
   imports: [
@@ -99,6 +100,8 @@ import { WatchlistModule } from './modules/watchlist/watchlist.module';
     ReviewsModule,
     // Watchlist module (customer product wishlists)
     WatchlistModule,
+    // Marketing module (homepage sections, flash deals, bundles)
+    MarketingModule,
   ],
   controllers: [HealthController],
   providers: [

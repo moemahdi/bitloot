@@ -10,6 +10,7 @@ import { OrdersService } from './orders.service';
 import { OrdersController } from './orders.controller';
 import { EmailsModule } from '../emails/emails.module';
 import { CatalogModule } from '../catalog/catalog.module';
+import { MarketingModule } from '../marketing/marketing.module';
 
 /**
  * Orders Module
@@ -37,6 +38,7 @@ import { CatalogModule } from '../catalog/catalog.module';
     TypeOrmModule.forFeature([Order, OrderItem, Key, Payment]),
     EmailsModule,
     CatalogModule,
+    MarketingModule,
     ConfigModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],

@@ -29,6 +29,10 @@ import {
   Star,
   ChevronDown,
   Activity,
+  Megaphone,
+  Timer,
+  Gift,
+  LayoutGrid,
 } from 'lucide-react';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
@@ -69,6 +73,16 @@ const ADMIN_NAV = {
       { href: '/admin/catalog/import', label: 'Import', icon: Crown },
       { href: '/admin/catalog/rules', label: 'Pricing Rules', icon: Settings },
       { href: '/admin/catalog/sync', label: 'Sync Status', icon: RefreshCw },
+    ],
+  },
+  // Marketing & homepage customization
+  marketing: {
+    label: 'Marketing',
+    icon: Megaphone,
+    items: [
+      { href: '/admin/marketing/sections', label: 'Page Sections', icon: LayoutGrid },
+      { href: '/admin/marketing/flash-deals', label: 'Flash Deals', icon: Timer },
+      { href: '/admin/marketing/bundles', label: 'Bundles', icon: Gift },
     ],
   },
   // System monitoring & operations
@@ -391,6 +405,70 @@ export default function AdminLayout({ children }: { children: ReactNode }): Reac
                         <span>{item.label}</span>
                         {isActive && (
                           <div className="ml-auto h-1.5 w-1.5 rounded-full bg-purple-neon shadow-glow-purple-sm" />
+                        )}
+                      </Link>
+                    </DropdownMenuItem>
+                  );
+                })}
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            {/* Marketing Dropdown - Orange theme */}
+            <DropdownMenu>
+              <DropdownMenuTrigger
+                className={cn(
+                  'group flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium',
+                  'transition-all duration-200 ease-out',
+                  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500/50 focus-visible:ring-offset-2 focus-visible:ring-offset-bg-primary',
+                  isDropdownActive(ADMIN_NAV.marketing.items, pathname)
+                    ? 'bg-orange-500/10 text-orange-400 shadow-glow-warning border border-orange-500/20'
+                    : 'text-text-muted hover:text-orange-400 hover:bg-bg-secondary/50 hover:shadow-glow-warning border border-transparent hover:border-border-accent'
+                )}
+              >
+                <Megaphone
+                  className={cn(
+                    'h-4 w-4 transition-all duration-200',
+                    isDropdownActive(ADMIN_NAV.marketing.items, pathname)
+                      ? 'text-orange-400'
+                      : 'text-text-secondary group-hover:text-orange-400'
+                  )}
+                />
+                <span className="whitespace-nowrap">{ADMIN_NAV.marketing.label}</span>
+                <ChevronDown
+                  className={cn(
+                    'h-3 w-3 transition-transform duration-200',
+                    'group-data-[state=open]:rotate-180'
+                  )}
+                />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                align="start"
+                className="glass-strong border-border-accent shadow-card-lg min-w-[200px] animate-scale-in"
+              >
+                <DropdownMenuLabel className="text-orange-400 font-semibold text-xs uppercase tracking-wider">
+                  Marketing & Promos
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator className="bg-border-subtle" />
+                {ADMIN_NAV.marketing.items.map((item) => {
+                  const Icon = item.icon;
+                  const isActive = pathname === item.href;
+                  return (
+                    <DropdownMenuItem key={item.href} asChild>
+                      <Link
+                        href={item.href}
+                        className={cn(
+                          'flex items-center gap-3 px-3 py-2 cursor-pointer',
+                          'transition-all duration-200',
+                          'focus:bg-orange-500/10 focus:text-orange-400',
+                          isActive
+                            ? 'bg-orange-500/10 text-orange-400 shadow-glow-warning'
+                            : 'text-text-secondary hover:text-orange-400 hover:bg-bg-tertiary/50'
+                        )}
+                      >
+                        <Icon className="h-4 w-4" />
+                        <span>{item.label}</span>
+                        {isActive && (
+                          <div className="ml-auto h-1.5 w-1.5 rounded-full bg-orange-400 shadow-glow-warning" />
                         )}
                       </Link>
                     </DropdownMenuItem>

@@ -1,6 +1,6 @@
 'use client';
 
-import { Minus, Plus, Trash2 } from 'lucide-react';
+import { Minus, Plus, Trash2, Percent, Gift } from 'lucide-react';
 import { Button } from '@/design-system/primitives/button';
 import { Input } from '@/design-system/primitives/input';
 import { Badge } from '@/design-system/primitives/badge';
@@ -9,9 +9,12 @@ import Image from 'next/image';
 interface CartItemRowProps {
   productId: string;
   title: string;
-  price: number;
+  price: number;           // Original price
   quantity: number;
   image?: string;
+  discountPercent?: number; // 0-100, for bundle discounts
+  bundleId?: string;        // If from a bundle
+  platform?: string;
   onRemove: () => void;
   onQuantityChange: (quantity: number) => void;
 }
@@ -21,10 +24,15 @@ export function CartItemRow({
   price,
   quantity,
   image,
+  discountPercent,
+  bundleId,
+  platform,
   onRemove,
   onQuantityChange,
 }: CartItemRowProps): React.ReactElement {
-  const itemTotal = price * quantity;
+  const hasDiscount = (discountPercent ?? 0) > 0;
+  const discountedPrice = hasDiscount ? price * (1 - (discountPercent ?? 0) / 100) : price;
+  const itemTotal = discountedPrice * quantity;
 
   const handleDecrement = (): void => {
     if (quantity > 1) {
@@ -65,9 +73,35 @@ export function CartItemRow({
       {/* Product Info */}
       <div className="flex-1 min-w-0">
         <h3 className="font-semibold text-sm sm:text-base truncate">{title}</h3>
-        <p className="text-sm text-muted-foreground">
-          €{price.toFixed(2)} each
-        </p>
+        <div className="flex items-center gap-2 flex-wrap">
+          {platform && (
+            <Badge variant="outline" className="text-xs">
+              {platform}
+            </Badge>
+          )}
+          {bundleId && (
+            <Badge variant="secondary" className="text-xs bg-pink-500/10 text-pink-400 gap-1">
+              <Gift className="h-3 w-3" />
+              Bundle
+            </Badge>
+          )}
+          {hasDiscount && (
+            <Badge variant="secondary" className="text-xs bg-green-500/10 text-green-400 gap-1">
+              <Percent className="h-3 w-3" />
+              {discountPercent}% OFF
+            </Badge>
+          )}
+        </div>
+        <div className="mt-1">
+          {hasDiscount ? (
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground line-through">€{price.toFixed(2)}</span>
+              <span className="text-sm font-medium text-green-400">€{discountedPrice.toFixed(2)}</span>
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">€{price.toFixed(2)} each</p>
+          )}
+        </div>
       </div>
 
       {/* Quantity Controls */}

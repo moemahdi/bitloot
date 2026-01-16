@@ -8,6 +8,8 @@ Name | Type
 ------------ | -------------
 `productId` | string
 `quantity` | number
+`discountPercent` | number
+`bundleId` | string
 
 ## Example
 
@@ -18,6 +20,8 @@ import type { CreateOrderItemDto } from ''
 const example = {
   "productId": 52b45262-731b-4730-a409-709e1bd16797,
   "quantity": 1,
+  "discountPercent": 15,
+  "bundleId": 52b45262-731b-4730-a409-709e1bd16797,
 } satisfies CreateOrderItemDto
 
 console.log(example)

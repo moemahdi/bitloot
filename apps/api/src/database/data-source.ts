@@ -43,13 +43,23 @@ import { AddOrderItemPriceQuantity1736450000000 } from './migrations/17364500000
 import { CreateUserSessions1768000000000 } from './migrations/1768000000000-CreateUserSessions';
 import { AddUserDeletionRequestedAt1768100000000 } from './migrations/1768100000000-AddUserDeletionRequestedAt';
 import { AddKeyAuditFields1768200000000 } from './migrations/1768200000000-AddKeyAuditFields';
+import { CreateMarketingSections1768300000000 } from './migrations/1768300000000-CreateMarketingSections';
+import { AddFlashDealDisplayType1768400000000 } from './migrations/1768400000000-AddFlashDealDisplayType';
+import { AddBundleDealColumns1768600000000 } from './migrations/1768600000000-AddBundleDealColumns';
+import { AddBundleProductDiscountPercent1737052800000 } from './migrations/1737052800000-AddBundleProductDiscountPercent';
+import { PageSection } from '../modules/marketing/entities/page-section.entity';
+import { FlashDeal } from '../modules/marketing/entities/flash-deal.entity';
+import { FlashDealProduct } from '../modules/marketing/entities/flash-deal-product.entity';
+import { BundleDeal } from '../modules/marketing/entities/bundle-deal.entity';
+import { BundleProduct } from '../modules/marketing/entities/bundle-product.entity';
+import { SectionAnalytics } from '../modules/marketing/entities/section-analytics.entity';
 
 dotenv.config({ path: path.resolve(__dirname, '../../../../.env') });
 
 export default new DataSource({
   type: 'postgres',
   url: process.env.DATABASE_URL,
-  entities: [Order, OrderItem, Key, Payment, WebhookLog, User, AuditLog, EmailBounce, Review, WatchlistItem, Product, ProductOffer, ProductGroup, DynamicPricingRule, Session],
+  entities: [Order, OrderItem, Key, Payment, WebhookLog, User, AuditLog, EmailBounce, Review, WatchlistItem, Product, ProductOffer, ProductGroup, DynamicPricingRule, Session, PageSection, FlashDeal, FlashDealProduct, BundleDeal, BundleProduct, SectionAnalytics],
   migrations: [
     InitOrders1710000000000,
     AddKeysReservation1720000000000,
@@ -78,6 +88,10 @@ export default new DataSource({
     CreateUserSessions1768000000000,
     AddUserDeletionRequestedAt1768100000000,
     AddKeyAuditFields1768200000000,
+    CreateMarketingSections1768300000000,
+    AddFlashDealDisplayType1768400000000,
+    AddBundleDealColumns1768600000000,
+    AddBundleProductDiscountPercent1737052800000,
   ],
   logging: true,
   synchronize: false,

@@ -6,9 +6,12 @@ import type { ReactNode } from 'react';
 export interface CartItem {
   productId: string;
   title: string;
-  price: number;
+  price: number;           // Original price
   quantity: number;
   image?: string;
+  discountPercent?: number; // 0-100, for bundle discounts
+  bundleId?: string;        // Track which bundle this came from
+  platform?: string;        // Product platform (Steam, etc.)
 }
 
 interface CartContextType {
@@ -18,8 +21,12 @@ interface CartContextType {
   updateQuantity: (productId: string, quantity: number) => void;
   clearCart: () => void;
   buyNow: (item: CartItem) => void; // Clear cart + add single item for instant checkout
-  total: number;
+  addBundleItems: (bundleId: string, items: CartItem[]) => void; // Clear cart + add bundle items
+  total: number;           // Total after discounts
+  originalTotal: number;   // Total before discounts
+  savings: number;         // Amount saved from discounts
   itemCount: number;
+  hasBundleItems: boolean; // True if cart contains bundle items
   promoCode: string;
   setPromoCode: (code: string) => void;
 }
@@ -99,8 +106,27 @@ export function CartProvider({ children }: { children: ReactNode }): React.React
     setPromoCode('');
   };
 
-  const total = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  // Add Bundle Items: Clear cart and add all bundle items at once
+  const addBundleItems = (bundleId: string, bundleItems: CartItem[]): void => {
+    const itemsWithBundle = bundleItems.map(item => ({
+      ...item,
+      bundleId,
+      quantity: 1,
+    }));
+    setItems(itemsWithBundle);
+    setPromoCode('');
+  };
+
+  // Calculate totals with discount support
+  const originalTotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const total = items.reduce((sum, item) => {
+    const discount = item.discountPercent ?? 0;
+    const discountedPrice = item.price * (1 - discount / 100);
+    return sum + discountedPrice * item.quantity;
+  }, 0);
+  const savings = originalTotal - total;
   const itemCount = items.reduce((count, item) => count + item.quantity, 0);
+  const hasBundleItems = items.some(item => item.bundleId !== undefined);
 
   const value: CartContextType = {
     items,
@@ -109,8 +135,12 @@ export function CartProvider({ children }: { children: ReactNode }): React.React
     updateQuantity,
     clearCart,
     buyNow,
+    addBundleItems,
     total,
+    originalTotal,
+    savings,
     itemCount,
+    hasBundleItems,
     promoCode,
     setPromoCode,
   };

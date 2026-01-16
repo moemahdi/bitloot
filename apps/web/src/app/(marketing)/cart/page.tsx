@@ -18,11 +18,12 @@ import {
   Bitcoin,
   Wallet,
   ChevronLeft,
-  Trash2
+  Trash2,
+  TrendingDown
 } from 'lucide-react';
 
 export default function CartPage(): React.ReactElement {
-  const { items, removeItem, updateQuantity, clearCart, total, itemCount, promoCode, setPromoCode } = useCart();
+  const { items, removeItem, updateQuantity, clearCart, total, originalTotal, savings, itemCount, hasBundleItems, promoCode, setPromoCode } = useCart();
   const router = useRouter();
 
   // Empty cart state
@@ -70,7 +71,7 @@ export default function CartPage(): React.ReactElement {
   }
 
   const subtotal = total;
-  const estimatedTotal = subtotal;
+  const estimatedTotal = total;
 
   const handleCheckout = (): void => {
     router.push('/checkout');
@@ -151,6 +152,9 @@ export default function CartPage(): React.ReactElement {
                     price={item.price}
                     quantity={item.quantity}
                     image={item.image}
+                    discountPercent={item.discountPercent}
+                    bundleId={item.bundleId}
+                    platform={item.platform}
                     onRemove={() => removeItem(item.productId)}
                     onQuantityChange={(quantity) => updateQuantity(item.productId, quantity)}
                   />
@@ -224,8 +228,17 @@ export default function CartPage(): React.ReactElement {
                 <div className="space-y-3">
                   <div className="flex justify-between text-sm">
                     <span className="text-text-muted">Subtotal ({itemCount} items)</span>
-                    <span className="text-text-secondary">€{subtotal.toFixed(2)}</span>
+                    <span className="text-text-secondary">€{originalTotal.toFixed(2)}</span>
                   </div>
+                  {savings > 0 && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-green-success flex items-center gap-1">
+                        <TrendingDown className="h-4 w-4" />
+                        Bundle Savings
+                      </span>
+                      <span className="text-green-success">-€{savings.toFixed(2)}</span>
+                    </div>
+                  )}
                   <div className="flex justify-between text-sm">
                     <span className="text-text-muted">Processing Fee</span>
                     <span className="text-green-success">Free</span>

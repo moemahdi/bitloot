@@ -16,7 +16,8 @@ import {
   Share2, Check, Package, Play, Image as ImageIcon, 
   Cpu, HardDrive, AlertTriangle, Key, Clock, 
   RefreshCw, FileText, Wallet, Lock, BadgeCheck,
-  Volume2, Wifi, Settings, Gamepad2, Shield, Star
+  Volume2, Wifi, Settings, Gamepad2, Shield, Star,
+  Flame
 } from 'lucide-react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -31,6 +32,46 @@ import { useState, useCallback, useEffect } from 'react';
 
 const GLASS_PANEL = "bg-bg-secondary/80 backdrop-blur-xl border border-border-subtle shadow-card-lg";
 const GLASS_CARD = "bg-bg-tertiary/50 backdrop-blur-md border border-border-subtle hover:border-border-accent transition-all duration-300";
+
+// ========== Currency Helper ==========
+
+function getCurrencySymbol(currency?: string): string {
+  switch (currency?.toUpperCase()) {
+    case 'EUR': return '€';
+    case 'GBP': return '£';
+    case 'USD': return '$';
+    case 'JPY': return '¥';
+    case 'CAD': return 'C$';
+    case 'AUD': return 'A$';
+    default: return currency ?? '€';
+  }
+}
+
+// ========== Flash Deal Types ==========
+
+interface FlashDealProductInfo {
+  originalPrice?: string;
+  discountPrice?: string;
+  discountPercent?: string;
+  productId: string;
+}
+
+interface ActiveFlashDealResponse {
+  id: string;
+  name: string;
+  endsAt: string;
+  products: FlashDealProductInfo[];
+}
+
+async function fetchActiveFlashDeal(): Promise<ActiveFlashDealResponse | null> {
+  try {
+    const response = await fetch(`${apiConfig.basePath}/public/marketing/flash-deal/active`);
+    if (!response.ok) return null;
+    return response.json();
+  } catch {
+    return null;
+  }
+}
 
 // ========== Component: Trust Badge (PRD Requirement) ==========
 
@@ -753,6 +794,13 @@ export default function ProductPage(): React.ReactElement {
     enabled: Boolean(slug),
   });
 
+  // Fetch active flash deal to check if this product has a discount
+  const { data: activeFlashDeal } = useQuery<ActiveFlashDealResponse | null>({
+    queryKey: ['public', 'marketing', 'flash-deal', 'active'],
+    queryFn: fetchActiveFlashDeal,
+    staleTime: 60_000,
+  });
+
   const handleShare = async (): Promise<void> => {
     try {
       await navigator.clipboard.writeText(window.location.href);
@@ -764,7 +812,22 @@ export default function ProductPage(): React.ReactElement {
   if (isLoading) return <ProductPageSkeleton />;
   if (isError || product === null || product === undefined) return <ProductErrorState onRetry={refetch} />;
 
-  const priceInDollars = parseFloat(product?.price ?? '0');
+  // Check if product is in active flash deal
+  const flashDealProduct = activeFlashDeal?.products.find(p => p.productId === product.id);
+  const isInFlashDeal = Boolean(flashDealProduct);
+  
+  // Calculate prices
+  const originalPrice = parseFloat(product?.price ?? '0');
+  const currencySymbol = getCurrencySymbol(product?.currency);
+  
+  // If in flash deal, use discounted price; otherwise use original price
+  const displayPrice = isInFlashDeal && flashDealProduct?.discountPrice 
+    ? parseFloat(flashDealProduct.discountPrice)
+    : isInFlashDeal && flashDealProduct?.discountPercent
+      ? originalPrice * (1 - parseFloat(flashDealProduct.discountPercent) / 100)
+      : originalPrice;
+  
+  const discountPercent = flashDealProduct?.discountPercent ? parseFloat(flashDealProduct.discountPercent) : 0;
   
   return (
     <div className="min-h-screen bg-bg-primary text-text-primary selection:bg-cyan-glow/30 selection:text-cyan-glow pb-20">
@@ -893,35 +956,62 @@ export default function ProductPage(): React.ReactElement {
                 <div className="absolute -inset-1 bg-linear-to-br from-cyan-glow/20 via-purple-neon/20 to-transparent blur-xl opacity-50 group-hover:opacity-75 transition-opacity duration-700" />
                 
                 <CardContent className="relative p-6 space-y-6">
+                  {/* Flash Sale Banner */}
+                  {isInFlashDeal && (
+                    <div className="flex items-center gap-2 px-3 py-2 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
+                      <Flame className="h-5 w-5 text-yellow-400" />
+                      <span className="text-sm font-bold text-yellow-400">
+                        Flash Sale: {discountPercent}% OFF
+                      </span>
+                    </div>
+                  )}
+                  
                   {/* Price Section */}
                   <div className="flex items-end justify-between">
                     <div>
-                      <p className="text-sm text-text-muted mb-1 font-medium">Total Price</p>
-                      <div className="flex items-baseline gap-2">
-                        <span className="text-4xl font-bold text-text-primary tracking-tight">
-                          €{priceInDollars.toFixed(2)}
+                      <p className="text-sm text-text-muted mb-1 font-medium">
+                        {isInFlashDeal ? 'Flash Sale Price' : 'Total Price'}
+                      </p>
+                      <div className="flex items-baseline gap-3">
+                        <span className={`text-4xl font-bold tracking-tight ${isInFlashDeal ? 'text-yellow-400' : 'text-text-primary'}`}>
+                          {currencySymbol}{displayPrice.toFixed(2)}
                         </span>
+                        {isInFlashDeal && (
+                          <span className="text-xl text-text-muted line-through">
+                            {currencySymbol}{originalPrice.toFixed(2)}
+                          </span>
+                        )}
                       </div>
                     </div>
+                    {isInFlashDeal && (
+                      <Badge className="bg-yellow-500 text-black font-bold gap-1">
+                        <Flame className="h-3 w-3" />
+                        Save {discountPercent}%
+                      </Badge>
+                    )}
                   </div>
 
                   {/* Actions */}
                   <div className="space-y-3">
                     <Button 
                       size="lg" 
-                      className="w-full h-12 text-base font-bold bg-linear-to-r from-cyan-glow to-purple-neon hover:from-cyan-glow/90 hover:to-purple-neon/90 text-white shadow-lg shadow-cyan-glow/25 border-0 transition-all hover:scale-[1.02] active:scale-[0.98]"
+                      className={`w-full h-12 text-base font-bold shadow-lg border-0 transition-all hover:scale-[1.02] active:scale-[0.98] ${
+                        isInFlashDeal 
+                          ? 'bg-yellow-500 hover:bg-yellow-600 text-black shadow-yellow-500/25' 
+                          : 'bg-linear-to-r from-cyan-glow to-purple-neon hover:from-cyan-glow/90 hover:to-purple-neon/90 text-white shadow-cyan-glow/25'
+                      }`}
                       onClick={() => {
                         buyNow({
                           productId: product.id ?? '',
                           title: product.title ?? 'Product',
-                          price: priceInDollars,
+                          price: displayPrice, // Use discounted price if in flash deal
                           quantity: 1,
                           image: product.imageUrl,
                         });
                         router.push('/checkout');
                       }}
                     >
-                      <Bitcoin className="h-5 w-5 mr-2" />
+                      {isInFlashDeal ? <Flame className="h-5 w-5 mr-2" /> : <Bitcoin className="h-5 w-5 mr-2" />}
                       Buy Now
                     </Button>
                     <div className="grid grid-cols-5 gap-2">
@@ -929,7 +1019,7 @@ export default function ProductPage(): React.ReactElement {
                         <AddToCartButton
                           id={product.id ?? ''}
                           title={product.title ?? 'Product'}
-                          price={priceInDollars}
+                          price={displayPrice} // Use discounted price if in flash deal
                           image={product.imageUrl}
                         />
                       </div>
