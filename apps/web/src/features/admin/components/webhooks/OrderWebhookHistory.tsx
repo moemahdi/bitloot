@@ -46,11 +46,11 @@ export function OrderWebhookHistory({
   showViewAll = true,
 }: OrderWebhookHistoryProps): React.ReactElement {
   const displayWebhooks = useMemo(() => {
-    if (!webhooks) return [];
-    return maxItems ? webhooks.slice(0, maxItems) : webhooks;
+    if (webhooks === null || webhooks === undefined) return [];
+    return maxItems !== undefined ? webhooks.slice(0, maxItems) : webhooks;
   }, [webhooks, maxItems]);
 
-  const hasMore = webhooks && maxItems && webhooks.length > maxItems;
+  const hasMore = webhooks !== null && webhooks !== undefined && maxItems !== undefined && webhooks.length > maxItems;
 
   if (isLoading) {
     return (
@@ -75,7 +75,7 @@ export function OrderWebhookHistory({
     );
   }
 
-  if (!webhooks || webhooks.length === 0) {
+  if (webhooks === null || webhooks === undefined || webhooks.length === 0) {
     return (
       <Card className={className}>
         <CardHeader>
@@ -120,8 +120,8 @@ export function OrderWebhookHistory({
               <TimelineItem
                 key={webhook.id}
                 webhook={webhook}
-                isFirst={index === 0}
-                isLast={index === displayWebhooks.length - 1}
+                _isFirst={index === 0}
+                _isLast={index === displayWebhooks.length - 1}
               />
             ))}
           </div>
@@ -140,26 +140,26 @@ export function OrderWebhookHistory({
 
 function TimelineItem({
   webhook,
-  isFirst,
-  isLast,
+  _isFirst,
+  _isLast,
 }: {
   webhook: OrderWebhookItem;
-  isFirst: boolean;
-  isLast: boolean;
+  _isFirst: boolean;
+  _isLast: boolean;
 }): React.ReactElement {
   const getStatusIcon = () => {
-    if (webhook.error) {
+    if (webhook.error !== null && webhook.error !== undefined && webhook.error !== '') {
       return <XCircle className="h-4 w-4 text-orange-warning" />;
     }
-    if (webhook.processed) {
+    if (webhook.processed === true) {
       return <CheckCircle2 className="h-4 w-4 text-green-success" />;
     }
     return <Clock className="h-4 w-4 text-cyan-glow" />;
   };
 
   const getStatusColor = () => {
-    if (webhook.error) return 'bg-orange-warning/10 border-orange-warning/30 shadow-glow-error';
-    if (webhook.processed) return 'bg-green-success/10 border-green-success/30 shadow-glow-success';
+    if (webhook.error !== null && webhook.error !== undefined && webhook.error !== '') return 'bg-orange-warning/10 border-orange-warning/30 shadow-glow-error';
+    if (webhook.processed === true) return 'bg-green-success/10 border-green-success/30 shadow-glow-success';
     return 'bg-cyan-glow/10 border-cyan-glow/30 shadow-glow-cyan-sm';
   };
 
@@ -180,27 +180,27 @@ function TimelineItem({
         <div className="flex flex-wrap items-center gap-2">
           <WebhookTypeBadge type={webhook.webhookType} size="sm" />
           <SignatureIndicator valid={webhook.signatureValid} size="sm" />
-          {webhook.paymentStatus && (
+          {webhook.paymentStatus !== null && webhook.paymentStatus !== undefined && webhook.paymentStatus !== '' ? (
             <PaymentStatusBadge status={webhook.paymentStatus} size="sm" />
-          )}
+          ) : null}
         </div>
 
         <div className="mt-1 flex items-center gap-2 text-sm text-text-secondary">
           <time dateTime={webhook.createdAt}>
             {formatDateTime(webhook.createdAt)}
           </time>
-          {webhook.externalId && (
+          {webhook.externalId !== null && webhook.externalId !== undefined && webhook.externalId !== '' ? (
             <span className="text-text-muted font-mono text-xs">
               #{webhook.externalId.slice(0, 8)}
             </span>
-          )}
+          ) : null}
         </div>
 
-        {webhook.error && (
+        {webhook.error !== null && webhook.error !== undefined && webhook.error !== '' ? (
           <div className="mt-2 p-2 bg-orange-warning/10 rounded text-sm text-orange-warning border border-orange-warning/30 shadow-glow-error">
             {webhook.error}
           </div>
-        )}
+        ) : null}
 
         <div className="mt-2">
           <Button variant="ghost" size="sm" asChild className="h-7 px-2 hover:text-cyan-glow transition-colors duration-200">
@@ -227,12 +227,12 @@ export function OrderWebhookTimelineCompact({
   orderId: string;
   className?: string;
 }): React.ReactElement {
-  if (!webhooks || webhooks.length === 0) {
+  if (webhooks === null || webhooks === undefined || webhooks.length === 0) {
     return <span className={cn('text-text-muted text-sm', className)}>No webhooks</span>;
   }
 
   const processed = webhooks.filter((w) => w.processed).length;
-  const failed = webhooks.filter((w) => w.error).length;
+  const failed = webhooks.filter((w) => w.error !== null && w.error !== undefined && w.error !== '').length;
 
   return (
     <Link

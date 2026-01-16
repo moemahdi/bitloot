@@ -11,7 +11,11 @@ import { Eye, ShoppingCart, Star, Zap, Package, Sparkles, Gamepad2 } from 'lucid
 
 // Currency symbol helper
 function getCurrencySymbol(currency?: string): string {
-  switch (currency?.toUpperCase()) {
+  const upperCurrency = currency !== null && currency !== undefined && currency !== '' 
+    ? currency.toUpperCase() 
+    : '';
+  
+  switch (upperCurrency) {
     case 'EUR': return '€';
     case 'GBP': return '£';
     case 'USD': return '$';

@@ -74,12 +74,12 @@ export function CartItemRow({
       <div className="flex-1 min-w-0">
         <h3 className="font-semibold text-sm sm:text-base truncate">{title}</h3>
         <div className="flex items-center gap-2 flex-wrap">
-          {platform && (
+          {platform !== null && platform !== undefined && platform !== '' && (
             <Badge variant="outline" className="text-xs">
               {platform}
             </Badge>
           )}
-          {bundleId && (
+          {bundleId !== null && bundleId !== undefined && bundleId !== '' && (
             <Badge variant="secondary" className="text-xs bg-pink-500/10 text-pink-400 gap-1">
               <Gift className="h-3 w-3" />
               Bundle

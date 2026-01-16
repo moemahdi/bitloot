@@ -22,7 +22,6 @@ import {
   PaginatedReviewsDto,
   PaginatedAdminReviewsDto,
   ReviewStatsDto,
-  ReviewOrderItemDto,
 } from './dto';
 
 export interface ReviewFilters {

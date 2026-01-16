@@ -186,7 +186,7 @@ export class OrdersService {
           effectivePrice = basePrice * (1 - item.discountPercent / 100);
           discountSource = 'bundle';
           this.logger.log(`🎁 Bundle discount applied: ${product.title} ${basePrice.toFixed(2)} → ${effectivePrice.toFixed(2)} (${item.discountPercent}% off)`);
-        } else if (flashPricing?.isDiscounted) {
+        } else if (flashPricing?.isDiscounted === true) {
           // Flash deal discount
           effectivePrice = parseFloat(flashPricing.effectivePrice);
           discountSource = 'flash';

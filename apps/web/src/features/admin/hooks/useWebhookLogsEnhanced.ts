@@ -101,7 +101,7 @@ export function useWebhookLogsEnhanced(options: UseWebhookLogsEnhancedOptions): 
       const response = await adminApi.adminControllerGetWebhookLogsEnhanced({
         limit,
         offset,
-        search: filters.search || undefined,
+        search: filters.search !== '' ? filters.search : undefined,
         webhookType: filters.webhookType !== 'all' ? filters.webhookType : undefined,
         signatureValid:
           filters.signatureValid !== 'all' ? getSignatureValidEnum(filters.signatureValid) : undefined,

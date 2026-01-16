@@ -34,6 +34,12 @@ const nextConfig = {
         hostname: 'raw.githubusercontent.com',
         pathname: '/spothq/cryptocurrency-icons/**',
       },
+      // External image sources
+      {
+        protocol: 'https',
+        hostname: 'wallpapers.com',
+        pathname: '/**',
+      },
     ],
     // Cache optimization for crypto icons
     minimumCacheTTL: 2592000, // 30 days cache for external images

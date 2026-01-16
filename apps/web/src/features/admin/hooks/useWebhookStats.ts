@@ -65,7 +65,15 @@ export function useWebhookStats(options: UseWebhookStatsOptions = {}): UseWebhoo
       });
       
       // Transform arrays to Records for component compatibility
-      const apiResponse = response as any;
+      interface ApiStatsResponse {
+        total: number;
+        processed: number;
+        pending: number;
+        failed: number;
+        byType?: { type: string; count: number }[];
+        byStatus?: { status: string; count: number }[];
+      }
+      const apiResponse = response as unknown as ApiStatsResponse;
       
       // Convert byType array to Record
       const byType: Record<string, number> = {};

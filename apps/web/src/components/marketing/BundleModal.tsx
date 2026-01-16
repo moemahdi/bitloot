@@ -1,6 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { motion } from 'framer-motion';
 import {
   Dialog,
@@ -70,13 +71,15 @@ interface BundleModalProps {
 // Format price in Euro (BitLoot uses Euro only)
 function formatPrice(price: string | number): string {
   const num = typeof price === 'string' ? parseFloat(price) : price;
-  return `€${(num || 0).toFixed(2)}`;
+  return `€${(Number.isNaN(num) ? 0 : num ?? 0).toFixed(2)}`;
 }
 
 // Calculate discounted price based on individual product discount
 function calcDiscountedPrice(price: string, discountPercent: string): number {
-  const p = parseFloat(price) || 0;
-  const d = parseFloat(discountPercent) || 0;
+  const pRaw = parseFloat(price);
+  const dRaw = parseFloat(discountPercent);
+  const p = Number.isNaN(pRaw) ? 0 : pRaw;
+  const d = Number.isNaN(dRaw) ? 0 : dRaw;
   return p * (1 - d / 100);
 }
 
@@ -88,11 +91,11 @@ export function BundleModal({ bundle, isOpen, onClose }: BundleModalProps): Reac
   const router = useRouter();
   const { addBundleItems } = useCart();
 
-  if (!bundle) return null;
+  if (bundle === null || bundle === undefined) return null;
 
   const handleProductClick = (slug: string | undefined, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (slug) {
+    if (slug !== undefined && slug !== null && slug !== '') {
       router.push(`/product/${slug}`);
       onClose();
     }
@@ -121,7 +124,7 @@ export function BundleModal({ bundle, isOpen, onClose }: BundleModalProps): Reac
     onClose();
   };
 
-  const sortedProducts = [...(bundle.products || [])].sort(
+  const sortedProducts = [...(bundle.products ?? [])].sort(
     (a, b) => a.displayOrder - b.displayOrder
   );
 
@@ -132,8 +135,9 @@ export function BundleModal({ bundle, isOpen, onClose }: BundleModalProps): Reac
   let totalOriginal = 0;
   let totalDiscounted = 0;
   for (const bp of sortedProducts) {
-    if (bp.product) {
-      const price = parseFloat(bp.product.price) || 0;
+    if (bp.product !== null && bp.product !== undefined) {
+      const priceRaw = parseFloat(bp.product.price);
+      const price = Number.isNaN(priceRaw) ? 0 : priceRaw;
       totalOriginal += price;
       totalDiscounted += calcDiscountedPrice(bp.product.price, bp.discountPercent);
     }
@@ -146,12 +150,13 @@ export function BundleModal({ bundle, isOpen, onClose }: BundleModalProps): Reac
       <DialogContent className="glass border-pink-500/30 w-[95vw] max-w-2xl lg:max-w-3xl max-h-[90vh] p-0 overflow-hidden">
         {/* Hero Section */}
         <div className="relative">
-          {bundle.heroImage ? (
+          {bundle.heroImage !== null && bundle.heroImage !== undefined && bundle.heroImage !== '' ? (
             <div className="relative h-32 sm:h-40 overflow-hidden">
-              <img
+              <Image
                 src={bundle.heroImage}
                 alt={bundle.name}
-                className="w-full h-full object-cover"
+                fill
+                className="object-cover"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-bg-primary via-bg-primary/60 to-transparent" />
             </div>
@@ -183,11 +188,11 @@ export function BundleModal({ bundle, isOpen, onClose }: BundleModalProps): Reac
               <Gift className="h-5 w-5 sm:h-6 sm:w-6 text-pink-400" />
               {bundle.name}
             </DialogTitle>
-            {bundle.description && (
+            {bundle.description !== null && bundle.description !== undefined && bundle.description !== '' ? (
               <DialogDescription className="text-text-muted mt-1">
                 {bundle.description}
               </DialogDescription>
-            )}
+            ) : null}
           </DialogHeader>
 
           {/* Products List */}
@@ -201,8 +206,9 @@ export function BundleModal({ bundle, isOpen, onClose }: BundleModalProps): Reac
               <div className="space-y-3">
                 {/* Regular Products with individual discounts */}
                 {regularProducts.map((bp, index) => {
-                  const discount = parseFloat(bp.discountPercent) || 0;
-                  const originalPrice = bp.product?.price || '0';
+                  const discountRaw = parseFloat(bp.discountPercent);
+                  const discount = Number.isNaN(discountRaw) ? 0 : discountRaw;
+                  const originalPrice = bp.product?.price ?? '0';
                   const discountedPrice = calcDiscountedPrice(originalPrice, bp.discountPercent);
                   const productSlug = bp.product?.slug;
                   
@@ -214,29 +220,33 @@ export function BundleModal({ bundle, isOpen, onClose }: BundleModalProps): Reac
                       transition={{ delay: index * 0.05 }}
                       onClick={(e) => handleProductClick(productSlug, e)}
                       className={`flex items-center gap-3 p-3 rounded-lg bg-bg-secondary border border-border-subtle transition-all ${
-                        productSlug 
+                        productSlug !== undefined && productSlug !== '' 
                           ? 'cursor-pointer hover:border-pink-500/50 hover:bg-bg-tertiary group' 
                           : ''
                       }`}
                     >
                       {/* Product Image */}
                       <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-lg overflow-hidden bg-bg-tertiary flex-shrink-0 relative">
-                        {(bp.product?.coverImageUrl || bp.product?.imageUrl || bp.product?.coverImage) ? (
-                          <img
-                            src={bp.product?.coverImageUrl ?? bp.product?.imageUrl ?? bp.product?.coverImage}
-                            alt={bp.product?.title}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center">
-                            <Package className="h-6 w-6 text-text-muted" />
-                          </div>
-                        )}
-                        {productSlug && (
+                        {(() => {
+                          const imgSrc = bp.product?.coverImageUrl ?? bp.product?.imageUrl ?? bp.product?.coverImage;
+                          return imgSrc !== undefined && imgSrc !== null && imgSrc !== '' ? (
+                            <Image
+                              src={imgSrc}
+                              alt={bp.product?.title ?? ''}
+                              fill
+                              className="object-cover"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center">
+                              <Package className="h-6 w-6 text-text-muted" />
+                            </div>
+                          );
+                        })()}
+                        {productSlug !== undefined && productSlug !== '' ? (
                           <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
                             <ExternalLink className="h-4 w-4 text-white" />
                           </div>
-                        )}
+                        ) : null}
                       </div>
 
                       {/* Product Info */}
@@ -245,11 +255,11 @@ export function BundleModal({ bundle, isOpen, onClose }: BundleModalProps): Reac
                           {bp.product?.title ?? 'Unknown Product'}
                         </p>
                         <div className="flex items-center gap-2 mt-1 flex-wrap">
-                          {bp.product?.platform && (
+                          {bp.product?.platform !== undefined && bp.product.platform !== '' ? (
                             <Badge variant="outline" className="text-xs flex-shrink-0">
                               {bp.product.platform}
                             </Badge>
-                          )}
+                          ) : null}
                           {discount > 0 && (
                             <Badge variant="secondary" className="text-xs bg-pink-500/10 text-pink-400 gap-1 flex-shrink-0">
                               <Percent className="h-3 w-3" />
@@ -261,7 +271,7 @@ export function BundleModal({ bundle, isOpen, onClose }: BundleModalProps): Reac
 
                       {/* Price with individual discount - fixed width to prevent cutoff */}
                       <div className="text-right flex-shrink-0 min-w-[70px]">
-                        {bp.product?.price && (
+                        {bp.product?.price !== undefined && bp.product.price !== '' ? (
                           <>
                             <p className="text-xs text-text-muted line-through whitespace-nowrap">
                               {formatPrice(originalPrice)}
@@ -270,14 +280,14 @@ export function BundleModal({ bundle, isOpen, onClose }: BundleModalProps): Reac
                               {formatPrice(discountedPrice)}
                             </p>
                           </>
-                        )}
+                        ) : null}
                       </div>
                     </motion.div>
                   );
                 })}
 
                 {/* Bonus Products (100% discount / FREE) */}
-                {bonusProducts.length > 0 && (
+                {bonusProducts.length > 0 ? (
                   <>
                     <div className="flex items-center gap-2 pt-2">
                       <Sparkles className="h-4 w-4 text-yellow-400" />
@@ -291,28 +301,32 @@ export function BundleModal({ bundle, isOpen, onClose }: BundleModalProps): Reac
                         transition={{ delay: (regularProducts.length + index) * 0.05 }}
                         onClick={(e) => handleProductClick(bp.product?.slug, e)}
                         className={`flex items-center gap-3 p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/30 transition-all ${
-                          bp.product?.slug 
+                          bp.product?.slug !== undefined && bp.product.slug !== '' 
                             ? 'cursor-pointer hover:bg-yellow-500/20 group' 
                             : ''
                         }`}
                       >
                         <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-lg overflow-hidden bg-bg-tertiary flex-shrink-0 relative">
-                          {(bp.product?.coverImageUrl || bp.product?.imageUrl || bp.product?.coverImage) ? (
-                            <img
-                              src={bp.product?.coverImageUrl ?? bp.product?.imageUrl ?? bp.product?.coverImage}
-                              alt={bp.product?.title}
-                              className="w-full h-full object-cover"
-                            />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center">
-                              <Gift className="h-6 w-6 text-yellow-400" />
-                            </div>
-                          )}
-                          {bp.product?.slug && (
+                          {(() => {
+                            const bonusImgSrc = bp.product?.coverImageUrl ?? bp.product?.imageUrl ?? bp.product?.coverImage;
+                            return bonusImgSrc !== undefined && bonusImgSrc !== null && bonusImgSrc !== '' ? (
+                              <Image
+                                src={bonusImgSrc}
+                                alt={bp.product?.title ?? ''}
+                                fill
+                                className="object-cover"
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center">
+                                <Gift className="h-6 w-6 text-yellow-400" />
+                              </div>
+                            );
+                          })()}
+                          {bp.product?.slug !== undefined && bp.product.slug !== '' ? (
                             <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
                               <ExternalLink className="h-4 w-4 text-white" />
                             </div>
-                          )}
+                          ) : null}
                         </div>
                         <div className="flex-1 min-w-0 overflow-hidden">
                           <p className="font-medium text-sm sm:text-base text-text-primary truncate group-hover:text-yellow-400 transition-colors">
@@ -324,22 +338,22 @@ export function BundleModal({ bundle, isOpen, onClose }: BundleModalProps): Reac
                         </div>
                         <div className="text-right flex-shrink-0 min-w-[70px]">
                           <p className="text-xs text-text-muted line-through whitespace-nowrap">
-                            {bp.product?.price && formatPrice(bp.product.price)}
+                            {bp.product?.price !== undefined && bp.product.price !== '' ? formatPrice(bp.product.price) : null}
                           </p>
                           <p className="font-semibold text-yellow-400 whitespace-nowrap">FREE</p>
                         </div>
                       </motion.div>
                     ))}
                   </>
-                )}
+                ) : null}
 
                 {/* Empty State */}
-                {sortedProducts.length === 0 && (
+                {sortedProducts.length === 0 ? (
                   <div className="text-center py-8 text-text-muted">
                     <Package className="h-10 w-10 mx-auto mb-3 text-text-muted/50" />
                     <p>No products in this bundle yet</p>
                   </div>
-                )}
+                ) : null}
               </div>
             </ScrollArea>
           </div>

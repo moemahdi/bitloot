@@ -1,22 +1,21 @@
 import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, In, LessThanOrEqual, MoreThanOrEqual } from 'typeorm';
-import { PageSection, FlashDeal, FlashDealProduct, BundleDeal, BundleProduct } from './entities';
+import { Repository, LessThanOrEqual, MoreThanOrEqual } from 'typeorm';
+import { FlashDeal, FlashDealProduct, BundleDeal, BundleProduct } from './entities';
 import { Product } from '../catalog/entities/product.entity';
 import {
-  UpdateSectionDto,
   CreateFlashDealDto,
   UpdateFlashDealDto,
   CreateBundleDealDto,
   UpdateBundleDealDto,
   PageConfigResponseDto,
+  FlashDealResponseDto,
+  BundleDealResponseDto,
 } from './dto';
 
 @Injectable()
 export class MarketingService {
   constructor(
-    @InjectRepository(PageSection)
-    private readonly sectionRepo: Repository<PageSection>,
     @InjectRepository(FlashDeal)
     private readonly flashDealRepo: Repository<FlashDeal>,
     @InjectRepository(FlashDealProduct)
@@ -28,44 +27,6 @@ export class MarketingService {
     @InjectRepository(Product)
     private readonly productRepo: Repository<Product>,
   ) {}
-
-  // ============================================================================
-  // SECTIONS
-  // ============================================================================
-
-  async getAllSections(): Promise<PageSection[]> {
-    return this.sectionRepo.find({
-      order: { displayOrder: 'ASC' },
-    });
-  }
-
-  async getSectionByKey(sectionKey: string): Promise<PageSection> {
-    const section = await this.sectionRepo.findOne({ where: { sectionKey } });
-    if (!section) {
-      throw new NotFoundException(`Section ${sectionKey} not found`);
-    }
-    return section;
-  }
-
-  async updateSection(sectionKey: string, dto: UpdateSectionDto, userId?: string): Promise<PageSection> {
-    const section = await this.getSectionByKey(sectionKey);
-
-    if (dto.isEnabled !== undefined) section.isEnabled = dto.isEnabled;
-    if (dto.displayOrder !== undefined) section.displayOrder = dto.displayOrder;
-    if (dto.config !== undefined) section.config = dto.config;
-    if (dto.scheduleStart !== undefined) section.scheduleStart = new Date(dto.scheduleStart);
-    if (dto.scheduleEnd !== undefined) section.scheduleEnd = new Date(dto.scheduleEnd);
-    if (userId) section.updatedById = userId;
-
-    return this.sectionRepo.save(section);
-  }
-
-  async reorderSections(order: Array<{ sectionKey: string; displayOrder: number }>): Promise<PageSection[]> {
-    for (const item of order) {
-      await this.sectionRepo.update({ sectionKey: item.sectionKey }, { displayOrder: item.displayOrder });
-    }
-    return this.getAllSections();
-  }
 
   // ============================================================================
   // FLASH DEALS
@@ -83,7 +44,7 @@ export class MarketingService {
       where: { id },
       relations: ['products', 'products.product'],
     });
-    if (!deal) {
+    if (deal === null || deal === undefined) {
       throw new NotFoundException(`Flash deal ${id} not found`);
     }
     return deal;
@@ -161,19 +122,19 @@ export class MarketingService {
     // Check if product is in an active flash deal
     const activeFlashDeal = await this.getActiveFlashDeal();
     
-    if (activeFlashDeal) {
+    if (activeFlashDeal !== null && activeFlashDeal !== undefined) {
       const flashDealProduct = activeFlashDeal.products?.find(
         (p) => p.productId === productId,
       );
       
-      if (flashDealProduct) {
+      if (flashDealProduct !== null && flashDealProduct !== undefined) {
         // Product is in a flash deal - calculate discounted price
-        const originalPrice = flashDealProduct.originalPrice || productPrice;
-        const discountPercent = parseFloat(flashDealProduct.discountPercent || '0');
+        const originalPrice = flashDealProduct.originalPrice !== null && flashDealProduct.originalPrice !== undefined && flashDealProduct.originalPrice !== '' ? flashDealProduct.originalPrice : productPrice;
+        const discountPercent = parseFloat(flashDealProduct.discountPercent ?? '0');
         
         // Use pre-calculated discountPrice if available, otherwise calculate
         let effectivePrice: string;
-        if (flashDealProduct.discountPrice) {
+        if (flashDealProduct.discountPrice !== null && flashDealProduct.discountPrice !== undefined && flashDealProduct.discountPrice !== '') {
           effectivePrice = flashDealProduct.discountPrice;
         } else {
           const originalPriceNum = parseFloat(originalPrice);
@@ -230,7 +191,7 @@ export class MarketingService {
     
     // Create a map of flash deal products for O(1) lookup
     const flashDealProductsMap = new Map<string, FlashDealProduct>();
-    if (activeFlashDeal?.products) {
+    if (activeFlashDeal?.products !== null && activeFlashDeal?.products !== undefined) {
       for (const fdp of activeFlashDeal.products) {
         flashDealProductsMap.set(fdp.productId, fdp);
       }
@@ -240,12 +201,12 @@ export class MarketingService {
     for (const product of products) {
       const flashDealProduct = flashDealProductsMap.get(product.id);
       
-      if (flashDealProduct) {
-        const originalPrice = flashDealProduct.originalPrice || product.price;
-        const discountPercent = parseFloat(flashDealProduct.discountPercent || '0');
+      if (flashDealProduct !== null && flashDealProduct !== undefined) {
+        const originalPrice = flashDealProduct.originalPrice !== null && flashDealProduct.originalPrice !== undefined && flashDealProduct.originalPrice !== '' ? flashDealProduct.originalPrice : product.price;
+        const discountPercent = parseFloat(flashDealProduct.discountPercent ?? '0');
         
         let effectivePrice: string;
-        if (flashDealProduct.discountPrice) {
+        if (flashDealProduct.discountPrice !== null && flashDealProduct.discountPrice !== undefined && flashDealProduct.discountPrice !== '') {
           effectivePrice = flashDealProduct.discountPrice;
         } else {
           const originalPriceNum = parseFloat(originalPrice);
@@ -280,7 +241,7 @@ export class MarketingService {
 
     // Check for duplicate slug
     const existing = await this.flashDealRepo.findOne({ where: { slug } });
-    if (existing) {
+    if (existing !== null && existing !== undefined) {
       throw new ConflictException(`Flash deal with slug ${slug} already exists`);
     }
 
@@ -311,7 +272,7 @@ export class MarketingService {
     const savedDeal = await this.flashDealRepo.save(deal);
 
     // Add products if provided
-    if (dto.products && dto.products.length > 0) {
+    if (dto.products !== null && dto.products !== undefined && dto.products.length > 0) {
       const dealProducts = dto.products.map((p, index) =>
         this.flashDealProductRepo.create({
           flashDealId: savedDeal.id,
@@ -415,13 +376,13 @@ export class MarketingService {
     discountPrice?: string,
   ): Promise<FlashDeal> {
     // Verify flash deal exists
-    const deal = await this.getFlashDealById(flashDealId);
+    const _deal = await this.getFlashDealById(flashDealId);
 
     // Check if product already in deal
     const existing = await this.flashDealProductRepo.findOne({
       where: { flashDealId, productId },
     });
-    if (existing) {
+    if (existing !== null && existing !== undefined) {
       throw new ConflictException('Product already in this flash deal');
     }
 
@@ -430,7 +391,7 @@ export class MarketingService {
       'Product',
       { where: { id: productId } },
     ) as { id: string; price: string } | null;
-    if (!product) {
+    if (product === null || product === undefined) {
       throw new NotFoundException(`Product ${productId} not found`);
     }
 
@@ -439,12 +400,12 @@ export class MarketingService {
       .createQueryBuilder('fdp')
       .select('MAX(fdp.display_order)', 'max')
       .where('fdp.flash_deal_id = :flashDealId', { flashDealId })
-      .getRawOne();
+      .getRawOne<{ max: number | null }>();
     const displayOrder = (maxOrder?.max ?? -1) + 1;
 
     // Calculate discounted price if discount percent is provided
     let calculatedDiscountPrice = discountPrice;
-    if (!calculatedDiscountPrice && discountPercent && product.price) {
+    if ((calculatedDiscountPrice === null || calculatedDiscountPrice === undefined || calculatedDiscountPrice === '') && (discountPercent !== null && discountPercent !== undefined && discountPercent !== 0) && product.price !== '') {
       const originalPriceNum = parseFloat(product.price);
       const discountedPriceNum = originalPriceNum * (1 - discountPercent / 100);
       calculatedDiscountPrice = discountedPriceNum.toFixed(8);
@@ -481,7 +442,7 @@ export class MarketingService {
     const flashDealProduct = await this.flashDealProductRepo.findOne({
       where: { flashDealId, productId },
     });
-    if (!flashDealProduct) {
+    if (flashDealProduct === null || flashDealProduct === undefined) {
       throw new NotFoundException('Product not found in this flash deal');
     }
 
@@ -512,14 +473,13 @@ export class MarketingService {
       where: { id },
       relations: ['products', 'products.product'],
     });
-    if (!bundle) {
+    if (bundle === null || bundle === undefined) {
       throw new NotFoundException(`Bundle ${id} not found`);
     }
     return bundle;
   }
 
   async getActiveBundles(limit: number = 6): Promise<BundleDeal[]> {
-    const now = new Date();
     return this.bundleDealRepo.find({
       where: {
         isActive: true,
@@ -535,23 +495,23 @@ export class MarketingService {
 
     // Check for duplicate slug
     const existing = await this.bundleDealRepo.findOne({ where: { slug } });
-    if (existing) {
+    if (existing !== null && existing !== undefined) {
       throw new ConflictException(`Bundle with slug ${slug} already exists`);
     }
 
     // Use provided originalPrice and savingsPercent, or calculate later
-    let originalPrice: string | undefined = dto.originalPrice;
+    const originalPrice: string | undefined = dto.originalPrice;
     let savingsAmount: string | undefined;
     let savingsPercent: string | undefined = dto.savingsPercent?.toString();
     const productTypes: string[] = [];
 
     // Calculate savings amount if originalPrice is provided
-    if (originalPrice && dto.bundlePrice) {
+    if (originalPrice !== null && originalPrice !== undefined && originalPrice !== '' && dto.bundlePrice !== null && dto.bundlePrice !== undefined && dto.bundlePrice !== '') {
       const original = parseFloat(originalPrice);
       const bundle = parseFloat(dto.bundlePrice);
       if (original > bundle) {
         savingsAmount = (original - bundle).toFixed(2);
-        if (!savingsPercent) {
+        if (savingsPercent === null || savingsPercent === undefined || savingsPercent === '') {
           savingsPercent = (((original - bundle) / original) * 100).toFixed(2);
         }
       }
@@ -569,8 +529,8 @@ export class MarketingService {
       currency: dto.currency ?? 'USD',
       isActive: dto.isActive ?? true,
       isFeatured: dto.isFeatured ?? false,
-      startsAt: dto.startsAt ? new Date(dto.startsAt) : undefined,
-      endsAt: dto.endsAt ? new Date(dto.endsAt) : undefined,
+      startsAt: dto.startsAt !== null && dto.startsAt !== undefined && dto.startsAt !== '' ? new Date(dto.startsAt) : undefined,
+      endsAt: dto.endsAt !== null && dto.endsAt !== undefined && dto.endsAt !== '' ? new Date(dto.endsAt) : undefined,
       coverImage: dto.coverImage,
       heroImage: dto.heroImage,
       category: dto.category,
@@ -585,7 +545,7 @@ export class MarketingService {
     const savedBundle = await this.bundleDealRepo.save(bundle);
 
     // Add products if provided
-    if (dto.products && dto.products.length > 0) {
+    if (dto.products !== null && dto.products !== undefined && dto.products.length > 0) {
       const bundleProducts = dto.products.map((p, index) =>
         this.bundleProductRepo.create({
           bundleId: savedBundle.id,
@@ -625,7 +585,7 @@ export class MarketingService {
     if (dto.stockLimit !== undefined) bundle.stockLimit = dto.stockLimit;
 
     // Recalculate savings amount if originalPrice or bundlePrice changed
-    if (bundle.originalPrice && bundle.bundlePrice) {
+    if (bundle.originalPrice !== null && bundle.originalPrice !== undefined && bundle.originalPrice !== '' && bundle.bundlePrice !== null && bundle.bundlePrice !== undefined && bundle.bundlePrice !== '') {
       const original = parseFloat(bundle.originalPrice);
       const bundlePrice = parseFloat(bundle.bundlePrice);
       if (original > bundlePrice) {
@@ -667,21 +627,23 @@ export class MarketingService {
       where: { id: bundleId },
       relations: ['products', 'products.product'],
     });
-    if (!bundle || !bundle.products) return;
+    if (bundle?.products === undefined || bundle.products === null) return;
 
     let originalTotal = 0;
     let discountedTotal = 0;
 
     for (const bp of bundle.products) {
-      if (bp.product) {
-        const productPrice = parseFloat(bp.product.price) || 0;
+      if (bp.product !== null && bp.product !== undefined) {
+        const rawProductPrice = parseFloat(bp.product.price);
+        const productPrice = Number.isNaN(rawProductPrice) ? 0 : rawProductPrice;
         originalTotal += productPrice;
         
         if (bp.isBonus) {
           // Bonus items are free
           discountedTotal += 0;
         } else {
-          const discountPct = parseFloat(bp.discountPercent) || 0;
+          const rawDiscountPct = parseFloat(bp.discountPercent);
+          const discountPct = Number.isNaN(rawDiscountPct) ? 0 : rawDiscountPct;
           const discountedPrice = productPrice * (1 - discountPct / 100);
           discountedTotal += discountedPrice;
         }
@@ -714,13 +676,13 @@ export class MarketingService {
     const existing = await this.bundleProductRepo.findOne({
       where: { bundleId, productId },
     });
-    if (existing) {
+    if (existing !== null && existing !== undefined) {
       throw new ConflictException('Product is already in this bundle');
     }
 
     // Verify product exists
     const product = await this.productRepo.findOne({ where: { id: productId } });
-    if (!product) {
+    if (product === null || product === undefined) {
       throw new NotFoundException(`Product ${productId} not found`);
     }
 
@@ -729,7 +691,7 @@ export class MarketingService {
       .createQueryBuilder('bp')
       .select('MAX(bp.display_order)', 'max')
       .where('bp.bundle_id = :bundleId', { bundleId })
-      .getRawOne();
+      .getRawOne<{ max: number | null }>();
     const nextDisplayOrder = displayOrder ?? ((maxOrder?.max ?? -1) + 1);
 
     // Create the bundle product with discount
@@ -737,8 +699,8 @@ export class MarketingService {
       bundleId,
       productId,
       displayOrder: nextDisplayOrder,
-      isBonus: isBonus ?? false,
-      discountPercent: isBonus ? '100' : discountPercent.toString(),
+      isBonus: isBonus === true,
+      discountPercent: isBonus === true ? '100' : discountPercent.toString(),
     });
     await this.bundleProductRepo.save(bundleProduct);
 
@@ -770,7 +732,7 @@ export class MarketingService {
     const bundleProduct = await this.bundleProductRepo.findOne({
       where: { bundleId, productId },
     });
-    if (!bundleProduct) {
+    if (bundleProduct === null || bundleProduct === undefined) {
       throw new NotFoundException('Product not found in this bundle');
     }
 
@@ -809,8 +771,8 @@ export class MarketingService {
 
     // Filter by schedule
     const activeSections = sections.filter((s) => {
-      if (s.scheduleStart && s.scheduleStart > now) return false;
-      if (s.scheduleEnd && s.scheduleEnd < now) return false;
+      if (s.scheduleStart !== null && s.scheduleStart !== undefined && s.scheduleStart > now) return false;
+      if (s.scheduleEnd !== null && s.scheduleEnd !== undefined && s.scheduleEnd < now) return false;
       return true;
     });
 
@@ -836,7 +798,7 @@ export class MarketingService {
         createdAt: s.createdAt,
         updatedAt: s.updatedAt,
       })),
-      activeFlashDeal: activeFlashDeal ? this.mapFlashDealToResponse(activeFlashDeal) : undefined,
+      activeFlashDeal: activeFlashDeal !== null && activeFlashDeal !== undefined ? this.mapFlashDealToResponse(activeFlashDeal) : undefined,
       bundles: bundles.map((b) => this.mapBundleToResponse(b)),
       updatedAt: new Date(),
       cacheKey: `page_config:${pageId}:${Date.now()}`,
@@ -854,7 +816,7 @@ export class MarketingService {
       .replace(/^-|-$/g, '');
   }
 
-  private mapFlashDealToResponse(deal: FlashDeal): any {
+  private mapFlashDealToResponse(deal: FlashDeal): FlashDealResponseDto {
     return {
       id: deal.id,
       name: deal.name,
@@ -876,7 +838,7 @@ export class MarketingService {
       showProducts: deal.showProducts,
       productsCount: deal.productsCount,
       displayOrder: deal.displayOrder,
-      displayType: deal.displayType || 'inline',
+      displayType: deal.displayType ?? 'inline',
       products: deal.products?.map((p) => ({
         id: p.id,
         productId: p.productId,
@@ -887,7 +849,7 @@ export class MarketingService {
         isFeatured: p.isFeatured,
         stockLimit: p.stockLimit,
         soldCount: p.soldCount,
-        product: p.product
+        product: p.product !== null && p.product !== undefined
           ? {
               id: p.product.id,
               title: p.product.title,
@@ -905,7 +867,7 @@ export class MarketingService {
     };
   }
 
-  private mapBundleToResponse(bundle: BundleDeal): any {
+  private mapBundleToResponse(bundle: BundleDeal): BundleDealResponseDto {
     return {
       id: bundle.id,
       name: bundle.name,
@@ -932,9 +894,10 @@ export class MarketingService {
       products: bundle.products?.map((p) => ({
         id: p.id,
         productId: p.productId,
+        discountPercent: p.discountPercent ?? '0',
         displayOrder: p.displayOrder,
         isBonus: p.isBonus,
-        product: p.product
+        product: p.product !== null && p.product !== undefined
           ? {
               id: p.product.id,
               title: p.product.title,

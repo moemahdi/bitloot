@@ -36,14 +36,18 @@ const GLASS_CARD = "bg-bg-tertiary/50 backdrop-blur-md border border-border-subt
 // ========== Currency Helper ==========
 
 function getCurrencySymbol(currency?: string): string {
-  switch (currency?.toUpperCase()) {
+  const upperCurrency = currency !== null && currency !== undefined && currency !== '' 
+    ? currency.toUpperCase() 
+    : '';
+  
+  switch (upperCurrency) {
     case 'EUR': return '€';
     case 'GBP': return '£';
     case 'USD': return '$';
     case 'JPY': return '¥';
     case 'CAD': return 'C$';
     case 'AUD': return 'A$';
-    default: return currency ?? '€';
+    default: return currency ?? '€'; // Default to EUR
   }
 }
 
@@ -67,7 +71,7 @@ async function fetchActiveFlashDeal(): Promise<ActiveFlashDealResponse | null> {
   try {
     const response = await fetch(`${apiConfig.basePath}/public/marketing/flash-deal/active`);
     if (!response.ok) return null;
-    return response.json();
+    return response.json() as Promise<ActiveFlashDealResponse>;
   } catch {
     return null;
   }
@@ -821,13 +825,13 @@ export default function ProductPage(): React.ReactElement {
   const currencySymbol = getCurrencySymbol(product?.currency);
   
   // If in flash deal, use discounted price; otherwise use original price
-  const displayPrice = isInFlashDeal && flashDealProduct?.discountPrice 
+  const displayPrice = isInFlashDeal && (flashDealProduct?.discountPrice != null && flashDealProduct.discountPrice !== '') 
     ? parseFloat(flashDealProduct.discountPrice)
-    : isInFlashDeal && flashDealProduct?.discountPercent
+    : isInFlashDeal && (flashDealProduct?.discountPercent != null && flashDealProduct.discountPercent !== '')
       ? originalPrice * (1 - parseFloat(flashDealProduct.discountPercent) / 100)
       : originalPrice;
   
-  const discountPercent = flashDealProduct?.discountPercent ? parseFloat(flashDealProduct.discountPercent) : 0;
+  const discountPercent = (flashDealProduct?.discountPercent != null && flashDealProduct.discountPercent !== '') ? parseFloat(flashDealProduct.discountPercent) : 0;
   
   return (
     <div className="min-h-screen bg-bg-primary text-text-primary selection:bg-cyan-glow/30 selection:text-cyan-glow pb-20">

@@ -51,7 +51,7 @@ export function WebhookActivityChart({
   showLegend = true,
 }: WebhookActivityChartProps): React.ReactElement {
   const chartData = useMemo(() => {
-    if (!data) return [];
+    if (data === null || data === undefined) return [];
     return data.map((point) => ({
       ...point,
       time: formatTimestamp(point.timestamp),
@@ -71,7 +71,7 @@ export function WebhookActivityChart({
     );
   }
 
-  if (!data || data.length === 0) {
+  if (data === null || data === undefined || data.length === 0) {
     return (
       <Card className={className}>
         <CardHeader>
@@ -202,7 +202,7 @@ export function WebhookSparkline({
   width?: number;
   className?: string;
 }): React.ReactElement {
-  if (!data || data.length === 0) {
+  if (data === null || data === undefined || data.length === 0) {
     return <div className={cn('bg-bg-tertiary/50 rounded border border-border-subtle', className)} style={{ height, width }} />;
   }
 

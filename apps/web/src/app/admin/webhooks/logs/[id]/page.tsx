@@ -9,6 +9,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/design-system/primitives/card';
+import { Badge } from '@/design-system/primitives/badge';
 import {
   Tabs,
   TabsContent,
@@ -16,7 +17,6 @@ import {
   TabsTrigger,
 } from '@/design-system/primitives/tabs';
 import { Button } from '@/design-system/primitives/button';
-import { Badge } from '@/design-system/primitives/badge';
 import { Separator } from '@/design-system/primitives/separator';
 import {
   ArrowLeft,
@@ -60,24 +60,24 @@ export default function AdminWebhookDetailPage(): React.ReactElement {
   });
   const { replay, isReplaying } = useWebhookReplay();
 
-  const handleReplay = async () => {
+  const handleReplay = () => {
     try {
-      await replay(webhookId);
+      void replay(webhookId);
       toast.success('Webhook replayed successfully');
-      refetch();
-    } catch (err) {
+      void refetch();
+    } catch (_err) {
       toast.error('Failed to replay webhook');
     }
   };
 
   const navigateToPrevious = () => {
-    if (adjacent?.previousId) {
+    if (adjacent?.previousId !== undefined && adjacent.previousId !== null && adjacent.previousId !== '') {
       router.push(`/admin/webhooks/logs/${adjacent.previousId}`);
     }
   };
 
   const navigateToNext = () => {
-    if (adjacent?.nextId) {
+    if (adjacent?.nextId !== undefined && adjacent.nextId !== null && adjacent.nextId !== '') {
       router.push(`/admin/webhooks/logs/${adjacent.nextId}`);
     }
   };
@@ -94,7 +94,7 @@ export default function AdminWebhookDetailPage(): React.ReactElement {
     return <div />;
   }
 
-  if (error) {
+  if (error !== null && error !== undefined) {
     return (
       <div className="flex flex-col items-center justify-center gap-4 p-8">
         <AlertCircle className="h-12 w-12 text-orange-warning" />
@@ -108,7 +108,7 @@ export default function AdminWebhookDetailPage(): React.ReactElement {
     );
   }
 
-  if (!webhook) {
+  if (webhook === undefined || webhook === null) {
     return (
       <div className="flex flex-col items-center justify-center gap-4 p-8">
         <AlertCircle className="h-12 w-12 text-text-muted" />
@@ -138,7 +138,7 @@ export default function AdminWebhookDetailPage(): React.ReactElement {
             variant="outline"
             size="sm"
             onClick={navigateToPrevious}
-            disabled={!adjacent?.previousId}
+            disabled={!(adjacent?.previousId !== undefined && adjacent.previousId !== null && adjacent.previousId !== '')}
             className="hover:text-cyan-glow hover:border-cyan-glow/50 hover:shadow-glow-cyan-sm disabled:opacity-50 transition-all duration-200"
           >
             <ChevronLeft className="h-4 w-4 mr-1" />
@@ -148,7 +148,7 @@ export default function AdminWebhookDetailPage(): React.ReactElement {
             variant="outline"
             size="sm"
             onClick={navigateToNext}
-            disabled={!adjacent?.nextId}
+            disabled={!(adjacent?.nextId !== undefined && adjacent.nextId !== null && adjacent.nextId !== '')}
             className="hover:text-cyan-glow hover:border-cyan-glow/50 hover:shadow-glow-cyan-sm disabled:opacity-50 transition-all duration-200"
           >
             Next
@@ -220,7 +220,7 @@ export default function AdminWebhookDetailPage(): React.ReactElement {
                 <CreditCard className="h-4 w-4" />
                 Payment Status
               </div>
-              {webhook.paymentStatus ? (
+              {webhook.paymentStatus !== null && webhook.paymentStatus !== undefined && webhook.paymentStatus !== '' ? (
                 <PaymentStatusBadge status={webhook.paymentStatus} />
               ) : (
                 <span className="text-text-muted text-sm">—</span>
@@ -248,7 +248,7 @@ export default function AdminWebhookDetailPage(): React.ReactElement {
                 <Package className="h-4 w-4" />
                 Order
               </div>
-              {webhook.orderId ? (
+              {webhook.orderId !== null && webhook.orderId !== undefined && webhook.orderId !== '' ? (
                 <Link
                   href={`/admin/orders/${webhook.orderId}`}
                   className="flex items-center gap-1 font-mono text-sm text-cyan-glow hover:text-pink-featured hover:underline transition-colors duration-200"
@@ -267,7 +267,7 @@ export default function AdminWebhookDetailPage(): React.ReactElement {
                 <CreditCard className="h-4 w-4" />
                 Payment ID
               </div>
-              {webhook.paymentId ? (
+              {webhook.paymentId !== null && webhook.paymentId !== undefined && webhook.paymentId !== '' ? (
                 <Link
                   href={`/admin/payments/${webhook.paymentId}`}
                   className="flex items-center gap-1 font-mono text-sm text-cyan-glow hover:text-pink-featured hover:underline transition-colors duration-200"
@@ -302,7 +302,7 @@ export default function AdminWebhookDetailPage(): React.ReactElement {
           </div>
 
           {/* Error Message */}
-          {webhook.error && (
+          {webhook.error !== null && webhook.error !== undefined && webhook.error !== '' && (
             <>
               <Separator className="my-6" />
               <div className="p-4 border border-orange-warning/30 bg-orange-warning/10 rounded-lg shadow-glow-error">
@@ -340,7 +340,7 @@ export default function AdminWebhookDetailPage(): React.ReactElement {
             </TabsContent>
 
             <TabsContent value="result" className="mt-4">
-              {webhook.result ? (
+              {webhook.result !== null && webhook.result !== undefined ? (
                 <WebhookPayloadViewer
                   payload={webhook.result}
                   title="Processing Result"
@@ -360,7 +360,7 @@ export default function AdminWebhookDetailPage(): React.ReactElement {
       </Card>
 
       {/* Timeline / Related Webhooks */}
-      {webhook.orderId && (
+      {webhook.orderId !== null && webhook.orderId !== undefined && webhook.orderId !== '' && (
         <Card className="bg-bg-secondary border-border-subtle shadow-card-md">
           <CardHeader>
             <CardTitle className="text-text-primary">Related Webhooks</CardTitle>

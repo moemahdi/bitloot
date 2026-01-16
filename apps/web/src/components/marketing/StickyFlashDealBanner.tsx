@@ -42,7 +42,7 @@ interface StickyFlashDeal {
 // Fetch sticky flash deal
 async function fetchStickyFlashDeal(): Promise<StickyFlashDeal | null> {
   const config = new Configuration({
-    basePath: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000',
+    basePath: process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000',
   });
 
   // Fetch specifically sticky type deals
@@ -51,10 +51,10 @@ async function fetchStickyFlashDeal(): Promise<StickyFlashDeal | null> {
   });
 
   if (!response.ok) return null;
-  const data = await response.json();
+  const data = (await response.json()) as unknown as StickyFlashDeal | null;
   
   // Return if we got a deal (already filtered by type on backend)
-  if (data && data.id) {
+  if (data?.id !== undefined) {
     return data;
   }
   return null;
@@ -145,11 +145,11 @@ export function StickyFlashDealBanner(): React.ReactElement | null {
   }, []);
 
   // Don't render if loading, error, no deal, expired, or dismissed
-  if (isLoading || error || !flashDeal || countdown.expired || isDismissed) {
+  if (isLoading === true || (error !== null && error !== undefined) || flashDeal === null || flashDeal === undefined || countdown.expired === true || isDismissed === true) {
     return null;
   }
 
-  const accentColor = flashDeal.accentColor || '#FF6B35';
+  const accentColor = flashDeal.accentColor ?? '#FF6B35';
 
   return (
     <AnimatePresence>
@@ -172,13 +172,13 @@ export function StickyFlashDealBanner(): React.ReactElement | null {
         
         {/* Animated particles/sparkles effect */}
         <div className="absolute inset-0 overflow-hidden">
-          {[...Array(6)].map((_, i) => (
+          {Array.from({ length: 6 }).map((_, i) => (
             <motion.div
               key={i}
               className="absolute w-1 h-1 bg-white/40 rounded-full"
               initial={{ 
-                x: `${Math.random() * 100}%`, 
-                y: `${Math.random() * 100}%`,
+                x: `${(i * 17) % 100}%`, 
+                y: `${(i * 23) % 100}%`,
                 scale: 0 
               }}
               animate={{ 
@@ -228,20 +228,20 @@ export function StickyFlashDealBanner(): React.ReactElement | null {
               </div>
               
               <h2 className="text-lg sm:text-xl lg:text-2xl font-bold text-white mb-1 leading-tight">
-                {flashDeal.headline || flashDeal.name}
+                {flashDeal.headline ?? flashDeal.name}
               </h2>
               
-              {flashDeal.subHeadline && (
+              {flashDeal.subHeadline !== undefined && flashDeal.subHeadline !== null && flashDeal.subHeadline !== '' ? (
                 <p className="text-sm sm:text-base text-white/90 font-medium">
                   {flashDeal.subHeadline}
                 </p>
-              )}
+              ) : null}
               
-              {flashDeal.description && (
+              {flashDeal.description !== undefined && flashDeal.description !== null && flashDeal.description !== '' ? (
                 <p className="text-xs sm:text-sm text-white/75 mt-1 max-w-md mx-auto lg:mx-0 line-clamp-2">
                   {flashDeal.description}
                 </p>
-              )}
+              ) : null}
             </div>
 
             {/* Center Section - Countdown */}
@@ -277,7 +277,7 @@ export function StickyFlashDealBanner(): React.ReactElement | null {
                     className="bg-white text-gray-900 hover:bg-gray-100 font-bold shadow-lg shadow-black/20 gap-2 px-6"
                   >
                     <Zap className="h-4 w-4" />
-                    {flashDeal.ctaText || 'Shop Now'}
+                    {flashDeal.ctaText ?? 'Shop Now'}
                     <ArrowRight className="h-4 w-4" />
                   </Button>
                 </motion.div>

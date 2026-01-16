@@ -5,7 +5,6 @@ import {
   IsOptional,
   IsInt,
   IsNumber,
-  IsObject,
   IsDateString,
   IsEnum,
   IsUUID,
@@ -13,88 +12,6 @@ import {
   Max,
   MaxLength,
 } from 'class-validator';
-
-// ============================================================================
-// SECTION DTOs
-// ============================================================================
-
-export class UpdateSectionDto {
-  @ApiPropertyOptional({ description: 'Enable or disable section' })
-  @IsOptional()
-  @IsBoolean()
-  isEnabled?: boolean;
-
-  @ApiPropertyOptional({ description: 'Display order position (1-6)' })
-  @IsOptional()
-  @IsInt()
-  @Min(1)
-  @Max(10)
-  displayOrder?: number;
-
-  @ApiPropertyOptional({ description: 'Section configuration object' })
-  @IsOptional()
-  @IsObject()
-  config?: Record<string, unknown>;
-
-  @ApiPropertyOptional({ description: 'Schedule start time (ISO 8601)' })
-  @IsOptional()
-  @IsDateString()
-  scheduleStart?: string;
-
-  @ApiPropertyOptional({ description: 'Schedule end time (ISO 8601)' })
-  @IsOptional()
-  @IsDateString()
-  scheduleEnd?: string;
-}
-
-export class ReorderSectionsDto {
-  @ApiProperty({
-    description: 'Array of section keys with their new display order',
-    example: [
-      { sectionKey: 'flash-deals', displayOrder: 1 },
-      { sectionKey: 'trending', displayOrder: 2 },
-    ],
-  })
-  order!: Array<{ sectionKey: string; displayOrder: number }>;
-}
-
-export class SectionResponseDto {
-  @ApiProperty()
-  id!: string;
-
-  @ApiProperty()
-  sectionKey!: string;
-
-  @ApiProperty()
-  displayName!: string;
-
-  @ApiPropertyOptional()
-  description?: string;
-
-  @ApiProperty()
-  category!: string;
-
-  @ApiProperty()
-  isEnabled!: boolean;
-
-  @ApiProperty()
-  displayOrder!: number;
-
-  @ApiProperty()
-  config!: Record<string, unknown>;
-
-  @ApiPropertyOptional()
-  scheduleStart?: Date;
-
-  @ApiPropertyOptional()
-  scheduleEnd?: Date;
-
-  @ApiProperty()
-  createdAt!: Date;
-
-  @ApiProperty()
-  updatedAt!: Date;
-}
 
 // ============================================================================
 // FLASH DEAL DTOs

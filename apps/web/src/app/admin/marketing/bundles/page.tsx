@@ -62,6 +62,7 @@ import {
   Search,
   Image,
 } from 'lucide-react';
+import NextImage from 'next/image';
 import { Configuration } from '@bitloot/sdk';
 import { ScrollArea } from '@/design-system/primitives/scroll-area';
 
@@ -145,7 +146,8 @@ async function fetchBundles(): Promise<BundleDeal[]> {
     headers: { Authorization: `Bearer ${token}` },
   });
   if (!response.ok) throw new Error('Failed to fetch bundles');
-  return response.json();
+  const data: unknown = await response.json();
+  return data as BundleDeal[];
 }
 
 async function createBundle(data: {
@@ -169,7 +171,8 @@ async function createBundle(data: {
     }),
   });
   if (!response.ok) throw new Error('Failed to create bundle');
-  return response.json();
+  const responseData: unknown = await response.json();
+  return responseData as BundleDeal;
 }
 
 async function updateBundle(id: string, data: Partial<BundleDeal>): Promise<BundleDeal> {
@@ -183,7 +186,8 @@ async function updateBundle(id: string, data: Partial<BundleDeal>): Promise<Bund
     body: JSON.stringify(data),
   });
   if (!response.ok) throw new Error('Failed to update bundle');
-  return response.json();
+  const responseData: unknown = await response.json();
+  return responseData as BundleDeal;
 }
 
 async function deleteBundle(id: string): Promise<void> {
@@ -206,7 +210,8 @@ async function addProductToBundle(bundleId: string, productId: string, discountP
     body: JSON.stringify({ productId, discountPercent }),
   });
   if (!response.ok) throw new Error('Failed to add product');
-  return response.json();
+  const data: unknown = await response.json();
+  return data as BundleDeal;
 }
 
 async function updateBundleProduct(bundleId: string, productId: string, discountPercent: number): Promise<BundleDeal> {
@@ -220,7 +225,8 @@ async function updateBundleProduct(bundleId: string, productId: string, discount
     body: JSON.stringify({ discountPercent }),
   });
   if (!response.ok) throw new Error('Failed to update product');
-  return response.json();
+  const data: unknown = await response.json();
+  return data as BundleDeal;
 }
 
 async function removeProductFromBundle(bundleId: string, productId: string): Promise<BundleDeal> {
@@ -230,20 +236,23 @@ async function removeProductFromBundle(bundleId: string, productId: string): Pro
     headers: { Authorization: `Bearer ${token}` },
   });
   if (!response.ok) throw new Error('Failed to remove product');
-  return response.json();
+  const data: unknown = await response.json();
+  return data as BundleDeal;
 }
 
 async function searchProducts(query: string): Promise<CatalogProduct[]> {
   const token = getCookie('accessToken');
-  console.log('[Bundle Search] Searching for:', query || '(empty - loading all)');
+  // eslint-disable-next-line no-console
+  console.log('[Bundle Search] Searching for:', query ?? '(empty - loading all)');
   
   // Build URL - search param is optional, will return all products if empty
   const params = new URLSearchParams({ limit: '20' });
-  if (query.trim()) {
+  if (query.trim() !== '') {
     params.set('search', query.trim());
   }
   
   const url = `${apiConfig.basePath}/admin/catalog/products?${params.toString()}`;
+  // eslint-disable-next-line no-console
   console.log('[Bundle Search] URL:', url);
   
   try {
@@ -253,6 +262,7 @@ async function searchProducts(query: string): Promise<CatalogProduct[]> {
         'Content-Type': 'application/json',
       } 
     });
+    // eslint-disable-next-line no-console
     console.log('[Bundle Search] Response status:', response.status);
     
     if (!response.ok) {
@@ -261,11 +271,13 @@ async function searchProducts(query: string): Promise<CatalogProduct[]> {
       return [];
     }
     
-    const data = await response.json();
+    const data = await response.json() as CatalogProduct[] | { products: CatalogProduct[] };
+    // eslint-disable-next-line no-console
     console.log('[Bundle Search] Response data:', data);
     
     // Handle both array response and paginated response
-    const products = Array.isArray(data) ? data : (data.products || []);
+    const products = Array.isArray(data) ? data : (data.products ?? []);
+    // eslint-disable-next-line no-console
     console.log('[Bundle Search] Products found:', products.length);
     return products;
   } catch (error) {
@@ -277,13 +289,15 @@ async function searchProducts(query: string): Promise<CatalogProduct[]> {
 // Format price in Euro
 function formatPrice(price: string | number): string {
   const num = typeof price === 'string' ? parseFloat(price) : price;
-  return `€${(num || 0).toFixed(2)}`;
+  return `€${(Number.isNaN(num) ? 0 : num ?? 0).toFixed(2)}`;
 }
 
 // Calculate discounted price
 function calcDiscountedPrice(price: string, discountPercent: string): number {
-  const p = parseFloat(price) || 0;
-  const d = parseFloat(discountPercent) || 0;
+  const pRaw = parseFloat(price);
+  const dRaw = parseFloat(discountPercent);
+  const p = Number.isNaN(pRaw) ? 0 : pRaw;
+  const d = Number.isNaN(dRaw) ? 0 : dRaw;
   return p * (1 - d / 100);
 }
 
@@ -320,7 +334,7 @@ export default function AdminBundlesPage(): React.ReactElement {
   const createMutation = useMutation({
     mutationFn: createBundle,
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['admin', 'bundles'] });
+      void queryClient.invalidateQueries({ queryKey: ['admin', 'bundles'] });
       setShowCreateDialog(false);
       resetForm();
       toast.success(`Bundle "${data.name}" created successfully!`);
@@ -333,8 +347,8 @@ export default function AdminBundlesPage(): React.ReactElement {
   const updateMutation = useMutation({
     mutationFn: ({ id, data }: { id: string; data: Partial<BundleDeal> }) => updateBundle(id, data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin', 'bundles'] });
-      if (editingBundle) {
+      void queryClient.invalidateQueries({ queryKey: ['admin', 'bundles'] });
+      if (editingBundle !== null) {
         toast.success('Bundle updated successfully!');
       }
       setEditingBundle(null);
@@ -348,7 +362,7 @@ export default function AdminBundlesPage(): React.ReactElement {
   const deleteMutation = useMutation({
     mutationFn: deleteBundle,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin', 'bundles'] });
+      void queryClient.invalidateQueries({ queryKey: ['admin', 'bundles'] });
       toast.success(`Bundle "${deletingBundle?.name}" deleted successfully!`);
       setDeletingBundle(null);
     },
@@ -362,7 +376,7 @@ export default function AdminBundlesPage(): React.ReactElement {
     mutationFn: ({ bundleId, productId, discountPercent }: { bundleId: string; productId: string; discountPercent: number }) =>
       addProductToBundle(bundleId, productId, discountPercent),
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['admin', 'bundles'] });
+      void queryClient.invalidateQueries({ queryKey: ['admin', 'bundles'] });
       setManagingBundle(data);
       toast.success('Product added to bundle!');
       setSelectedProduct(null);
@@ -379,7 +393,7 @@ export default function AdminBundlesPage(): React.ReactElement {
     mutationFn: ({ bundleId, productId, discountPercent }: { bundleId: string; productId: string; discountPercent: number }) =>
       updateBundleProduct(bundleId, productId, discountPercent),
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['admin', 'bundles'] });
+      void queryClient.invalidateQueries({ queryKey: ['admin', 'bundles'] });
       setManagingBundle(data);
     },
   });
@@ -388,7 +402,7 @@ export default function AdminBundlesPage(): React.ReactElement {
     mutationFn: ({ bundleId, productId }: { bundleId: string; productId: string }) =>
       removeProductFromBundle(bundleId, productId),
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['admin', 'bundles'] });
+      void queryClient.invalidateQueries({ queryKey: ['admin', 'bundles'] });
       setManagingBundle(data);
       toast.success('Product removed from bundle');
     },
@@ -408,9 +422,9 @@ export default function AdminBundlesPage(): React.ReactElement {
   // Open edit dialog
   function openEdit(bundle: BundleDeal) {
     setFormName(bundle.name);
-    setFormDescription(bundle.description || '');
+    setFormDescription(bundle.description ?? '');
     setFormCategory(bundle.category);
-    setFormHeroImage(bundle.heroImage || '');
+    setFormHeroImage(bundle.heroImage ?? '');
     setEditingBundle(bundle);
   }
 
@@ -427,7 +441,7 @@ export default function AdminBundlesPage(): React.ReactElement {
 
   // Load products when manage dialog opens
   useEffect(() => {
-    if (managingBundle) {
+    if (managingBundle !== null) {
       // Reset search state when dialog opens
       setSearchQuery('');
       setSelectedProduct(null);
@@ -453,12 +467,12 @@ export default function AdminBundlesPage(): React.ReactElement {
 
   // Calculate totals for managing bundle
   const bundleTotals = useMemo(() => {
-    if (!managingBundle) return { original: 0, discounted: 0, savings: 0 };
+    if (managingBundle === null) return { original: 0, discounted: 0, savings: 0 };
     let original = 0;
     let discounted = 0;
     for (const bp of managingBundle.products) {
-      if (bp.product) {
-        const price = parseFloat(bp.product.price) || 0;
+      if (bp.product !== null && bp.product !== undefined) {
+        const price = Number.isNaN(parseFloat(bp.product.price)) ? 0 : parseFloat(bp.product.price);
         original += price;
         discounted += calcDiscountedPrice(bp.product.price, bp.discountPercent);
       }
@@ -480,7 +494,7 @@ export default function AdminBundlesPage(): React.ReactElement {
   }
 
   // Error state
-  if (error) {
+  if (error !== null && error !== undefined) {
     return (
       <div className="p-6">
         <Card className="border-destructive">
@@ -540,8 +554,10 @@ export default function AdminBundlesPage(): React.ReactElement {
                   <TableRow key={bundle.id}>
                     <TableCell>
                       <div className="flex items-center gap-3">
-                        {bundle.heroImage ? (
-                          <img src={bundle.heroImage} alt="" className="w-10 h-10 rounded object-cover" />
+                        {bundle.heroImage !== null && bundle.heroImage !== '' ? (
+                          <div className="relative w-10 h-10 rounded overflow-hidden">
+                            <NextImage src={bundle.heroImage} alt="" fill className="object-cover" />
+                          </div>
                         ) : (
                           <div className="w-10 h-10 rounded bg-muted flex items-center justify-center">
                             <Gift className="h-5 w-5 text-muted-foreground" />
@@ -549,7 +565,7 @@ export default function AdminBundlesPage(): React.ReactElement {
                         )}
                         <div>
                           <p className="font-medium">{bundle.name}</p>
-                          {bundle.description && (
+                          {bundle.description !== null && bundle.description !== undefined && bundle.description !== '' && (
                             <p className="text-xs text-muted-foreground truncate max-w-[200px]">
                               {bundle.description}
                             </p>
@@ -561,7 +577,7 @@ export default function AdminBundlesPage(): React.ReactElement {
                       <Badge variant="outline" className="capitalize">{bundle.category}</Badge>
                     </TableCell>
                     <TableCell>
-                      <Badge variant="secondary">{bundle.products?.length || 0} items</Badge>
+                      <Badge variant="secondary">{bundle.products?.length ?? 0} items</Badge>
                     </TableCell>
                     <TableCell className="text-muted-foreground line-through">
                       {formatPrice(bundle.originalPrice)}
@@ -618,7 +634,7 @@ export default function AdminBundlesPage(): React.ReactElement {
       </Card>
 
       {/* Delete Confirmation Dialog */}
-      <AlertDialog open={!!deletingBundle} onOpenChange={(open) => !open && setDeletingBundle(null)}>
+      <AlertDialog open={deletingBundle !== null} onOpenChange={(open) => !open && setDeletingBundle(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle className="flex items-center gap-2">
@@ -644,7 +660,7 @@ export default function AdminBundlesPage(): React.ReactElement {
           <AlertDialogFooter>
             <AlertDialogCancel disabled={deleteMutation.isPending}>Cancel</AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => deletingBundle && deleteMutation.mutate(deletingBundle.id)}
+              onClick={() => deletingBundle !== null && deleteMutation.mutate(deletingBundle.id)}
               disabled={deleteMutation.isPending}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
@@ -718,8 +734,10 @@ export default function AdminBundlesPage(): React.ReactElement {
                   onChange={(e) => setFormHeroImage(e.target.value)}
                   placeholder="https://..."
                 />
-                {formHeroImage && (
-                  <img src={formHeroImage} alt="" className="w-10 h-10 rounded object-cover" />
+                {formHeroImage !== null && formHeroImage !== '' && (
+                  <div className="relative w-10 h-10 rounded overflow-hidden">
+                    <NextImage src={formHeroImage} alt="" fill className="object-cover" />
+                  </div>
                 )}
               </div>
             </div>
@@ -729,11 +747,11 @@ export default function AdminBundlesPage(): React.ReactElement {
             <Button
               onClick={() => createMutation.mutate({
                 name: formName,
-                description: formDescription || undefined,
+                description: formDescription !== '' ? formDescription : undefined,
                 category: formCategory,
-                heroImage: formHeroImage || undefined,
+                heroImage: formHeroImage !== '' ? formHeroImage : undefined,
               })}
-              disabled={!formName.trim() || createMutation.isPending}
+              disabled={formName.trim() === '' || createMutation.isPending}
             >
               {createMutation.isPending ? <Loader className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
               <span className="ml-2">Create</span>
@@ -743,7 +761,7 @@ export default function AdminBundlesPage(): React.ReactElement {
       </Dialog>
 
       {/* Edit Bundle Dialog */}
-      <Dialog open={!!editingBundle} onOpenChange={() => setEditingBundle(null)}>
+      <Dialog open={editingBundle !== null} onOpenChange={() => setEditingBundle(null)}>
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
@@ -793,8 +811,10 @@ export default function AdminBundlesPage(): React.ReactElement {
                   value={formHeroImage}
                   onChange={(e) => setFormHeroImage(e.target.value)}
                 />
-                {formHeroImage && (
-                  <img src={formHeroImage} alt="" className="w-10 h-10 rounded object-cover" />
+                {formHeroImage !== null && formHeroImage !== '' && (
+                  <div className="relative w-10 h-10 rounded overflow-hidden">
+                    <NextImage src={formHeroImage} alt="" fill className="object-cover" />
+                  </div>
                 )}
               </div>
             </div>
@@ -803,19 +823,19 @@ export default function AdminBundlesPage(): React.ReactElement {
             <Button variant="outline" onClick={() => setEditingBundle(null)}>Cancel</Button>
             <Button
               onClick={() => {
-                if (editingBundle) {
+                if (editingBundle !== null) {
                   updateMutation.mutate({
                     id: editingBundle.id,
                     data: {
                       name: formName,
-                      description: formDescription || null,
+                      description: formDescription !== '' ? formDescription : null,
                       category: formCategory,
-                      heroImage: formHeroImage || null,
+                      heroImage: formHeroImage !== '' ? formHeroImage : null,
                     },
                   });
                 }
               }}
-              disabled={!formName.trim() || updateMutation.isPending}
+              disabled={formName.trim() === '' || updateMutation.isPending}
             >
               {updateMutation.isPending ? <Loader className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
               <span className="ml-2">Save</span>
@@ -825,7 +845,7 @@ export default function AdminBundlesPage(): React.ReactElement {
       </Dialog>
 
       {/* Manage Products Dialog */}
-      <Dialog open={!!managingBundle} onOpenChange={() => setManagingBundle(null)}>
+      <Dialog open={managingBundle !== null} onOpenChange={() => setManagingBundle(null)}>
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
@@ -873,15 +893,17 @@ export default function AdminBundlesPage(): React.ReactElement {
                             disabled={isInBundle}
                             onClick={() => setSelectedProduct(product)}
                             className={`w-full flex items-center gap-3 p-2 rounded text-left transition-colors ${
-                              isInBundle
+                              isInBundle === true
                                 ? 'opacity-50 cursor-not-allowed'
                                 : selectedProduct?.id === product.id
                                 ? 'bg-pink-500/10 border border-pink-500'
                                 : 'hover:bg-muted'
                             }`}
                           >
-                            {product.coverImageUrl ? (
-                              <img src={product.coverImageUrl} alt="" className="w-8 h-8 rounded object-cover" />
+                            {product.coverImageUrl !== null && product.coverImageUrl !== undefined && product.coverImageUrl !== '' ? (
+                              <div className="relative w-8 h-8 rounded overflow-hidden">
+                                <NextImage src={product.coverImageUrl} alt="" fill className="object-cover" />
+                              </div>
                             ) : (
                               <div className="w-8 h-8 rounded bg-muted flex items-center justify-center">
                                 <Image className="h-4 w-4 text-muted-foreground" />
@@ -892,7 +914,7 @@ export default function AdminBundlesPage(): React.ReactElement {
                               <p className="text-xs text-muted-foreground">{product.platform}</p>
                             </div>
                             <p className="text-sm font-semibold">{formatPrice(product.price)}</p>
-                            {isInBundle && (
+                            {isInBundle === true && (
                               <Badge variant="secondary" className="text-xs">In Bundle</Badge>
                             )}
                           </button>
@@ -903,7 +925,7 @@ export default function AdminBundlesPage(): React.ReactElement {
                 )}
 
                 {/* Selected Product + Discount */}
-                {selectedProduct && (
+                {selectedProduct !== null && selectedProduct !== undefined && (
                   <div className="flex items-center gap-3 p-3 bg-muted rounded-lg">
                     <div className="flex-1">
                       <p className="font-medium">{selectedProduct.title}</p>
@@ -927,11 +949,11 @@ export default function AdminBundlesPage(): React.ReactElement {
                       <Button
                         size="sm"
                         onClick={() => {
-                          if (managingBundle && selectedProduct) {
+                          if (managingBundle !== null && selectedProduct !== null) {
                             addProductMutation.mutate({
                               bundleId: managingBundle.id,
                               productId: selectedProduct.id,
-                              discountPercent: parseFloat(discountInput) || 0,
+                              discountPercent: Number.isNaN(parseFloat(discountInput)) ? 0 : parseFloat(discountInput),
                             });
                           }
                         }}
@@ -961,7 +983,7 @@ export default function AdminBundlesPage(): React.ReactElement {
             <Card className="flex-1 overflow-hidden flex flex-col">
               <CardHeader className="pb-3">
                 <CardTitle className="text-sm font-medium flex items-center justify-between">
-                  <span>Bundle Items ({managingBundle?.products?.length || 0})</span>
+                  <span>Bundle Items ({managingBundle?.products?.length ?? 0})</span>
                   <div className="flex items-center gap-4 text-base">
                     <span className="text-muted-foreground line-through">
                       {formatPrice(bundleTotals.original)}
@@ -976,7 +998,7 @@ export default function AdminBundlesPage(): React.ReactElement {
                 </CardTitle>
               </CardHeader>
               <CardContent className="flex-1 overflow-auto">
-                {!managingBundle?.products?.length ? (
+                {(managingBundle?.products?.length ?? 0) === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">
                     <Package className="h-10 w-10 mx-auto mb-2 opacity-50" />
                     <p>No products added yet</p>
@@ -984,19 +1006,24 @@ export default function AdminBundlesPage(): React.ReactElement {
                   </div>
                 ) : (
                   <div className="space-y-2">
-                    {managingBundle.products
+                    {(managingBundle?.products ?? [])
                       .sort((a, b) => a.displayOrder - b.displayOrder)
-                      .map((bp) => (
+                      .map((bp) => {
+                        const hasImage = typeof bp.product?.coverImageUrl === 'string' && bp.product.coverImageUrl.length > 0;
+                        return (
                         <div
                           key={bp.id}
                           className="flex items-center gap-3 p-3 border rounded-lg"
                         >
-                          {bp.product?.coverImageUrl ? (
-                            <img
-                              src={bp.product.coverImageUrl}
-                              alt=""
-                              className="w-12 h-12 rounded object-cover"
-                            />
+                          {hasImage ? (
+                            <div className="relative w-12 h-12 rounded overflow-hidden">
+                              <NextImage
+                                src={bp.product?.coverImageUrl ?? ''}
+                                alt=""
+                                fill
+                                className="object-cover"
+                              />
+                            </div>
                           ) : (
                             <div className="w-12 h-12 rounded bg-muted flex items-center justify-center">
                               <Package className="h-6 w-6 text-muted-foreground" />
@@ -1004,14 +1031,14 @@ export default function AdminBundlesPage(): React.ReactElement {
                           )}
                           <div className="flex-1 min-w-0">
                             <p className="font-medium truncate">
-                              {bp.product?.title || 'Unknown Product'}
+                              {bp.product?.title ?? 'Unknown Product'}
                             </p>
                             <div className="flex items-center gap-2 text-sm">
                               <span className="text-muted-foreground line-through">
-                                {formatPrice(bp.product?.price || '0')}
+                                {formatPrice(bp.product?.price ?? '0')}
                               </span>
                               <span className="text-green-600 font-semibold">
-                                {formatPrice(calcDiscountedPrice(bp.product?.price || '0', bp.discountPercent))}
+                                {formatPrice(calcDiscountedPrice(bp.product?.price ?? '0', bp.discountPercent))}
                               </span>
                             </div>
                           </div>
@@ -1021,11 +1048,11 @@ export default function AdminBundlesPage(): React.ReactElement {
                                 type="number"
                                 value={bp.discountPercent}
                                 onChange={(e) => {
-                                  if (managingBundle) {
+                                  if (managingBundle !== null) {
                                     updateProductMutation.mutate({
                                       bundleId: managingBundle.id,
                                       productId: bp.productId,
-                                      discountPercent: parseFloat(e.target.value) || 0,
+                                      discountPercent: Number.isNaN(parseFloat(e.target.value)) ? 0 : parseFloat(e.target.value),
                                     });
                                   }
                                 }}
@@ -1042,7 +1069,7 @@ export default function AdminBundlesPage(): React.ReactElement {
                               variant="ghost"
                               size="sm"
                               onClick={() => {
-                                if (managingBundle) {
+                                if (managingBundle !== null) {
                                   removeProductMutation.mutate({
                                     bundleId: managingBundle.id,
                                     productId: bp.productId,
@@ -1055,7 +1082,8 @@ export default function AdminBundlesPage(): React.ReactElement {
                             </Button>
                           </div>
                         </div>
-                      ))}
+                      );
+                      })}
                   </div>
                 )}
               </CardContent>

@@ -411,13 +411,13 @@ export default function AdminReviewsPage(): React.ReactElement {
                         )}
                       </TableCell>
                       <TableCell className="max-w-[200px]">
-                        {review.orderItems && review.orderItems.length > 0 ? (
+                        {review.orderItems !== null && review.orderItems !== undefined && review.orderItems.length > 0 ? (
                           <div className="space-y-0.5">
                             {(() => {
                               // Aggregate items with the same productId
                               const aggregatedItems = review.orderItems.reduce((acc, item) => {
                                 const existing = acc.find(i => i.productId === item.productId);
-                                if (existing) {
+                                if (existing !== undefined) {
                                   existing.quantity += item.quantity;
                                 } else {
                                   acc.push({ ...item });
@@ -640,13 +640,13 @@ export default function AdminReviewsPage(): React.ReactElement {
                 </div>
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">Product(s)</label>
-                  {selectedReview.orderItems && selectedReview.orderItems.length > 0 ? (
+                  {selectedReview.orderItems !== null && selectedReview.orderItems !== undefined && selectedReview.orderItems.length > 0 ? (
                     <div className="space-y-1 mt-1">
                       {(() => {
                         // Aggregate items with the same productId
                         const aggregatedItems = selectedReview.orderItems.reduce((acc, item) => {
                           const existing = acc.find(i => i.productId === item.productId);
-                          if (existing) {
+                          if (existing !== undefined) {
                             existing.quantity += item.quantity;
                           } else {
                             acc.push({ ...item });

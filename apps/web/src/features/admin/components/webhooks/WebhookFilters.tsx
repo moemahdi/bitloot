@@ -124,7 +124,7 @@ export function WebhookFilters({
             onChange={(e) => updateFilter('search', e.target.value)}
             className="pl-9 pr-9"
           />
-          {filters.search && (
+          {filters.search !== '' && (
             <button
               onClick={() => updateFilter('search', '')}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-text-secondary hover:text-destructive hover:shadow-glow-error transition-all duration-200"
@@ -293,8 +293,8 @@ function DateRangePicker({
             aria-label="Select start date"
           >
             <Calendar className="h-4 w-4 text-cyan-glow" />
-            <span className={startDate ? 'text-text-primary' : 'text-text-muted'}>
-              {startDate ? startDate.toLocaleDateString() : 'Start Date'}
+            <span className={startDate !== undefined ? 'text-text-primary' : 'text-text-muted'}>
+              {startDate !== undefined ? startDate.toLocaleDateString() : 'Start Date'}
             </span>
           </Button>
         </PopoverTrigger>
@@ -317,8 +317,8 @@ function DateRangePicker({
             aria-label="Select end date"
           >
             <Calendar className="h-4 w-4 text-cyan-glow" />
-            <span className={endDate ? 'text-text-primary' : 'text-text-muted'}>
-              {endDate ? endDate.toLocaleDateString() : 'End Date'}
+            <span className={endDate !== undefined ? 'text-text-primary' : 'text-text-muted'}>
+              {endDate !== undefined ? endDate.toLocaleDateString() : 'End Date'}
             </span>
           </Button>
         </PopoverTrigger>
@@ -331,7 +331,7 @@ function DateRangePicker({
           />
         </PopoverContent>
       </Popover>
-      {(startDate || endDate) && (
+      {(startDate !== undefined || endDate !== undefined) && (
         <Button
           variant="ghost"
           size="icon"
@@ -358,7 +358,7 @@ function ActiveFilterTags({
 }): React.ReactElement {
   const tags: { key: keyof WebhookFiltersState; label: string; value: string }[] = [];
 
-  if (filters.webhookType && filters.webhookType !== 'all') {
+  if (filters.webhookType !== null && filters.webhookType !== undefined && filters.webhookType !== '' && filters.webhookType !== 'all') {
     const type = WEBHOOK_TYPES.find((t) => t.value === filters.webhookType);
     tags.push({ key: 'webhookType', label: 'Type', value: type?.label ?? filters.webhookType });
   }
@@ -368,14 +368,14 @@ function ActiveFilterTags({
   if (filters.signatureValid !== 'all') {
     tags.push({ key: 'signatureValid', label: 'Signature', value: filters.signatureValid === 'true' ? 'Valid' : 'Invalid' });
   }
-  if (filters.paymentStatus && filters.paymentStatus !== 'all') {
+  if (filters.paymentStatus !== null && filters.paymentStatus !== undefined && filters.paymentStatus !== '' && filters.paymentStatus !== 'all') {
     const status = PAYMENT_STATUSES.find((s) => s.value === filters.paymentStatus);
     tags.push({ key: 'paymentStatus', label: 'Payment', value: status?.label ?? filters.paymentStatus });
   }
-  if (filters.startDate) {
+  if (filters.startDate !== undefined) {
     tags.push({ key: 'startDate', label: 'From', value: filters.startDate.toLocaleDateString() });
   }
-  if (filters.endDate) {
+  if (filters.endDate !== undefined) {
     tags.push({ key: 'endDate', label: 'To', value: filters.endDate.toLocaleDateString() });
   }
 
@@ -411,12 +411,12 @@ function ActiveFilterTags({
 
 function getActiveFilterCount(filters: WebhookFiltersState): number {
   let count = 0;
-  if (filters.search) count++;
-  if (filters.webhookType && filters.webhookType !== 'all') count++;
+  if (filters.search !== '') count++;
+  if (filters.webhookType !== null && filters.webhookType !== undefined && filters.webhookType !== '' && filters.webhookType !== 'all') count++;
   if (filters.processed !== 'all') count++;
   if (filters.signatureValid !== 'all') count++;
-  if (filters.paymentStatus && filters.paymentStatus !== 'all') count++;
-  if (filters.startDate) count++;
-  if (filters.endDate) count++;
+  if (filters.paymentStatus !== null && filters.paymentStatus !== undefined && filters.paymentStatus !== '' && filters.paymentStatus !== 'all') count++;
+  if (filters.startDate !== null && filters.startDate !== undefined) count++;
+  if (filters.endDate !== null && filters.endDate !== undefined) count++;
   return count;
 }

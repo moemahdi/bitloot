@@ -58,18 +58,18 @@ export class PublicMarketingController {
   @ApiQuery({ name: 'type', required: false, description: 'Display type filter (inline or sticky)', enum: ['inline', 'sticky'] })
   @ApiResponse({ status: 200, description: 'Active flash deal or null', type: FlashDealResponseDto })
   async getActiveFlashDeal(@Query('type') type?: 'inline' | 'sticky'): Promise<FlashDealResponseDto | null> {
-    if (type) {
-      return this.marketingService.getActiveFlashDealByType(type) as any;
+    if (type !== undefined) {
+      return await this.marketingService.getActiveFlashDealByType(type) as unknown as FlashDealResponseDto | null;
     }
     // Default: return the first active deal (inline preferred for backward compatibility)
-    return this.marketingService.getActiveFlashDeal() as any;
+    return await this.marketingService.getActiveFlashDeal() as unknown as FlashDealResponseDto | null;
   }
 
   @Get('flash-deals/active')
   @ApiOperation({ summary: 'Get all currently active flash deals' })
   @ApiResponse({ status: 200, description: 'List of active flash deals', type: [FlashDealResponseDto] })
   async getActiveFlashDeals(): Promise<FlashDealResponseDto[]> {
-    return this.marketingService.getActiveFlashDeals() as any;
+    return await this.marketingService.getActiveFlashDeals() as unknown as FlashDealResponseDto[];
   }
 
   @Get('bundles')
@@ -77,8 +77,8 @@ export class PublicMarketingController {
   @ApiQuery({ name: 'limit', required: false, description: 'Maximum bundles to return', example: 6 })
   @ApiResponse({ status: 200, description: 'List of active bundles', type: [BundleDealResponseDto] })
   async getActiveBundles(@Query('limit') limit?: string): Promise<BundleDealResponseDto[]> {
-    const numLimit = limit ? parseInt(limit, 10) : 6;
-    return this.marketingService.getActiveBundles(numLimit) as any;
+    const numLimit = limit !== undefined ? parseInt(limit, 10) : 6;
+    return await this.marketingService.getActiveBundles(numLimit) as unknown as BundleDealResponseDto[];
   }
 
   @Get('bundles/:slug')
@@ -86,7 +86,7 @@ export class PublicMarketingController {
   @ApiResponse({ status: 200, description: 'Bundle details', type: BundleDealResponseDto })
   async getBundleBySlug(@Param('slug') slug: string): Promise<BundleDealResponseDto> {
     // For now, we'll get by ID - can add slug lookup later
-    return this.marketingService.getBundleById(slug) as any;
+    return await this.marketingService.getBundleById(slug) as unknown as BundleDealResponseDto;
   }
 
   @Post('effective-prices')
@@ -108,7 +108,7 @@ export class PublicMarketingController {
     const prices: EffectivePriceResponseDto[] = [];
     for (const product of dto.products) {
       const pricing = pricesMap.get(product.productId);
-      if (pricing) {
+      if (pricing !== null && pricing !== undefined) {
         prices.push({
           productId: product.productId,
           effectivePrice: pricing.effectivePrice,

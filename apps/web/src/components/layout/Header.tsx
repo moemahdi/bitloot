@@ -19,7 +19,6 @@ import {
     Monitor,
     Gift,
     Repeat,
-    Sparkles,
     Star,
 } from 'lucide-react';
 import { Sheet, SheetContent, SheetTrigger, SheetClose } from '@/design-system/primitives/sheet';

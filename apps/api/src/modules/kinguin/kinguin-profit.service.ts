@@ -1,10 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Between, In } from 'typeorm';
+import { Repository, In } from 'typeorm';
 import { Order, OrderStatus } from '../orders/order.entity';
 import { OrderItem } from '../orders/order-item.entity';
 import { Product } from '../catalog/entities/product.entity';
-import { KinguinClient, KinguinOrderObject } from '../fulfillment/kinguin.client';
+import { KinguinClient } from '../fulfillment/kinguin.client';
 import {
   ProfitSummaryDto,
   ProductProfitDto,
@@ -113,7 +113,7 @@ export class KinguinProfitService {
         }
       }
     } catch (error) {
-      this.logger.warn(`Failed to preload product names: ${error}`);
+      this.logger.warn(`Failed to preload product names: ${String(error)}`);
     }
   }
 
@@ -187,7 +187,7 @@ export class KinguinProfitService {
         costMap.set(order.orderId, order.paymentPrice ?? 0);
       }
     } catch (error) {
-      this.logger.warn(`Failed to fetch Kinguin orders for cost data: ${error}`);
+      this.logger.warn(`Failed to fetch Kinguin orders for cost data: ${String(error)}`);
     }
 
     return costMap;
@@ -198,13 +198,14 @@ export class KinguinProfitService {
    * Uses sum of (unitPrice × quantity) for each item
    */
   private calculateOrderRevenue(order: Order): number {
-    if (!order.items || order.items.length === 0) {
+    if (order.items === null || order.items === undefined || order.items.length === 0) {
       this.logger.warn(`Order ${order.id} has no items loaded!`);
       return 0;
     }
 
     const revenue = order.items.reduce((sum, item) => {
-      const unitPrice = parseFloat(item.unitPrice) || 0;
+      const rawUnitPrice = parseFloat(item.unitPrice);
+      const unitPrice = Number.isNaN(rawUnitPrice) ? 0 : rawUnitPrice;
       return sum + unitPrice * item.quantity;
     }, 0);
     
@@ -217,7 +218,7 @@ export class KinguinProfitService {
    * Uses kinguinReservationId to match with Kinguin order
    */
   private async getOrderCost(order: Order): Promise<number> {
-    if (!order.kinguinReservationId) {
+    if (order.kinguinReservationId === null || order.kinguinReservationId === undefined || order.kinguinReservationId === '') {
       return 0;
     }
 
@@ -242,7 +243,8 @@ export class KinguinProfitService {
     // Collect all unique product IDs and preload names
     const productIds = new Set<string>();
     for (const order of orders) {
-      for (const item of order.items || []) {
+      const items = order.items ?? [];
+      for (const item of items) {
         productIds.add(item.productId);
       }
     }
@@ -258,7 +260,7 @@ export class KinguinProfitService {
       
       // Get cost from map or fetch individually
       let cost = 0;
-      if (order.kinguinReservationId) {
+      if (order.kinguinReservationId !== null && order.kinguinReservationId !== undefined && order.kinguinReservationId !== '') {
         cost = kinguinCostMap.get(order.kinguinReservationId) ?? 0;
         
         // If not in map, try to fetch individually
@@ -268,8 +270,10 @@ export class KinguinProfitService {
       }
 
       // Add each item as a separate entry for per-product analysis
-      for (const item of order.items || []) {
-        const itemRevenue = (parseFloat(item.unitPrice) || 0) * item.quantity;
+      const orderItems = order.items ?? [];
+      for (const item of orderItems) {
+        const rawItemPrice = parseFloat(item.unitPrice);
+        const itemRevenue = (Number.isNaN(rawItemPrice) ? 0 : rawItemPrice) * item.quantity;
         
         // Skip items with no revenue
         if (itemRevenue === 0) {
@@ -338,7 +342,7 @@ export class KinguinProfitService {
       totalRevenue += revenue;
 
       // Get cost from Kinguin
-      if (order.kinguinReservationId) {
+      if (order.kinguinReservationId !== null && order.kinguinReservationId !== undefined && order.kinguinReservationId !== '') {
         let cost = kinguinCostMap.get(order.kinguinReservationId) ?? 0;
         
         // If not in map, try to fetch individually
@@ -420,7 +424,7 @@ export class KinguinProfitService {
 
     for (const item of ordersWithCost) {
       const existing = productMap.get(item.productId);
-      if (existing) {
+      if (existing !== null && existing !== undefined) {
         existing.unitsSold += item.quantity;
         existing.totalRevenue += item.revenue;
         existing.totalCost += item.cost;
@@ -516,7 +520,7 @@ export class KinguinProfitService {
     // Initialize all dates with zeros
     for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
       const dateKey = d.toISOString().split('T')[0] ?? '';
-      if (dateKey) {
+      if (dateKey !== '') {
         dailyData.set(dateKey, { revenue: 0, cost: 0, orderCount: 0 });
       }
     }
@@ -525,7 +529,7 @@ export class KinguinProfitService {
     for (const order of orders) {
       const dateKey = order.createdAt.toISOString().split('T')[0] ?? '';
       const existing = dailyData.get(dateKey);
-      if (!existing) continue;
+      if (existing === null || existing === undefined) continue;
 
       const revenue = this.calculateOrderRevenue(order);
       
@@ -535,7 +539,7 @@ export class KinguinProfitService {
       }
       
       let cost = 0;
-      if (order.kinguinReservationId) {
+      if (order.kinguinReservationId !== null && order.kinguinReservationId !== undefined && order.kinguinReservationId !== '') {
         cost = kinguinCostMap.get(order.kinguinReservationId) ?? 0;
       }
 
@@ -570,7 +574,7 @@ export class KinguinProfitService {
     // Find best day
     const bestDay = trend.reduce(
       (best, day) => (day.profit > best.profit ? day : best),
-      trend[0] || { profit: 0, date: '' },
+      trend[0] ?? { profit: 0, date: '' },
     );
 
     return {

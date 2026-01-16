@@ -58,7 +58,7 @@ export function useWebhookDetail(optionsOrId: UseWebhookDetailOptions | string):
       const response = await adminApi.adminControllerGetWebhookLogDetail({ id });
       return response as unknown as WebhookLogDetail;
     },
-    enabled: enabled && !!id,
+    enabled: enabled && id !== '',
     staleTime: 30_000,
     refetchInterval,
   });
@@ -69,7 +69,7 @@ export function useWebhookDetail(optionsOrId: UseWebhookDetailOptions | string):
       const response = await adminApi.adminControllerGetAdjacentWebhooks({ id });
       return response as unknown as WebhookAdjacent;
     },
-    enabled: enabled && !!id,
+    enabled: enabled && id !== '',
     staleTime: 60_000,
   });
 

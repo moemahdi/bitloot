@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { useQuery } from '@tanstack/react-query';
 import { Gift, Package, ChevronRight, TrendingDown, Sparkles } from 'lucide-react';
@@ -58,19 +59,22 @@ async function fetchActiveBundles(): Promise<BundleDeal[]> {
   if (!response.ok) {
     throw new Error('Failed to fetch bundles');
   }
-  return response.json();
+  return response.json() as Promise<BundleDeal[]>;
 }
 
 // Format price in Euro (BitLoot uses Euro only)
 function formatPrice(price: string | number): string {
   const num = typeof price === 'string' ? parseFloat(price) : price;
-  return `€${(num || 0).toFixed(2)}`;
+  const safeNum = Number.isNaN(num) ? 0 : (num ?? 0);
+  return `€${safeNum.toFixed(2)}`;
 }
 
 // Bundle card component
 function BundleCard({ bundle, onSelect }: { bundle: BundleDeal; onSelect: (bundle: BundleDeal) => void }) {
-  const originalPrice = parseFloat(bundle.originalPrice) || 0;
-  const bundlePrice = parseFloat(bundle.bundlePrice) || 0;
+  const originalPriceRaw = parseFloat(bundle.originalPrice);
+  const bundlePriceRaw = parseFloat(bundle.bundlePrice);
+  const originalPrice = Number.isNaN(originalPriceRaw) ? 0 : originalPriceRaw;
+  const bundlePrice = Number.isNaN(bundlePriceRaw) ? 0 : bundlePriceRaw;
   const savings = originalPrice - bundlePrice;
 
   return (
@@ -88,11 +92,12 @@ function BundleCard({ bundle, onSelect }: { bundle: BundleDeal; onSelect: (bundl
           <CardContent className="p-0 flex-1 flex flex-col">
             {/* Hero Image */}
             <div className="relative aspect-video bg-gradient-to-br from-pink-500/20 to-purple-500/20 overflow-hidden">
-              {bundle.heroImage ? (
-                <img
+              {bundle.heroImage !== null && bundle.heroImage !== undefined && bundle.heroImage !== '' ? (
+                <Image
                   src={bundle.heroImage}
                   alt={bundle.name}
-                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                  fill
+                  className="object-cover transition-transform duration-500 group-hover:scale-110"
                 />
               ) : (
                 <div className="w-full h-full flex items-center justify-center">
@@ -131,41 +136,45 @@ function BundleCard({ bundle, onSelect }: { bundle: BundleDeal; onSelect: (bundl
                 {bundle.name}
               </h3>
 
-              {bundle.description && (
+              {bundle.description !== null && bundle.description !== undefined && bundle.description !== '' ? (
                 <p className="text-sm text-text-muted line-clamp-2 mb-4 flex-1">
                   {bundle.description}
                 </p>
-              )}
+              ) : null}
 
               {/* Product Thumbnails */}
-              {bundle.products.length > 0 && (
+              {bundle.products.length > 0 ? (
                 <div className="flex -space-x-2 mb-4">
-                  {bundle.products.slice(0, 4).map((product, index) => (
-                    <div
-                      key={product.id}
-                      className="w-10 h-10 rounded-lg border-2 border-bg-primary bg-bg-tertiary overflow-hidden shadow-md"
-                      style={{ zIndex: 4 - index }}
-                    >
-                      {(product.product?.coverImageUrl || product.product?.coverImage || product.product?.imageUrl) ? (
-                        <img
-                          src={product.product?.coverImageUrl ?? product.product?.coverImage ?? product.product?.imageUrl}
-                          alt=""
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center">
-                          <Package className="h-4 w-4 text-text-muted" />
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                  {bundle.products.length > 4 && (
+                  {bundle.products.slice(0, 4).map((product, index) => {
+                    const imgSrc = product.product?.coverImageUrl ?? product.product?.coverImage ?? product.product?.imageUrl;
+                    return (
+                      <div
+                        key={product.id}
+                        className="w-10 h-10 rounded-lg border-2 border-bg-primary bg-bg-tertiary overflow-hidden shadow-md relative"
+                        style={{ zIndex: 4 - index }}
+                      >
+                        {imgSrc !== undefined && imgSrc !== null && imgSrc !== '' ? (
+                          <Image
+                            src={imgSrc}
+                            alt=""
+                            fill
+                            className="object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <Package className="h-4 w-4 text-text-muted" />
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                  {bundle.products.length > 4 ? (
                     <div className="w-10 h-10 rounded-lg border-2 border-bg-primary bg-bg-tertiary flex items-center justify-center text-xs font-bold text-text-muted">
                       +{bundle.products.length - 4}
                     </div>
-                  )}
+                  ) : null}
                 </div>
-              )}
+              ) : null}
 
               {/* Pricing */}
               <div className="flex items-end justify-between pt-4 border-t border-border-subtle">
@@ -232,12 +241,16 @@ export function BundleDealsSection(): React.ReactElement | null {
   });
 
   // Don't render if loading
-  if (isLoading) {
+  if (isLoading === true) {
     return <BundleSkeleton />;
   }
 
   // Don't render if no bundles or error
-  if (error || !bundles || bundles.length === 0) {
+  if (error !== null && error !== undefined) {
+    return null;
+  }
+
+  if (bundles === null || bundles === undefined || bundles.length === 0) {
     return null;
   }
 
@@ -298,7 +311,7 @@ export function BundleDealsSection(): React.ReactElement | null {
         </div>
 
         {/* Stats Bar */}
-        {bundles.length > 0 && (
+        {bundles.length > 0 ? (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -326,13 +339,13 @@ export function BundleDealsSection(): React.ReactElement | null {
               <div className="text-sm text-text-muted">Key Delivery</div>
             </div>
           </motion.div>
-        )}
+        ) : null}
       </div>
 
       {/* Bundle Modal - shows product list when clicking on a bundle */}
       <BundleModal
         bundle={selectedBundle}
-        isOpen={!!selectedBundle}
+        isOpen={selectedBundle !== null}
         onClose={() => setSelectedBundle(null)}
       />
     </section>

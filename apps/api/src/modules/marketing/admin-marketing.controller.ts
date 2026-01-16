@@ -9,14 +9,12 @@ import {
   UseGuards,
   Req,
 } from '@nestjs/common';
+import { Request as ExpressRequest } from 'express';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { AdminGuard } from '../../common/guards/admin.guard';
 import { MarketingService } from './marketing.service';
 import {
-  UpdateSectionDto,
-  ReorderSectionsDto,
-  SectionResponseDto,
   CreateFlashDealDto,
   UpdateFlashDealDto,
   FlashDealResponseDto,
@@ -29,49 +27,16 @@ import {
   UpdateBundleProductDto,
 } from './dto';
 
+interface AuthenticatedRequest extends ExpressRequest {
+  user?: { id: string; email: string; role?: string };
+}
+
 @ApiTags('Admin - Marketing')
 @Controller('admin/marketing')
 @UseGuards(JwtAuthGuard, AdminGuard)
 @ApiBearerAuth('JWT-auth')
 export class AdminMarketingController {
   constructor(private readonly marketingService: MarketingService) {}
-
-  // ============================================================================
-  // SECTIONS
-  // ============================================================================
-
-  @Get('sections')
-  @ApiOperation({ summary: 'Get all page sections' })
-  @ApiResponse({ status: 200, description: 'List of all sections', type: [SectionResponseDto] })
-  async getAllSections(): Promise<SectionResponseDto[]> {
-    return this.marketingService.getAllSections();
-  }
-
-  @Get('sections/:sectionKey')
-  @ApiOperation({ summary: 'Get section by key' })
-  @ApiResponse({ status: 200, description: 'Section details', type: SectionResponseDto })
-  async getSection(@Param('sectionKey') sectionKey: string): Promise<SectionResponseDto> {
-    return this.marketingService.getSectionByKey(sectionKey);
-  }
-
-  @Patch('sections/:sectionKey')
-  @ApiOperation({ summary: 'Update section configuration' })
-  @ApiResponse({ status: 200, description: 'Updated section', type: SectionResponseDto })
-  async updateSection(
-    @Param('sectionKey') sectionKey: string,
-    @Body() dto: UpdateSectionDto,
-    @Req() req: any,
-  ): Promise<SectionResponseDto> {
-    const userId = req.user?.id;
-    return this.marketingService.updateSection(sectionKey, dto, userId);
-  }
-
-  @Patch('sections/reorder')
-  @ApiOperation({ summary: 'Reorder sections' })
-  @ApiResponse({ status: 200, description: 'Reordered sections', type: [SectionResponseDto] })
-  async reorderSections(@Body() dto: ReorderSectionsDto): Promise<SectionResponseDto[]> {
-    return this.marketingService.reorderSections(dto.order);
-  }
 
   // ============================================================================
   // FLASH DEALS
@@ -82,14 +47,14 @@ export class AdminMarketingController {
   @ApiResponse({ status: 200, description: 'List of flash deals', type: [FlashDealResponseDto] })
   async getAllFlashDeals(): Promise<FlashDealResponseDto[]> {
     const deals = await this.marketingService.getAllFlashDeals();
-    return deals as any;
+    return deals as unknown as FlashDealResponseDto[];
   }
 
   @Get('flash-deals/:id')
   @ApiOperation({ summary: 'Get flash deal by ID' })
   @ApiResponse({ status: 200, description: 'Flash deal details', type: FlashDealResponseDto })
   async getFlashDeal(@Param('id') id: string): Promise<FlashDealResponseDto> {
-    return this.marketingService.getFlashDealById(id) as any;
+    return await this.marketingService.getFlashDealById(id) as unknown as FlashDealResponseDto;
   }
 
   @Post('flash-deals')
@@ -97,10 +62,10 @@ export class AdminMarketingController {
   @ApiResponse({ status: 201, description: 'Created flash deal', type: FlashDealResponseDto })
   async createFlashDeal(
     @Body() dto: CreateFlashDealDto,
-    @Req() req: any,
+    @Req() req: AuthenticatedRequest,
   ): Promise<FlashDealResponseDto> {
     const userId = req.user?.id;
-    return this.marketingService.createFlashDeal(dto, userId) as any;
+    return await this.marketingService.createFlashDeal(dto, userId) as unknown as FlashDealResponseDto;
   }
 
   @Patch('flash-deals/:id')
@@ -110,7 +75,7 @@ export class AdminMarketingController {
     @Param('id') id: string,
     @Body() dto: UpdateFlashDealDto,
   ): Promise<FlashDealResponseDto> {
-    return this.marketingService.updateFlashDeal(id, dto) as any;
+    return await this.marketingService.updateFlashDeal(id, dto) as unknown as FlashDealResponseDto;
   }
 
   @Delete('flash-deals/:id')
@@ -124,7 +89,7 @@ export class AdminMarketingController {
   @ApiOperation({ summary: 'Activate flash deal (deactivates others)' })
   @ApiResponse({ status: 200, description: 'Activated flash deal', type: FlashDealResponseDto })
   async activateFlashDeal(@Param('id') id: string): Promise<FlashDealResponseDto> {
-    return this.marketingService.activateFlashDeal(id) as any;
+    return await this.marketingService.activateFlashDeal(id) as unknown as FlashDealResponseDto;
   }
 
   // ============================================================================
@@ -138,12 +103,12 @@ export class AdminMarketingController {
     @Param('id') id: string,
     @Body() dto: AddFlashDealProductDto,
   ): Promise<FlashDealResponseDto> {
-    return this.marketingService.addProductToFlashDeal(
+    return await this.marketingService.addProductToFlashDeal(
       id,
       dto.productId,
       dto.discountPercent,
       dto.discountPrice,
-    ) as any;
+    ) as unknown as FlashDealResponseDto;
   }
 
   @Patch('flash-deals/:id/products/:productId')
@@ -154,12 +119,12 @@ export class AdminMarketingController {
     @Param('productId') productId: string,
     @Body() dto: UpdateFlashDealProductDto,
   ): Promise<FlashDealResponseDto> {
-    return this.marketingService.updateFlashDealProduct(
+    return await this.marketingService.updateFlashDealProduct(
       id,
       productId,
       dto.discountPercent,
       dto.discountPrice,
-    ) as any;
+    ) as unknown as FlashDealResponseDto;
   }
 
   @Delete('flash-deals/:id/products/:productId')
@@ -169,7 +134,7 @@ export class AdminMarketingController {
     @Param('id') id: string,
     @Param('productId') productId: string,
   ): Promise<FlashDealResponseDto> {
-    return this.marketingService.removeProductFromFlashDeal(id, productId) as any;
+    return await this.marketingService.removeProductFromFlashDeal(id, productId) as unknown as FlashDealResponseDto;
   }
 
   // ============================================================================
@@ -181,14 +146,14 @@ export class AdminMarketingController {
   @ApiResponse({ status: 200, description: 'List of bundles', type: [BundleDealResponseDto] })
   async getAllBundles(): Promise<BundleDealResponseDto[]> {
     const bundles = await this.marketingService.getAllBundles();
-    return bundles as any;
+    return bundles as unknown as BundleDealResponseDto[];
   }
 
   @Get('bundles/:id')
   @ApiOperation({ summary: 'Get bundle by ID' })
   @ApiResponse({ status: 200, description: 'Bundle details', type: BundleDealResponseDto })
   async getBundle(@Param('id') id: string): Promise<BundleDealResponseDto> {
-    return this.marketingService.getBundleById(id) as any;
+    return await this.marketingService.getBundleById(id) as unknown as BundleDealResponseDto;
   }
 
   @Post('bundles')
@@ -196,10 +161,10 @@ export class AdminMarketingController {
   @ApiResponse({ status: 201, description: 'Created bundle', type: BundleDealResponseDto })
   async createBundle(
     @Body() dto: CreateBundleDealDto,
-    @Req() req: any,
+    @Req() req: AuthenticatedRequest,
   ): Promise<BundleDealResponseDto> {
     const userId = req.user?.id;
-    return this.marketingService.createBundle(dto, userId) as any;
+    return await this.marketingService.createBundle(dto, userId) as unknown as BundleDealResponseDto;
   }
 
   @Patch('bundles/:id')
@@ -209,7 +174,7 @@ export class AdminMarketingController {
     @Param('id') id: string,
     @Body() dto: UpdateBundleDealDto,
   ): Promise<BundleDealResponseDto> {
-    return this.marketingService.updateBundle(id, dto) as any;
+    return await this.marketingService.updateBundle(id, dto) as unknown as BundleDealResponseDto;
   }
 
   @Delete('bundles/:id')
@@ -230,13 +195,13 @@ export class AdminMarketingController {
     @Param('id') id: string,
     @Body() dto: AddBundleProductDto,
   ): Promise<BundleDealResponseDto> {
-    return this.marketingService.addProductToBundle(
+    return await this.marketingService.addProductToBundle(
       id,
       dto.productId,
       dto.discountPercent,
       dto.displayOrder,
       dto.isBonus,
-    ) as any;
+    ) as unknown as BundleDealResponseDto;
   }
 
   @Patch('bundles/:id/products/:productId')
@@ -247,13 +212,13 @@ export class AdminMarketingController {
     @Param('productId') productId: string,
     @Body() dto: UpdateBundleProductDto,
   ): Promise<BundleDealResponseDto> {
-    return this.marketingService.updateBundleProduct(
+    return await this.marketingService.updateBundleProduct(
       id,
       productId,
       dto.discountPercent,
       dto.displayOrder,
       dto.isBonus,
-    ) as any;
+    ) as unknown as BundleDealResponseDto;
   }
 
   @Delete('bundles/:id/products/:productId')
@@ -263,6 +228,6 @@ export class AdminMarketingController {
     @Param('id') id: string,
     @Param('productId') productId: string,
   ): Promise<BundleDealResponseDto> {
-    return this.marketingService.removeProductFromBundle(id, productId) as any;
+    return await this.marketingService.removeProductFromBundle(id, productId) as unknown as BundleDealResponseDto;
   }
 }

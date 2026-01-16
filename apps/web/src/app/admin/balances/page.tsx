@@ -325,8 +325,8 @@ function StatCard({
           <div className="space-y-1">
             <p className="text-sm font-medium text-zinc-400">{title}</p>
             <p className="text-3xl font-bold bg-gradient-to-r from-white to-zinc-300 bg-clip-text text-transparent">{value}</p>
-            {subtitle && <p className="text-xs text-zinc-500">{subtitle}</p>}
-            {trend && (
+            {subtitle !== undefined && subtitle !== '' && <p className="text-xs text-zinc-500">{subtitle}</p>}
+            {trend !== undefined && trend !== null && (
               <div className="flex items-center gap-1 mt-2">
                 <ArrowUpRight
                   className={`h-3 w-3 ${
@@ -590,7 +590,7 @@ function SimpleBalanceChart({ data }: SimpleBalanceChartProps): React.ReactEleme
     ? Math.max(...validData.map((d) => d.balance), 1) 
     : 1;
   
-  const totalSpent = validData.reduce((sum, d) => sum + (d.spending || 0), 0);
+  const totalSpent = validData.reduce((sum, d) => sum + (d.spending ?? 0), 0);
   const daysWithSpending = validData.filter((d) => d.spending > 0).length;
   const avgDailySpend = daysWithSpending > 0 ? totalSpent / daysWithSpending : 0;
 
@@ -627,7 +627,7 @@ function SimpleBalanceChart({ data }: SimpleBalanceChartProps): React.ReactEleme
               {/* Grid lines */}
               <div className="absolute inset-4 pointer-events-none">
                 <div className="h-full flex flex-col justify-between">
-                  {[...Array(4)].map((_, i) => (
+                  {Array.from({ length: 4 }, (_, i) => (
                     <div key={i} className="border-t border-dashed border-zinc-800/50" />
                   ))}
                 </div>
@@ -732,8 +732,8 @@ function ProfitStatCard({
           <div className="space-y-1">
             <p className="text-sm font-medium text-zinc-400">{title}</p>
             <p className="text-2xl font-bold bg-gradient-to-r from-white to-zinc-300 bg-clip-text text-transparent">{value}</p>
-            {subtitle && <p className="text-xs text-zinc-500">{subtitle}</p>}
-            {trend && (
+            {subtitle !== undefined && subtitle !== '' && <p className="text-xs text-zinc-500">{subtitle}</p>}
+            {trend !== undefined && trend !== null && (
               <div className="flex items-center gap-1 mt-2">
                 {trend.direction === 'up' ? (
                   <TrendingUp className="h-3 w-3 text-emerald-400" />
@@ -1129,7 +1129,7 @@ export default function AdminBalancesPage(): React.ReactElement {
 
   // Get the selected period's profit summary
   const selectedProfitSummary = useMemo(() => {
-    if (!profitData) return null;
+    if (profitData === null || profitData === undefined) return null;
     switch (profitPeriod) {
       case '24h':
         return profitData.summary24h;
@@ -1150,7 +1150,7 @@ export default function AdminBalancesPage(): React.ReactElement {
 
   // Calculate runway badge variant
   const runwayVariant = useMemo(() => {
-    if (!dashboard) return 'default';
+    if (dashboard === null || dashboard === undefined) return 'default';
     if (dashboard.runwayDays < 7) return 'danger';
     if (dashboard.runwayDays < 14) return 'warning';
     return 'success';
@@ -1175,7 +1175,7 @@ export default function AdminBalancesPage(): React.ReactElement {
   }
 
   // Error state
-  if (error) {
+  if (error !== null && error !== undefined) {
     return (
       <div className="max-w-lg mx-auto mt-12">
         <div className="p-6 rounded-2xl bg-gradient-to-br from-red-950/30 to-zinc-900/80 border border-red-500/20 shadow-[0_0_30px_rgba(239,68,68,0.1)]">
@@ -1204,7 +1204,7 @@ export default function AdminBalancesPage(): React.ReactElement {
     );
   }
 
-  if (!dashboard) {
+  if (dashboard === null || dashboard === undefined) {
     return (
       <Alert className="max-w-2xl mx-auto mt-8">
         <Info className="h-4 w-4 text-cyan-glow" />
@@ -1254,7 +1254,7 @@ export default function AdminBalancesPage(): React.ReactElement {
         <StatCard
           title="Current Balance"
           value={formatCurrency(dashboard.balance?.balance ?? 0)}
-          subtitle={`Updated ${dashboard.balance?.fetchedAt ? formatDate(dashboard.balance.fetchedAt) : 'N/A'}`}
+          subtitle={`Updated ${dashboard.balance?.fetchedAt !== undefined && dashboard.balance.fetchedAt !== '' ? formatDate(dashboard.balance.fetchedAt) : 'N/A'}`}
           icon={<Wallet className="h-8 w-8" />}
           variant={
             (dashboard.balance?.balance ?? 0) < 100
@@ -1287,7 +1287,7 @@ export default function AdminBalancesPage(): React.ReactElement {
           }
           subtitle="At current spending rate"
           icon={<Clock className="h-8 w-8" />}
-          variant={runwayVariant as 'default' | 'success' | 'warning' | 'danger'}
+          variant={runwayVariant}
         />
       </div>
 
@@ -1378,7 +1378,7 @@ export default function AdminBalancesPage(): React.ReactElement {
               <Loader2 className="h-8 w-8 animate-spin text-emerald-400" />
               <span className="text-zinc-400">Loading profit analytics...</span>
             </div>
-          ) : profitData && selectedProfitSummary ? (
+          ) : profitData !== null && profitData !== undefined && selectedProfitSummary !== null && selectedProfitSummary !== undefined ? (
             <>
               {/* Profit Alerts */}
               {(profitData.alerts ?? []).length > 0 && (

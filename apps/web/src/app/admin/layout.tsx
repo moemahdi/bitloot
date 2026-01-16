@@ -32,7 +32,6 @@ import {
   Megaphone,
   Timer,
   Gift,
-  LayoutGrid,
 } from 'lucide-react';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
@@ -80,7 +79,6 @@ const ADMIN_NAV = {
     label: 'Marketing',
     icon: Megaphone,
     items: [
-      { href: '/admin/marketing/sections', label: 'Page Sections', icon: LayoutGrid },
       { href: '/admin/marketing/flash-deals', label: 'Flash Deals', icon: Timer },
       { href: '/admin/marketing/bundles', label: 'Bundles', icon: Gift },
     ],

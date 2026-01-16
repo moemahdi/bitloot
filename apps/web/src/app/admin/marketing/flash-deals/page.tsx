@@ -10,7 +10,6 @@ import {
   CardDescription,
 } from '@/design-system/primitives/card';
 import { Button } from '@/design-system/primitives/button';
-import { Switch } from '@/design-system/primitives/switch';
 import { Label } from '@/design-system/primitives/label';
 import { Badge } from '@/design-system/primitives/badge';
 import { Alert, AlertDescription, AlertTitle } from '@/design-system/primitives/alert';
@@ -44,12 +43,12 @@ import {
   Play,
   Pause,
   Calendar,
-  DollarSign,
   Package,
   Save,
   X,
   Search,
 } from 'lucide-react';
+import Image from 'next/image';
 import { Configuration } from '@bitloot/sdk';
 
 // Helper to get cookie value
@@ -120,10 +119,11 @@ async function fetchFlashDeals(): Promise<FlashDeal[]> {
   if (!response.ok) {
     throw new Error('Failed to fetch flash deals');
   }
-  return response.json();
+  const data: unknown = await response.json();
+  return data as FlashDeal[];
 }
 
-async function createFlashDeal(data: Partial<FlashDeal>): Promise<FlashDeal> {
+async function createFlashDeal(payload: Partial<FlashDeal>): Promise<FlashDeal> {
   const token = getCookie('accessToken') ?? '';
   const response = await fetch(`${apiConfig.basePath}/admin/marketing/flash-deals`, {
     method: 'POST',
@@ -131,15 +131,16 @@ async function createFlashDeal(data: Partial<FlashDeal>): Promise<FlashDeal> {
       Authorization: `Bearer ${token}`,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify(data),
+    body: JSON.stringify(payload),
   });
   if (!response.ok) {
     throw new Error('Failed to create flash deal');
   }
-  return response.json();
+  const result: unknown = await response.json();
+  return result as FlashDeal;
 }
 
-async function updateFlashDeal(id: string, data: Partial<FlashDeal>): Promise<FlashDeal> {
+async function updateFlashDeal(id: string, payload: Partial<FlashDeal>): Promise<FlashDeal> {
   const token = getCookie('accessToken') ?? '';
   const response = await fetch(`${apiConfig.basePath}/admin/marketing/flash-deals/${id}`, {
     method: 'PATCH',
@@ -147,12 +148,13 @@ async function updateFlashDeal(id: string, data: Partial<FlashDeal>): Promise<Fl
       Authorization: `Bearer ${token}`,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify(data),
+    body: JSON.stringify(payload),
   });
   if (!response.ok) {
     throw new Error('Failed to update flash deal');
   }
-  return response.json();
+  const result: unknown = await response.json();
+  return result as FlashDeal;
 }
 
 async function deleteFlashDeal(id: string): Promise<void> {
@@ -179,7 +181,8 @@ async function activateFlashDeal(id: string): Promise<FlashDeal> {
   if (!response.ok) {
     throw new Error('Failed to activate flash deal');
   }
-  return response.json();
+  const result: unknown = await response.json();
+  return result as FlashDeal;
 }
 
 // Product management API functions
@@ -201,10 +204,12 @@ async function addProductToFlashDeal(
     },
   );
   if (!response.ok) {
-    const error = await response.json().catch(() => ({}));
+    const errorData: unknown = await response.json().catch(() => ({}));
+    const error = errorData as { message?: string };
     throw new Error(error.message ?? 'Failed to add product');
   }
-  return response.json();
+  const result: unknown = await response.json();
+  return result as FlashDeal;
 }
 
 async function removeProductFromFlashDeal(
@@ -224,7 +229,8 @@ async function removeProductFromFlashDeal(
   if (!response.ok) {
     throw new Error('Failed to remove product');
   }
-  return response.json();
+  const result: unknown = await response.json();
+  return result as FlashDeal;
 }
 
 // Catalog product interface
@@ -241,7 +247,11 @@ interface CatalogProduct {
 
 // Currency symbol helper
 function getCurrencySymbol(currency?: string): string {
-  switch (currency?.toUpperCase()) {
+  const upperCurrency = currency !== null && currency !== undefined && currency !== '' 
+    ? currency.toUpperCase() 
+    : '';
+  
+  switch (upperCurrency) {
     case 'EUR': return '€';
     case 'GBP': return '£';
     case 'USD': return '$';
@@ -263,7 +273,7 @@ interface CatalogResponse {
 // Fetch products from catalog
 async function fetchCatalogProducts(search?: string): Promise<CatalogProduct[]> {
   const params = new URLSearchParams();
-  if (search) params.set('q', search);
+  if (search !== undefined && search !== null && search !== '') params.set('q', search);
   params.set('limit', '20');
   
   const response = await fetch(
@@ -277,7 +287,7 @@ async function fetchCatalogProducts(search?: string): Promise<CatalogProduct[]> 
   if (!response.ok) {
     throw new Error('Failed to fetch products');
   }
-  const data: CatalogResponse = await response.json();
+  const data = (await response.json()) as unknown as CatalogResponse;
   return data.data;
 }
 
@@ -339,13 +349,13 @@ export default function AdminFlashDealsPage(): React.ReactElement {
   const { data: catalogProducts = [], isLoading: isLoadingProducts } = useQuery<CatalogProduct[]>({
     queryKey: ['catalog', 'products', productSearchQuery],
     queryFn: () => fetchCatalogProducts(productSearchQuery),
-    enabled: showProductDropdown,
+    enabled: showProductDropdown === true,
     staleTime: 30_000,
   });
 
   // Filter out products already in the flash deal
   const availableProducts = catalogProducts.filter(
-    (p) => !managingProductsDeal?.products?.some((fp) => fp.productId === p.id)
+    (p) => !(managingProductsDeal?.products?.some((fp) => fp.productId === p.id) ?? false)
   );
 
   // Form state
@@ -369,7 +379,7 @@ export default function AdminFlashDealsPage(): React.ReactElement {
   const createMutation = useMutation({
     mutationFn: createFlashDeal,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin', 'marketing', 'flash-deals'] });
+      void queryClient.invalidateQueries({ queryKey: ['admin', 'marketing', 'flash-deals'] });
       setSuccessMessage('Flash deal created successfully');
       setIsCreateOpen(false);
       resetForm();
@@ -387,7 +397,7 @@ export default function AdminFlashDealsPage(): React.ReactElement {
       return updateFlashDeal(id, data);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin', 'marketing', 'flash-deals'] });
+      void queryClient.invalidateQueries({ queryKey: ['admin', 'marketing', 'flash-deals'] });
       setSuccessMessage('Flash deal updated successfully');
       setEditingDeal(null);
       resetForm();
@@ -403,7 +413,7 @@ export default function AdminFlashDealsPage(): React.ReactElement {
   const deleteMutation = useMutation({
     mutationFn: deleteFlashDeal,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin', 'marketing', 'flash-deals'] });
+      void queryClient.invalidateQueries({ queryKey: ['admin', 'marketing', 'flash-deals'] });
       setSuccessMessage('Flash deal deleted');
       setDeleteConfirm(null);
       setTimeout(() => setSuccessMessage(null), 3000);
@@ -418,7 +428,7 @@ export default function AdminFlashDealsPage(): React.ReactElement {
   const activateMutation = useMutation({
     mutationFn: activateFlashDeal,
     onSuccess: (deal) => {
-      queryClient.invalidateQueries({ queryKey: ['admin', 'marketing', 'flash-deals'] });
+      void queryClient.invalidateQueries({ queryKey: ['admin', 'marketing', 'flash-deals'] });
       setSuccessMessage(`${deal.name} is now ${deal.isActive ? 'active' : 'inactive'}`);
       setTimeout(() => setSuccessMessage(null), 3000);
     },
@@ -434,7 +444,7 @@ export default function AdminFlashDealsPage(): React.ReactElement {
       return addProductToFlashDeal(dealId, productId, discountPercent);
     },
     onSuccess: (updatedDeal) => {
-      queryClient.invalidateQueries({ queryKey: ['admin', 'marketing', 'flash-deals'] });
+      void queryClient.invalidateQueries({ queryKey: ['admin', 'marketing', 'flash-deals'] });
       // Update local state with the updated deal
       setManagingProductsDeal(updatedDeal);
       setSuccessMessage('Product added to flash deal');
@@ -455,7 +465,7 @@ export default function AdminFlashDealsPage(): React.ReactElement {
       return removeProductFromFlashDeal(dealId, productId);
     },
     onSuccess: (updatedDeal) => {
-      queryClient.invalidateQueries({ queryKey: ['admin', 'marketing', 'flash-deals'] });
+      void queryClient.invalidateQueries({ queryKey: ['admin', 'marketing', 'flash-deals'] });
       // Update local state with the updated deal
       setManagingProductsDeal(updatedDeal);
       setSuccessMessage('Product removed from flash deal');
@@ -468,7 +478,7 @@ export default function AdminFlashDealsPage(): React.ReactElement {
   });
 
   const handleAddProduct = () => {
-    if (!managingProductsDeal || !selectedProduct) return;
+    if (managingProductsDeal === null || selectedProduct === null) return;
     addProductMutation.mutate({
       dealId: managingProductsDeal.id,
       productId: selectedProduct.id,
@@ -477,7 +487,7 @@ export default function AdminFlashDealsPage(): React.ReactElement {
   };
 
   const handleRemoveProduct = (productId: string) => {
-    if (!managingProductsDeal) return;
+    if (managingProductsDeal === null) return;
     removeProductMutation.mutate({
       dealId: managingProductsDeal.id,
       productId,
@@ -510,14 +520,14 @@ export default function AdminFlashDealsPage(): React.ReactElement {
   const handleSubmit = () => {
     const data = {
       name: formData.name,
-      description: formData.description || undefined,
+      description: formData.description !== '' ? formData.description : undefined,
       startsAt: new Date(formData.startsAt).toISOString(),
       endsAt: new Date(formData.endsAt).toISOString(),
       productsCount: formData.productsCount,
       displayType: formData.displayType,
     };
 
-    if (editingDeal) {
+    if (editingDeal !== null) {
       updateMutation.mutate({ id: editingDeal.id, data });
     } else {
       createMutation.mutate(data);
@@ -560,7 +570,7 @@ export default function AdminFlashDealsPage(): React.ReactElement {
       </div>
 
       {/* Messages */}
-      {successMessage && (
+      {successMessage !== null && successMessage !== undefined && successMessage !== '' && (
         <Alert className="border-green-500/30 bg-green-500/10">
           <CheckCircle className="h-4 w-4 text-green-400" />
           <AlertTitle className="text-green-400">Success</AlertTitle>
@@ -568,7 +578,7 @@ export default function AdminFlashDealsPage(): React.ReactElement {
         </Alert>
       )}
 
-      {errorMessage && (
+      {errorMessage !== null && errorMessage !== undefined && errorMessage !== '' && (
         <Alert className="border-red-500/30 bg-red-500/10">
           <AlertCircle className="h-4 w-4 text-red-400" />
           <AlertTitle className="text-red-400">Error</AlertTitle>
@@ -577,7 +587,7 @@ export default function AdminFlashDealsPage(): React.ReactElement {
       )}
 
       {/* Loading State */}
-      {isLoading && (
+      {isLoading === true && (
         <div className="flex items-center justify-center py-12">
           <Loader className="h-8 w-8 animate-spin text-yellow-400" />
           <span className="ml-3 text-text-muted">Loading flash deals...</span>
@@ -585,7 +595,7 @@ export default function AdminFlashDealsPage(): React.ReactElement {
       )}
 
       {/* Error State */}
-      {error && !isLoading && (
+      {error !== null && error !== undefined && isLoading === false && (
         <Alert className="border-red-500/30 bg-red-500/10">
           <AlertCircle className="h-4 w-4 text-red-400" />
           <AlertTitle className="text-red-400">Failed to load flash deals</AlertTitle>
@@ -596,7 +606,7 @@ export default function AdminFlashDealsPage(): React.ReactElement {
       )}
 
       {/* Flash Deals Table */}
-      {!isLoading && !error && (
+      {isLoading !== true && (error === null || error === undefined) && (
         <Card className="glass border-border-accent">
           <CardHeader>
             <CardTitle>All Flash Deals</CardTitle>
@@ -626,7 +636,7 @@ export default function AdminFlashDealsPage(): React.ReactElement {
                         <TableCell>
                           <div>
                             <p className="font-medium text-text-primary">{deal.name}</p>
-                            {deal.description && (
+                            {deal.description !== null && deal.description !== undefined && deal.description !== '' && (
                               <p className="text-sm text-text-muted truncate max-w-xs">
                                 {deal.description}
                               </p>
@@ -728,7 +738,7 @@ export default function AdminFlashDealsPage(): React.ReactElement {
 
       {/* Create/Edit Dialog */}
       <Dialog 
-        open={isCreateOpen || !!editingDeal} 
+        open={isCreateOpen || editingDeal !== null} 
         onOpenChange={(open) => {
           if (!open) {
             setIsCreateOpen(false);
@@ -741,10 +751,10 @@ export default function AdminFlashDealsPage(): React.ReactElement {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Zap className="h-5 w-5 text-yellow-400" />
-              {editingDeal ? 'Edit Flash Deal' : 'Create Flash Deal'}
+              {editingDeal !== null ? 'Edit Flash Deal' : 'Create Flash Deal'}
             </DialogTitle>
             <DialogDescription>
-              {editingDeal 
+              {editingDeal !== null 
                 ? 'Update the flash deal settings below' 
                 : 'Set up a new time-limited sale campaign'}
             </DialogDescription>
@@ -853,7 +863,7 @@ export default function AdminFlashDealsPage(): React.ReactElement {
             </Button>
             <Button
               onClick={handleSubmit}
-              disabled={!formData.name || !formData.startsAt || !formData.endsAt || createMutation.isPending || updateMutation.isPending}
+              disabled={formData.name === '' || formData.startsAt === '' || formData.endsAt === '' || createMutation.isPending || updateMutation.isPending}
               className="gap-2 bg-yellow-500 hover:bg-yellow-600 text-black"
             >
               {(createMutation.isPending || updateMutation.isPending) ? (
@@ -861,14 +871,14 @@ export default function AdminFlashDealsPage(): React.ReactElement {
               ) : (
                 <Save className="h-4 w-4" />
               )}
-              {editingDeal ? 'Update Deal' : 'Create Deal'}
+              {editingDeal !== null ? 'Update Deal' : 'Create Deal'}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* Delete Confirmation Dialog */}
-      <Dialog open={!!deleteConfirm} onOpenChange={(open) => !open && setDeleteConfirm(null)}>
+      <Dialog open={deleteConfirm !== null} onOpenChange={(open) => { if (!open) setDeleteConfirm(null); }}>
         <DialogContent className="glass border-border-accent max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-red-400">
@@ -885,7 +895,11 @@ export default function AdminFlashDealsPage(): React.ReactElement {
             </Button>
             <Button
               variant="destructive"
-              onClick={() => deleteConfirm && deleteMutation.mutate(deleteConfirm.id)}
+              onClick={() => {
+                if (deleteConfirm !== null && deleteConfirm !== undefined) {
+                  deleteMutation.mutate(deleteConfirm.id);
+                }
+              }}
               disabled={deleteMutation.isPending}
               className="gap-2"
             >
@@ -902,7 +916,7 @@ export default function AdminFlashDealsPage(): React.ReactElement {
 
       {/* Manage Products Dialog */}
       <Dialog 
-        open={!!managingProductsDeal} 
+        open={managingProductsDeal !== null} 
         onOpenChange={(open) => {
           if (!open) {
             setManagingProductsDeal(null);
@@ -931,19 +945,22 @@ export default function AdminFlashDealsPage(): React.ReactElement {
               <Label>Search & Select Product</Label>
               
               {/* Selected Product Display */}
-              {selectedProduct ? (
+              {selectedProduct !== null ? (
                 <div className="flex items-center gap-3 p-3 bg-bg-tertiary border border-border-subtle rounded-lg">
-                  {selectedProduct.imageUrl && (
-                    <img 
-                      src={selectedProduct.imageUrl} 
-                      alt={selectedProduct.title}
-                      className="w-12 h-12 object-cover rounded"
-                    />
+                  {selectedProduct.imageUrl !== null && selectedProduct.imageUrl !== undefined && selectedProduct.imageUrl !== '' && (
+                    <div className="relative w-12 h-12 rounded overflow-hidden">
+                      <Image 
+                        src={selectedProduct.imageUrl} 
+                        alt={selectedProduct.title}
+                        fill
+                        className="object-cover"
+                      />
+                    </div>
                   )}
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-sm truncate">{selectedProduct.title}</p>
                     <p className="text-xs text-text-muted">
-                      {selectedProduct.platform && <span className="mr-2">{selectedProduct.platform}</span>}
+                      {selectedProduct.platform !== null && selectedProduct.platform !== undefined && selectedProduct.platform !== '' && <span className="mr-2">{selectedProduct.platform}</span>}
                       {getCurrencySymbol(selectedProduct.currency)}{selectedProduct.price}
                     </p>
                   </div>
@@ -975,9 +992,9 @@ export default function AdminFlashDealsPage(): React.ReactElement {
                   </div>
                   
                   {/* Product Dropdown */}
-                  {showProductDropdown && (
+                  {showProductDropdown === true && (
                     <div className="absolute z-50 w-full mt-1 max-h-64 overflow-y-auto bg-bg-secondary border border-border-subtle rounded-lg shadow-lg">
-                      {isLoadingProducts ? (
+                      {isLoadingProducts === true ? (
                         <div className="flex items-center justify-center py-8">
                           <Loader className="h-5 w-5 animate-spin text-text-muted" />
                         </div>
@@ -992,17 +1009,20 @@ export default function AdminFlashDealsPage(): React.ReactElement {
                               setShowProductDropdown(false);
                             }}
                           >
-                            {product.imageUrl && (
-                              <img 
-                                src={product.imageUrl} 
-                                alt={product.title}
-                                className="w-10 h-10 object-cover rounded"
-                              />
+                            {product.imageUrl !== null && product.imageUrl !== undefined && product.imageUrl !== '' && (
+                              <div className="relative w-10 h-10 rounded overflow-hidden">
+                                <Image 
+                                  src={product.imageUrl} 
+                                  alt={product.title}
+                                  fill
+                                  className="object-cover"
+                                />
+                              </div>
                             )}
                             <div className="flex-1 min-w-0">
                               <p className="font-medium text-sm truncate">{product.title}</p>
                               <p className="text-xs text-text-muted">
-                                {product.platform && <span className="mr-2">{product.platform}</span>}
+                                {product.platform !== undefined && product.platform !== null && product.platform !== '' && <span className="mr-2">{product.platform}</span>}
                                 {getCurrencySymbol(product.currency)}{product.price}
                               </p>
                             </div>
@@ -1010,7 +1030,7 @@ export default function AdminFlashDealsPage(): React.ReactElement {
                         ))
                       ) : (
                         <div className="py-8 text-center text-text-muted text-sm">
-                          {productSearchQuery 
+                          {productSearchQuery !== undefined && productSearchQuery !== null && productSearchQuery !== '' 
                             ? 'No products found matching your search' 
                             : 'Start typing to search products'}
                         </div>
@@ -1030,13 +1050,16 @@ export default function AdminFlashDealsPage(): React.ReactElement {
                     min={1}
                     max={99}
                     value={newProductDiscount}
-                    onChange={(e) => setNewProductDiscount(parseInt(e.target.value, 10) || 20)}
+                    onChange={(e) => {
+                      const val = parseInt(e.target.value, 10);
+                      setNewProductDiscount(Number.isNaN(val) ? 20 : val);
+                    }}
                     className="bg-bg-tertiary border-border-subtle"
                   />
                 </div>
                 <Button
                   onClick={handleAddProduct}
-                  disabled={!selectedProduct || addProductMutation.isPending}
+                  disabled={selectedProduct === null || addProductMutation.isPending}
                   className="gap-2 bg-yellow-500 hover:bg-yellow-600 text-black"
                 >
                   {addProductMutation.isPending ? (
@@ -1057,17 +1080,20 @@ export default function AdminFlashDealsPage(): React.ReactElement {
                 </h4>
               </div>
               <div className="max-h-64 overflow-y-auto">
-                {managingProductsDeal?.products && managingProductsDeal.products.length > 0 ? (
+                {(managingProductsDeal?.products !== undefined && managingProductsDeal.products !== null && managingProductsDeal.products.length > 0) ? (
                   <Table>
                     <TableBody>
                       {managingProductsDeal.products.map((fp) => {
                         // Calculate prices
-                        const originalPrice = parseFloat(fp.originalPrice || fp.product?.price || '0');
-                        const discountPercent = parseFloat(fp.discountPercent || '0');
+                        const rawOriginalPrice = parseFloat(fp.originalPrice ?? fp.product?.price ?? '0');
+                        const originalPrice = Number.isNaN(rawOriginalPrice) ? 0 : rawOriginalPrice;
+                        const rawDiscountPercent = parseFloat(fp.discountPercent ?? '0');
+                        const discountPercent = Number.isNaN(rawDiscountPercent) ? 0 : rawDiscountPercent;
                         const discountedPrice = fp.discountPrice 
                           ? parseFloat(fp.discountPrice) 
                           : originalPrice * (1 - discountPercent / 100);
-                        const currencySymbol = getCurrencySymbol(fp.product?.currency);
+                        const productCurrency = typeof fp.product?.currency === 'string' ? fp.product.currency : 'EUR';
+                        const currencySymbol = getCurrencySymbol(productCurrency);
                         
                         return (
                           <TableRow key={fp.id}>

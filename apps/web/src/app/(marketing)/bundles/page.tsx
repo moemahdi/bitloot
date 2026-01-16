@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { useQuery } from '@tanstack/react-query';
 import { Gift, Package, TrendingDown, Sparkles, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { Button } from '@/design-system/primitives/button';
 import { Badge } from '@/design-system/primitives/badge';
 import { Card, CardContent } from '@/design-system/primitives/card';
@@ -58,19 +59,22 @@ async function fetchAllBundles(): Promise<BundleDeal[]> {
   if (!response.ok) {
     throw new Error('Failed to fetch bundles');
   }
-  return response.json();
+  const data: unknown = await response.json();
+  return data as BundleDeal[];
 }
 
 // Format price in Euro (BitLoot uses Euro only)
 function formatPrice(price: string | number): string {
   const num = typeof price === 'string' ? parseFloat(price) : price;
-  return `€${(num || 0).toFixed(2)}`;
+  return `€${(Number.isNaN(num) ? 0 : num ?? 0).toFixed(2)}`;
 }
 
 // Bundle card component
 function BundleCard({ bundle, onSelect }: { bundle: BundleDeal; onSelect: (bundle: BundleDeal) => void }) {
-  const originalPrice = parseFloat(bundle.originalPrice) || 0;
-  const bundlePrice = parseFloat(bundle.bundlePrice) || 0;
+  const rawOriginalPrice = parseFloat(bundle.originalPrice);
+  const rawBundlePrice = parseFloat(bundle.bundlePrice);
+  const originalPrice = Number.isNaN(rawOriginalPrice) ? 0 : rawOriginalPrice;
+  const bundlePrice = Number.isNaN(rawBundlePrice) ? 0 : rawBundlePrice;
   const savings = originalPrice - bundlePrice;
 
   return (
@@ -88,11 +92,12 @@ function BundleCard({ bundle, onSelect }: { bundle: BundleDeal; onSelect: (bundl
           <CardContent className="p-0 flex-1 flex flex-col">
             {/* Hero Image */}
             <div className="relative aspect-video bg-gradient-to-br from-pink-500/20 to-purple-500/20 overflow-hidden">
-              {bundle.heroImage ? (
-                <img
+              {bundle.heroImage !== null && bundle.heroImage !== undefined && bundle.heroImage !== '' ? (
+                <Image
                   src={bundle.heroImage}
                   alt={bundle.name}
-                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                  fill
+                  className="object-cover transition-transform duration-500 group-hover:scale-110"
                 />
               ) : (
                 <div className="w-full h-full flex items-center justify-center">
@@ -131,7 +136,7 @@ function BundleCard({ bundle, onSelect }: { bundle: BundleDeal; onSelect: (bundl
                 {bundle.name}
               </h3>
 
-              {bundle.description && (
+              {bundle.description !== null && bundle.description !== undefined && bundle.description !== '' && (
                 <p className="text-sm text-text-muted line-clamp-2 mb-4 flex-1">
                   {bundle.description}
                 </p>
@@ -146,11 +151,12 @@ function BundleCard({ bundle, onSelect }: { bundle: BundleDeal; onSelect: (bundl
                       className="w-10 h-10 rounded-lg border-2 border-bg-primary bg-bg-tertiary overflow-hidden shadow-md"
                       style={{ zIndex: 4 - index }}
                     >
-                      {(product.product?.coverImageUrl || product.product?.coverImage || product.product?.imageUrl) ? (
-                        <img
-                          src={product.product?.coverImageUrl ?? product.product?.coverImage ?? product.product?.imageUrl}
+                      {(product.product?.coverImageUrl ?? product.product?.coverImage ?? product.product?.imageUrl ?? '') !== '' ? (
+                        <Image
+                          src={product.product?.coverImageUrl ?? product.product?.coverImage ?? product.product?.imageUrl ?? ''}
                           alt=""
-                          className="w-full h-full object-cover"
+                          fill
+                          className="object-cover"
                         />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center">
@@ -258,7 +264,7 @@ export default function BundlesPage(): React.ReactElement {
           </div>
 
           {/* Stats */}
-          {bundles && bundles.length > 0 && (
+          {bundles !== undefined && bundles.length > 0 && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -293,13 +299,13 @@ export default function BundlesPage(): React.ReactElement {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-16">
         {isLoading ? (
           <BundlesSkeleton />
-        ) : error ? (
+        ) : error !== null && error !== undefined ? (
           <div className="text-center py-16">
             <Package className="h-16 w-16 text-text-muted/50 mx-auto mb-4" />
             <h3 className="text-xl font-semibold text-text-primary mb-2">Failed to load bundles</h3>
             <p className="text-text-muted">Please try again later</p>
           </div>
-        ) : bundles && bundles.length > 0 ? (
+        ) : (bundles !== undefined && bundles !== null && bundles.length > 0) ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {bundles.map((bundle, index) => (
               <motion.div
@@ -327,7 +333,7 @@ export default function BundlesPage(): React.ReactElement {
       {/* Bundle Modal */}
       <BundleModal
         bundle={selectedBundle}
-        isOpen={!!selectedBundle}
+        isOpen={selectedBundle !== null}
         onClose={() => setSelectedBundle(null)}
       />
     </div>

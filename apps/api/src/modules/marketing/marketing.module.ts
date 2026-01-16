@@ -1,7 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import {
-  PageSection,
   FlashDeal,
   FlashDealProduct,
   BundleDeal,
@@ -16,7 +15,6 @@ import { PublicMarketingController } from './public-marketing.controller';
 @Module({
   imports: [
     TypeOrmModule.forFeature([
-      PageSection,
       FlashDeal,
       FlashDealProduct,
       BundleDeal,

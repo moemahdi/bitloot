@@ -3,7 +3,6 @@ import { ConfigService } from '@nestjs/config';
 import {
   KinguinClient,
   KinguinOrderObject,
-  SearchOrdersResponse,
 } from '../fulfillment/kinguin.client';
 import {
   KinguinBalanceDto,
@@ -40,8 +39,6 @@ export class KinguinBalanceService {
    * Get current Kinguin balance with API status
    */
   async getBalance(): Promise<KinguinBalanceDto> {
-    const startTime = Date.now();
-
     try {
       const balance = await this.kinguinClient.getBalance();
       const baseUrl = this.configService.get<string>('KINGUIN_BASE_URL') ?? '';
@@ -380,7 +377,7 @@ export class KinguinBalanceService {
         environment: isSandbox ? 'sandbox' : 'production',
         checkedAt: new Date().toISOString(),
       };
-    } catch (error) {
+    } catch (_error) {
       const responseTime = Date.now() - startTime;
 
       return {

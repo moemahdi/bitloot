@@ -22,7 +22,7 @@ function getStatusType(
   error?: string,
 ): 'success' | 'pending' | 'failed' | 'invalid' {
   if (!signatureValid) return 'invalid';
-  if (error && error.length > 0) return 'failed';
+  if (error !== null && error !== undefined && error !== '') return 'failed';
   if (processed) return 'success';
   return 'pending';
 }

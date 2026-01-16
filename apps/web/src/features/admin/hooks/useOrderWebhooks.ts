@@ -42,7 +42,7 @@ export function useOrderWebhooks(options: UseOrderWebhooksOptions): UseOrderWebh
       // API returns array directly, map to our interface
       return (response as unknown as OrderWebhookHistoryItem[]) ?? [];
     },
-    enabled: enabled && !!orderId,
+    enabled: enabled && orderId !== '',
     staleTime: 30_000,
   });
 

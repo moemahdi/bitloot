@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Star, ChevronDown, ChevronUp, LogIn, Lock } from 'lucide-react';
+import { Star, ChevronDown, LogIn, Lock } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/design-system/primitives/button';
 import {
@@ -12,7 +12,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/design-system/primitives/card';
-import { Badge } from '@/design-system/primitives/badge';
+// Badge is not currently used but may be needed for future feature flags
 import { Separator } from '@/design-system/primitives/separator';
 import { ReviewForm } from './ReviewForm';
 import { useCanReviewOrder } from '../hooks/useReviews';
@@ -49,8 +49,9 @@ export function OrderReviewPrompt({
 
   // Determine if user can access based on accessStatus or fallback to isAuthenticated prop
   const canAccess = accessStatus?.canAccess ?? isAuthenticatedProp;
-  const isAuthenticated = accessStatus?.isAuthenticated ?? isAuthenticatedProp;
-  const hasSessionToken = accessStatus?.reason === 'session_token';
+  // Reserved for future use - authentication state tracking
+  const _isAuthenticated = accessStatus?.isAuthenticated ?? isAuthenticatedProp;
+  const _hasSessionToken = accessStatus?.reason === 'session_token';
 
   // Don't show if order isn't fulfilled
   if (!isOrderFulfilled) {
@@ -91,7 +92,7 @@ export function OrderReviewPrompt({
   }
 
   // Don't show if can't review (already reviewed, etc.)
-  if (!canReviewQuery.data?.canReview) {
+  if (canReviewQuery.data?.canReview !== true) {
     return null;
   }
 
@@ -147,7 +148,7 @@ export function OrderReviewPrompt({
               {items.map((item) => (
                 <li key={item.id} className="text-sm flex items-center gap-2">
                   <div className="h-1.5 w-1.5 rounded-full bg-cyan-400" />
-                  {item.productSlug ? (
+                  {item.productSlug !== null && item.productSlug !== undefined && item.productSlug !== '' ? (
                     <Link
                       href={`/product/${item.productSlug}`}
                       className="text-cyan-400 hover:text-cyan-300 hover:underline transition-colors"

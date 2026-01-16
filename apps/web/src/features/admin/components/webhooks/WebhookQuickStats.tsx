@@ -64,7 +64,7 @@ export function WebhookQuickStats({
     );
   }
 
-  if (!stats) {
+  if (stats === null || stats === undefined) {
     return (
       <div
         className={cn(
@@ -96,7 +96,7 @@ export function WebhookQuickStats({
       bgColor: 'bg-green-success/10',
       glowClass: 'shadow-glow-success hover:shadow-glow-success',
       borderColor: 'border-green-success/30',
-      description: `${((stats.processed / stats.total) * 100 || 0).toFixed(1)}% of total`,
+      description: `${(stats.total === 0 || Number.isNaN(stats.total) ? 0 : ((stats.processed / stats.total) * 100)).toFixed(1)}% of total`,
     },
     {
       title: 'Pending',
@@ -210,21 +210,21 @@ function StatCard({
       <CardHeader
         className={cn(
           'flex flex-row items-center justify-between space-y-0',
-          compact ? 'pb-1 pt-3' : 'pb-2',
+          compact === true ? 'pb-1 pt-3' : 'pb-2',
         )}
       >
-        <CardTitle className={cn('font-medium text-text-secondary', compact ? 'text-xs' : 'text-sm')}>
+        <CardTitle className={cn('font-medium text-text-secondary', compact === true ? 'text-xs' : 'text-sm')}>
           {title}
         </CardTitle>
         <div className={cn('p-1.5 rounded border transition-colors duration-200', bgColor, borderColor)}>
-          <Icon className={cn(color, compact ? 'h-3.5 w-3.5' : 'h-4 w-4')} />
+          <Icon className={cn(color, compact === true ? 'h-3.5 w-3.5' : 'h-4 w-4')} />
         </div>
       </CardHeader>
-      <CardContent className={compact ? 'pb-3' : undefined}>
-        <div className={cn('font-bold text-text-primary', compact ? 'text-xl' : 'text-2xl')}>
+      <CardContent className={compact === true ? 'pb-3' : undefined}>
+        <div className={cn('font-bold text-text-primary', compact === true ? 'text-xl' : 'text-2xl')}>
           {typeof value === 'number' ? value.toLocaleString() : value}
         </div>
-        {!compact && <p className="text-xs text-text-muted mt-1">{description}</p>}
+        {compact !== true && <p className="text-xs text-text-muted mt-1">{description}</p>}
       </CardContent>
     </Card>
   );
@@ -244,7 +244,7 @@ export function WebhookStatsInline({
   stats: WebhookStats | null | undefined;
   className?: string;
 }): React.ReactElement {
-  if (!stats) return <span className={cn('text-text-muted', className)}>—</span>;
+  if (stats === null || stats === undefined) return <span className={cn('text-text-muted', className)}>—</span>;
 
   return (
     <div className={cn('flex items-center gap-4 text-sm', className)}>
@@ -280,7 +280,7 @@ export function WebhookTypeBreakdown({
   byType: Record<string, number> | undefined;
   className?: string;
 }): React.ReactElement {
-  if (!byType || Object.keys(byType).length === 0) {
+  if (byType === undefined || Object.keys(byType).length === 0) {
     return <span className="text-text-muted text-sm">No type data</span>;
   }
 

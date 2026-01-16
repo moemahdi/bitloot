@@ -66,10 +66,10 @@ export default function AdminWebhookLogsPage(): React.ReactElement {
     const webhookType = searchParams.get('webhookType');
     const orderId = searchParams.get('orderId');
     
-    if (processed) base.processed = processed;
-    if (signatureValid) base.signatureValid = signatureValid;
-    if (webhookType) base.webhookType = webhookType;
-    if (orderId) base.search = orderId;
+    if (processed !== null && processed !== '') base.processed = processed;
+    if (signatureValid !== null && signatureValid !== '') base.signatureValid = signatureValid;
+    if (webhookType !== null && webhookType !== '') base.webhookType = webhookType;
+    if (orderId !== null && orderId !== '') base.search = orderId;
     
     return base;
   }, [searchParams]);
@@ -79,14 +79,14 @@ export default function AdminWebhookLogsPage(): React.ReactElement {
   const [limit, setLimit] = useState(20);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
-  const { webhooks, isLoading, isFetching, error, refetch, invalidate } = useWebhookLogsEnhanced({
+  const { webhooks, isLoading, isFetching, error, refetch } = useWebhookLogsEnhanced({
     filters,
     page,
     limit,
     refetchInterval: 30000, // Auto-refresh every 30 seconds
   });
 
-  const { replay: bulkReplay, isReplaying, result: bulkResult } = useWebhookBulkReplay();
+  const { replay: bulkReplay, isReplaying } = useWebhookBulkReplay();
 
   const handleFiltersChange = useCallback((newFilters: WebhookFiltersState) => {
     setFilters(newFilters);
@@ -106,7 +106,7 @@ export default function AdminWebhookLogsPage(): React.ReactElement {
   }, []);
 
   const handleSelectAll = useCallback(() => {
-    if (!webhooks?.data) return;
+    if (webhooks?.data === undefined || webhooks.data === null) return;
     const allIds = webhooks.data.map((w) => w.id);
     if (selectedIds.size === allIds.length) {
       setSelectedIds(new Set());
@@ -127,20 +127,15 @@ export default function AdminWebhookLogsPage(): React.ReactElement {
     });
   }, []);
 
-  const handleBulkReplay = useCallback(async () => {
+  const handleBulkReplay = useCallback(() => {
     if (selectedIds.size === 0) return;
-    try {
-      bulkReplay(Array.from(selectedIds));
-      toast.success(`Replaying ${selectedIds.size} webhooks...`);
-      setSelectedIds(new Set());
-    } catch (error) {
-      toast.error('Failed to replay webhooks');
-      console.error(error);
-    }
+    bulkReplay(Array.from(selectedIds));
+    toast.success(`Replaying ${selectedIds.size} webhooks...`);
+    setSelectedIds(new Set());
   }, [selectedIds, bulkReplay]);
 
   const handleExportCSV = useCallback(() => {
-    if (!webhooks?.data || webhooks.data.length === 0) return;
+    if (webhooks?.data === undefined || webhooks.data === null || webhooks.data.length === 0) return;
 
     const headers = [
       'ID',
@@ -210,11 +205,11 @@ export default function AdminWebhookLogsPage(): React.ReactElement {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={() => refetch()} disabled={isLoading || isFetching} className="hover:text-cyan-glow hover:border-cyan-glow/50 hover:shadow-glow-cyan-sm transition-all duration-200 disabled:opacity-50">
-            <RefreshCw className={`mr-2 h-4 w-4 ${isFetching ? 'animate-spin' : ''}`} />
+          <Button variant="outline" onClick={() => refetch()} disabled={isLoading === true || isFetching === true} className="hover:text-cyan-glow hover:border-cyan-glow/50 hover:shadow-glow-cyan-sm transition-all duration-200 disabled:opacity-50">
+            <RefreshCw className={`mr-2 h-4 w-4 ${isFetching === true ? 'animate-spin' : ''}`} />
             Refresh
           </Button>
-          <Button variant="outline" onClick={handleExportCSV} disabled={!webhooks?.data?.length} className="hover:text-cyan-glow hover:border-cyan-glow/50 hover:shadow-glow-cyan-sm transition-all duration-200 disabled:opacity-50">
+          <Button variant="outline" onClick={handleExportCSV} disabled={webhooks?.data === undefined || webhooks.data.length === 0} className="hover:text-cyan-glow hover:border-cyan-glow/50 hover:shadow-glow-cyan-sm transition-all duration-200 disabled:opacity-50">
             <Download className="mr-2 h-4 w-4" />
             Export CSV
           </Button>
@@ -239,7 +234,7 @@ export default function AdminWebhookLogsPage(): React.ReactElement {
             disabled={isReplaying}
             className="hover:text-cyan-glow hover:border-cyan-glow/50 hover:shadow-glow-cyan-sm transition-all duration-200 disabled:opacity-50"
           >
-            <RotateCcw className={`mr-2 h-4 w-4 ${isReplaying ? 'animate-spin' : ''}`} />
+            <RotateCcw className={`mr-2 h-4 w-4 ${isReplaying === true ? 'animate-spin' : ''}`} />
             Replay Selected
           </Button>
           <Button variant="ghost" size="sm" onClick={() => setSelectedIds(new Set())} className="hover:text-cyan-glow hover:bg-bg-tertiary transition-all duration-200">
@@ -287,13 +282,13 @@ export default function AdminWebhookLogsPage(): React.ReactElement {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {isLoading ? (
+                {isLoading === true ? (
                   <TableRow>
                     <TableCell colSpan={8} className="h-24 text-center">
                       <Loader2 className="mx-auto h-6 w-6 animate-spin-glow" />
                     </TableCell>
                   </TableRow>
-                ) : error ? (
+                ) : error !== null && error !== undefined ? (
                   <TableRow>
                     <TableCell colSpan={8} className="h-24 text-center text-orange-warning">
                       <div className="flex items-center justify-center gap-2">
@@ -302,14 +297,14 @@ export default function AdminWebhookLogsPage(): React.ReactElement {
                       </div>
                     </TableCell>
                   </TableRow>
-                ) : !webhooks?.data?.length ? (
+                ) : (webhooks?.data?.length ?? 0) === 0 ? (
                   <TableRow>
                     <TableCell colSpan={8} className="h-24 text-center text-text-muted">
                       No webhooks found matching your filters
                     </TableCell>
                   </TableRow>
                 ) : (
-                  webhooks.data.map((log) => (
+                  (webhooks?.data ?? []).map((log) => (
                     <TableRow
                       key={log.id}
                       className="cursor-pointer hover:bg-bg-tertiary/50 transition-colors duration-200"
@@ -335,14 +330,14 @@ export default function AdminWebhookLogsPage(): React.ReactElement {
                         <SignatureIndicator valid={log.signatureValid ?? null} size="sm" />
                       </TableCell>
                       <TableCell>
-                        {log.paymentStatus ? (
+                        {log.paymentStatus !== null && log.paymentStatus !== undefined && log.paymentStatus !== '' ? (
                           <PaymentStatusBadge status={log.paymentStatus} size="sm" />
                         ) : (
                           <span className="text-text-muted text-xs">—</span>
                         )}
                       </TableCell>
                       <TableCell>
-                        {log.orderId ? (
+                        {log.orderId !== null && log.orderId !== undefined && log.orderId !== '' ? (
                           <Link
                             href={`/admin/orders/${log.orderId}`}
                             className="font-mono text-xs text-cyan-glow hover:text-pink-featured hover:underline transition-colors duration-200"
@@ -398,7 +393,7 @@ export default function AdminWebhookLogsPage(): React.ReactElement {
                 variant="outline"
                 size="sm"
                 onClick={() => handlePageChange(page - 1)}
-                disabled={page <= 1 || isLoading}
+                disabled={page <= 1 || isLoading === true}
                 className="hover:text-cyan-glow hover:border-cyan-glow/50 hover:shadow-glow-cyan-sm transition-all duration-200 disabled:opacity-50"
               >
                 <ChevronLeft className="h-4 w-4 mr-1" />
@@ -411,7 +406,7 @@ export default function AdminWebhookLogsPage(): React.ReactElement {
                 variant="outline"
                 size="sm"
                 onClick={() => handlePageChange(page + 1)}
-                disabled={page >= (webhooks?.totalPages ?? 1) || isLoading}
+                disabled={page >= (webhooks?.totalPages ?? 1) || isLoading === true}
                 className="hover:text-cyan-glow hover:border-cyan-glow/50 hover:shadow-glow-cyan-sm transition-all duration-200 disabled:opacity-50"
               >
                 Next

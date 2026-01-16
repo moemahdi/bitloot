@@ -23,7 +23,7 @@ import {
 } from 'lucide-react';
 
 export default function CartPage(): React.ReactElement {
-  const { items, removeItem, updateQuantity, clearCart, total, originalTotal, savings, itemCount, hasBundleItems, promoCode, setPromoCode } = useCart();
+  const { items, removeItem, updateQuantity, clearCart, total, originalTotal, savings, itemCount, hasBundleItems: _hasBundleItems, promoCode, setPromoCode } = useCart();
   const router = useRouter();
 
   // Empty cart state
@@ -70,7 +70,6 @@ export default function CartPage(): React.ReactElement {
     );
   }
 
-  const subtotal = total;
   const estimatedTotal = total;
 
   const handleCheckout = (): void => {

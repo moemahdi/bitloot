@@ -2,29 +2,16 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useQuery } from '@tanstack/react-query';
-import { Zap, Clock, ShoppingCart, ChevronRight, ChevronLeft, Flame, X, TrendingUp, Sparkles, Timer } from 'lucide-react';
+import { Zap, ShoppingCart, ChevronRight, ChevronLeft, Flame, TrendingUp, Sparkles, Timer } from 'lucide-react';
 import { Button } from '@/design-system/primitives/button';
 import { Badge } from '@/design-system/primitives/badge';
 import { Card, CardContent } from '@/design-system/primitives/card';
 import { Skeleton } from '@/design-system/primitives/skeleton';
 import { Configuration } from '@bitloot/sdk';
 import { useCart } from '@/context/CartContext';
-
-// Helper to get cookie value
-function getCookie(name: string): string | null {
-  if (typeof document === 'undefined') return null;
-  const value = `; ${document.cookie}`;
-  const parts = value.split(`; ${name}=`);
-  if (parts.length === 2) {
-    const cookieValue = parts[1];
-    if (cookieValue !== undefined) {
-      return cookieValue.split(';')[0] ?? null;
-    }
-  }
-  return null;
-}
 
 const apiConfig = new Configuration({
   basePath: process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000',
@@ -67,9 +54,10 @@ async function fetchActiveFlashDeal(): Promise<ActiveFlashDeal | null> {
     if (response.status === 404) return null;
     throw new Error('Failed to fetch flash deal');
   }
-  const data = await response.json();
+  const result: unknown = await response.json();
+  const data = result as ActiveFlashDeal | null;
   // Return if we got a deal
-  if (data && data.id) {
+  if (data?.id !== undefined) {
     return data;
   }
   return null;
@@ -110,15 +98,15 @@ function TimeUnit({ value, label, isUrgent }: { value: number; label: string; is
   return (
     <motion.div 
       className="flex flex-col items-center"
-      animate={isUrgent ? { scale: [1, 1.05, 1] } : {}}
-      transition={{ duration: 0.5, repeat: isUrgent ? Infinity : 0 }}
+      animate={isUrgent === true ? { scale: [1, 1.05, 1] } : {}}
+      transition={{ duration: 0.5, repeat: isUrgent === true ? Infinity : 0 }}
     >
-      <div className={`relative bg-gradient-to-br from-bg-tertiary to-bg-secondary rounded-xl px-4 py-3 min-w-[60px] border ${isUrgent ? 'border-red-500/50 shadow-[0_0_20px_rgba(239,68,68,0.3)]' : 'border-yellow-500/30 shadow-[0_0_15px_rgba(234,179,8,0.2)]'}`}>
-        <span className={`text-3xl font-bold tabular-nums ${isUrgent ? 'text-red-400' : 'text-yellow-400'}`}>
+      <div className={`relative bg-gradient-to-br from-bg-tertiary to-bg-secondary rounded-xl px-4 py-3 min-w-[60px] border ${isUrgent === true ? 'border-red-500/50 shadow-[0_0_20px_rgba(239,68,68,0.3)]' : 'border-yellow-500/30 shadow-[0_0_15px_rgba(234,179,8,0.2)]'}`}>
+        <span className={`text-3xl font-bold tabular-nums ${isUrgent === true ? 'text-red-400' : 'text-yellow-400'}`}>
           {String(value).padStart(2, '0')}
         </span>
         {/* Glow effect */}
-        <div className={`absolute inset-0 rounded-xl ${isUrgent ? 'bg-red-500/5' : 'bg-yellow-500/5'} blur-sm -z-10`} />
+        <div className={`absolute inset-0 rounded-xl ${isUrgent === true ? 'bg-red-500/5' : 'bg-yellow-500/5'} blur-sm -z-10`} />
       </div>
       <span className="text-xs text-text-muted mt-2 uppercase tracking-widest font-medium">{label}</span>
     </motion.div>
@@ -127,14 +115,17 @@ function TimeUnit({ value, label, isUrgent }: { value: number; label: string; is
 
 // Animated fire particles
 function FireParticles() {
+  // Pre-calculated positions to avoid Math.random() - using index-based distribution
+  const positions = [10, 25, 40, 55, 70, 85];
+  const durations = [2.2, 2.8, 3.1, 2.5, 3.4, 2.9];
   return (
     <div className="absolute inset-0 overflow-hidden pointer-events-none">
-      {[...Array(6)].map((_, i) => (
+      {Array.from({ length: 6 }).map((_, i) => (
         <motion.div
           key={i}
           className="absolute w-2 h-2 rounded-full bg-gradient-to-t from-orange-500 to-yellow-300"
           initial={{ 
-            x: Math.random() * 100 + '%', 
+            x: `${positions[i] ?? 50}%`, 
             y: '100%', 
             opacity: 0,
             scale: 0 
@@ -145,7 +136,7 @@ function FireParticles() {
             scale: [0, 1.5, 0],
           }}
           transition={{ 
-            duration: 2 + Math.random() * 2,
+            duration: durations[i] ?? 3,
             repeat: Infinity,
             delay: i * 0.4,
             ease: 'easeOut'
@@ -158,7 +149,11 @@ function FireParticles() {
 
 // Currency symbol helper
 function getCurrencySymbol(currency?: string): string {
-  switch (currency?.toUpperCase()) {
+  const upperCurrency = currency !== null && currency !== undefined && currency !== '' 
+    ? currency.toUpperCase() 
+    : '';
+  
+  switch (upperCurrency) {
     case 'EUR': return '€';
     case 'GBP': return '£';
     case 'USD': return '$';
@@ -172,14 +167,15 @@ function getCurrencySymbol(currency?: string): string {
 // Flash deal product card - Enhanced design
 function FlashDealProductCard({ product, onAddToCart, index }: { product: FlashDealProduct; onAddToCart: (product: FlashDealProduct) => void; index: number }) {
   // Use originalPrice if set, otherwise fall back to product.price
-  const originalPrice = parseFloat(product.originalPrice || product.product?.price || '0');
+  const originalPrice = parseFloat(product.originalPrice ?? product.product?.price ?? '0');
   // Use discountPrice if set, otherwise calculate from discount percent
-  const discountPercent = parseFloat(product.discountPercent || '0');
+  const discountPercent = parseFloat(product.discountPercent ?? '0');
   const discountedPrice = product.discountPrice 
     ? parseFloat(product.discountPrice) 
     : originalPrice * (1 - discountPercent / 100);
   // Get currency symbol from product
-  const currencySymbol = getCurrencySymbol(product.product?.currency);
+  const productCurrency = typeof product.product?.currency === 'string' ? product.product.currency : 'EUR';
+  const currencySymbol = getCurrencySymbol(productCurrency);
   // Show "Hot" badge for high discounts
   const isHotDeal = discountPercent >= 50;
   // Simulate scarcity (in production, this would come from backend)
@@ -207,11 +203,12 @@ function FlashDealProductCard({ product, onAddToCart, index }: { product: FlashD
           <CardContent className="relative p-0 bg-bg-primary rounded-lg">
             {/* Image */}
             <div className="relative aspect-[4/3] bg-gradient-to-br from-bg-tertiary to-bg-secondary overflow-hidden">
-              {product.product?.coverImageUrl ? (
-                <img
+              {product.product?.coverImageUrl !== undefined && product.product.coverImageUrl !== '' ? (
+                <Image
                   src={product.product.coverImageUrl}
                   alt={product.product.title ?? 'Product'}
-                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                  fill
+                  className="object-cover transition-transform duration-700 group-hover:scale-110"
                 />
               ) : (
                 <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-yellow-500/10 to-orange-500/10">
@@ -243,11 +240,11 @@ function FlashDealProductCard({ product, onAddToCart, index }: { product: FlashD
               )}
 
               {/* Platform Badge */}
-              {product.product?.platform && !isHotDeal && (
+              {product.product?.platform !== undefined && product.product.platform !== '' && !isHotDeal ? (
                 <Badge variant="secondary" className="absolute top-3 right-3 bg-bg-primary/90 backdrop-blur-sm text-text-secondary border border-border-accent">
                   {product.product.platform}
                 </Badge>
-              )}
+              ) : null}
 
               {/* Quick add button - always visible */}
               <motion.div
@@ -372,14 +369,15 @@ export function FlashDealSection(): React.ReactElement | null {
   const handleAddToCart = useCallback((product: FlashDealProduct) => {
     const discountedPrice = product.discountPrice 
       ? parseFloat(product.discountPrice) 
-      : parseFloat(product.originalPrice || product.product?.price || '0') * (1 - parseFloat(product.discountPercent || '0') / 100);
+      : parseFloat(product.originalPrice ?? product.product?.price ?? '0') * (1 - parseFloat(product.discountPercent ?? '0') / 100);
     
+    const coverImageUrl = typeof product.product?.coverImageUrl === 'string' ? product.product.coverImageUrl : undefined;
     addItem({
       productId: product.productId,
-      title: product.product?.title || 'Unknown Product',
+      title: product.product?.title ?? 'Unknown Product',
       price: discountedPrice,
       quantity: 1,
-      image: product.product?.coverImageUrl || undefined,
+      image: coverImageUrl,
     });
   }, [addItem]);
 
@@ -392,14 +390,18 @@ export function FlashDealSection(): React.ReactElement | null {
   }, [totalPages]);
 
   // Check if countdown is urgent (less than 1 hour)
-  const isUrgent = countdown.hours === 0 && !countdown.expired;
+  const isUrgent = countdown.hours === 0 && countdown.expired !== true;
 
   // Don't render if no active deal or loading
-  if (isLoading) {
+  if (isLoading === true) {
     return <FlashDealSkeleton />;
   }
 
-  if (error || !flashDeal || countdown.expired) {
+  if (error !== null && error !== undefined) {
+    return null;
+  }
+
+  if (flashDeal === null || flashDeal === undefined || countdown.expired === true) {
     return null;
   }
 
@@ -452,7 +454,7 @@ export function FlashDealSection(): React.ReactElement | null {
                   LIVE
                 </Badge>
               </div>
-              {flashDeal.description && (
+              {flashDeal.description !== null && flashDeal.description !== undefined && flashDeal.description !== '' && (
                 <p className="text-text-muted text-lg">{flashDeal.description}</p>
               )}
             </div>

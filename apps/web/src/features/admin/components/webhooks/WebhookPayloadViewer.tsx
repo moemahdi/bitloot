@@ -36,9 +36,9 @@ export function WebhookPayloadViewer({
   const [fullHeight, setFullHeight] = useState(false);
 
   const formattedJson = useMemo(() => {
-    if (!payload) return null;
+    if (payload === null || payload === undefined) return null;
     try {
-      const obj = typeof payload === 'string' ? JSON.parse(payload) : payload;
+      const obj = typeof payload === 'string' ? (JSON.parse(payload) as unknown) : payload;
       return JSON.stringify(obj, null, 2);
     } catch {
       return typeof payload === 'string' ? payload : JSON.stringify(payload);
@@ -46,7 +46,7 @@ export function WebhookPayloadViewer({
   }, [payload]);
 
   const handleCopy = async () => {
-    if (!formattedJson) return;
+    if (formattedJson === null) return;
     try {
       await navigator.clipboard.writeText(formattedJson);
       setCopied(true);
@@ -56,7 +56,7 @@ export function WebhookPayloadViewer({
     }
   };
 
-  if (!payload) {
+  if (payload === null || payload === undefined) {
     return (
       <div
         className={cn(
@@ -193,7 +193,7 @@ export function PayloadPreview({
   className?: string;
 }): React.ReactElement {
   const preview = useMemo(() => {
-    if (!payload) return 'No payload';
+    if (payload === null || payload === undefined) return 'No payload';
     try {
       const str = typeof payload === 'string' ? payload : JSON.stringify(payload);
       return str.length > maxLength ? `${str.slice(0, maxLength)}...` : str;

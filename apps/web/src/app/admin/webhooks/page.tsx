@@ -91,8 +91,8 @@ export default function AdminWebhooksDashboardPage(): React.ReactElement {
               <SelectItem value="all">All Time</SelectItem>
             </SelectContent>
           </Select>
-          <Button variant="outline" onClick={handleRefresh} disabled={isStatsLoading || isTimelineLoading} className="hover:text-cyan-glow hover:border-cyan-glow/50 transition-all duration-200">
-            <RefreshCw className={`mr-2 h-4 w-4 ${isStatsLoading ? 'animate-spin' : ''}`} />
+          <Button variant="outline" onClick={handleRefresh} disabled={isStatsLoading === true || isTimelineLoading === true} className="hover:text-cyan-glow hover:border-cyan-glow/50 transition-all duration-200">
+            <RefreshCw className={`mr-2 h-4 w-4 ${isStatsLoading === true ? 'animate-spin' : ''}`} />
             Refresh
           </Button>
           <Button asChild className="bg-cyan-glow text-bg-primary hover:shadow-glow-cyan transition-all duration-200">
@@ -187,7 +187,7 @@ export default function AdminWebhooksDashboardPage(): React.ReactElement {
                 href="/admin/webhooks/logs?processed=true"
                 icon={CheckCircle2}
                 iconColor="text-green-success"
-                stats={`${((stats?.processed ?? 0) / (stats?.total || 1) * 100).toFixed(1)}% success rate`}
+                stats={`${((stats?.processed ?? 0) / ((stats?.total ?? 0) === 0 ? 1 : stats?.total ?? 1) * 100).toFixed(1)}% success rate`}
               />
             </TabsContent>
 
@@ -199,7 +199,7 @@ export default function AdminWebhooksDashboardPage(): React.ReactElement {
                 icon={Clock}
                 iconColor="text-cyan-glow"
                 stats={`${stats?.pending ?? 0} awaiting action`}
-                warning={stats?.pending !== undefined && stats.pending > 10}
+                warning={(stats?.pending ?? 0) > 10}
               />
             </TabsContent>
 
@@ -292,12 +292,12 @@ function QuickActionCard({
     <Link
       href={href}
       className={`flex items-center justify-between p-4 rounded-lg border transition-all duration-200 hover:bg-bg-tertiary/50 hover:border-border-accent group ${
-        warning ? 'border-orange-warning/30 bg-orange-warning/10 hover:shadow-glow-error' : 'border-border-subtle hover:shadow-glow-cyan-sm'
+        warning === true ? 'border-orange-warning/30 bg-orange-warning/10 hover:shadow-glow-error' : 'border-border-subtle hover:shadow-glow-cyan-sm'
       }`}
     >
       <div className="flex items-center gap-4">
         <div className={`p-3 rounded-full transition-all duration-200 ${
-          warning ? 'bg-orange-warning/10 group-hover:shadow-glow-error' : 'bg-cyan-glow/10 group-hover:shadow-glow-cyan-sm'
+          warning === true ? 'bg-orange-warning/10 group-hover:shadow-glow-error' : 'bg-cyan-glow/10 group-hover:shadow-glow-cyan-sm'
         }`}>
           <Icon className={`h-6 w-6 ${iconColor}`} />
         </div>
