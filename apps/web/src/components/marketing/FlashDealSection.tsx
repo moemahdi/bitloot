@@ -170,11 +170,11 @@ function FlashDealProductCard({ product, onAddToCart, index }: { product: FlashD
   const originalPrice = parseFloat(product.originalPrice ?? product.product?.price ?? '0');
   // Use discountPrice if set, otherwise calculate from discount percent
   const discountPercent = parseFloat(product.discountPercent ?? '0');
-  const discountedPrice = product.discountPrice 
+  const discountedPrice = typeof product.discountPrice === 'string' && product.discountPrice.length > 0
     ? parseFloat(product.discountPrice) 
     : originalPrice * (1 - discountPercent / 100);
   // Get currency symbol from product
-  const productCurrency = typeof product.product?.currency === 'string' ? product.product.currency : 'EUR';
+  const productCurrency = typeof product.product?.currency === 'string' && product.product.currency.length > 0 ? product.product.currency : 'EUR';
   const currencySymbol = getCurrencySymbol(productCurrency);
   // Show "Hot" badge for high discounts
   const isHotDeal = discountPercent >= 50;
@@ -367,9 +367,11 @@ export function FlashDealSection(): React.ReactElement | null {
 
   // Handler for adding products to cart
   const handleAddToCart = useCallback((product: FlashDealProduct) => {
-    const discountedPrice = product.discountPrice 
+    const rawOriginalPrice = product.originalPrice ?? product.product?.price ?? '0';
+    const rawDiscountPercent = product.discountPercent ?? '0';
+    const discountedPrice = typeof product.discountPrice === 'string' && product.discountPrice.length > 0
       ? parseFloat(product.discountPrice) 
-      : parseFloat(product.originalPrice ?? product.product?.price ?? '0') * (1 - parseFloat(product.discountPercent ?? '0') / 100);
+      : parseFloat(rawOriginalPrice) * (1 - parseFloat(rawDiscountPercent) / 100);
     
     const coverImageUrl = typeof product.product?.coverImageUrl === 'string' ? product.product.coverImageUrl : undefined;
     addItem({

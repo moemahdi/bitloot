@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException, Logger, ConflictException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, DataSource, ILike, In } from 'typeorm';
+import { Repository, DataSource, In } from 'typeorm';
 import { PromoCode } from './entities/promocode.entity';
 import { PromoRedemption } from './entities/promoredemption.entity';
 import {

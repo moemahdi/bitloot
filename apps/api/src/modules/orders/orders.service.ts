@@ -219,7 +219,7 @@ export class OrdersService {
     // ========== PROMO CODE VALIDATION ==========
     let promoCodeId: string | undefined;
     let discountAmount: string | undefined;
-    let originalTotal: string = totalPrice.toFixed(8);
+    const originalTotal: string = totalPrice.toFixed(8);
     let finalTotal: number = totalPrice;
 
     if (dto.promoCode !== undefined && dto.promoCode.length > 0) {

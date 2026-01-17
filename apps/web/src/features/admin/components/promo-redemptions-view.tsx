@@ -15,7 +15,7 @@ import {
 } from '@/design-system/primitives/table';
 import { apiConfig } from '@/lib/api-config';
 import { AdminPromosApi } from '@bitloot/sdk';
-import type { PaginatedRedemptionsDto, PromoRedemptionResponseDto } from '@bitloot/sdk';
+import type { PaginatedRedemptionsDto } from '@bitloot/sdk';
 
 const adminPromosClient = new AdminPromosApi(apiConfig);
 

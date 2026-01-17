@@ -1089,10 +1089,10 @@ export default function AdminFlashDealsPage(): React.ReactElement {
                         const originalPrice = Number.isNaN(rawOriginalPrice) ? 0 : rawOriginalPrice;
                         const rawDiscountPercent = parseFloat(fp.discountPercent ?? '0');
                         const discountPercent = Number.isNaN(rawDiscountPercent) ? 0 : rawDiscountPercent;
-                        const discountedPrice = fp.discountPrice 
+                        const discountedPrice = typeof fp.discountPrice === 'string' && fp.discountPrice.length > 0
                           ? parseFloat(fp.discountPrice) 
                           : originalPrice * (1 - discountPercent / 100);
-                        const productCurrency = typeof fp.product?.currency === 'string' ? fp.product.currency : 'EUR';
+                        const productCurrency = typeof fp.product?.currency === 'string' && fp.product.currency.length > 0 ? fp.product.currency : 'EUR';
                         const currencySymbol = getCurrencySymbol(productCurrency);
                         
                         return (

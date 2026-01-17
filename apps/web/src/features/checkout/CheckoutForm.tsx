@@ -73,7 +73,7 @@ export default function CheckoutForm(): React.ReactElement {
   const { data: product } = useQuery({
     queryKey: ['product', productId],
     queryFn: () => catalogClient.catalogControllerGetProduct({ slug: productId }),
-    enabled: !!productId && productId !== 'demo-product',
+    enabled: typeof productId === 'string' && productId.length > 0 && productId !== 'demo-product',
   });
 
   // State for wizard steps - now includes 'paying' for embedded payment UI
@@ -345,7 +345,7 @@ export default function CheckoutForm(): React.ReactElement {
               <PromoCodeInput
                 orderTotal={product?.price ?? "0"}
                 productIds={[productId]}
-                categoryIds={product?.category ? [product.category] : []}
+                categoryIds={typeof product?.category === 'string' && product.category.length > 0 ? [product.category] : []}
                 email={emailAddr}
                 onPromoApplied={(promo) => setAppliedPromo(promo)}
                 onPromoRemoved={() => setAppliedPromo(null)}

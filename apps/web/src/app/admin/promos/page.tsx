@@ -105,7 +105,7 @@ export default function AdminPromosPage(): React.ReactElement {
         queryFn: async () => {
             const data = await adminPromosClient.adminPromosControllerList({ page: 1, limit: 1000 });
             const activeCodes = data.data.filter(p => p.isActive).length;
-            const totalRedemptions = data.data.reduce((sum, p) => sum + (p.usageCount || 0), 0);
+            const totalRedemptions = data.data.reduce((sum, p) => sum + (p.usageCount ?? 0), 0);
             const avgDiscount = data.data.length > 0
                 ? data.data.reduce((sum, p) => {
                     const val = parseFloat(p.discountValue);

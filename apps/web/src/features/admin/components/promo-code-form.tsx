@@ -101,18 +101,18 @@ export function PromoCodeForm({ initialData, onSuccess, onCancel }: PromoCodeFor
                 description: data.description,
                 discountType: data.discountType,
                 discountValue: data.discountValue,
-                minOrderValue: data.minOrderValue || undefined,
-                maxUsesTotal: data.maxUsesTotal === '' ? undefined : Number(data.maxUsesTotal),
-                maxUsesPerUser: data.maxUsesPerUser === '' ? undefined : Number(data.maxUsesPerUser),
+                minOrderValue: typeof data.minOrderValue === 'string' && data.minOrderValue.length > 0 ? data.minOrderValue : undefined,
+                maxUsesTotal: data.maxUsesTotal === '' || data.maxUsesTotal === undefined ? undefined : Number(data.maxUsesTotal),
+                maxUsesPerUser: data.maxUsesPerUser === '' || data.maxUsesPerUser === undefined ? undefined : Number(data.maxUsesPerUser),
                 scopeType: data.scopeType,
-                scopeValue: data.scopeValue || undefined,
-                startsAt: data.startsAt ? new Date(data.startsAt).toISOString() : undefined,
-                expiresAt: data.expiresAt ? new Date(data.expiresAt).toISOString() : undefined,
+                scopeValue: typeof data.scopeValue === 'string' && data.scopeValue.length > 0 ? data.scopeValue : undefined,
+                startsAt: typeof data.startsAt === 'string' && data.startsAt.length > 0 ? new Date(data.startsAt).toISOString() : undefined,
+                expiresAt: typeof data.expiresAt === 'string' && data.expiresAt.length > 0 ? new Date(data.expiresAt).toISOString() : undefined,
                 stackable: data.stackable,
                 isActive: data.isActive,
             };
 
-            if (isEditing && initialData) {
+            if (isEditing && initialData !== null && initialData !== undefined) {
                 return adminPromosClient.adminPromosControllerUpdate({
                     id: initialData.id,
                     updatePromoCodeDto: dto as UpdatePromoCodeDto,
