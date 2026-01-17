@@ -2,6 +2,28 @@
 
 This document describes the current BitLoot monorepo structure, with a concise 1–2 sentence purpose for each folder and file. It reflects the actual Next.js web app, NestJS API, TypeORM/PostgreSQL, Redis/BullMQ queues, NOWPayments and Kinguin integrations, JWT auth, email service, and Cloudflare R2 secure storage with signed URLs.
 
+---
+
+## Completed Levels Summary (0-6 + Post-Level 6)
+
+| Level | Name | Key Deliverables | Status |
+|-------|------|------------------|--------|
+| **0** | Workshop Setup | Monorepo, Docker, TypeScript strict, ESLint, CI/CD | ✅ Complete |
+| **1** | Walking Skeleton | MVP flow, fake payments/fulfillment, R2 signed links, Resend emails | ✅ Complete |
+| **2** | Real Payments | NOWPayments sandbox, HMAC webhooks, idempotency, BullMQ jobs | ✅ Complete |
+| **3** | Real Fulfillment | Kinguin API, order reservation/delivery, AES-256-GCM encryption, WebSocket updates | ✅ Complete |
+| **4** | Security & Observability | OTP auth (6-digit Redis), JWT (15m/7d), SDK-first migration, Prometheus + Grafana | ✅ Complete |
+| **5** | Admin & Ops UI | RBAC, 8 admin pages, automated backups (R2), disaster recovery, audit logging | ✅ Complete |
+| **6** | Products & Catalog | 5-table schema, Kinguin sync, dynamic pricing, full-text search, 333+ tests | ✅ Complete |
+| **Post-6** | Features & Modules | Promos, Reviews, Watchlist, Marketing, Product Groups, Account Management | ✅ Complete |
+
+**Total Backend Modules:** 17  
+**Total Database Migrations:** 40+  
+**Total Admin Pages:** 12+  
+**Quality Status:** All levels complete with 5/5 quality gates passing, 333+ tests, 0 errors.
+
+---
+
 ## Monorepo Root
 - **package.json** — Monorepo root manifest with workspaces (`apps/*`, `packages/*`), dev/build/lint/test scripts, and shared dependencies.
 - **package-lock.json** — Deterministic dependency lockfile for reproducible installs.
@@ -47,7 +69,25 @@ This document describes the current BitLoot monorepo structure, with a concise 1
   - **app/** — App Router routes, layouts, and pages.
     - **layout.tsx** — Root UI layout and providers composition.
     - **page.tsx** — Landing page route entry.
-    - **admin/** — Admin pages (e.g., dashboards) built on App Router.
+    - **(dashboard)/** — User dashboard with profile and authenticated views.
+      - **profile/page.tsx** — User profile page with tabs: Orders, Watchlist, Security, Account Settings.
+      - **layout.tsx** — Dashboard layout with navigation for authenticated users.
+    - **(marketing)/** — Marketing and homepage sections with dynamic content.
+    - **admin/** — Admin pages (12+ dashboards) built on App Router.
+      - **audit/** — Audit log viewer with filtering and CSV/JSON export.
+      - **balances/** — Kinguin account balance and profit analytics.
+      - **catalog/** — Product catalog management (products, rules, sync, groups, import).
+      - **flags/** — Runtime feature flags (6 toggles).
+      - **marketing/** — Flash deals and bundle deals management.
+      - **orders/** — Orders dashboard with filtering, pagination, CSV export.
+      - **payments/** — Payment history with transaction details.
+      - **promos/** — Promo codes management and redemption history.
+      - **queues/** — BullMQ queue monitoring.
+      - **reservations/** — Kinguin reservations tracker.
+      - **reviews/** — Review moderation dashboard.
+      - **webhooks/** — Webhook audit trail with replay capability.
+    - **auth/** — Authentication pages (login, register, OTP verification).
+    - **cancel-deletion/** — Account deletion cancellation page (HMAC token verification).
     - **orders/** — Customer order views.
     - **pay/** — Payment initiation/redirect handling pages.
     - **product/** — Product detail pages.
@@ -102,7 +142,13 @@ This document describes the current BitLoot monorepo structure, with a concise 1
 - **apps/api/src/modules/auth/auth.module.ts** — JWT-based authentication module using Passport; central JWT signing/verification with 24h expiry.
 - **apps/api/src/modules/auth/guards/jwt-auth.guard.ts** — Guard that enforces JWT validation for routes and WebSocket gateways.
 - **apps/api/src/modules/auth/strategies/jwt.strategy.ts** — JWT strategy (Bearer header / query token) validating signature/expiration and attaching user claims.
-- Note: OTP flows are not currently implemented server-side; frontend provides `input-otp` primitive for UX, and OTP can be added as a future module under `modules/auth/otp/`.
+- **apps/api/src/modules/auth/otp.service.ts** — 6-digit OTP generation, Redis storage with 5-minute TTL, rate limiting (3 requests/15m for issue, 5 attempts/60s for verify), and email delivery coordination.
+- **apps/api/src/modules/auth/auth.service.ts** — JWT token generation and validation (accessToken 15m, refreshToken 7d), token refresh logic, and session management.
+- **apps/api/src/modules/auth/auth.controller.ts** — Endpoints: POST /auth/request-otp, POST /auth/verify-otp, POST /auth/refresh, POST /auth/logout, POST /auth/request-deletion, POST /auth/cancel-deletion, POST /auth/change-email (dual-OTP).
+- **apps/api/src/modules/auth/session.controller.ts** — Session endpoints: list active sessions, revoke sessions, current session info.
+- **apps/api/src/modules/auth/session.service.ts** — Session tracking with device info, IP, last activity, bulk revocation.
+- **apps/api/src/modules/auth/deletion-token.util.ts** — HMAC-SHA256 signed tokens for account deletion cancel links (stateless verification).
+- **apps/api/src/modules/auth/guards/refresh-token.guard.ts** — Specialized guard for refresh token endpoints; validates token type is 'refresh' (7d expiry).
 
 #### API: Payments (NOWPayments)
 - **apps/api/src/modules/payments/payments.controller.ts** — REST endpoints to initiate payments and retrieve statuses.
@@ -146,31 +192,27 @@ This document describes the current BitLoot monorepo structure, with a concise 1
 
 #### API: Emails
 - **apps/api/src/modules/emails/emails.service.ts** — Email notifications abstraction (mocked now; integrates with Resend in production) for sending order-ready links.
+- **apps/api/src/modules/emails/email-unsubscribe.service.ts** — RFC 8058 compliant email unsubscribe handler (170 lines) with HMAC-SHA256 token generation/verification, timing-safe comparison, idempotent unsubscribe/resubscribe, and suppression list management.
+- **apps/api/src/modules/emails/email-unsubscribe.controller.ts** — Public endpoint POST /emails/unsubscribe (no auth required) for handling email list unsubscription requests with always-200 response (prevents email enumeration).
 
-#### API: Level 4 — Authentication (OTP + JWT + Users)
-- **apps/api/src/modules/auth/otp.service.ts** — 6-digit OTP generation, Redis storage with 5-minute TTL, rate limiting (3 requests/15m for issue, 5 attempts/60s for verify), and email delivery coordination.
-- **apps/api/src/modules/auth/auth.service.ts** — JWT token generation and validation (accessToken 15m, refreshToken 7d), token refresh logic, and session management.
-- **apps/api/src/modules/auth/auth.controller.ts** — Four endpoints: POST /auth/request-otp (send code), POST /auth/verify-otp (validate code + create user), POST /auth/refresh (refresh tokens), POST /auth/logout (invalidate session).
-- **apps/api/src/modules/auth/guards/refresh-token.guard.ts** — Specialized guard for refresh token endpoints; validates token type is 'refresh' (7d expiry).
-
-#### API: Level 4 — User Management & Database
-- **apps/api/src/database/migrations/1731337200000-CreateUsers.ts** — PostgreSQL migration creating users table (8 columns: id, email, passwordHash, emailConfirmed, role, createdAt, updatedAt, deletedAt) with 3 optimized indexes and soft-delete support.
+#### API: Users
 - **apps/api/src/database/entities/user.entity.ts** — TypeORM User entity with all 8 columns, soft-delete via @DeleteDateColumn, and role-based access control (user/admin roles).
 - **apps/api/src/modules/users/user.service.ts** — User lifecycle service: create user with bcryptjs hashing (10-round salt), find by email, update password, confirm email, and auto-create on first OTP verification.
 - **apps/api/src/modules/users/users.controller.ts** — User endpoints: GET /users/me (current user profile), PATCH /users/me/password (change password), GET /users/me/orders (order history with pagination), all requiring JwtAuthGuard.
 - **apps/api/src/modules/users/dto/user.dto.ts** — Eight DTOs for user operations: CreateUserDto, UpdateUserDto, UserResponseDto, ChangePasswordDto, with class-validator decorators and Swagger @ApiProperty annotations.
 - **apps/api/src/modules/users/users.module.ts** — Module setup with TypeORM entity registration, DI configuration, and exports for Users service and controller.
 
-#### API: Level 4 — Authorization & Security Guards
-- **apps/api/src/modules/auth/auth.module.ts** — Authentication module registering OTP service, User service, Auth service, JWT strategy, and all guards for dependency injection.
-
-#### API: Level 4 — Observability & Metrics
+#### API: Observability & Metrics
 - **apps/api/src/modules/metrics/metrics.service.ts** — Central Prometheus metrics service (137 lines) collecting 6 custom counters: otp_issued_total, otp_verified_total, email_send_success_total, email_send_failed_total, invalid_hmac_count, duplicate_webhook_count, underpaid_orders_total, plus 13+ Node.js default metrics (CPU, memory, heap, uptime, event loop, GC).
 - **apps/api/src/modules/metrics/metrics.controller.ts** — Endpoint GET /metrics (AdminGuard protected, JWT required) returning Prometheus text exposition format (multiline) with all metrics for scraping by Prometheus server.
-- **apps/api/src/modules/emails/email-unsubscribe.service.ts** — RFC 8058 compliant email unsubscribe handler (170 lines) with HMAC-SHA256 token generation/verification, timing-safe comparison, idempotent unsubscribe/resubscribe, and suppression list management.
-- **apps/api/src/modules/emails/email-unsubscribe.controller.ts** — Public endpoint POST /emails/unsubscribe (no auth required) for handling email list unsubscription requests with always-200 response (prevents email enumeration).
 
-#### API: Level 4 — Metric Integrations (Modified Files)
+#### API: Audit Logging
+- **apps/api/src/modules/audit-log/audit-log.entity.ts** — Immutable audit trail entity (8 columns: id, adminUserId, action, target, payload, details, createdAt) with foreign key to users and three composite indexes.
+- **apps/api/src/modules/audit-log/audit-log.service.ts** — Audit logging service with create(), query(), and export() methods for action tracking and compliance reporting.
+- **apps/api/src/modules/audit-log/audit-log.controller.ts** — REST endpoints for listing audit logs with pagination, filtering, and CSV/JSON export (AdminGuard protected).
+- **apps/api/src/modules/audit-log/audit-log.dto.ts** — 4 DTOs for audit operations with class-validator decorators and Swagger documentation.
+
+#### API: Metric Integrations (Modified Files)
 - **apps/api/src/modules/auth/otp.service.ts** — Integrated: incrementMetric('otp_issued_total'), incrementMetric('otp_verified_total') on issue/verify operations.
 - **apps/api/src/modules/emails/emails.service.ts** — Integrated: incrementEmailSendSuccess/Failed(), recordEmailLatency() on send operations.
 - **apps/api/src/modules/payments/payments.service.ts** — Integrated: updateUnderpaidOrdersGauge() on IPN handling.
@@ -183,11 +225,6 @@ This document describes the current BitLoot monorepo structure, with a concise 1
 - **apps/api/src/modules/admin/admin-ops.service.ts** — Service for flag state management, queue status retrieval, and balance fetching from Kinguin API.
 - **apps/api/src/modules/admin/admin.module.ts** — Admin module setup with dependencies, TypeORM repositories, and controller registration.
 - **apps/api/src/modules/admin/admin-ops.module.ts** — Ops module setup for feature flags, queue monitoring, and balance operations.
-- **apps/api/src/modules/audit-log/audit-log.entity.ts** — Immutable audit trail entity (8 columns: id, adminUserId, action, target, payload, details, createdAt) with foreign key to users and three composite indexes.
-- **apps/api/src/modules/audit-log/audit-log.service.ts** — Audit logging service with create(), query(), and export() methods for action tracking and compliance reporting.
-- **apps/api/src/modules/audit-log/audit-log.controller.ts** — REST endpoints for listing audit logs with pagination, filtering, and CSV/JSON export (AdminGuard protected).
-- **apps/api/src/modules/audit-log/audit-log.dto.ts** — 4 DTOs for audit operations with class-validator decorators and Swagger documentation.
-- **apps/api/src/modules/audit-log/audit.module.ts** — Audit module configuration with TypeORM entity registration and DI setup.
 - **apps/api/src/database/migrations/1731700000000-CreateAuditLogs.ts** — PostgreSQL migration creating audit_logs table with 8 columns, 3 composite indexes, and foreign key constraints.
 
 ### Frontend: Level 5 — Admin Dashboards & Error Handling
@@ -433,7 +470,201 @@ This document describes the current BitLoot monorepo structure, with a concise 1
 - CSV export for compliance reporting
 - 8-column schema with foreign key relationships
 
+---
+
+## Post-Level 6 Features (January 2026) ✅
+
+**Status:** All features Production-Ready  
+**New Modules:** 4 (promos, reviews, watchlist, marketing)  
+**New Entities:** 15+ (promo codes, reviews, watchlist, marketing deals, product groups)  
+**New Admin Pages:** 5+ (promos, reviews, marketing bundles, flash deals, catalog groups)
+
+---
+
+### API: Promo Codes Module (`modules/promos/`)
+
+**Purpose:** Discount campaigns with flexible rules, validation, and usage tracking.
+
+- **apps/api/src/modules/promos/promos.controller.ts** — REST endpoints for promo validation (`POST /promos/validate`) and admin CRUD at `/admin/promos`.
+- **apps/api/src/modules/promos/promos.service.ts** — Business logic: 12 validation checks (active, dates, usage limits, scope, stacking rules), redemption tracking.
+- **apps/api/src/modules/promos/promos.module.ts** — Module setup with TypeORM repositories and service registration.
+- **apps/api/src/modules/promos/entities/promocode.entity.ts** — PromoCode entity: discount types (percent/fixed), scope (global/category/product), usage limits, stacking rules, date validity.
+- **apps/api/src/modules/promos/entities/promoredemption.entity.ts** — PromoRedemption entity tracking per-user redemption history with foreign keys to users and orders.
+- **apps/api/src/modules/promos/dto/** — DTOs for create, update, validate, and response with class-validator decorators.
+
+**Features:**
+- Discount types: Percent (0-100%) or fixed amount (EUR)
+- Scope: Global, category-specific, or product-specific
+- Usage limits: Total cap + per-user cap
+- Stacking prevention: Configurable rules
+- Hard delete (not soft-delete) to avoid unique constraint issues
+
+---
+
+### API: Reviews Module (`modules/reviews/`)
+
+**Purpose:** Customer reviews with admin moderation workflow.
+
+- **apps/api/src/modules/reviews/reviews.controller.ts** — Customer endpoints: submit, edit, delete own reviews; public display of approved reviews.
+- **apps/api/src/modules/reviews/admin-reviews.controller.ts** — Admin endpoints (12 total): full CRUD, approve/reject, bulk actions, homepage curation.
+- **apps/api/src/modules/reviews/reviews.service.ts** — Review lifecycle: create with pending status, moderation workflow, rating aggregation.
+- **apps/api/src/modules/reviews/reviews.module.ts** — Module with TypeORM Review entity and service exports.
+- **apps/api/src/database/entities/review.entity.ts** — Review entity: userId, productId, orderId (optional), rating (1-5), title, content, status (pending/approved/rejected), createdAt.
+- **apps/api/src/modules/reviews/dto/** — DTOs for create, update, admin actions, and paginated responses.
+
+**Statuses:** `pending` → `approved` | `rejected`
+
+---
+
+### API: Watchlist Module (`modules/watchlist/`)
+
+**Purpose:** Save products for later with per-user persistence.
+
+- **apps/api/src/modules/watchlist/watchlist.controller.ts** — 5 endpoints: `GET/POST/DELETE /watchlist`, `GET /watchlist/check/:productId`, `GET /watchlist/count`.
+- **apps/api/src/modules/watchlist/watchlist.service.ts** — CRUD operations with unique constraint enforcement (userId + productId).
+- **apps/api/src/modules/watchlist/watchlist.module.ts** — Module setup with TypeORM repository.
+- **apps/api/src/database/entities/watchlist-item.entity.ts** — WatchlistItem entity with unique constraint on (userId, productId), timestamps.
+- **apps/api/src/modules/watchlist/dto/** — DTOs for add, remove, and list operations.
+
+---
+
+### API: Marketing Module (`modules/marketing/`)
+
+**Purpose:** Homepage sections, flash deals, and bundle deals management.
+
+- **apps/api/src/modules/marketing/admin-marketing.controller.ts** — Admin endpoints for page sections, flash deals, bundle deals CRUD with ordering and analytics.
+- **apps/api/src/modules/marketing/public-marketing.controller.ts** — Public endpoints for homepage sections and active deals display.
+- **apps/api/src/modules/marketing/marketing.service.ts** — Business logic for section management, deal scheduling, analytics tracking.
+- **apps/api/src/modules/marketing/marketing.module.ts** — Module with all marketing entities and service exports.
+- **apps/api/src/modules/marketing/entities/page-section.entity.ts** — PageSection entity: type (hero/featured/deals/etc), title, displayOrder, config JSON, active status.
+- **apps/api/src/modules/marketing/entities/section-analytics.entity.ts** — Analytics tracking for section views and clicks.
+- **apps/api/src/modules/marketing/entities/flash-deal.entity.ts** — FlashDeal entity: startTime, endTime, discountPercent, displayType, active.
+- **apps/api/src/modules/marketing/entities/flash-deal-product.entity.ts** — Junction table linking flash deals to products.
+- **apps/api/src/modules/marketing/entities/bundle-deal.entity.ts** — BundleDeal entity: name, description, discount settings, validity dates.
+- **apps/api/src/modules/marketing/entities/bundle-product.entity.ts** — Junction table linking bundles to products with per-product discount percent.
+- **apps/api/src/modules/marketing/dto/** — DTOs for all marketing CRUD operations.
+
+---
+
+### API: Product Groups (Catalog Enhancement)
+
+**Purpose:** Group product variants (e.g., GTA V Standard/Deluxe/Ultimate) for modal selection.
+
+- **apps/api/src/modules/catalog/groups.controller.ts** — Public endpoints: `GET /catalog/groups`, `GET /catalog/groups/:slug`.
+- **apps/api/src/modules/catalog/admin-groups.controller.ts** — Admin endpoints: full CRUD for product groups and member management.
+- **apps/api/src/modules/catalog/groups.service.ts** — Service: create, findAll, findBySlug, addProduct, removeProduct.
+- **apps/api/src/modules/catalog/entities/product-group.entity.ts** — ProductGroup entity: name, slug, description, coverImage, displayOrder.
+- **apps/api/src/modules/catalog/kinguin-webhooks.controller.ts** — Kinguin webhook receiver for stock/price updates.
+
+---
+
+### API: Kinguin Balance & Profit Analytics
+
+**Purpose:** Monitor Kinguin account balance and calculate profit margins.
+
+- **apps/api/src/modules/kinguin/kinguin-balance.controller.ts** — Endpoints for balance retrieval and spending stats.
+- **apps/api/src/modules/kinguin/kinguin-balance.service.ts** — Live EUR balance from Kinguin API, spending stats (24h/7d/30d), alert thresholds, runway calculation.
+- **apps/api/src/modules/kinguin/kinguin-profit.controller.ts** — Endpoints for profit analytics with date range filters.
+- **apps/api/src/modules/kinguin/kinguin-profit.service.ts** — Cross-reference Kinguin costs with BitLoot prices: revenue, cost, profit, margin %, per-product profitability.
+- **apps/api/src/modules/kinguin/dto/** — DTOs for balance, spending, and profit response types.
+
+---
+
+### API: Account Management (Auth Enhancement)
+
+**Purpose:** Session management, account deletion with 30-day grace period, dual-OTP email change.
+
+- **apps/api/src/modules/auth/session.controller.ts** — Session endpoints: list active sessions, revoke sessions, current session info.
+- **apps/api/src/modules/auth/session.service.ts** — Session tracking with device info, IP, last activity, bulk revocation.
+- **apps/api/src/database/entities/session.entity.ts** — Session entity: userId, token, deviceInfo, ipAddress, lastActiveAt, expiresAt.
+- **apps/api/src/modules/auth/deletion-token.util.ts** — HMAC-SHA256 signed tokens for account deletion cancel links (stateless verification).
+- **apps/api/src/modules/auth/auth.controller.ts** — Enhanced with: `POST /auth/request-deletion`, `POST /auth/cancel-deletion`, `POST /auth/change-email` (dual-OTP).
+
+**Account Deletion Flow:**
+1. User requests deletion → 30-day grace period starts
+2. Daily cron checks `deletionRequestedAt` field
+3. Cancel via profile OR email link (HMAC-signed token)
+4. After 30 days: soft-delete user, prevent login
+
+**Dual-OTP Email Change:**
+1. OTP sent to BOTH current AND new email
+2. Both codes required to confirm change
+3. Confirmation emails to both addresses
+
+---
+
+### API: New Database Migrations (Post-Level 6)
+
+| Migration | Purpose |
+|-----------|---------|
+| `1765000000000-CreateProductGroups.ts` | Product groups/variants table |
+| `1766000000000-CreateReviews.ts` | Reviews table with moderation status |
+| `1766000000001-MakeReviewOrderIdNullable.ts` | Allow reviews without order link |
+| `1767000000000-CreateWatchlist.ts` | Watchlist items with unique constraint |
+| `1767100000000-LinkOrdersToUsersByEmail.ts` | Connect guest orders to registered users |
+| `1767200000000-AddCompletionEmailSent.ts` | Email idempotency flag on orders |
+| `1768000000000-CreateUserSessions.ts` | User sessions tracking table |
+| `1768100000000-AddUserDeletionRequestedAt.ts` | Account deletion grace period field |
+| `1768200000000-AddKeyAuditFields.ts` | Key reveal audit tracking |
+| `1768300000000-CreateMarketingSections.ts` | Page sections, flash deals, bundles |
+| `1768400000000-AddFlashDealDisplayType.ts` | Flash deal display configuration |
+| `1768600000000-AddBundleDealColumns.ts` | Bundle deal enhancements |
+| `1769000000000-CreatePromoCodes.ts` | Promo codes and redemptions tables |
+| `1769100000000-AddPromoFieldsToOrders.ts` | Link orders to applied promo codes |
+
+---
+
+### Frontend: New Admin Pages (Post-Level 6)
+
+- **apps/web/src/app/admin/promos/page.tsx** — Promo codes management: create/edit codes, view redemption history, toggle active status.
+- **apps/web/src/app/admin/reviews/page.tsx** — Review moderation dashboard: pending queue, approve/reject actions, bulk operations.
+- **apps/web/src/app/admin/marketing/flash-deals/** — Flash deals management with scheduling and product assignment.
+- **apps/web/src/app/admin/marketing/bundles/** — Bundle deals management with product grouping and discount configuration.
+- **apps/web/src/app/admin/catalog/groups/page.tsx** — Product groups list with CRUD operations.
+- **apps/web/src/app/admin/catalog/groups/new/page.tsx** — Create new product group form.
+- **apps/web/src/app/admin/catalog/groups/[id]/page.tsx** — Edit product group and manage members.
+- **apps/web/src/app/admin/catalog/import/page.tsx** — Kinguin product import interface.
+
+---
+
+### Frontend: User-Facing Pages (Post-Level 6)
+
+- **apps/web/src/app/(dashboard)/profile/page.tsx** — User profile with tabs: Orders, Watchlist, Security, Account Settings.
+- **apps/web/src/app/(dashboard)/layout.tsx** — Dashboard layout for authenticated users.
+- **apps/web/src/app/cancel-deletion/page.tsx** — Account deletion cancellation page (HMAC token verification).
+- **apps/web/src/app/(marketing)/page.tsx** — Homepage with dynamic marketing sections from PageSection entities.
+
+---
+
+### Frontend: New Hooks (Post-Level 6)
+
+- **useWatchlist** — Fetch user's watchlist items with pagination.
+- **useAddToWatchlist** — Add product to watchlist mutation.
+- **useToggleWatchlist** — Toggle watchlist status (add/remove).
+- **useWatchlistCount** — Get watchlist item count for badge display.
+- **usePromoValidation** — Validate promo code in checkout flow.
+
+---
+
+### Post-Level 6 Quality Metrics
+
+| Metric | Status |
+|--------|--------|
+| **New Modules** | 4 (promos, reviews, watchlist, marketing) ✅ |
+| **New Entities** | 15+ entities ✅ |
+| **New Migrations** | 14 migrations ✅ |
+| **New Admin Pages** | 5+ fully functional ✅ |
+| **TypeScript Errors** | 0 ✅ |
+| **Production Ready** | YES ✅ |
+
+---
+
 ## Notes
-- **Users/Products Modules** — Present as placeholders and can be expanded with proper entities/services/controllers.
-- **Observability** — Queue and webhook events are structured; consider central logging/metrics (e.g., OpenTelemetry) for production.
-- **Level 5 Completion** — All 47 tasks implemented with enterprise-grade quality, zero critical bugs, comprehensive documentation, and production-ready infrastructure.
+- **Hybrid Fulfillment** — Products can be `custom` (manual keys) or `kinguin` (automated API) via `sourceType` field.
+- **Promo Stacking** — Configurable per-promo; cart revalidation auto-clears invalid promos on changes.
+- **Account Recovery SOP** — User contacts support, provides 2-3 verification points, 24-hour cooling period.
+- **Email Idempotency** — `completionEmailSent` flag prevents duplicate order completion emails.
+- **Cache Invalidation** — `invalidateOrderCache()` utility called after all order status changes.
+- **Observability** — Queue and webhook events are structured; Prometheus + Grafana for production monitoring.
+- **17 Backend Modules** — admin, audit, auth, catalog, emails, fulfillment, kinguin, marketing, metrics, orders, payments, promos, reviews, storage, users, watchlist, webhooks.
+- **Cache Invalidation** — `invalidateOrderCache()` utility called after all order status changes.

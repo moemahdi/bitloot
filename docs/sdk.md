@@ -1,149 +1,250 @@
 # BitLoot SDK Integration Guide
 
-## ✅ Why SDK-based integration is a good idea
+**Status:** ✅ Production-Ready  
+**Package:** `@bitloot/sdk`  
+**Generator:** OpenAPI Generator (typescript-fetch)
 
-Using an SDK between your frontend and backend means:
+---
 
-- Your **frontend communicates exclusively with your own NestJS API**, never directly with third-party APIs like Kinguin, NOWPayments, or Resend, ensuring **security** by keeping secrets and tokens server-side only.
-- You get a **type-safe interface** for all BitLoot operations (orders, payments, users, fulfillment, etc.), generated from the backend OpenAPI schema for zero drift and improved developer experience.
-- It enables integration with caching, optimistic updates, and version control of your API layer — allowing offline-ready UX and smoother frontend state management.
+## 🔒 SDK-First Principle
 
-Essentially, you’ll have a **BitLoot SDK** imported in the PWA frontend that wraps strong typing and consistent backend route calls instead of accessing raw REST endpoints.
-
-***
-
-## ⚙️ SDK Design for BitLoot
-
-The SDK is a typed client wrapped around your NestJS backend API routes, auto-generated with OpenAPI tools and enhanced manually for additional utilities.
-
-### Example SDK structure
+**All frontend API calls MUST use `@bitloot/sdk`.** No direct fetch/axios to backend.
 
 ```
-sdk/
- ├── index.ts
- ├── api/
- │   ├── auth.ts
- │   ├── orders.ts
- │   ├── payments.ts
- │   ├── products.ts
- │   ├── fulfillment.ts
- │   ├── user.ts
- │   └── r2.ts
- ├── types/
- │   ├── order.ts
- │   ├── product.ts
- │   ├── user.ts
- │   ├── fulfillment.ts
- │   └── payment.ts
- └── utils/http.ts
+Frontend (Next.js) → @bitloot/sdk → NestJS API → (3rd-party APIs)
 ```
 
-Each file precisely wraps backend endpoints with typed methods using Axios or Fetch with OpenAPI generated types.
+Secrets (Kinguin, NOWPayments, Resend) stay server-side only.
 
-### SDK example usage:
+---
+
+## 📁 SDK Structure
+
+```
+packages/sdk/
+├── src/
+│   ├── index.ts           # Main exports
+│   ├── auth-client.ts     # Custom auth client (OTP flow)
+│   ├── catalog-client.ts  # Custom catalog wrapper
+│   └── generated/         # Auto-generated from OpenAPI
+│       ├── apis/          # AdminApi, OrdersApi, CatalogApi, etc.
+│       ├── models/        # DTOs (OrderResponseDto, ProductResponseDto, etc.)
+│       └── runtime.ts     # Fetch configuration
+├── openapi-config.yaml    # Generator config
+├── fix-sdk-runtime.js     # Post-gen TypeScript fix
+└── package.json
+```
+
+---
+
+## ⚙️ Generation Commands
+
+```bash
+# Generate SDK from running API
+npm run sdk:dev          # Runs: generate + build
+
+# Manual steps
+npm run generate         # Fetch OpenAPI spec → generate code
+npm run build            # Compile TypeScript
+```
+
+**openapi-config.yaml:**
+```yaml
+generatorName: typescript-fetch
+inputSpec: http://localhost:4000/api/docs-json
+output: ./src/generated
+additionalProperties:
+  supportsES6: true
+  withInterfaces: true
+  typescriptThreePlus: true
+  modelPropertyNaming: camelCase
+```
+
+---
+
+## 🔌 Frontend Integration Patterns
+
+### 1. API Configuration with Auth
 
 ```ts
-// sdk/api/orders.ts
-import { http } from '../utils/http';
-import { Order, PaymentStatus } from '../types/order';
+// apps/web/src/lib/api-config.ts
+import { Configuration } from '@bitloot/sdk';
 
-export async function createOrder(data: {
-  email: string;
-  items: { productId: string; qty: number }[];
-}): Promise<Order> {
-  return http.post('/orders', data);
+function getCookie(name: string): string | null {
+  if (typeof document === 'undefined') return null;
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; ${name}=`);
+  if (parts.length === 2) return parts[1]?.split(';')[0] ?? null;
+  return null;
 }
 
-export async function getOrderStatus(id: string): Promise<PaymentStatus> {
-  return http.get(`/orders/${id}/status`);
-}
+export const apiConfig = new Configuration({
+  basePath: process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000',
+  accessToken: (): string => getCookie('accessToken') ?? '',
+});
+
+// Pre-configured instance for reuse
+export const adminApi = new AdminApi(apiConfig);
 ```
 
-Frontend usage:
+### 2. Using Generated API Clients
+
+```tsx
+// Admin pages use typed API clients
+import { AdminApi, AuditLogsApi, Configuration } from '@bitloot/sdk';
+import type { PaginatedAuditLogsDto, OrderResponseDto } from '@bitloot/sdk';
+import { apiConfig } from '@/lib/api-config';
+
+const auditLogsApi = new AuditLogsApi(apiConfig);
+
+// With TanStack Query
+const { data, isLoading } = useQuery<PaginatedAuditLogsDto>({
+  queryKey: ['audit-logs', page],
+  queryFn: () => auditLogsApi.auditLogControllerQuery({ limit: 50, offset: page * 50 }),
+  staleTime: 30_000,
+});
+```
+
+### 3. Custom Clients (Auth, Catalog)
+
+```tsx
+// Auth uses custom client (not auto-generated)
+import { authClient } from '@bitloot/sdk';
+
+// Request OTP
+const result = await authClient.requestOtp(email, captchaToken);
+
+// Verify OTP
+const auth = await authClient.verifyOtp(email, code);
+// Returns: { success, accessToken, refreshToken, user }
+
+// Refresh token
+const tokens = await authClient.refreshToken(refreshToken);
+```
+
+```tsx
+// Catalog uses wrapper for convenience
+import { catalogClient } from '@bitloot/sdk';
+
+// Simplified API
+const products = await catalogClient.findAll({
+  q: 'gta',
+  platform: 'steam',
+  sort: 'price_asc',
+  limit: 12,
+  page: 1,
+});
+
+const categories = await catalogClient.getCategories();
+const filters = await catalogClient.getFilters();
+```
+
+---
+
+## 📦 Exports from SDK
 
 ```ts
-import { createOrder, getOrderStatus } from '@bitloot/sdk';
+// Generated APIs
+export { AdminApi, OrdersApi, CatalogApi, UsersApi, FulfillmentApi, ... } from './generated';
 
-const order = await createOrder({ email, items });
-const status = await getOrderStatus(order.id);
+// Generated Models (types)
+export type { OrderResponseDto, ProductResponseDto, UserResponseDto, ... } from './generated';
+
+// Configuration
+export { Configuration } from './generated';
+
+// Custom Clients
+export { authClient, AuthClient } from './auth-client';
+export { catalogClient } from './catalog-client';
+
+// Constants
+export const VERSION = '0.0.1';
+export const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
 ```
 
-***
+---
 
-## 🔒 Why NOT call 3rd-party SDKs directly from frontend
+## 🛠️ Common Usage Patterns
 
-Examples:
+### Admin Dashboard
 
-- **Kinguin API** requires secret Bearer tokens.
-- **NOWPayments** exposes sensitive crypto wallet addresses.
-- **Resend API** handles email/OTP sending with private keys.
+```tsx
+import { AdminOperationsApi, AdminApi } from '@bitloot/sdk';
+import { apiConfig } from '@/lib/api-config';
 
-These secrets and sensitive operations **must remain server-side only** for security and compliance.
+const adminOpsApi = new AdminOperationsApi(apiConfig);
+const adminApi = new AdminApi(apiConfig);
 
-Frontend calls should always be:
+// Get feature flags
+const flags = await adminOpsApi.adminOpsControllerGetFlags();
 
+// Get orders with pagination
+const orders = await adminApi.adminControllerGetOrders({ limit: 50, offset: 0 });
 ```
-Frontend (Next.js) → BitLoot SDK → NestJS API → (3rd-party APIs)
+
+### Public Catalog
+
+```tsx
+import { catalogClient } from '@bitloot/sdk';
+
+// No auth needed for public endpoints
+const products = await catalogClient.findAll({ featured: true, limit: 8 });
+const product = await catalogClient.catalogControllerGetProduct({ slug: 'gta-v' });
 ```
 
-Your backend manages:
+### Authenticated User Actions
 
-- Authentication, authorization, and rate limiting.
-- HMAC signature verification for webhooks.
-- IPN and webhook processing.
-- Secure secret storage (API keys, tokens).
-- Data validation and business logic orchestration.
+```tsx
+import { UsersApi, OrdersApi } from '@bitloot/sdk';
+import { apiConfig } from '@/lib/api-config';
 
-This keeps frontend lightweight, secure, and focused solely on UI and SDK calls.
+const usersApi = new UsersApi(apiConfig);
+const ordersApi = new OrdersApi(apiConfig);
 
-***
+// Get current user
+const me = await usersApi.usersControllerGetMe();
 
-## 🧩 SDK Integration Flow
+// Get user orders
+const orders = await ordersApi.ordersControllerGetUserOrders({ limit: 10 });
+```
 
-| Layer                  | Purpose                                | Calls                                        |
-| ---------------------- | ------------------------------------- | -------------------------------------------- |
-| **Frontend (Next.js)** | User interface + calls BitLoot SDK     | `sdk.orders.create()`, `sdk.auth.login()`, `sdk.fulfillment.getStatus()` |
-| **BitLoot SDK**        | Typed wrapper around NestJS routes     | `/api/orders`, `/api/auth`, `/api/fulfillment`, `/api/payments`           |
-| **NestJS Backend**     | Business logic, security, 3rd-party API wrappers | Calls Kinguin, NOWPayments, Resend APIs, Cloudflare R2 storage             |
-| **3rd-Party APIs**     | External services                      | Process payments, orders, email OTP, keys storage                         |
+---
 
-***
+## ⚠️ Post-Generation Fix
 
-## 💡 Recommended Extras
+The `fix-sdk-runtime.js` script patches a TypeScript strict mode issue:
 
-1. **Auto-generate SDK types**  
-   Use OpenAPI + `nestjs-swagger` to generate client SDK with [openapi-typescript-codegen](https://www.npmjs.com/package/openapi-typescript-codegen). This guarantees type-safe frontend/backend contract with zero divergence.
+```js
+// Fixes FetchError class for noImplicitOverride
+// Old: constructor(public cause: Error, ...)
+// New: constructor(public override cause: Error, ...)
+```
 
-2. **Unified Error Handling**  
-   Wrap all responses in a consistent format:  
-   ```ts
-   { success: true, data: {...} } | { success: false, error: "Error message" }
-   ```
+Runs automatically after `npm run generate`.
 
-3. **Auth-aware Requests**  
-   Automatically inject JWT access tokens and handle refresh logic within the SDK HTTP client.
+---
 
-4. **Offline & Caching Support**  
-   Integrate TanStack Query (React Query) to handle caching, background retries, and loading states seamlessly in the PWA.
+## ✅ Checklist
 
-***
+- [ ] API running at `localhost:4000` before generation
+- [ ] Run `npm run sdk:dev` after any backend API changes
+- [ ] Use `Configuration` with `accessToken` for authenticated calls
+- [ ] Import types with `import type { ... }` for tree-shaking
+- [ ] Use TanStack Query for data fetching (caching, loading states)
 
-## 🚀 Summary
+---
 
-| Advantage                    | Explanation                                      |
-| ---------------------------- | ------------------------------------------------- |
-| ✅ Security                  | Secrets remain only on backend (Kinguin, NOWPayments, Resend) |
-| ✅ Developer Experience      | Typed, versioned client SDK generated from backend OpenAPI |
-| ✅ Maintainability           | One SDK update keeps frontend and backend in sync |
-| ✅ Offline-ready             | Works well with TanStack Query & Zustand for caching and offline support |
-| ✅ Scalability                | SDK reusable across frontend, admin panel, mobile apps |
+## 🚫 Never Do This
 
-***
+```tsx
+// ❌ Direct fetch to backend
+const res = await fetch('http://localhost:4000/api/orders');
 
-### TL;DR
+// ❌ Hardcoded URLs
+const data = await axios.get('/api/admin/orders');
 
-Using your own SDK between **Next.js frontend** and **NestJS backend** is the recommended approach.  
-Do **not** call Kinguin, NOWPayments, or Resend APIs directly from frontend.  
-Generate SDK from your backend OpenAPI schema for type safety and to prevent API drift.
+// ❌ Manual token headers
+headers: { Authorization: `Bearer ${token}` }
+```
 
-***
+**Always use SDK clients instead.**

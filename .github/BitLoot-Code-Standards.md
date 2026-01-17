@@ -1106,7 +1106,7 @@ jobs:
 - ✅ **Zero ESLint errors** — Run `npm run lint --max-warnings 0`
 - ✅ **All tests passing** — Run `npm run test`
 - ✅ **Build succeeds** — Run `npm run build`
-- ✅ **SDK regenerated** (if API changed) — Run `npm run sdk:gen`
+- ✅ **SDK regenerated** (if API changed) — Run `npm run sdk:dev`
 - ✅ **Controllers fully documented** — No `@ApiResponse({ type: void })`, use DTOs
 - ✅ **No secrets in code** — Review for API keys, tokens, secrets
 - ✅ **Ownership checks in services** — Services validate `userId`
@@ -1138,7 +1138,7 @@ npm run dev:web    # Web on port 3000
 
 ```bash
 # After API changes, regenerate SDK
-npm run sdk:gen
+npm run sdk:dev
 
 # Run quality checks
 npm run format
@@ -1191,7 +1191,7 @@ npm run build               # Webpack build
 npm run dev:api
 
 # 3. Generate SDK from OpenAPI spec
-npm run sdk:gen
+npm run sdk:dev
 
 # 4. Verify SDK generated successfully
 ls packages/sdk/src/generated/models/
@@ -1217,7 +1217,7 @@ Every controller endpoint **must have**:
 
 | Issue | Solution |
 |---|---|
-| **"Type error after API change"** | Run `npm run sdk:gen` to regenerate SDK |
+| **"Type error after API change"** | Run `npm run sdk:dev` to regenerate SDK |
 | **"ESLint: no-floating-promises"** | Add `await` before promise or use `.catch()` |
 | **"ESLint: no-explicit-any"** | Define explicit type or use type guard |
 | **"Prettier formatting fails"** | Run `npm run format:fix` |
@@ -1255,7 +1255,7 @@ Every controller endpoint **must have**:
 npm run dev:all          # Start API + Web (concurrent)
 npm run dev:api          # API only
 npm run dev:web          # Web only
-npm run sdk:gen          # Generate SDK from OpenAPI
+npm run sdk:dev          # Generate SDK from OpenAPI
 npm run type-check       # TypeScript strict mode
 npm run lint             # ESLint check
 npm run lint:fix         # ESLint auto-fix

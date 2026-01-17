@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Tag, Plus, TrendingUp, CheckCircle, Users, Percent } from 'lucide-react';
+import { Tag, Plus, TrendingUp, CheckCircle, Users, Percent, Pencil } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/design-system/primitives/card';
 import {
     Dialog,

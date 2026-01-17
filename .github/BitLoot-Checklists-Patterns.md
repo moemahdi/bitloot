@@ -1033,7 +1033,7 @@ export class ProductsController {
 ### 5. Generate SDK
 
 ```bash
-npm run sdk:gen
+npm run sdk:dev
 ```
 
 ### 6. Use in Frontend
@@ -1070,7 +1070,7 @@ export function ProductList() {
 - [ ] All code passes `npm run format`
 - [ ] All tests pass `npm run test`
 - [ ] Build succeeds `npm run build`
-- [ ] SDK regenerated `npm run sdk:gen` (if API changed)
+- [ ] SDK regenerated `npm run sdk:dev` (if API changed)
 - [ ] No `any` types left in code
 - [ ] No `@ts-ignore` comments
 - [ ] No secrets or API keys in code
