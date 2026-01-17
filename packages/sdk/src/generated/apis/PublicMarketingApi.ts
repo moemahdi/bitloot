@@ -20,7 +20,6 @@ import type {
   FlashDealResponseDto,
   GetEffectivePricesRequestDto,
   GetEffectivePricesResponseDto,
-  PageConfigResponseDto,
 } from '../models/index';
 import {
     BundleDealResponseDtoFromJSON,
@@ -33,8 +32,6 @@ import {
     GetEffectivePricesRequestDtoToJSON,
     GetEffectivePricesResponseDtoFromJSON,
     GetEffectivePricesResponseDtoToJSON,
-    PageConfigResponseDtoFromJSON,
-    PageConfigResponseDtoToJSON,
 } from '../models/index';
 
 export interface PublicMarketingControllerGetActiveBundlesRequest {
@@ -57,10 +54,6 @@ export interface PublicMarketingControllerGetEffectivePriceRequest {
 
 export interface PublicMarketingControllerGetEffectivePricesRequest {
     getEffectivePricesRequestDto: GetEffectivePricesRequestDto;
-}
-
-export interface PublicMarketingControllerGetPageConfigRequest {
-    pageId?: string;
 }
 
 /**
@@ -292,39 +285,6 @@ export class PublicMarketingApi extends runtime.BaseAPI {
      */
     async publicMarketingControllerGetEffectivePrices(requestParameters: PublicMarketingControllerGetEffectivePricesRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<GetEffectivePricesResponseDto> {
         const response = await this.publicMarketingControllerGetEffectivePricesRaw(requestParameters, initOverrides);
-        return await response.value();
-    }
-
-    /**
-     * Get page configuration for rendering
-     */
-    async publicMarketingControllerGetPageConfigRaw(requestParameters: PublicMarketingControllerGetPageConfigRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<PageConfigResponseDto>> {
-        const queryParameters: any = {};
-
-        if (requestParameters['pageId'] != null) {
-            queryParameters['pageId'] = requestParameters['pageId'];
-        }
-
-        const headerParameters: runtime.HTTPHeaders = {};
-
-
-        let urlPath = `/public/marketing/page-config`;
-
-        const response = await this.request({
-            path: urlPath,
-            method: 'GET',
-            headers: headerParameters,
-            query: queryParameters,
-        }, initOverrides);
-
-        return new runtime.JSONApiResponse(response, (jsonValue) => PageConfigResponseDtoFromJSON(jsonValue));
-    }
-
-    /**
-     * Get page configuration for rendering
-     */
-    async publicMarketingControllerGetPageConfig(requestParameters: PublicMarketingControllerGetPageConfigRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PageConfigResponseDto> {
-        const response = await this.publicMarketingControllerGetPageConfigRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

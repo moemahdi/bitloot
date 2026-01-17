@@ -16,9 +16,9 @@ export class CreateOrderItemDto {
   @Min(1)
   quantity?: number;
 
-  @ApiProperty({ 
-    description: 'Discount percentage for bundle purchases (0-100)', 
-    example: 15, 
+  @ApiProperty({
+    description: 'Discount percentage for bundle purchases (0-100)',
+    example: 15,
     required: false,
     minimum: 0,
     maximum: 100
@@ -29,10 +29,10 @@ export class CreateOrderItemDto {
   @Max(100)
   discountPercent?: number;
 
-  @ApiProperty({ 
-    description: 'Bundle ID if this item is part of a bundle purchase', 
+  @ApiProperty({
+    description: 'Bundle ID if this item is part of a bundle purchase',
     example: '52b45262-731b-4730-a409-709e1bd16797',
-    required: false 
+    required: false
   })
   @IsOptional()
   @IsUUID()
@@ -44,9 +44,9 @@ export class CreateOrderDto {
   @IsEmail()
   email!: string;
 
-  @ApiProperty({ 
+  @ApiProperty({
     description: 'Single product ID (for backward compatibility)',
-    default: 'demo-product', 
+    default: 'demo-product',
     example: 'demo-product',
     required: false,
   })
@@ -76,14 +76,23 @@ export class CreateOrderDto {
   @IsString()
   captchaToken?: string;
 
-  @ApiProperty({ 
-    required: false, 
+  @ApiProperty({
+    required: false,
     description: 'Idempotency key (cart hash) to prevent duplicate order creation. If provided, duplicate requests with the same key within 5 minutes will return the existing order instead of creating a new one.',
     example: 'cart-hash-abc123'
   })
   @IsOptional()
   @IsString()
   idempotencyKey?: string;
+
+  @ApiProperty({
+    required: false,
+    description: 'Promo code to apply for discount',
+    example: 'SAVE10'
+  })
+  @IsOptional()
+  @IsString()
+  promoCode?: string;
 }
 
 export class OrderItemResponseDto {
@@ -167,6 +176,33 @@ export class OrderResponseDto {
 
   @ApiProperty({ description: 'Last update timestamp in ISO 8601 format (UTC)' })
   updatedAt!: string;
+
+  @ApiProperty({
+    description: 'Original order total before promo discount (EUR)',
+    required: false,
+    example: '49.99'
+  })
+  originalTotal?: string;
+
+  @ApiProperty({
+    description: 'Promo code ID applied to this order',
+    required: false
+  })
+  promoCodeId?: string;
+
+  @ApiProperty({
+    description: 'Promo code string applied to this order',
+    required: false,
+    example: 'SAVE10'
+  })
+  promoCode?: string;
+
+  @ApiProperty({
+    description: 'Discount amount applied from promo (EUR)',
+    required: false,
+    example: '5.00'
+  })
+  discountAmount?: string;
 }
 
 /**

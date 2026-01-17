@@ -171,7 +171,7 @@ export class CreateFlashDealDto {
   products?: FlashDealProductDto[];
 }
 
-export class UpdateFlashDealDto extends PartialType(CreateFlashDealDto) {}
+export class UpdateFlashDealDto extends PartialType(CreateFlashDealDto) { }
 
 export class FlashDealResponseDto {
   @ApiProperty()
@@ -423,7 +423,7 @@ export class CreateBundleDealDto {
   products?: BundleProductDto[];
 }
 
-export class UpdateBundleDealDto extends PartialType(CreateBundleDealDto) {}
+export class UpdateBundleDealDto extends PartialType(CreateBundleDealDto) { }
 
 export class BundleDealResponseDto {
   @ApiProperty()
@@ -577,29 +577,6 @@ export class UpdateBundleProductDto {
   isBonus?: boolean;
 }
 
-// ============================================================================
-// PAGE CONFIG (PUBLIC)
-// ============================================================================
-
-export class PageConfigResponseDto {
-  @ApiProperty({ description: 'Page identifier', example: 'homepage' })
-  pageId!: string;
-
-  @ApiProperty({ description: 'Active sections in order' })
-  sections!: SectionResponseDto[];
-
-  @ApiPropertyOptional({ description: 'Active flash deal if any' })
-  activeFlashDeal?: FlashDealResponseDto;
-
-  @ApiPropertyOptional({ description: 'Featured bundles' })
-  bundles?: BundleDealResponseDto[];
-
-  @ApiProperty({ description: 'Last updated timestamp' })
-  updatedAt!: Date;
-
-  @ApiProperty({ description: 'Cache key for invalidation' })
-  cacheKey!: string;
-}
 
 // ============================================================================
 // FLASH DEAL PRODUCT MANAGEMENT DTOs

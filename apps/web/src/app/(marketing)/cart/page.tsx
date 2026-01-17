@@ -3,7 +3,6 @@
 import { useCart } from '@/context/CartContext';
 import { CartItemRow } from '@/components/cart/CartItemRow';
 import { Button } from '@/design-system/primitives/button';
-import { Input } from '@/design-system/primitives/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/design-system/primitives/card';
 import { Separator } from '@/design-system/primitives/separator';
 import { useRouter } from 'next/navigation';
@@ -19,11 +18,26 @@ import {
   Wallet,
   ChevronLeft,
   Trash2,
-  TrendingDown
+  TrendingDown,
+  Tag
 } from 'lucide-react';
+import { PromoCodeInput } from '@/features/checkout/PromoCodeInput';
 
 export default function CartPage(): React.ReactElement {
-  const { items, removeItem, updateQuantity, clearCart, total, originalTotal, savings, itemCount, hasBundleItems: _hasBundleItems, promoCode, setPromoCode } = useCart();
+  const { 
+    items, 
+    removeItem, 
+    updateQuantity, 
+    clearCart, 
+    total, 
+    originalTotal, 
+    savings, 
+    itemCount, 
+    hasBundleItems: _hasBundleItems, 
+    appliedPromo, 
+    setAppliedPromo,
+    finalTotal 
+  } = useCart();
   const router = useRouter();
 
   // Empty cart state
@@ -70,14 +84,10 @@ export default function CartPage(): React.ReactElement {
     );
   }
 
-  const estimatedTotal = total;
+  const estimatedTotal = finalTotal;
 
   const handleCheckout = (): void => {
     router.push('/checkout');
-  };
-
-  const handlePromoCodeChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
-    setPromoCode(e.target.value);
   };
 
   return (
@@ -201,24 +211,17 @@ export default function CartPage(): React.ReactElement {
               <CardContent className="space-y-6 pt-6">
                 {/* Promo Code */}
                 <div>
-                  <label className="text-sm font-medium text-text-secondary mb-2 block">
+                  <label className="text-sm font-medium text-text-secondary mb-2 block flex items-center gap-2">
+                    <Tag className="h-4 w-4" />
                     Promo Code
                   </label>
-                  <div className="flex gap-2">
-                    <Input
-                      placeholder="Enter code"
-                      value={promoCode}
-                      onChange={handlePromoCodeChange}
-                      className="flex-1 bg-bg-tertiary border-border-subtle text-text-primary placeholder:text-text-muted focus:border-cyan-glow focus:ring-cyan-glow/20"
-                    />
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      className="border-border-subtle text-text-secondary hover:bg-bg-tertiary"
-                    >
-                      Apply
-                    </Button>
-                  </div>
+                  <PromoCodeInput
+                    orderTotal={total.toFixed(2)}
+                    productIds={items.map(item => item.productId)}
+                    categoryIds={items.map(item => item.category).filter((c): c is string => c !== undefined)}
+                    onPromoApplied={(promo) => setAppliedPromo(promo)}
+                    onPromoRemoved={() => setAppliedPromo(null)}
+                  />
                 </div>
 
                 <Separator className="bg-border-subtle" />
@@ -236,6 +239,15 @@ export default function CartPage(): React.ReactElement {
                         Bundle Savings
                       </span>
                       <span className="text-green-success">-€{savings.toFixed(2)}</span>
+                    </div>
+                  )}
+                  {appliedPromo !== null && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-green-success flex items-center gap-1">
+                        <Tag className="h-4 w-4" />
+                        Promo ({appliedPromo.code})
+                      </span>
+                      <span className="text-green-success">-€{parseFloat(appliedPromo.discountAmount).toFixed(2)}</span>
                     </div>
                   )}
                   <div className="flex justify-between text-sm">

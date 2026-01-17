@@ -32,6 +32,7 @@ import {
   Megaphone,
   Timer,
   Gift,
+  Ticket,
 } from 'lucide-react';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
@@ -81,6 +82,7 @@ const ADMIN_NAV = {
     items: [
       { href: '/admin/marketing/flash-deals', label: 'Flash Deals', icon: Timer },
       { href: '/admin/marketing/bundles', label: 'Bundles', icon: Gift },
+      { href: '/admin/promos', label: 'Promo Codes', icon: Ticket },
     ],
   },
   // System monitoring & operations

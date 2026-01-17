@@ -14,6 +14,7 @@ import { Payment } from '../payments/payment.entity';
 import { Key } from './key.entity';
 import { User } from '../../database/entities/user.entity';
 import type { ProductSourceType } from '../catalog/entities/product.entity';
+import { PromoCode } from '../promos/entities/promocode.entity';
 
 /**
  * OrderStatus — Comprehensive order lifecycle states
@@ -97,6 +98,30 @@ export class Order {
 
   @Column({ type: 'numeric', precision: 20, scale: 8, default: 0 })
   totalCrypto!: string; // store as string to avoid FP issues
+
+  /**
+   * Original order total before any promo discount applied
+   * Used for displaying "was X, now Y" in UI
+   */
+  @Column('decimal', { precision: 20, scale: 8, nullable: true })
+  originalTotal?: string;
+
+  /**
+   * Promo code applied to this order (if any)
+   */
+  @Column({ type: 'uuid', nullable: true })
+  promoCodeId?: string;
+
+  @ManyToOne(() => PromoCode, { onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'promoCodeId' })
+  promoCode?: PromoCode;
+
+  /**
+   * Discount amount applied from promo code (in EUR)
+   * This is the actual calculated discount, not the promo value
+   */
+  @Column('decimal', { precision: 20, scale: 8, nullable: true })
+  discountAmount?: string;
 
   /**
    * Kinguin reservation ID for tracking fulfillment status

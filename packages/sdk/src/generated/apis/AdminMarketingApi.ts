@@ -21,13 +21,10 @@ import type {
   CreateBundleDealDto,
   CreateFlashDealDto,
   FlashDealResponseDto,
-  ReorderSectionsDto,
-  SectionResponseDto,
   UpdateBundleDealDto,
   UpdateBundleProductDto,
   UpdateFlashDealDto,
   UpdateFlashDealProductDto,
-  UpdateSectionDto,
 } from '../models/index';
 import {
     AddBundleProductDtoFromJSON,
@@ -42,10 +39,6 @@ import {
     CreateFlashDealDtoToJSON,
     FlashDealResponseDtoFromJSON,
     FlashDealResponseDtoToJSON,
-    ReorderSectionsDtoFromJSON,
-    ReorderSectionsDtoToJSON,
-    SectionResponseDtoFromJSON,
-    SectionResponseDtoToJSON,
     UpdateBundleDealDtoFromJSON,
     UpdateBundleDealDtoToJSON,
     UpdateBundleProductDtoFromJSON,
@@ -54,8 +47,6 @@ import {
     UpdateFlashDealDtoToJSON,
     UpdateFlashDealProductDtoFromJSON,
     UpdateFlashDealProductDtoToJSON,
-    UpdateSectionDtoFromJSON,
-    UpdateSectionDtoToJSON,
 } from '../models/index';
 
 export interface AdminMarketingControllerActivateFlashDealRequest {
@@ -96,10 +87,6 @@ export interface AdminMarketingControllerGetFlashDealRequest {
     id: string;
 }
 
-export interface AdminMarketingControllerGetSectionRequest {
-    sectionKey: string;
-}
-
 export interface AdminMarketingControllerRemoveProductFromBundleRequest {
     id: string;
     productId: string;
@@ -108,10 +95,6 @@ export interface AdminMarketingControllerRemoveProductFromBundleRequest {
 export interface AdminMarketingControllerRemoveProductFromFlashDealRequest {
     id: string;
     productId: string;
-}
-
-export interface AdminMarketingControllerReorderSectionsRequest {
-    reorderSectionsDto: ReorderSectionsDto;
 }
 
 export interface AdminMarketingControllerUpdateBundleRequest {
@@ -134,11 +117,6 @@ export interface AdminMarketingControllerUpdateFlashDealProductRequest {
     id: string;
     productId: string;
     updateFlashDealProductDto: UpdateFlashDealProductDto;
-}
-
-export interface AdminMarketingControllerUpdateSectionRequest {
-    sectionKey: string;
-    updateSectionDto: UpdateSectionDto;
 }
 
 /**
@@ -558,43 +536,6 @@ export class AdminMarketingApi extends runtime.BaseAPI {
     }
 
     /**
-     * Get all page sections
-     */
-    async adminMarketingControllerGetAllSectionsRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<SectionResponseDto>>> {
-        const queryParameters: any = {};
-
-        const headerParameters: runtime.HTTPHeaders = {};
-
-        if (this.configuration && this.configuration.accessToken) {
-            const token = this.configuration.accessToken;
-            const tokenString = await token("JWT-auth", []);
-
-            if (tokenString) {
-                headerParameters["Authorization"] = `Bearer ${tokenString}`;
-            }
-        }
-
-        let urlPath = `/admin/marketing/sections`;
-
-        const response = await this.request({
-            path: urlPath,
-            method: 'GET',
-            headers: headerParameters,
-            query: queryParameters,
-        }, initOverrides);
-
-        return new runtime.JSONApiResponse(response, (jsonValue) => jsonValue.map(SectionResponseDtoFromJSON));
-    }
-
-    /**
-     * Get all page sections
-     */
-    async adminMarketingControllerGetAllSections(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<SectionResponseDto>> {
-        const response = await this.adminMarketingControllerGetAllSectionsRaw(initOverrides);
-        return await response.value();
-    }
-
-    /**
      * Get bundle by ID
      */
     async adminMarketingControllerGetBundleRaw(requestParameters: AdminMarketingControllerGetBundleRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<BundleDealResponseDto>> {
@@ -681,51 +622,6 @@ export class AdminMarketingApi extends runtime.BaseAPI {
      */
     async adminMarketingControllerGetFlashDeal(requestParameters: AdminMarketingControllerGetFlashDealRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<FlashDealResponseDto> {
         const response = await this.adminMarketingControllerGetFlashDealRaw(requestParameters, initOverrides);
-        return await response.value();
-    }
-
-    /**
-     * Get section by key
-     */
-    async adminMarketingControllerGetSectionRaw(requestParameters: AdminMarketingControllerGetSectionRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<SectionResponseDto>> {
-        if (requestParameters['sectionKey'] == null) {
-            throw new runtime.RequiredError(
-                'sectionKey',
-                'Required parameter "sectionKey" was null or undefined when calling adminMarketingControllerGetSection().'
-            );
-        }
-
-        const queryParameters: any = {};
-
-        const headerParameters: runtime.HTTPHeaders = {};
-
-        if (this.configuration && this.configuration.accessToken) {
-            const token = this.configuration.accessToken;
-            const tokenString = await token("JWT-auth", []);
-
-            if (tokenString) {
-                headerParameters["Authorization"] = `Bearer ${tokenString}`;
-            }
-        }
-
-        let urlPath = `/admin/marketing/sections/{sectionKey}`;
-        urlPath = urlPath.replace(`{${"sectionKey"}}`, encodeURIComponent(String(requestParameters['sectionKey'])));
-
-        const response = await this.request({
-            path: urlPath,
-            method: 'GET',
-            headers: headerParameters,
-            query: queryParameters,
-        }, initOverrides);
-
-        return new runtime.JSONApiResponse(response, (jsonValue) => SectionResponseDtoFromJSON(jsonValue));
-    }
-
-    /**
-     * Get section by key
-     */
-    async adminMarketingControllerGetSection(requestParameters: AdminMarketingControllerGetSectionRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<SectionResponseDto> {
-        const response = await this.adminMarketingControllerGetSectionRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
@@ -832,53 +728,6 @@ export class AdminMarketingApi extends runtime.BaseAPI {
      */
     async adminMarketingControllerRemoveProductFromFlashDeal(requestParameters: AdminMarketingControllerRemoveProductFromFlashDealRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<FlashDealResponseDto> {
         const response = await this.adminMarketingControllerRemoveProductFromFlashDealRaw(requestParameters, initOverrides);
-        return await response.value();
-    }
-
-    /**
-     * Reorder sections
-     */
-    async adminMarketingControllerReorderSectionsRaw(requestParameters: AdminMarketingControllerReorderSectionsRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<SectionResponseDto>>> {
-        if (requestParameters['reorderSectionsDto'] == null) {
-            throw new runtime.RequiredError(
-                'reorderSectionsDto',
-                'Required parameter "reorderSectionsDto" was null or undefined when calling adminMarketingControllerReorderSections().'
-            );
-        }
-
-        const queryParameters: any = {};
-
-        const headerParameters: runtime.HTTPHeaders = {};
-
-        headerParameters['Content-Type'] = 'application/json';
-
-        if (this.configuration && this.configuration.accessToken) {
-            const token = this.configuration.accessToken;
-            const tokenString = await token("JWT-auth", []);
-
-            if (tokenString) {
-                headerParameters["Authorization"] = `Bearer ${tokenString}`;
-            }
-        }
-
-        let urlPath = `/admin/marketing/sections/reorder`;
-
-        const response = await this.request({
-            path: urlPath,
-            method: 'PATCH',
-            headers: headerParameters,
-            query: queryParameters,
-            body: ReorderSectionsDtoToJSON(requestParameters['reorderSectionsDto']),
-        }, initOverrides);
-
-        return new runtime.JSONApiResponse(response, (jsonValue) => jsonValue.map(SectionResponseDtoFromJSON));
-    }
-
-    /**
-     * Reorder sections
-     */
-    async adminMarketingControllerReorderSections(requestParameters: AdminMarketingControllerReorderSectionsRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<SectionResponseDto>> {
-        const response = await this.adminMarketingControllerReorderSectionsRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
@@ -1115,61 +964,6 @@ export class AdminMarketingApi extends runtime.BaseAPI {
      */
     async adminMarketingControllerUpdateFlashDealProduct(requestParameters: AdminMarketingControllerUpdateFlashDealProductRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<FlashDealResponseDto> {
         const response = await this.adminMarketingControllerUpdateFlashDealProductRaw(requestParameters, initOverrides);
-        return await response.value();
-    }
-
-    /**
-     * Update section configuration
-     */
-    async adminMarketingControllerUpdateSectionRaw(requestParameters: AdminMarketingControllerUpdateSectionRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<SectionResponseDto>> {
-        if (requestParameters['sectionKey'] == null) {
-            throw new runtime.RequiredError(
-                'sectionKey',
-                'Required parameter "sectionKey" was null or undefined when calling adminMarketingControllerUpdateSection().'
-            );
-        }
-
-        if (requestParameters['updateSectionDto'] == null) {
-            throw new runtime.RequiredError(
-                'updateSectionDto',
-                'Required parameter "updateSectionDto" was null or undefined when calling adminMarketingControllerUpdateSection().'
-            );
-        }
-
-        const queryParameters: any = {};
-
-        const headerParameters: runtime.HTTPHeaders = {};
-
-        headerParameters['Content-Type'] = 'application/json';
-
-        if (this.configuration && this.configuration.accessToken) {
-            const token = this.configuration.accessToken;
-            const tokenString = await token("JWT-auth", []);
-
-            if (tokenString) {
-                headerParameters["Authorization"] = `Bearer ${tokenString}`;
-            }
-        }
-
-        let urlPath = `/admin/marketing/sections/{sectionKey}`;
-        urlPath = urlPath.replace(`{${"sectionKey"}}`, encodeURIComponent(String(requestParameters['sectionKey'])));
-
-        const response = await this.request({
-            path: urlPath,
-            method: 'PATCH',
-            headers: headerParameters,
-            query: queryParameters,
-            body: UpdateSectionDtoToJSON(requestParameters['updateSectionDto']),
-        }, initOverrides);
-
-        return new runtime.JSONApiResponse(response, (jsonValue) => SectionResponseDtoFromJSON(jsonValue));
-    }
-
-    /**
-     * Update section configuration
-     */
-    async adminMarketingControllerUpdateSection(requestParameters: AdminMarketingControllerUpdateSectionRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<SectionResponseDto> {
-        const response = await this.adminMarketingControllerUpdateSectionRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

@@ -22,6 +22,7 @@ import { OrdersService } from '../orders/orders.service';
 import { CatalogModule } from '../catalog/catalog.module';
 import { AdminOpsModule } from '../admin/admin-ops.module';
 import { MarketingModule } from '../marketing/marketing.module';
+import { PromosModule } from '../promos/promos.module';
 import { FulfillmentController } from './fulfillment.controller';
 import { FulfillmentGateway as _FulfillmentGateway } from './fulfillment.gateway';
 
@@ -73,6 +74,9 @@ import { FulfillmentGateway as _FulfillmentGateway } from './fulfillment.gateway
 
     // Admin ops module (provides AdminOpsService for feature flags)
     AdminOpsModule,
+
+    // Promos module (provides PromosService for OrdersService)
+    PromosModule,
 
     // JWT module for WebSocket authentication
     JwtModule.register({

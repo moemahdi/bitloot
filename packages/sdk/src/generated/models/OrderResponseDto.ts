@@ -99,6 +99,30 @@ export interface OrderResponseDto {
      * @memberof OrderResponseDto
      */
     updatedAt: string;
+    /**
+     * Original order total before promo discount (EUR)
+     * @type {string}
+     * @memberof OrderResponseDto
+     */
+    originalTotal?: string;
+    /**
+     * Promo code ID applied to this order
+     * @type {string}
+     * @memberof OrderResponseDto
+     */
+    promoCodeId?: string;
+    /**
+     * Promo code string applied to this order
+     * @type {string}
+     * @memberof OrderResponseDto
+     */
+    promoCode?: string;
+    /**
+     * Discount amount applied from promo (EUR)
+     * @type {string}
+     * @memberof OrderResponseDto
+     */
+    discountAmount?: string;
 }
 
 
@@ -149,6 +173,10 @@ export function OrderResponseDtoFromJSONTyped(json: any, ignoreDiscriminator: bo
         'items': ((json['items'] as Array<any>).map(OrderItemResponseDtoFromJSON)),
         'createdAt': json['createdAt'],
         'updatedAt': json['updatedAt'],
+        'originalTotal': json['originalTotal'] == null ? undefined : json['originalTotal'],
+        'promoCodeId': json['promoCodeId'] == null ? undefined : json['promoCodeId'],
+        'promoCode': json['promoCode'] == null ? undefined : json['promoCode'],
+        'discountAmount': json['discountAmount'] == null ? undefined : json['discountAmount'],
     };
 }
 
@@ -175,6 +203,10 @@ export function OrderResponseDtoToJSONTyped(value?: OrderResponseDto | null, ign
         'items': ((value['items'] as Array<any>).map(OrderItemResponseDtoToJSON)),
         'createdAt': value['createdAt'],
         'updatedAt': value['updatedAt'],
+        'originalTotal': value['originalTotal'],
+        'promoCodeId': value['promoCodeId'],
+        'promoCode': value['promoCode'],
+        'discountAmount': value['discountAmount'],
     };
 }
 

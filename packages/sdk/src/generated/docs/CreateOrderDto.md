@@ -12,6 +12,7 @@ Name | Type
 `note` | string
 `captchaToken` | string
 `idempotencyKey` | string
+`promoCode` | string
 
 ## Example
 
@@ -26,6 +27,7 @@ const example = {
   "note": Demo order,
   "captchaToken": null,
   "idempotencyKey": cart-hash-abc123,
+  "promoCode": SAVE10,
 } satisfies CreateOrderDto
 
 console.log(example)

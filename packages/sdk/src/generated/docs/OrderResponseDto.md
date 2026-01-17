@@ -18,6 +18,10 @@ Name | Type
 `items` | [Array&lt;OrderItemResponseDto&gt;](OrderItemResponseDto.md)
 `createdAt` | string
 `updatedAt` | string
+`originalTotal` | string
+`promoCodeId` | string
+`promoCode` | string
+`discountAmount` | string
 
 ## Example
 
@@ -38,6 +42,10 @@ const example = {
   "items": null,
   "createdAt": null,
   "updatedAt": null,
+  "originalTotal": 49.99,
+  "promoCodeId": null,
+  "promoCode": SAVE10,
+  "discountAmount": 5.00,
 } satisfies OrderResponseDto
 
 console.log(example)

@@ -2,7 +2,6 @@ import { Controller, Get, Param, Query, Post, Body } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiQuery, ApiBody, ApiProperty } from '@nestjs/swagger';
 import { MarketingService } from './marketing.service';
 import {
-  PageConfigResponseDto,
   FlashDealResponseDto,
   BundleDealResponseDto,
 } from './dto';
@@ -43,15 +42,9 @@ class GetEffectivePricesResponseDto {
 @ApiTags('Public - Marketing')
 @Controller('public/marketing')
 export class PublicMarketingController {
-  constructor(private readonly marketingService: MarketingService) {}
+  constructor(private readonly marketingService: MarketingService) { }
 
-  @Get('page-config')
-  @ApiOperation({ summary: 'Get page configuration for rendering' })
-  @ApiQuery({ name: 'pageId', required: false, description: 'Page identifier', example: 'homepage' })
-  @ApiResponse({ status: 200, description: 'Page config with sections', type: PageConfigResponseDto })
-  async getPageConfig(@Query('pageId') pageId: string = 'homepage'): Promise<PageConfigResponseDto> {
-    return this.marketingService.getPageConfig(pageId);
-  }
+
 
   @Get('flash-deal/active')
   @ApiOperation({ summary: 'Get currently active flash deal by type' })
@@ -90,7 +83,7 @@ export class PublicMarketingController {
   }
 
   @Post('effective-prices')
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Get effective prices for products (with flash deal discounts applied)',
     description: 'Returns the actual price customers will pay, considering any active flash deals. Use this for cart, checkout, and display.',
   })
@@ -125,7 +118,7 @@ export class PublicMarketingController {
   }
 
   @Get('effective-price/:productId')
-  @ApiOperation({ 
+  @ApiOperation({
     summary: 'Get effective price for a single product',
     description: 'Returns the actual price a customer will pay, considering any active flash deals.',
   })

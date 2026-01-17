@@ -47,19 +47,22 @@ import { CreateMarketingSections1768300000000 } from './migrations/1768300000000
 import { AddFlashDealDisplayType1768400000000 } from './migrations/1768400000000-AddFlashDealDisplayType';
 import { AddBundleDealColumns1768600000000 } from './migrations/1768600000000-AddBundleDealColumns';
 import { AddBundleProductDiscountPercent1737052800000 } from './migrations/1737052800000-AddBundleProductDiscountPercent';
-import { PageSection } from '../modules/marketing/entities/page-section.entity';
 import { FlashDeal } from '../modules/marketing/entities/flash-deal.entity';
 import { FlashDealProduct } from '../modules/marketing/entities/flash-deal-product.entity';
 import { BundleDeal } from '../modules/marketing/entities/bundle-deal.entity';
 import { BundleProduct } from '../modules/marketing/entities/bundle-product.entity';
 import { SectionAnalytics } from '../modules/marketing/entities/section-analytics.entity';
+import { PromoCode } from '../modules/promos/entities/promocode.entity';
+import { PromoRedemption } from '../modules/promos/entities/promoredemption.entity';
+import { CreatePromoCodes1769000000000 } from './migrations/1769000000000-CreatePromoCodes';
+import { AddPromoFieldsToOrders1769100000000 } from './migrations/1769100000000-AddPromoFieldsToOrders';
 
 dotenv.config({ path: path.resolve(__dirname, '../../../../.env') });
 
 export default new DataSource({
   type: 'postgres',
   url: process.env.DATABASE_URL,
-  entities: [Order, OrderItem, Key, Payment, WebhookLog, User, AuditLog, EmailBounce, Review, WatchlistItem, Product, ProductOffer, ProductGroup, DynamicPricingRule, Session, PageSection, FlashDeal, FlashDealProduct, BundleDeal, BundleProduct, SectionAnalytics],
+  entities: [Order, OrderItem, Key, Payment, WebhookLog, User, AuditLog, EmailBounce, Review, WatchlistItem, Product, ProductOffer, ProductGroup, DynamicPricingRule, Session, FlashDeal, FlashDealProduct, BundleDeal, BundleProduct, SectionAnalytics, PromoCode, PromoRedemption],
   migrations: [
     InitOrders1710000000000,
     AddKeysReservation1720000000000,
@@ -92,6 +95,8 @@ export default new DataSource({
     AddFlashDealDisplayType1768400000000,
     AddBundleDealColumns1768600000000,
     AddBundleProductDiscountPercent1737052800000,
+    CreatePromoCodes1769000000000,
+    AddPromoFieldsToOrders1769100000000,
   ],
   logging: true,
   synchronize: false,

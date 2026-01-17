@@ -11,6 +11,7 @@ import { EmailsService } from '../emails/emails.service';
 import { CatalogService } from '../catalog/catalog.service';
 import { MarketingService } from '../marketing/marketing.service';
 import { Product } from '../catalog/entities/product.entity';
+import { PromosService } from '../promos/promos.service';
 
 // In-memory cache for idempotency keys (in production, use Redis)
 const idempotencyCache = new Map<string, { orderId: string; expiresAt: number }>();
@@ -60,6 +61,7 @@ export class OrdersService {
     private readonly emailsService: EmailsService,
     private readonly catalogService: CatalogService,
     private readonly marketingService: MarketingService,
+    private readonly promosService: PromosService,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
   ) {
@@ -93,7 +95,7 @@ export class OrdersService {
         orderId: string;
         email: string;
       }>(token, { secret: this.jwtSecret });
-      
+
       if (decoded.type !== 'order_session') {
         return null;
       }
@@ -109,7 +111,7 @@ export class OrdersService {
     if (dto.idempotencyKey !== undefined && dto.idempotencyKey.length > 0) {
       const cacheKey = `${dto.email}:${dto.idempotencyKey}`;
       const cached = idempotencyCache.get(cacheKey);
-      
+
       if (cached !== undefined && cached.expiresAt > Date.now()) {
         this.logger.log(`🔄 Idempotency hit: returning existing order ${cached.orderId} for key ${dto.idempotencyKey}`);
         return await this.get(cached.orderId);
@@ -118,7 +120,7 @@ export class OrdersService {
 
     // Normalize items: support both single productId and items array
     let itemsToCreate: Array<{ productId: string; quantity: number; discountPercent?: number; bundleId?: string }> = [];
-    
+
     if (dto.items !== undefined && dto.items.length > 0) {
       // Multi-item order
       itemsToCreate = dto.items.map((item) => ({
@@ -141,7 +143,7 @@ export class OrdersService {
     // Fetch all products
     const productIds = itemsToCreate.map((item) => item.productId);
     const productsMap = await this.catalogService.getProductsBySlugs(productIds);
-    
+
     // Validate all products exist
     const notFound: string[] = [];
     const products: Product[] = [];
@@ -153,7 +155,7 @@ export class OrdersService {
         products.push(product);
       }
     }
-    
+
     if (notFound.length > 0) {
       throw new NotFoundException(`Products not found: ${notFound.join(', ')}`);
     }
@@ -171,7 +173,7 @@ export class OrdersService {
     // Calculate total price with appropriate discounts
     let totalPrice = 0;
     const itemPrices: Array<{ productId: string; effectivePrice: string; isDiscounted: boolean; discountSource: 'bundle' | 'flash' | 'none' }> = [];
-    
+
     for (let i = 0; i < itemsToCreate.length; i++) {
       const item = itemsToCreate[i];
       const product = products[i];
@@ -180,7 +182,7 @@ export class OrdersService {
         const basePrice = parseFloat(product.price);
         let effectivePrice: number;
         let discountSource: 'bundle' | 'flash' | 'none' = 'none';
-        
+
         // Bundle discount takes priority if this is a bundle purchase with discount
         if (isBundlePurchase && item.discountPercent !== undefined && item.discountPercent > 0) {
           effectivePrice = basePrice * (1 - item.discountPercent / 100);
@@ -195,9 +197,9 @@ export class OrdersService {
           // No discount
           effectivePrice = basePrice;
         }
-        
+
         totalPrice += effectivePrice * item.quantity;
-        
+
         itemPrices.push({
           productId: item.productId,
           effectivePrice: effectivePrice.toFixed(2),
@@ -214,11 +216,48 @@ export class OrdersService {
     const orderType = isBundlePurchase ? `bundle (${bundleId})` : 'regular';
     this.logger.log(`Creating ${orderType} order with ${itemsToCreate.length} item(s), total: €${totalPrice.toFixed(2)}, sourceType: ${sourceType}${userId !== null && userId !== undefined && userId !== '' ? `, userId: ${userId}` : ' (guest)'}`);
 
-    // Create order
+    // ========== PROMO CODE VALIDATION ==========
+    let promoCodeId: string | undefined;
+    let discountAmount: string | undefined;
+    let originalTotal: string = totalPrice.toFixed(8);
+    let finalTotal: number = totalPrice;
+
+    if (dto.promoCode !== undefined && dto.promoCode.length > 0) {
+      // Get product categories for scope validation
+      const categoryIds = products.map(p => p.category).filter((c): c is string => c !== undefined && c !== null);
+
+      const promoResult = await this.promosService.validateCode({
+        code: dto.promoCode,
+        orderTotal: totalPrice.toFixed(2),
+        productIds: products.map(p => p.id),
+        categoryIds,
+        userId,
+        email: dto.email,
+      });
+
+      if (promoResult.valid && promoResult.promoCodeId !== undefined && promoResult.discountAmount !== undefined) {
+        promoCodeId = promoResult.promoCodeId;
+        discountAmount = promoResult.discountAmount;
+        finalTotal = totalPrice - parseFloat(promoResult.discountAmount);
+
+        // Ensure final total is never negative
+        if (finalTotal < 0) finalTotal = 0;
+
+        this.logger.log(`🎟️ Promo code ${dto.promoCode} applied: -€${promoResult.discountAmount} (${promoResult.message})`);
+      } else {
+        // Promo validation failed - log but don't fail order (just skip promo)
+        this.logger.warn(`⚠️ Promo code ${dto.promoCode} validation failed: ${promoResult.message}`);
+      }
+    }
+
+    // Create order with promo fields
     const order = this.ordersRepo.create({
       email: dto.email,
       status: 'created',
-      totalCrypto: totalPrice.toFixed(8),
+      totalCrypto: finalTotal.toFixed(8),
+      originalTotal: originalTotal,
+      promoCodeId: promoCodeId,
+      discountAmount: discountAmount,
       sourceType: sourceType,
       userId: userId ?? undefined,
     });
@@ -233,7 +272,7 @@ export class OrdersService {
         // Get effective price for this product (may be discounted via flash deal)
         const itemPricing = itemPrices.find((ip) => ip.productId === itemData.productId);
         const effectivePrice = itemPricing?.effectivePrice ?? product.price;
-        
+
         // For quantity > 1, create multiple order items (each gets a separate key)
         for (let q = 0; q < itemData.quantity; q++) {
           const item = this.itemsRepo.create({
@@ -262,12 +301,12 @@ export class OrdersService {
     }
 
     const response = await this.mapToResponse(savedOrder, savedItems);
-    
+
     // ========== GENERATE ORDER SESSION TOKEN ==========
     // Include session token for immediate guest access (valid 1 hour)
     response.orderSessionToken = this.generateOrderSessionToken(savedOrder.id, dto.email);
     this.logger.debug(`Generated order session token for order ${savedOrder.id}`);
-    
+
     return response;
   }
 
@@ -318,6 +357,26 @@ export class OrdersService {
     invalidateOrderCache(orderId);
     this.logger.debug(`📦 Cache invalidated for order ${orderId} (markPaid)`);
 
+    // ========== RECORD PROMO REDEMPTION ==========
+    // Only record on successful payment (not at checkout) for accurate tracking
+    if (order.promoCodeId !== undefined && order.promoCodeId !== null && order.discountAmount !== undefined) {
+      try {
+        await this.promosService.recordRedemption({
+          promoCodeId: order.promoCodeId,
+          orderId: order.id,
+          userId: order.userId,
+          email: order.email,
+          discountApplied: order.discountAmount,
+          originalTotal: order.originalTotal ?? order.totalCrypto,
+          finalTotal: order.totalCrypto,
+        });
+        this.logger.log(`🎟️ Promo redemption recorded for order ${orderId}`);
+      } catch (promoError) {
+        // Log but don't fail the payment - promo recording is non-critical
+        this.logger.error(`Failed to record promo redemption for order ${orderId}:`, promoError);
+      }
+    }
+
     return await this.mapToResponse(updated, updated.items);
   }
 
@@ -348,10 +407,10 @@ export class OrdersService {
     // ========== ORDER STATUS CACHE CHECK ==========
     const cached = orderStatusCache.get(id);
     if (cached !== undefined) {
-      const ttl = cached.response.status === 'fulfilled' 
-        ? ORDER_FULFILLED_CACHE_TTL_MS 
+      const ttl = cached.response.status === 'fulfilled'
+        ? ORDER_FULFILLED_CACHE_TTL_MS
         : ORDER_CACHE_TTL_MS;
-      
+
       if (Date.now() - cached.cachedAt < ttl) {
         this.logger.debug(`📦 Cache hit for order ${id} (status: ${cached.response.status})`);
         return cached.response;
@@ -391,10 +450,10 @@ export class OrdersService {
     order.status = 'waiting';
     this.logger.log(`Order ${orderId} marked as waiting (payment in progress)`);
     const saved = await this.ordersRepo.save(order);
-    
+
     // CRITICAL: Invalidate cache after status change
     invalidateOrderCache(orderId);
-    
+
     return saved;
   }
 
@@ -414,10 +473,10 @@ export class OrdersService {
     order.status = 'confirming';
     this.logger.log(`Order ${orderId} marked as confirming (awaiting blockchain confirmations)`);
     const saved = await this.ordersRepo.save(order);
-    
+
     // CRITICAL: Invalidate cache after status change
     invalidateOrderCache(orderId);
-    
+
     return saved;
   }
 
@@ -443,7 +502,7 @@ export class OrdersService {
     );
 
     const savedOrder = await this.ordersRepo.save(order);
-    
+
     // CRITICAL: Invalidate cache after status change
     invalidateOrderCache(orderId);
 
@@ -482,7 +541,7 @@ export class OrdersService {
     this.logger.error(`Order ${orderId} marked as failed. Reason: ${reason ?? 'unknown'}`);
 
     const savedOrder = await this.ordersRepo.save(order);
-    
+
     // CRITICAL: Invalidate cache after status change
     invalidateOrderCache(orderId);
 
@@ -527,7 +586,7 @@ export class OrdersService {
     this.logger.warn(`Order ${orderId} marked as expired. Reason: ${reason ?? 'payment window closed'}`);
 
     const savedOrder = await this.ordersRepo.save(order);
-    
+
     // CRITICAL: Invalidate cache after status change
     invalidateOrderCache(orderId);
 
@@ -572,10 +631,10 @@ export class OrdersService {
     order.status = 'fulfilled';
     this.logger.log(`Order ${orderId} marked as fulfilled (keys delivered)`);
     const savedOrder = await this.ordersRepo.save(order);
-    
+
     // CRITICAL: Invalidate cache after status change
     invalidateOrderCache(orderId);
-    
+
     return savedOrder;
   }
 
@@ -699,6 +758,11 @@ export class OrdersService {
       ),
       createdAt: order.createdAt.toISOString(),
       updatedAt: order.updatedAt.toISOString(),
+      // Promo code fields
+      originalTotal: order.originalTotal,
+      promoCodeId: order.promoCodeId,
+      promoCode: order.promoCode?.code,
+      discountAmount: order.discountAmount,
     };
   }
 

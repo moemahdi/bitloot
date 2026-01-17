@@ -33,6 +33,7 @@ import { CatalogModule } from './modules/catalog/catalog.module';
 import { ReviewsModule } from './modules/reviews/reviews.module';
 import { WatchlistModule } from './modules/watchlist/watchlist.module';
 import { MarketingModule } from './modules/marketing/marketing.module';
+import { PromosModule } from './modules/promos/promos.module';
 
 @Module({
   imports: [
@@ -102,6 +103,8 @@ import { MarketingModule } from './modules/marketing/marketing.module';
     WatchlistModule,
     // Marketing module (homepage sections, flash deals, bundles)
     MarketingModule,
+    // Promo codes module (discount codes, redemption tracking)
+    PromosModule,
   ],
   controllers: [HealthController],
   providers: [
@@ -117,4 +120,4 @@ import { MarketingModule } from './modules/marketing/marketing.module';
     UserDeletionCleanupService,
   ],
 })
-export class AppModule {}
+export class AppModule { }

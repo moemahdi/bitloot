@@ -6,7 +6,7 @@ import { useMutation } from '@tanstack/react-query';
 import { Turnstile } from '@marsidev/react-turnstile';
 import type { TurnstileInstance } from '@marsidev/react-turnstile';
 import { AlertCircle, Loader2 } from 'lucide-react';
-import { OrdersApi, PaymentsApi } from '@bitloot/sdk';
+import { OrdersApi, PaymentsApi, CatalogApi } from '@bitloot/sdk';
 import type { OrderResponseDto } from '@bitloot/sdk';
 import { Alert, AlertTitle, AlertDescription } from '@/design-system/primitives/alert';
 import { Button } from '@/design-system/primitives/button';
@@ -19,6 +19,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { PaymentMethodForm, type PaymentMethodFormData } from './PaymentMethodForm';
 import { EmbeddedPaymentUI } from './EmbeddedPaymentUI';
+import { PromoCodeInput } from './PromoCodeInput';
+import { useQuery } from '@tanstack/react-query';
 
 // Interface for embedded payment response
 interface EmbeddedPaymentResponse {
@@ -50,6 +52,7 @@ import { apiConfig } from '@/lib/api-config';
 
 const ordersClient = new OrdersApi(apiConfig);
 const _paymentsClient = new PaymentsApi(apiConfig);
+const catalogClient = new CatalogApi(apiConfig);
 
 type JobStatus = 'pending' | 'processing' | 'completed' | 'failed';
 
@@ -65,6 +68,14 @@ export default function CheckoutForm(): React.ReactElement {
   const params = useParams();
   const productId = String(params.id ?? 'demo-product');
 
+  // Fetch product to get price for promo validation
+  // Note: This component uses productId from route params as the slug
+  const { data: product } = useQuery({
+    queryKey: ['product', productId],
+    queryFn: () => catalogClient.catalogControllerGetProduct({ slug: productId }),
+    enabled: !!productId && productId !== 'demo-product',
+  });
+
   // State for wizard steps - now includes 'paying' for embedded payment UI
   const [step, setStep] = useState<'email' | 'payment' | 'paying'>('email');
   const [order, setOrder] = useState<OrderResponseDto | null>(null);
@@ -74,6 +85,7 @@ export default function CheckoutForm(): React.ReactElement {
   const {
     register,
     handleSubmit,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<CheckoutFormData>({
     resolver: zodResolver(checkoutSchema),
@@ -83,20 +95,35 @@ export default function CheckoutForm(): React.ReactElement {
     },
   });
 
+  const emailAddr = watch('email');
+
   const [_captchaToken, _setCaptchaToken] = useState<string | null>(null);
   const turnstileRef = useRef<TurnstileInstance | undefined>(undefined);
 
-  // Job polling state
   const [jobId, _setJobId] = useState<string | null>(null);
   const [jobStatus, setJobStatus] = useState<JobStatus>('pending');
   const [jobProgress, setJobProgress] = useState<number>(0);
   const [jobError, setJobError] = useState<string | null>(null);
 
+  // Promo code state
+  const [appliedPromo, setAppliedPromo] = useState<{
+    code: string;
+    promoCodeId: string;
+    discountAmount: string;
+    discountType: 'percent' | 'fixed';
+    discountValue: string;
+  } | null>(null);
+
   // Create order mutation using SDK
   const createOrderMutation = useMutation({
-    mutationFn: async (emailAddr: string): Promise<OrderResponseDto> => {
+    mutationFn: async ({ emailAddr, promoCode }: { emailAddr: string; promoCode?: string }): Promise<OrderResponseDto> => {
       const order = await ordersClient.ordersControllerCreate({
-        createOrderDto: { email: emailAddr, productId, captchaToken: _captchaToken ?? undefined },
+        createOrderDto: {
+          email: emailAddr,
+          productId,
+          captchaToken: _captchaToken ?? undefined,
+          promoCode,
+        },
       });
       return order;
     },
@@ -117,12 +144,12 @@ export default function CheckoutForm(): React.ReactElement {
           email: order.email,
         }),
       });
-      
+
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({})) as { message?: string };
         throw new Error(errorData.message ?? 'Failed to create payment');
       }
-      
+
       return response.json() as Promise<EmbeddedPaymentResponse>;
     },
   });
@@ -182,14 +209,17 @@ export default function CheckoutForm(): React.ReactElement {
 
   const onEmailSubmit = async (data: CheckoutFormData): Promise<void> => {
     try {
-      // Step 1: Create order
-      const createdOrder = await createOrderMutation.mutateAsync(data.email);
-      
+      // Step 1: Create order with optional promo code
+      const createdOrder = await createOrderMutation.mutateAsync({
+        emailAddr: data.email,
+        promoCode: appliedPromo?.code,
+      });
+
       // Store order session token for immediate guest access to keys
       if (createdOrder.orderSessionToken !== null && createdOrder.orderSessionToken !== undefined && createdOrder.orderSessionToken !== '') {
         localStorage.setItem(`order_session_${createdOrder.id}`, createdOrder.orderSessionToken);
       }
-      
+
       setOrder(createdOrder);
       setStep('payment');
     } catch (error) {
@@ -309,6 +339,20 @@ export default function CheckoutForm(): React.ReactElement {
                 </div>
               )}
 
+            {/* Promo Code Input */}
+            <div className="space-y-2">
+              <Label>Promo Code (Optional)</Label>
+              <PromoCodeInput
+                orderTotal={product?.price ?? "0"}
+                productIds={[productId]}
+                categoryIds={product?.category ? [product.category] : []}
+                email={emailAddr}
+                onPromoApplied={(promo) => setAppliedPromo(promo)}
+                onPromoRemoved={() => setAppliedPromo(null)}
+                disabled={isLoading || isPolling}
+              />
+            </div>
+
             {/* Submit Button */}
             <Button
               type="submit"
@@ -321,9 +365,26 @@ export default function CheckoutForm(): React.ReactElement {
           </form>
         ) : step === 'payment' ? (
           <div className="space-y-6">
-            <div className="rounded-md bg-muted p-4">
+            <div className="rounded-md bg-muted p-4 space-y-2">
               <p className="text-sm font-medium">Order for: {order?.email}</p>
               <p className="text-xs text-muted-foreground">Order ID: {order?.id}</p>
+              {/* Show discount if promo applied */}
+              {order?.discountAmount !== undefined && order?.originalTotal !== undefined && (
+                <div className="pt-2 border-t border-border mt-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Subtotal:</span>
+                    <span className="line-through text-muted-foreground">€{parseFloat(order.originalTotal).toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between text-sm text-emerald-600 dark:text-emerald-400">
+                    <span>Discount ({order.promoCode}):</span>
+                    <span>-€{parseFloat(order.discountAmount).toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between text-base font-semibold mt-1">
+                    <span>Total:</span>
+                    <span>€{parseFloat(order.total).toFixed(2)}</span>
+                  </div>
+                </div>
+              )}
             </div>
 
             <PaymentMethodForm

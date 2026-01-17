@@ -10,7 +10,6 @@ All URIs are relative to *http://localhost*
 | [**publicMarketingControllerGetBundleBySlug**](PublicMarketingApi.md#publicmarketingcontrollergetbundlebyslug) | **GET** /public/marketing/bundles/{slug} | Get bundle by slug |
 | [**publicMarketingControllerGetEffectivePrice**](PublicMarketingApi.md#publicmarketingcontrollergeteffectiveprice) | **GET** /public/marketing/effective-price/{productId} | Get effective price for a single product |
 | [**publicMarketingControllerGetEffectivePrices**](PublicMarketingApi.md#publicmarketingcontrollergeteffectiveprices) | **POST** /public/marketing/effective-prices | Get effective prices for products (with flash deal discounts applied) |
-| [**publicMarketingControllerGetPageConfig**](PublicMarketingApi.md#publicmarketingcontrollergetpageconfig) | **GET** /public/marketing/page-config | Get page configuration for rendering |
 
 
 
@@ -402,71 +401,6 @@ No authorization required
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
 | **200** | Effective prices for requested products |  -  |
-
-[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
-
-
-## publicMarketingControllerGetPageConfig
-
-> PageConfigResponseDto publicMarketingControllerGetPageConfig(pageId)
-
-Get page configuration for rendering
-
-### Example
-
-```ts
-import {
-  Configuration,
-  PublicMarketingApi,
-} from '';
-import type { PublicMarketingControllerGetPageConfigRequest } from '';
-
-async function example() {
-  console.log("🚀 Testing  SDK...");
-  const api = new PublicMarketingApi();
-
-  const body = {
-    // string | Page identifier (optional)
-    pageId: homepage,
-  } satisfies PublicMarketingControllerGetPageConfigRequest;
-
-  try {
-    const data = await api.publicMarketingControllerGetPageConfig(body);
-    console.log(data);
-  } catch (error) {
-    console.error(error);
-  }
-}
-
-// Run the test
-example().catch(console.error);
-```
-
-### Parameters
-
-
-| Name | Type | Description  | Notes |
-|------------- | ------------- | ------------- | -------------|
-| **pageId** | `string` | Page identifier | [Optional] [Defaults to `undefined`] |
-
-### Return type
-
-[**PageConfigResponseDto**](PageConfigResponseDto.md)
-
-### Authorization
-
-No authorization required
-
-### HTTP request headers
-
-- **Content-Type**: Not defined
-- **Accept**: `application/json`
-
-
-### HTTP response details
-| Status code | Description | Response headers |
-|-------------|-------------|------------------|
-| **200** | Page config with sections |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 

@@ -11,6 +11,7 @@ import { OrdersController } from './orders.controller';
 import { EmailsModule } from '../emails/emails.module';
 import { CatalogModule } from '../catalog/catalog.module';
 import { MarketingModule } from '../marketing/marketing.module';
+import { PromosModule } from '../promos/promos.module';
 
 /**
  * Orders Module
@@ -22,6 +23,7 @@ import { MarketingModule } from '../marketing/marketing.module';
  * - Linking orders to reservations
  * - Email notifications for order status changes (Level 4)
  * - Order session tokens for immediate guest access
+ * - Promo code validation and redemption tracking
  *
  * @example
  * // In app.module.ts:
@@ -39,6 +41,7 @@ import { MarketingModule } from '../marketing/marketing.module';
     EmailsModule,
     CatalogModule,
     MarketingModule,
+    PromosModule,
     ConfigModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],

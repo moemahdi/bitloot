@@ -8,7 +8,6 @@ import {
   UpdateFlashDealDto,
   CreateBundleDealDto,
   UpdateBundleDealDto,
-  PageConfigResponseDto,
   FlashDealResponseDto,
   BundleDealResponseDto,
 } from './dto';
@@ -26,7 +25,7 @@ export class MarketingService {
     private readonly bundleProductRepo: Repository<BundleProduct>,
     @InjectRepository(Product)
     private readonly productRepo: Repository<Product>,
-  ) {}
+  ) { }
 
   // ============================================================================
   // FLASH DEALS
@@ -121,17 +120,17 @@ export class MarketingService {
   }> {
     // Check if product is in an active flash deal
     const activeFlashDeal = await this.getActiveFlashDeal();
-    
+
     if (activeFlashDeal !== null && activeFlashDeal !== undefined) {
       const flashDealProduct = activeFlashDeal.products?.find(
         (p) => p.productId === productId,
       );
-      
+
       if (flashDealProduct !== null && flashDealProduct !== undefined) {
         // Product is in a flash deal - calculate discounted price
         const originalPrice = flashDealProduct.originalPrice !== null && flashDealProduct.originalPrice !== undefined && flashDealProduct.originalPrice !== '' ? flashDealProduct.originalPrice : productPrice;
         const discountPercent = parseFloat(flashDealProduct.discountPercent ?? '0');
-        
+
         // Use pre-calculated discountPrice if available, otherwise calculate
         let effectivePrice: string;
         if (flashDealProduct.discountPrice !== null && flashDealProduct.discountPrice !== undefined && flashDealProduct.discountPrice !== '') {
@@ -141,7 +140,7 @@ export class MarketingService {
           const discountedPriceNum = originalPriceNum * (1 - discountPercent / 100);
           effectivePrice = discountedPriceNum.toFixed(8);
         }
-        
+
         return {
           effectivePrice,
           originalPrice,
@@ -152,7 +151,7 @@ export class MarketingService {
         };
       }
     }
-    
+
     // No flash deal discount - return original price
     return {
       effectivePrice: productPrice,
@@ -185,10 +184,10 @@ export class MarketingService {
       isDiscounted: boolean;
       flashDealId?: string;
     }>();
-    
+
     // Get active flash deal once
     const activeFlashDeal = await this.getActiveFlashDeal();
-    
+
     // Create a map of flash deal products for O(1) lookup
     const flashDealProductsMap = new Map<string, FlashDealProduct>();
     if (activeFlashDeal?.products !== null && activeFlashDeal?.products !== undefined) {
@@ -196,15 +195,15 @@ export class MarketingService {
         flashDealProductsMap.set(fdp.productId, fdp);
       }
     }
-    
+
     // Calculate effective price for each product
     for (const product of products) {
       const flashDealProduct = flashDealProductsMap.get(product.id);
-      
+
       if (flashDealProduct !== null && flashDealProduct !== undefined) {
         const originalPrice = flashDealProduct.originalPrice !== null && flashDealProduct.originalPrice !== undefined && flashDealProduct.originalPrice !== '' ? flashDealProduct.originalPrice : product.price;
         const discountPercent = parseFloat(flashDealProduct.discountPercent ?? '0');
-        
+
         let effectivePrice: string;
         if (flashDealProduct.discountPrice !== null && flashDealProduct.discountPrice !== undefined && flashDealProduct.discountPrice !== '') {
           effectivePrice = flashDealProduct.discountPrice;
@@ -213,7 +212,7 @@ export class MarketingService {
           const discountedPriceNum = originalPriceNum * (1 - discountPercent / 100);
           effectivePrice = discountedPriceNum.toFixed(8);
         }
-        
+
         result.set(product.id, {
           effectivePrice,
           originalPrice,
@@ -232,7 +231,7 @@ export class MarketingService {
         });
       }
     }
-    
+
     return result;
   }
 
@@ -347,19 +346,19 @@ export class MarketingService {
   async activateFlashDeal(id: string): Promise<FlashDeal> {
     // First verify the deal exists
     const deal = await this.getFlashDealById(id);
-    
+
     // Deactivate only other deals of the SAME displayType
     // This allows having one inline and one sticky flash deal active simultaneously
     await this.flashDealRepo
       .createQueryBuilder()
       .update(FlashDeal)
       .set({ isActive: false })
-      .where('is_active = :isActive AND display_type = :displayType', { 
-        isActive: true, 
-        displayType: deal.displayType 
+      .where('is_active = :isActive AND display_type = :displayType', {
+        isActive: true,
+        displayType: deal.displayType
       })
       .execute();
-    
+
     // Activate the selected deal
     await this.flashDealRepo.update({ id }, { isActive: true });
     return this.getFlashDealById(id);
@@ -637,7 +636,7 @@ export class MarketingService {
         const rawProductPrice = parseFloat(bp.product.price);
         const productPrice = Number.isNaN(rawProductPrice) ? 0 : rawProductPrice;
         originalTotal += productPrice;
-        
+
         if (bp.isBonus) {
           // Bonus items are free
           discountedTotal += 0;
@@ -655,18 +654,18 @@ export class MarketingService {
     bundle.bundlePrice = discountedTotal.toFixed(2);
     const savings = originalTotal - discountedTotal;
     bundle.savingsAmount = savings.toFixed(2);
-    bundle.savingsPercent = originalTotal > 0 
+    bundle.savingsPercent = originalTotal > 0
       ? ((savings / originalTotal) * 100).toFixed(2)
       : '0';
-    
+
     await this.bundleDealRepo.save(bundle);
   }
 
   async addProductToBundle(
-    bundleId: string, 
-    productId: string, 
+    bundleId: string,
+    productId: string,
     discountPercent: number,
-    displayOrder?: number, 
+    displayOrder?: number,
     isBonus?: boolean,
   ): Promise<BundleDeal> {
     // Verify bundle exists
@@ -715,7 +714,7 @@ export class MarketingService {
     await this.getBundleById(bundleId);
 
     await this.bundleProductRepo.delete({ bundleId, productId });
-    
+
     // Recalculate bundle prices
     await this.recalculateBundlePrices(bundleId);
 
@@ -760,50 +759,7 @@ export class MarketingService {
   // PUBLIC PAGE CONFIG
   // ============================================================================
 
-  async getPageConfig(pageId: string = 'homepage'): Promise<PageConfigResponseDto> {
-    const now = new Date();
 
-    // Get enabled sections within schedule
-    const sections = await this.sectionRepo.find({
-      where: { isEnabled: true },
-      order: { displayOrder: 'ASC' },
-    });
-
-    // Filter by schedule
-    const activeSections = sections.filter((s) => {
-      if (s.scheduleStart !== null && s.scheduleStart !== undefined && s.scheduleStart > now) return false;
-      if (s.scheduleEnd !== null && s.scheduleEnd !== undefined && s.scheduleEnd < now) return false;
-      return true;
-    });
-
-    // Get active flash deal
-    const activeFlashDeal = await this.getActiveFlashDeal();
-
-    // Get active bundles
-    const bundles = await this.getActiveBundles();
-
-    return {
-      pageId,
-      sections: activeSections.map((s) => ({
-        id: s.id,
-        sectionKey: s.sectionKey,
-        displayName: s.displayName,
-        description: s.description,
-        category: s.category,
-        isEnabled: s.isEnabled,
-        displayOrder: s.displayOrder,
-        config: s.config,
-        scheduleStart: s.scheduleStart,
-        scheduleEnd: s.scheduleEnd,
-        createdAt: s.createdAt,
-        updatedAt: s.updatedAt,
-      })),
-      activeFlashDeal: activeFlashDeal !== null && activeFlashDeal !== undefined ? this.mapFlashDealToResponse(activeFlashDeal) : undefined,
-      bundles: bundles.map((b) => this.mapBundleToResponse(b)),
-      updatedAt: new Date(),
-      cacheKey: `page_config:${pageId}:${Date.now()}`,
-    };
-  }
 
   // ============================================================================
   // HELPERS
@@ -851,15 +807,15 @@ export class MarketingService {
         soldCount: p.soldCount,
         product: p.product !== null && p.product !== undefined
           ? {
-              id: p.product.id,
-              title: p.product.title,
-              slug: p.product.slug,
-              price: p.product.price,
-              currency: p.product.currency,
-              imageUrl: p.product.coverImageUrl,
-              platform: p.product.platform,
-              productType: p.product.category,
-            }
+            id: p.product.id,
+            title: p.product.title,
+            slug: p.product.slug,
+            price: p.product.price,
+            currency: p.product.currency,
+            imageUrl: p.product.coverImageUrl,
+            platform: p.product.platform,
+            productType: p.product.category,
+          }
           : undefined,
       })),
       createdAt: deal.createdAt,
@@ -899,15 +855,15 @@ export class MarketingService {
         isBonus: p.isBonus,
         product: p.product !== null && p.product !== undefined
           ? {
-              id: p.product.id,
-              title: p.product.title,
-              slug: p.product.slug,
-              price: p.product.price,
-              currency: p.product.currency,
-              imageUrl: p.product.coverImageUrl,
-              platform: p.product.platform,
-              productType: p.product.category,
-            }
+            id: p.product.id,
+            title: p.product.title,
+            slug: p.product.slug,
+            price: p.product.price,
+            currency: p.product.currency,
+            imageUrl: p.product.coverImageUrl,
+            platform: p.product.platform,
+            productType: p.product.category,
+          }
           : undefined,
       })),
       createdAt: bundle.createdAt,

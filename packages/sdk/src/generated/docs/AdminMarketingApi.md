@@ -13,18 +13,14 @@ All URIs are relative to *http://localhost*
 | [**adminMarketingControllerDeleteFlashDeal**](AdminMarketingApi.md#adminmarketingcontrollerdeleteflashdeal) | **DELETE** /admin/marketing/flash-deals/{id} | Delete flash deal |
 | [**adminMarketingControllerGetAllBundles**](AdminMarketingApi.md#adminmarketingcontrollergetallbundles) | **GET** /admin/marketing/bundles | Get all bundle deals |
 | [**adminMarketingControllerGetAllFlashDeals**](AdminMarketingApi.md#adminmarketingcontrollergetallflashdeals) | **GET** /admin/marketing/flash-deals | Get all flash deals |
-| [**adminMarketingControllerGetAllSections**](AdminMarketingApi.md#adminmarketingcontrollergetallsections) | **GET** /admin/marketing/sections | Get all page sections |
 | [**adminMarketingControllerGetBundle**](AdminMarketingApi.md#adminmarketingcontrollergetbundle) | **GET** /admin/marketing/bundles/{id} | Get bundle by ID |
 | [**adminMarketingControllerGetFlashDeal**](AdminMarketingApi.md#adminmarketingcontrollergetflashdeal) | **GET** /admin/marketing/flash-deals/{id} | Get flash deal by ID |
-| [**adminMarketingControllerGetSection**](AdminMarketingApi.md#adminmarketingcontrollergetsection) | **GET** /admin/marketing/sections/{sectionKey} | Get section by key |
 | [**adminMarketingControllerRemoveProductFromBundle**](AdminMarketingApi.md#adminmarketingcontrollerremoveproductfrombundle) | **DELETE** /admin/marketing/bundles/{id}/products/{productId} | Remove product from bundle |
 | [**adminMarketingControllerRemoveProductFromFlashDeal**](AdminMarketingApi.md#adminmarketingcontrollerremoveproductfromflashdeal) | **DELETE** /admin/marketing/flash-deals/{id}/products/{productId} | Remove product from flash deal |
-| [**adminMarketingControllerReorderSections**](AdminMarketingApi.md#adminmarketingcontrollerreordersections) | **PATCH** /admin/marketing/sections/reorder | Reorder sections |
 | [**adminMarketingControllerUpdateBundle**](AdminMarketingApi.md#adminmarketingcontrollerupdatebundle) | **PATCH** /admin/marketing/bundles/{id} | Update bundle |
 | [**adminMarketingControllerUpdateBundleProduct**](AdminMarketingApi.md#adminmarketingcontrollerupdatebundleproduct) | **PATCH** /admin/marketing/bundles/{id}/products/{productId} | Update product discount or order in bundle |
 | [**adminMarketingControllerUpdateFlashDeal**](AdminMarketingApi.md#adminmarketingcontrollerupdateflashdeal) | **PATCH** /admin/marketing/flash-deals/{id} | Update flash deal |
 | [**adminMarketingControllerUpdateFlashDealProduct**](AdminMarketingApi.md#adminmarketingcontrollerupdateflashdealproduct) | **PATCH** /admin/marketing/flash-deals/{id}/products/{productId} | Update product in flash deal |
-| [**adminMarketingControllerUpdateSection**](AdminMarketingApi.md#adminmarketingcontrollerupdatesection) | **PATCH** /admin/marketing/sections/{sectionKey} | Update section configuration |
 
 
 
@@ -639,67 +635,6 @@ This endpoint does not need any parameter.
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
 
-## adminMarketingControllerGetAllSections
-
-> Array&lt;SectionResponseDto&gt; adminMarketingControllerGetAllSections()
-
-Get all page sections
-
-### Example
-
-```ts
-import {
-  Configuration,
-  AdminMarketingApi,
-} from '';
-import type { AdminMarketingControllerGetAllSectionsRequest } from '';
-
-async function example() {
-  console.log("🚀 Testing  SDK...");
-  const config = new Configuration({ 
-    // Configure HTTP bearer authorization: JWT-auth
-    accessToken: "YOUR BEARER TOKEN",
-  });
-  const api = new AdminMarketingApi(config);
-
-  try {
-    const data = await api.adminMarketingControllerGetAllSections();
-    console.log(data);
-  } catch (error) {
-    console.error(error);
-  }
-}
-
-// Run the test
-example().catch(console.error);
-```
-
-### Parameters
-
-This endpoint does not need any parameter.
-
-### Return type
-
-[**Array&lt;SectionResponseDto&gt;**](SectionResponseDto.md)
-
-### Authorization
-
-[JWT-auth](../README.md#JWT-auth)
-
-### HTTP request headers
-
-- **Content-Type**: Not defined
-- **Accept**: `application/json`
-
-
-### HTTP response details
-| Status code | Description | Response headers |
-|-------------|-------------|------------------|
-| **200** | List of all sections |  -  |
-
-[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
-
-
 ## adminMarketingControllerGetBundle
 
 > BundleDealResponseDto adminMarketingControllerGetBundle(id)
@@ -834,75 +769,6 @@ example().catch(console.error);
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
 | **200** | Flash deal details |  -  |
-
-[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
-
-
-## adminMarketingControllerGetSection
-
-> SectionResponseDto adminMarketingControllerGetSection(sectionKey)
-
-Get section by key
-
-### Example
-
-```ts
-import {
-  Configuration,
-  AdminMarketingApi,
-} from '';
-import type { AdminMarketingControllerGetSectionRequest } from '';
-
-async function example() {
-  console.log("🚀 Testing  SDK...");
-  const config = new Configuration({ 
-    // Configure HTTP bearer authorization: JWT-auth
-    accessToken: "YOUR BEARER TOKEN",
-  });
-  const api = new AdminMarketingApi(config);
-
-  const body = {
-    // string
-    sectionKey: sectionKey_example,
-  } satisfies AdminMarketingControllerGetSectionRequest;
-
-  try {
-    const data = await api.adminMarketingControllerGetSection(body);
-    console.log(data);
-  } catch (error) {
-    console.error(error);
-  }
-}
-
-// Run the test
-example().catch(console.error);
-```
-
-### Parameters
-
-
-| Name | Type | Description  | Notes |
-|------------- | ------------- | ------------- | -------------|
-| **sectionKey** | `string` |  | [Defaults to `undefined`] |
-
-### Return type
-
-[**SectionResponseDto**](SectionResponseDto.md)
-
-### Authorization
-
-[JWT-auth](../README.md#JWT-auth)
-
-### HTTP request headers
-
-- **Content-Type**: Not defined
-- **Accept**: `application/json`
-
-
-### HTTP response details
-| Status code | Description | Response headers |
-|-------------|-------------|------------------|
-| **200** | Section details |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
@@ -1047,75 +913,6 @@ example().catch(console.error);
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
 | **200** | Product removed |  -  |
-
-[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
-
-
-## adminMarketingControllerReorderSections
-
-> Array&lt;SectionResponseDto&gt; adminMarketingControllerReorderSections(reorderSectionsDto)
-
-Reorder sections
-
-### Example
-
-```ts
-import {
-  Configuration,
-  AdminMarketingApi,
-} from '';
-import type { AdminMarketingControllerReorderSectionsRequest } from '';
-
-async function example() {
-  console.log("🚀 Testing  SDK...");
-  const config = new Configuration({ 
-    // Configure HTTP bearer authorization: JWT-auth
-    accessToken: "YOUR BEARER TOKEN",
-  });
-  const api = new AdminMarketingApi(config);
-
-  const body = {
-    // ReorderSectionsDto
-    reorderSectionsDto: ...,
-  } satisfies AdminMarketingControllerReorderSectionsRequest;
-
-  try {
-    const data = await api.adminMarketingControllerReorderSections(body);
-    console.log(data);
-  } catch (error) {
-    console.error(error);
-  }
-}
-
-// Run the test
-example().catch(console.error);
-```
-
-### Parameters
-
-
-| Name | Type | Description  | Notes |
-|------------- | ------------- | ------------- | -------------|
-| **reorderSectionsDto** | [ReorderSectionsDto](ReorderSectionsDto.md) |  | |
-
-### Return type
-
-[**Array&lt;SectionResponseDto&gt;**](SectionResponseDto.md)
-
-### Authorization
-
-[JWT-auth](../README.md#JWT-auth)
-
-### HTTP request headers
-
-- **Content-Type**: `application/json`
-- **Accept**: `application/json`
-
-
-### HTTP response details
-| Status code | Description | Response headers |
-|-------------|-------------|------------------|
-| **200** | Reordered sections |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
@@ -1410,78 +1207,6 @@ example().catch(console.error);
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
 | **200** | Product updated |  -  |
-
-[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
-
-
-## adminMarketingControllerUpdateSection
-
-> SectionResponseDto adminMarketingControllerUpdateSection(sectionKey, updateSectionDto)
-
-Update section configuration
-
-### Example
-
-```ts
-import {
-  Configuration,
-  AdminMarketingApi,
-} from '';
-import type { AdminMarketingControllerUpdateSectionRequest } from '';
-
-async function example() {
-  console.log("🚀 Testing  SDK...");
-  const config = new Configuration({ 
-    // Configure HTTP bearer authorization: JWT-auth
-    accessToken: "YOUR BEARER TOKEN",
-  });
-  const api = new AdminMarketingApi(config);
-
-  const body = {
-    // string
-    sectionKey: sectionKey_example,
-    // UpdateSectionDto
-    updateSectionDto: ...,
-  } satisfies AdminMarketingControllerUpdateSectionRequest;
-
-  try {
-    const data = await api.adminMarketingControllerUpdateSection(body);
-    console.log(data);
-  } catch (error) {
-    console.error(error);
-  }
-}
-
-// Run the test
-example().catch(console.error);
-```
-
-### Parameters
-
-
-| Name | Type | Description  | Notes |
-|------------- | ------------- | ------------- | -------------|
-| **sectionKey** | `string` |  | [Defaults to `undefined`] |
-| **updateSectionDto** | [UpdateSectionDto](UpdateSectionDto.md) |  | |
-
-### Return type
-
-[**SectionResponseDto**](SectionResponseDto.md)
-
-### Authorization
-
-[JWT-auth](../README.md#JWT-auth)
-
-### HTTP request headers
-
-- **Content-Type**: `application/json`
-- **Accept**: `application/json`
-
-
-### HTTP response details
-| Status code | Description | Response headers |
-|-------------|-------------|------------------|
-| **200** | Updated section |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 

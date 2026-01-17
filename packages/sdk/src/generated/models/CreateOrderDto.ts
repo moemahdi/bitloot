@@ -63,6 +63,12 @@ export interface CreateOrderDto {
      * @memberof CreateOrderDto
      */
     idempotencyKey?: string;
+    /**
+     * Promo code to apply for discount
+     * @type {string}
+     * @memberof CreateOrderDto
+     */
+    promoCode?: string;
 }
 
 /**
@@ -89,6 +95,7 @@ export function CreateOrderDtoFromJSONTyped(json: any, ignoreDiscriminator: bool
         'note': json['note'] == null ? undefined : json['note'],
         'captchaToken': json['captchaToken'] == null ? undefined : json['captchaToken'],
         'idempotencyKey': json['idempotencyKey'] == null ? undefined : json['idempotencyKey'],
+        'promoCode': json['promoCode'] == null ? undefined : json['promoCode'],
     };
 }
 
@@ -109,6 +116,7 @@ export function CreateOrderDtoToJSONTyped(value?: CreateOrderDto | null, ignoreD
         'note': value['note'],
         'captchaToken': value['captchaToken'],
         'idempotencyKey': value['idempotencyKey'],
+        'promoCode': value['promoCode'],
     };
 }
 
