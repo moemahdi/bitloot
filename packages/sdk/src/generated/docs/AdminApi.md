@@ -398,11 +398,11 @@ example().catch(console.error);
 
 ## adminControllerGetDashboardStats
 
-> DashboardStatsDto adminControllerGetDashboardStats()
+> DashboardStatsDto adminControllerGetDashboardStats(timeRange)
 
 Get dashboard statistics
 
-Returns aggregated revenue, orders, users, and sales history
+Returns aggregated revenue, orders, users, and sales history filtered by time range
 
 ### Example
 
@@ -421,8 +421,13 @@ async function example() {
   });
   const api = new AdminApi(config);
 
+  const body = {
+    // '24h' | '7d' | '30d' | '90d' | 'all' | Time range for filtering stats (default: 7d) (optional)
+    timeRange: timeRange_example,
+  } satisfies AdminControllerGetDashboardStatsRequest;
+
   try {
-    const data = await api.adminControllerGetDashboardStats();
+    const data = await api.adminControllerGetDashboardStats(body);
     console.log(data);
   } catch (error) {
     console.error(error);
@@ -435,7 +440,10 @@ example().catch(console.error);
 
 ### Parameters
 
-This endpoint does not need any parameter.
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **timeRange** | `24h`, `7d`, `30d`, `90d`, `all` | Time range for filtering stats (default: 7d) | [Optional] [Defaults to `undefined`] [Enum: 24h, 7d, 30d, 90d, all] |
 
 ### Return type
 

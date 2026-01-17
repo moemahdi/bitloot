@@ -83,6 +83,7 @@ const ADMIN_NAV = {
       { href: '/admin/marketing/flash-deals', label: 'Flash Deals', icon: Timer },
       { href: '/admin/marketing/bundles', label: 'Bundles', icon: Gift },
       { href: '/admin/promos', label: 'Promo Codes', icon: Ticket },
+      { href: '/admin/reviews', label: 'Reviews', icon: Star },
     ],
   },
   // System monitoring & operations
@@ -96,10 +97,8 @@ const ADMIN_NAV = {
       { href: '/admin/audit', label: 'Audit Logs', icon: ClipboardList },
     ],
   },
-  // Customer-facing feedback - standalone with accent
-  standalone: [
-    { href: '/admin/reviews', label: 'Reviews', icon: Star },
-  ],
+  // Empty - all items moved to dropdowns
+  standalone: [],
 } as const;
 
 // Helper to check if any item in a dropdown is active

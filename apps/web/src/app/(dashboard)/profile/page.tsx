@@ -233,7 +233,7 @@ function WatchlistTabContent(): React.ReactElement {
                     Browse Games
                   </GlowButton>
                 </Link>
-                <Link href="/?sort=deals">
+                <Link href="/bundles">
                   <Button variant="outline" size="lg" className="border-orange-warning/30 text-orange-warning hover:bg-orange-warning/10">
                     <DollarSign className="mr-2 h-5 w-5" />
                     View Deals
@@ -697,6 +697,9 @@ export default function ProfilePage(): React.ReactElement {
   const [isEmailChangeStep, setIsEmailChangeStep] = useState<'idle' | 'otp' | 'verifying'>('idle');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  
+  // Dismissible sections
+  const [showQuickActions, setShowQuickActions] = useState(true);
   
   // Sessions pagination state
   const [sessionsPage, setSessionsPage] = useState(1);
@@ -1597,7 +1600,8 @@ export default function ProfilePage(): React.ReactElement {
 
             {/* Right Column - Quick Actions + Activity */}
             <div className="lg:col-span-7 space-y-6">
-              {/* Quick Actions - Horizontal Row */}
+              {/* Quick Actions - Horizontal Row (Dismissible) */}
+              {showQuickActions && (
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -1605,11 +1609,22 @@ export default function ProfilePage(): React.ReactElement {
               >
                 <Card className="glass border-border/50 bg-bg-secondary/50 backdrop-blur-sm">
                   <CardHeader className="pb-3">
-                    <div className="flex items-center gap-2">
-                      <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-cyan-glow/10">
-                        <LayoutDashboard className="h-4 w-4 text-cyan-glow" />
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-cyan-glow/10">
+                          <LayoutDashboard className="h-4 w-4 text-cyan-glow" />
+                        </div>
+                        <CardTitle className="text-text-primary text-base">Quick Actions</CardTitle>
                       </div>
-                      <CardTitle className="text-text-primary text-base">Quick Actions</CardTitle>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6 text-text-muted hover:text-text-primary hover:bg-bg-tertiary/50"
+                        onClick={() => setShowQuickActions(false)}
+                        aria-label="Dismiss Quick Actions"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
                     </div>
                   </CardHeader>
                   <CardContent>
@@ -1628,7 +1643,7 @@ export default function ProfilePage(): React.ReactElement {
                         className="h-auto flex-col gap-1.5 py-3 border-orange-warning/20 hover:border-orange-warning/50 hover:bg-orange-warning/5 group"
                         asChild
                       >
-                        <Link href="/?sort=deals">
+                        <Link href="/bundles">
                           <DollarSign className="h-5 w-5 text-orange-warning group-hover:scale-110 transition-transform" />
                           <span className="text-xs font-medium">Deals</span>
                         </Link>
@@ -1659,6 +1674,7 @@ export default function ProfilePage(): React.ReactElement {
                   </CardContent>
                 </Card>
               </motion.div>
+              )}
 
               {/* Activity Insights - Compact 2x2 Grid */}
               <motion.div
@@ -1757,7 +1773,7 @@ export default function ProfilePage(): React.ReactElement {
                         
                         {/* Browse Deals */}
                         <Link 
-                          href="/?sort=deals"
+                          href="/bundles"
                           className="rounded-lg border border-orange-warning/20 bg-gradient-to-br from-orange-warning/10 to-orange-warning/5 p-3 hover:from-orange-warning/15 hover:border-orange-warning/40 transition-all group"
                         >
                           <div className="flex items-center justify-between mb-1.5">
@@ -1826,7 +1842,7 @@ export default function ProfilePage(): React.ReactElement {
                     </p>
                     <div className="flex gap-3">
                       <GlowButton size="default" asChild>
-                        <Link href="/?sort=deals">
+                        <Link href="/bundles">
                           <DollarSign className="h-4 w-4 mr-2" />
                           View Deals
                         </Link>

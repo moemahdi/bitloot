@@ -47,24 +47,41 @@ export class AdminService {
   /**
    * Get dashboard statistics
    * Aggregates revenue, orders, users, and recent sales history
+   * @param timeRange Time range filter: '24h' | '7d' | '30d' | '90d' | 'all'
    */
-  async getDashboardStats(): Promise<DashboardStatsDto> {
-    // 1. Total Revenue (Sum of completed payments)
-    const revenueResult = await this.paymentsRepo
-      .createQueryBuilder('p')
-      .select('SUM(p.payAmount)', 'revenue')
-      .where('p.status = :status', { status: 'finished' })
-      .getRawOne<{ revenue: string | null }>();
+  async getDashboardStats(timeRange: '24h' | '7d' | '30d' | '90d' | 'all' = '7d'): Promise<DashboardStatsDto> {
+    // Calculate the start date based on timeRange
+    const startDate = this.getStartDateForRange(timeRange);
+    const daysInRange = this.getDaysInRange(timeRange);
 
+    // 1. Total Revenue (Sum of completed payments in EUR for the time range)
+    const revenueQuery = this.paymentsRepo
+      .createQueryBuilder('p')
+      .select('COALESCE(SUM(CAST(p.priceAmount AS DECIMAL(20,8))), 0)', 'revenue')
+      .where('p.status = :status', { status: 'finished' });
+
+    if (startDate !== null) {
+      revenueQuery.andWhere('p.createdAt >= :startDate', { startDate });
+    }
+
+    const revenueResult = await revenueQuery.getRawOne<{ revenue: string | null }>();
     const revenue = revenueResult?.revenue ?? '0';
 
-    // 2. Total Orders
-    const totalOrders = await this.ordersRepo.count();
+    // 2. Total Orders (for time range)
+    const ordersQuery = this.ordersRepo.createQueryBuilder('o');
+    if (startDate !== null) {
+      ordersQuery.where('o.createdAt >= :startDate', { startDate });
+    }
+    const totalOrders = await ordersQuery.getCount();
 
-    // 3. Total Users
-    const totalUsers = await this.usersRepo.count();
+    // 3. Total Users (for time range - users created in range)
+    const usersQuery = this.usersRepo.createQueryBuilder('u');
+    if (startDate !== null) {
+      usersQuery.where('u.createdAt >= :startDate', { startDate });
+    }
+    const totalUsers = await usersQuery.getCount();
 
-    // 4. Active Orders (waiting/confirming/paid)
+    // 4. Active Orders (waiting/confirming/paid) - always current state
     const activeOrders = await this.ordersRepo.count({
       where: [
         { status: 'waiting' },
@@ -73,16 +90,15 @@ export class AdminService {
       ]
     });
 
-    // 5. Revenue History (Last 7 days)
-    const sevenDaysAgo = new Date();
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    // 5. Revenue History - Use priceAmount (EUR) not payAmount (crypto)
+    const historyStartDate = startDate ?? new Date(0); // For 'all', use epoch
 
     const revenueHistoryRaw = await this.paymentsRepo
       .createQueryBuilder('p')
       .select("DATE_TRUNC('day', p.createdAt)", 'date')
-      .addSelect('SUM(p.payAmount)', 'revenue')
+      .addSelect('COALESCE(SUM(CAST(p.priceAmount AS DECIMAL(20,8))), 0)', 'revenue')
       .where('p.status = :status', { status: 'finished' })
-      .andWhere('p.createdAt >= :startDate', { startDate: sevenDaysAgo })
+      .andWhere('p.createdAt >= :startDate', { startDate: historyStartDate })
       .groupBy('date')
       .orderBy('date', 'ASC')
       .getRawMany<{ date: string; revenue: string }>();
@@ -93,9 +109,9 @@ export class AdminService {
       revenue: parseFloat(item.revenue),
     }));
 
-    // Fill in missing days with 0
+    // Fill in missing days with 0 (use dynamic days based on range)
     const filledHistory: { date: string; revenue: number }[] = [];
-    for (let i = 6; i >= 0; i--) {
+    for (let i = daysInRange - 1; i >= 0; i--) {
       const d = new Date();
       d.setDate(d.getDate() - i);
       const dateStr = d.toISOString().substring(0, 10);
@@ -113,6 +129,47 @@ export class AdminService {
       activeOrders,
       revenueHistory: filledHistory,
     };
+  }
+
+  /**
+   * Helper: Get start date for a given time range
+   */
+  private getStartDateForRange(timeRange: '24h' | '7d' | '30d' | '90d' | 'all'): Date | null {
+    const now = new Date();
+    switch (timeRange) {
+      case '24h':
+        return new Date(now.getTime() - 24 * 60 * 60 * 1000);
+      case '7d':
+        return new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      case '30d':
+        return new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+      case '90d':
+        return new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+      case 'all':
+        return null; // No start date filter
+      default:
+        return new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    }
+  }
+
+  /**
+   * Helper: Get number of days for chart fill-in
+   */
+  private getDaysInRange(timeRange: '24h' | '7d' | '30d' | '90d' | 'all'): number {
+    switch (timeRange) {
+      case '24h':
+        return 1;
+      case '7d':
+        return 7;
+      case '30d':
+        return 30;
+      case '90d':
+        return 90;
+      case 'all':
+        return 30; // For 'all', show last 30 days in chart
+      default:
+        return 7;
+    }
   }
 
   /**
@@ -1026,17 +1083,38 @@ export class AdminService {
       count: parseInt(r.count, 10),
     }));
 
-    // Daily volume with revenue - ONLY count paid and fulfilled orders for accurate revenue
+    // Daily volume with revenue - Use Payments table for accurate revenue (consistent with dashboard)
+    // Count orders by date, but get revenue from associated finished payments
     const dailyVolumeRaw = await this.ordersRepo
       .createQueryBuilder('o')
       .select("DATE_TRUNC('day', o.createdAt)", 'date')
       .addSelect('COUNT(*)', 'count')
-      .addSelect('COALESCE(SUM(CAST(o.totalCrypto AS DECIMAL)), 0)', 'revenue')
       .where('o.createdAt >= :startDate', { startDate })
       .andWhere('o.status IN (:...statuses)', { statuses: ['paid', 'fulfilled'] })
       .groupBy('date')
       .orderBy('date', 'ASC')
-      .getRawMany<{ date: string; count: string; revenue: string }>();
+      .getRawMany<{ date: string; count: string }>();
+
+    // Get total revenue from Payments table for the same period (source of truth)
+    const revenueResult = await this.paymentsRepo
+      .createQueryBuilder('p')
+      .select('COALESCE(SUM(CAST(p.priceAmount AS DECIMAL(20,8))), 0)', 'totalRevenue')
+      .where('p.status = :status', { status: 'finished' })
+      .andWhere('p.createdAt >= :startDate', { startDate })
+      .getRawOne<{ totalRevenue: string }>();
+
+    const periodRevenue = parseFloat(revenueResult?.totalRevenue ?? '0');
+
+    // Get daily revenue breakdown from Payments table
+    const dailyRevenueRaw = await this.paymentsRepo
+      .createQueryBuilder('p')
+      .select("DATE_TRUNC('day', p.createdAt)", 'date')
+      .addSelect('COALESCE(SUM(CAST(p.priceAmount AS DECIMAL(20,8))), 0)', 'revenue')
+      .where('p.status = :status', { status: 'finished' })
+      .andWhere('p.createdAt >= :startDate', { startDate })
+      .groupBy('date')
+      .orderBy('date', 'ASC')
+      .getRawMany<{ date: string; revenue: string }>();
 
     // Fill in missing days
     const dailyVolume: Array<{ date: string; count: number; revenue: number }> = [];
@@ -1044,19 +1122,22 @@ export class AdminService {
       const d = new Date();
       d.setDate(d.getDate() - i);
       const dateStr = d.toISOString().substring(0, 10);
-      const found = dailyVolumeRaw.find(
+      const foundOrder = dailyVolumeRaw.find(
+        (r) => new Date(r.date).toISOString().substring(0, 10) === dateStr,
+      );
+      const foundRevenue = dailyRevenueRaw.find(
         (r) => new Date(r.date).toISOString().substring(0, 10) === dateStr,
       );
       dailyVolume.push({
         date: dateStr,
-        count: found !== undefined ? parseInt(found.count, 10) : 0,
-        revenue: found !== undefined ? parseFloat(found.revenue) : 0,
+        count: foundOrder !== undefined ? parseInt(foundOrder.count, 10) : 0,
+        revenue: foundRevenue !== undefined ? parseFloat(foundRevenue.revenue) : 0,
       });
     }
 
-    // Totals and rates
+    // Totals and rates - use periodRevenue from Payments table
     const totalOrders = byStatus.reduce((sum, s) => sum + s.count, 0);
-    const totalRevenue = dailyVolume.reduce((sum, d) => sum + d.revenue, 0);
+    const totalRevenue = periodRevenue;
     const fulfilledCount = byStatus.find((s) => s.status === 'fulfilled')?.count ?? 0;
     const paidCount = byStatus.find((s) => s.status === 'paid')?.count ?? 0;
     const failedCount = byStatus.find((s) => s.status === 'failed')?.count ?? 0;

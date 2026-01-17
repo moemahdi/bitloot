@@ -111,6 +111,10 @@ export interface AdminControllerGetAdjacentWebhooksRequest {
     id: string;
 }
 
+export interface AdminControllerGetDashboardStatsRequest {
+    timeRange?: AdminControllerGetDashboardStatsTimeRangeEnum;
+}
+
 export interface AdminControllerGetKeyAuditTrailRequest {
     orderId: string;
 }
@@ -479,11 +483,15 @@ export class AdminApi extends runtime.BaseAPI {
     }
 
     /**
-     * Returns aggregated revenue, orders, users, and sales history
+     * Returns aggregated revenue, orders, users, and sales history filtered by time range
      * Get dashboard statistics
      */
-    async adminControllerGetDashboardStatsRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<DashboardStatsDto>> {
+    async adminControllerGetDashboardStatsRaw(requestParameters: AdminControllerGetDashboardStatsRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<DashboardStatsDto>> {
         const queryParameters: any = {};
+
+        if (requestParameters['timeRange'] != null) {
+            queryParameters['timeRange'] = requestParameters['timeRange'];
+        }
 
         const headerParameters: runtime.HTTPHeaders = {};
 
@@ -509,11 +517,11 @@ export class AdminApi extends runtime.BaseAPI {
     }
 
     /**
-     * Returns aggregated revenue, orders, users, and sales history
+     * Returns aggregated revenue, orders, users, and sales history filtered by time range
      * Get dashboard statistics
      */
-    async adminControllerGetDashboardStats(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<DashboardStatsDto> {
-        const response = await this.adminControllerGetDashboardStatsRaw(initOverrides);
+    async adminControllerGetDashboardStats(requestParameters: AdminControllerGetDashboardStatsRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<DashboardStatsDto> {
+        const response = await this.adminControllerGetDashboardStatsRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
@@ -1437,6 +1445,17 @@ export const AdminControllerExportOrdersSourceTypeEnum = {
     Kinguin: 'kinguin'
 } as const;
 export type AdminControllerExportOrdersSourceTypeEnum = typeof AdminControllerExportOrdersSourceTypeEnum[keyof typeof AdminControllerExportOrdersSourceTypeEnum];
+/**
+ * @export
+ */
+export const AdminControllerGetDashboardStatsTimeRangeEnum = {
+    _24h: '24h',
+    _7d: '7d',
+    _30d: '30d',
+    _90d: '90d',
+    All: 'all'
+} as const;
+export type AdminControllerGetDashboardStatsTimeRangeEnum = typeof AdminControllerGetDashboardStatsTimeRangeEnum[keyof typeof AdminControllerGetDashboardStatsTimeRangeEnum];
 /**
  * @export
  */

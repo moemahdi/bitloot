@@ -28,15 +28,25 @@ export class AdminController {
   @Get('stats')
   @ApiOperation({
     summary: 'Get dashboard statistics',
-    description: 'Returns aggregated revenue, orders, users, and sales history',
+    description: 'Returns aggregated revenue, orders, users, and sales history filtered by time range',
+  })
+  @ApiQuery({
+    name: 'timeRange',
+    type: String,
+    required: false,
+    enum: ['24h', '7d', '30d', '90d', 'all'],
+    example: '7d',
+    description: 'Time range for filtering stats (default: 7d)',
   })
   @ApiResponse({
     status: 200,
     description: 'Dashboard statistics',
     type: DashboardStatsDto,
   })
-  async getDashboardStats(): Promise<DashboardStatsDto> {
-    return this.admin.getDashboardStats();
+  async getDashboardStats(
+    @Query('timeRange') timeRange?: '24h' | '7d' | '30d' | '90d' | 'all',
+  ): Promise<DashboardStatsDto> {
+    return this.admin.getDashboardStats(timeRange ?? '7d');
   }
 
   /**

@@ -5,7 +5,7 @@ All URIs are relative to *http://localhost*
 | Method | HTTP request | Description |
 |------------- | ------------- | -------------|
 | [**adminPromosControllerCreate**](AdminPromosApi.md#adminpromoscontrollercreate) | **POST** /admin/promos | Create a new promo code (admin) |
-| [**adminPromosControllerDelete**](AdminPromosApi.md#adminpromoscontrollerdelete) | **DELETE** /admin/promos/{id} | Delete a promo code (admin, soft delete) |
+| [**adminPromosControllerDelete**](AdminPromosApi.md#adminpromoscontrollerdelete) | **DELETE** /admin/promos/{id} | Delete a promo code (admin, permanent) |
 | [**adminPromosControllerGetOne**](AdminPromosApi.md#adminpromoscontrollergetone) | **GET** /admin/promos/{id} | Get promo code by ID (admin) |
 | [**adminPromosControllerGetRedemptions**](AdminPromosApi.md#adminpromoscontrollergetredemptions) | **GET** /admin/promos/{id}/redemptions | Get redemption history for a promo code (admin) |
 | [**adminPromosControllerList**](AdminPromosApi.md#adminpromoscontrollerlist) | **GET** /admin/promos | List all promo codes (admin) |
@@ -87,7 +87,7 @@ example().catch(console.error);
 
 > adminPromosControllerDelete(id)
 
-Delete a promo code (admin, soft delete)
+Delete a promo code (admin, permanent)
 
 ### Example
 

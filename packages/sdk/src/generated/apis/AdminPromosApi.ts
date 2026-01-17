@@ -118,7 +118,7 @@ export class AdminPromosApi extends runtime.BaseAPI {
     }
 
     /**
-     * Delete a promo code (admin, soft delete)
+     * Delete a promo code (admin, permanent)
      */
     async adminPromosControllerDeleteRaw(requestParameters: AdminPromosControllerDeleteRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<void>> {
         if (requestParameters['id'] == null) {
@@ -155,7 +155,7 @@ export class AdminPromosApi extends runtime.BaseAPI {
     }
 
     /**
-     * Delete a promo code (admin, soft delete)
+     * Delete a promo code (admin, permanent)
      */
     async adminPromosControllerDelete(requestParameters: AdminPromosControllerDeleteRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<void> {
         await this.adminPromosControllerDeleteRaw(requestParameters, initOverrides);
