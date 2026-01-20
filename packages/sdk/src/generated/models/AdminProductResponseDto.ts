@@ -324,6 +324,18 @@ export interface AdminProductResponseDto {
      */
     isCustom: boolean;
     /**
+     * Homepage sections this product appears in
+     * @type {Array<string>}
+     * @memberof AdminProductResponseDto
+     */
+    featuredSections?: Array<string>;
+    /**
+     * Display order within featured sections
+     * @type {number}
+     * @memberof AdminProductResponseDto
+     */
+    featuredOrder?: number;
+    /**
      * 
      * @type {Date}
      * @memberof AdminProductResponseDto
@@ -431,6 +443,8 @@ export function AdminProductResponseDtoFromJSONTyped(json: any, ignoreDiscrimina
         'currency': json['currency'],
         'isPublished': json['isPublished'],
         'isCustom': json['isCustom'],
+        'featuredSections': json['featuredSections'] == null ? undefined : json['featuredSections'],
+        'featuredOrder': json['featuredOrder'] == null ? undefined : json['featuredOrder'],
         'createdAt': (new Date(json['createdAt'])),
         'updatedAt': (new Date(json['updatedAt'])),
         'deletedAt': json['deletedAt'] == null ? undefined : (new Date(json['deletedAt'])),
@@ -495,6 +509,8 @@ export function AdminProductResponseDtoToJSONTyped(value?: AdminProductResponseD
         'currency': value['currency'],
         'isPublished': value['isPublished'],
         'isCustom': value['isCustom'],
+        'featuredSections': value['featuredSections'],
+        'featuredOrder': value['featuredOrder'],
         'createdAt': value['createdAt'].toISOString(),
         'updatedAt': value['updatedAt'].toISOString(),
         'deletedAt': value['deletedAt'] == null ? value['deletedAt'] : value['deletedAt'].toISOString(),

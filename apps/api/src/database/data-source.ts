@@ -56,6 +56,7 @@ import { PromoCode } from '../modules/promos/entities/promocode.entity';
 import { PromoRedemption } from '../modules/promos/entities/promoredemption.entity';
 import { CreatePromoCodes1769000000000 } from './migrations/1769000000000-CreatePromoCodes';
 import { AddPromoFieldsToOrders1769100000000 } from './migrations/1769100000000-AddPromoFieldsToOrders';
+import { AddProductFeaturedSections1769200000000 } from './migrations/1769200000000-AddProductFeaturedSections';
 
 dotenv.config({ path: path.resolve(__dirname, '../../../../.env') });
 
@@ -97,6 +98,7 @@ export default new DataSource({
     AddBundleProductDiscountPercent1737052800000,
     CreatePromoCodes1769000000000,
     AddPromoFieldsToOrders1769100000000,
+    AddProductFeaturedSections1769200000000,
   ],
   logging: true,
   synchronize: false,

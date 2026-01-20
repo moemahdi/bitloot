@@ -771,6 +771,8 @@ export class CatalogService {
       currency: string;
       sourceType: 'custom' | 'kinguin';
       kinguinOfferId: string;
+      featuredSections: string[];
+      featuredOrder: number;
     }>,
   ): Promise<Product> {
     const product = await this.productRepo.findOne({ where: { id } });
@@ -795,6 +797,8 @@ export class CatalogService {
       product.isCustom = data.sourceType !== 'kinguin';
     }
     if (typeof data.kinguinOfferId === 'string') product.kinguinOfferId = data.kinguinOfferId;
+    if (Array.isArray(data.featuredSections)) product.featuredSections = data.featuredSections;
+    if (typeof data.featuredOrder === 'number') product.featuredOrder = data.featuredOrder;
 
     return this.productRepo.save(product);
   }
@@ -1239,5 +1243,37 @@ export class CatalogService {
       genres,
       priceRange,
     };
+  }
+
+  /**
+   * Get products assigned to a specific homepage section
+   * @param sectionKey - Section key (e.g., 'trending', 'featured_games')
+   * @param limit - Maximum products to return
+   */
+  async getProductsBySection(
+    sectionKey: string,
+    limit: number = 12,
+  ): Promise<{ data: Product[]; total: number }> {
+    // Query products that have this section in their featuredSections array
+    // TypeORM simple-array stores as comma-separated string, so we use LIKE
+    const qb = this.productRepo
+      .createQueryBuilder('product')
+      .where('product.isPublished = true')
+      .andWhere(
+        "(product.featuredSections LIKE :exact OR product.featuredSections LIKE :start OR product.featuredSections LIKE :middle OR product.featuredSections LIKE :end)",
+        {
+          exact: sectionKey, // Only this section
+          start: `${sectionKey},%`, // At start
+          middle: `%,${sectionKey},%`, // In middle
+          end: `%,${sectionKey}`, // At end
+        }
+      )
+      .orderBy('product.featuredOrder', 'ASC')
+      .addOrderBy('product.createdAt', 'DESC')
+      .take(limit);
+
+    const [data, total] = await qb.getManyAndCount();
+
+    return { data, total };
   }
 }

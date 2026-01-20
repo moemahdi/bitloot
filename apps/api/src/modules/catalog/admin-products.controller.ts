@@ -136,6 +136,10 @@ export class AdminProductsController {
       isPublished: product.isPublished,
       isCustom: product.isCustom,
       
+      // Homepage sections
+      featuredSections: product.featuredSections ?? undefined,
+      featuredOrder: product.featuredOrder ?? 0,
+      
       // Timestamps
       createdAt: product.createdAt,
       updatedAt: product.updatedAt,
@@ -283,6 +287,8 @@ export class AdminProductsController {
         currency: dto.currency,
         sourceType: dto.sourceType,
         kinguinOfferId: dto.kinguinOfferId,
+        featuredSections: dto.featuredSections,
+        featuredOrder: dto.featuredOrder,
       });
       return this.toResponseDto(product);
     } catch (error) {

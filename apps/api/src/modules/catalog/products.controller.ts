@@ -174,4 +174,29 @@ export class CatalogController {
     }
     return toProductResponseDto(product);
   }
+
+  @Get('sections/:sectionKey')
+  @ApiOperation({
+    summary: 'Get products for a homepage section',
+    description: 'Returns products assigned to a specific homepage section (trending, featured_games, etc.)',
+  })
+  @ApiQuery({ name: 'limit', required: false, type: 'number', description: 'Max products to return (default 12)' })
+  @ApiResponse({ status: 200, type: ProductListResponseDto, description: 'Products in section' })
+  async getProductsBySection(
+    @Param('sectionKey') sectionKey: string,
+    @Query('limit') limitParam?: string,
+  ): Promise<ProductListResponseDto> {
+    const limit = limitParam !== undefined && limitParam !== '' ? parseInt(limitParam, 10) : 12;
+    const safeLimit = Number.isNaN(limit) || limit < 1 ? 12 : Math.min(limit, 50);
+    
+    const result = await this.catalogService.getProductsBySection(sectionKey, safeLimit);
+    
+    return {
+      data: result.data.map(toProductResponseDto),
+      total: result.total,
+      limit: safeLimit,
+      offset: 0,
+      pages: 1,
+    };
+  }
 }

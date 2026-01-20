@@ -35,6 +35,11 @@ export interface CatalogControllerGetProductRequest {
     slug: string;
 }
 
+export interface CatalogControllerGetProductsBySectionRequest {
+    sectionKey: string;
+    limit?: number;
+}
+
 export interface CatalogControllerListProductsRequest {
     q?: string;
     platform?: string;
@@ -146,6 +151,49 @@ export class CatalogApi extends runtime.BaseAPI {
      */
     async catalogControllerGetProduct(requestParameters: CatalogControllerGetProductRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ProductResponseDto> {
         const response = await this.catalogControllerGetProductRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Returns products assigned to a specific homepage section (trending, featured_games, etc.)
+     * Get products for a homepage section
+     */
+    async catalogControllerGetProductsBySectionRaw(requestParameters: CatalogControllerGetProductsBySectionRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<ProductListResponseDto>> {
+        if (requestParameters['sectionKey'] == null) {
+            throw new runtime.RequiredError(
+                'sectionKey',
+                'Required parameter "sectionKey" was null or undefined when calling catalogControllerGetProductsBySection().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        if (requestParameters['limit'] != null) {
+            queryParameters['limit'] = requestParameters['limit'];
+        }
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/catalog/sections/{sectionKey}`;
+        urlPath = urlPath.replace(`{${"sectionKey"}}`, encodeURIComponent(String(requestParameters['sectionKey'])));
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => ProductListResponseDtoFromJSON(jsonValue));
+    }
+
+    /**
+     * Returns products assigned to a specific homepage section (trending, featured_games, etc.)
+     * Get products for a homepage section
+     */
+    async catalogControllerGetProductsBySection(requestParameters: CatalogControllerGetProductsBySectionRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ProductListResponseDto> {
+        const response = await this.catalogControllerGetProductsBySectionRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

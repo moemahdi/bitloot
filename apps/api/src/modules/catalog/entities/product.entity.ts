@@ -248,6 +248,20 @@ export class Product {
   @Column({ type: 'int', default: 0 })
   reviewCount!: number;
 
+  /**
+   * Homepage sections this product appears in.
+   * Possible values: 'trending', 'featured_games', 'featured_software', 
+   * 'featured_gift_cards', 'featured_subscriptions'
+   */
+  @Column('simple-array', { nullable: true })
+  featuredSections?: string[];
+
+  /**
+   * Display order within featured sections (lower = first)
+   */
+  @Column({ type: 'int', default: 0 })
+  featuredOrder!: number;
+
   @Column({ type: 'tsvector', nullable: true })
   searchTsv?: string;
 

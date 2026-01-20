@@ -53,6 +53,8 @@ Name | Type
 `currency` | string
 `isPublished` | boolean
 `isCustom` | boolean
+`featuredSections` | Array&lt;string&gt;
+`featuredOrder` | number
 `createdAt` | Date
 `updatedAt` | Date
 `deletedAt` | Date
@@ -111,6 +113,8 @@ const example = {
   "currency": null,
   "isPublished": null,
   "isCustom": null,
+  "featuredSections": ["trending","featured_games"],
+  "featuredOrder": 0,
   "createdAt": null,
   "updatedAt": null,
   "deletedAt": null,

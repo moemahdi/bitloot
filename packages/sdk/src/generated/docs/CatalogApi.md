@@ -7,6 +7,7 @@ All URIs are relative to *http://localhost*
 | [**catalogControllerGetCategories**](CatalogApi.md#catalogcontrollergetcategories) | **GET** /catalog/categories | Get dynamic categories with counts |
 | [**catalogControllerGetFilters**](CatalogApi.md#catalogcontrollergetfilters) | **GET** /catalog/filters | Get available filter options |
 | [**catalogControllerGetProduct**](CatalogApi.md#catalogcontrollergetproduct) | **GET** /catalog/products/{slug} | Get single product by slug |
+| [**catalogControllerGetProductsBySection**](CatalogApi.md#catalogcontrollergetproductsbysection) | **GET** /catalog/sections/{sectionKey} | Get products for a homepage section |
 | [**catalogControllerListProducts**](CatalogApi.md#catalogcontrollerlistproducts) | **GET** /catalog/products | List products with filtering and pagination |
 
 
@@ -191,6 +192,76 @@ No authorization required
 |-------------|-------------|------------------|
 | **200** | Product details |  -  |
 | **404** | Product not found |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## catalogControllerGetProductsBySection
+
+> ProductListResponseDto catalogControllerGetProductsBySection(sectionKey, limit)
+
+Get products for a homepage section
+
+Returns products assigned to a specific homepage section (trending, featured_games, etc.)
+
+### Example
+
+```ts
+import {
+  Configuration,
+  CatalogApi,
+} from '';
+import type { CatalogControllerGetProductsBySectionRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new CatalogApi();
+
+  const body = {
+    // string
+    sectionKey: sectionKey_example,
+    // number | Max products to return (default 12) (optional)
+    limit: 8.14,
+  } satisfies CatalogControllerGetProductsBySectionRequest;
+
+  try {
+    const data = await api.catalogControllerGetProductsBySection(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **sectionKey** | `string` |  | [Defaults to `undefined`] |
+| **limit** | `number` | Max products to return (default 12) | [Optional] [Defaults to `undefined`] |
+
+### Return type
+
+[**ProductListResponseDto**](ProductListResponseDto.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Products in section |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 

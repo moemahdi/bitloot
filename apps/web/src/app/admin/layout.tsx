@@ -80,6 +80,7 @@ const ADMIN_NAV = {
     label: 'Marketing',
     icon: Megaphone,
     items: [
+      { href: '/admin/marketing/sections', label: 'Homepage Sections', icon: LayoutDashboard },
       { href: '/admin/marketing/flash-deals', label: 'Flash Deals', icon: Timer },
       { href: '/admin/marketing/bundles', label: 'Bundles', icon: Gift },
       { href: '/admin/promos', label: 'Promo Codes', icon: Ticket },
@@ -97,8 +98,6 @@ const ADMIN_NAV = {
       { href: '/admin/audit', label: 'Audit Logs', icon: ClipboardList },
     ],
   },
-  // Empty - all items moved to dropdowns
-  standalone: [],
 } as const;
 
 // Helper to check if any item in a dropdown is active
@@ -540,37 +539,7 @@ export default function AdminLayout({ children }: { children: ReactNode }): Reac
               </DropdownMenuContent>
             </DropdownMenu>
 
-            {/* Standalone Items - Pink accent for customer-facing */}
-            {ADMIN_NAV.standalone.map((tab) => {
-              const Icon = tab.icon;
-              const isActive = pathname === tab.href;
-
-              return (
-                <Link
-                  key={tab.href}
-                  href={tab.href}
-                  className={cn(
-                    'group flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium',
-                    'transition-all duration-200 ease-out',
-                    'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-pink-featured/50 focus-visible:ring-offset-2 focus-visible:ring-offset-bg-primary',
-                    isActive
-                      ? 'bg-pink-featured/10 text-pink-featured shadow-glow-pink border border-pink-featured/20'
-                      : 'text-text-muted hover:text-pink-featured hover:bg-bg-secondary/50 hover:shadow-glow-pink border border-transparent hover:border-border-accent'
-                  )}
-                >
-                  <Icon
-                    className={cn(
-                      'h-4 w-4 transition-all duration-200',
-                      isActive ? 'text-pink-featured' : 'text-text-secondary group-hover:text-pink-featured'
-                    )}
-                  />
-                  <span className="whitespace-nowrap">{tab.label}</span>
-                  {isActive && (
-                    <div className="h-1.5 w-1.5 rounded-full bg-pink-featured shadow-glow-pink animate-glow-pulse" />
-                  )}
-                </Link>
-              );
-            })}
+            {/* Note: Standalone items removed - all moved to dropdowns */}
           </nav>
         </div>
       </div>

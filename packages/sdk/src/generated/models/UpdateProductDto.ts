@@ -97,6 +97,18 @@ export interface UpdateProductDto {
      * @memberof UpdateProductDto
      */
     currency?: string;
+    /**
+     * Homepage sections this product appears in
+     * @type {Array<string>}
+     * @memberof UpdateProductDto
+     */
+    featuredSections?: Array<string>;
+    /**
+     * Display order within featured sections (lower = first)
+     * @type {number}
+     * @memberof UpdateProductDto
+     */
+    featuredOrder?: number;
 }
 
 
@@ -140,6 +152,8 @@ export function UpdateProductDtoFromJSONTyped(json: any, ignoreDiscriminator: bo
         'cost': json['cost'] == null ? undefined : json['cost'],
         'price': json['price'] == null ? undefined : json['price'],
         'currency': json['currency'] == null ? undefined : json['currency'],
+        'featuredSections': json['featuredSections'] == null ? undefined : json['featuredSections'],
+        'featuredOrder': json['featuredOrder'] == null ? undefined : json['featuredOrder'],
     };
 }
 
@@ -167,6 +181,8 @@ export function UpdateProductDtoToJSONTyped(value?: UpdateProductDto | null, ign
         'cost': value['cost'],
         'price': value['price'],
         'currency': value['currency'],
+        'featuredSections': value['featuredSections'],
+        'featuredOrder': value['featuredOrder'],
     };
 }
 

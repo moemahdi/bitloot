@@ -11,6 +11,8 @@ import {
   IsIn,
   IsArray,
   ArrayMinSize,
+  IsInt,
+  Min,
 } from 'class-validator';
 
 /**
@@ -202,6 +204,27 @@ export class UpdateProductDto {
   @IsString()
   @MaxLength(3)
   currency?: string;
+
+  @ApiProperty({
+    description: 'Homepage sections this product appears in',
+    required: false,
+    example: ['trending', 'featured_games'],
+    type: [String],
+  })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  featuredSections?: string[];
+
+  @ApiProperty({
+    description: 'Display order within featured sections (lower = first)',
+    required: false,
+    example: 0,
+  })
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  featuredOrder?: number;
 }
 
 export class PublishProductDto {
@@ -521,6 +544,21 @@ export class AdminProductResponseDto {
 
   @ApiProperty()
   isCustom!: boolean;
+
+  @ApiProperty({
+    description: 'Homepage sections this product appears in',
+    type: [String],
+    required: false,
+    example: ['trending', 'featured_games'],
+  })
+  featuredSections?: string[];
+
+  @ApiProperty({
+    description: 'Display order within featured sections',
+    required: false,
+    example: 0,
+  })
+  featuredOrder?: number;
 
   @ApiProperty()
   createdAt!: Date;

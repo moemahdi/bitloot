@@ -19,6 +19,8 @@ Name | Type
 `cost` | string
 `price` | string
 `currency` | string
+`featuredSections` | Array&lt;string&gt;
+`featuredOrder` | number
 
 ## Example
 
@@ -40,6 +42,8 @@ const example = {
   "cost": null,
   "price": null,
   "currency": null,
+  "featuredSections": ["trending","featured_games"],
+  "featuredOrder": 0,
 } satisfies UpdateProductDto
 
 console.log(example)
