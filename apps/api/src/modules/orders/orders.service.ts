@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException, Logger, NotFoundException } from '@nestjs/common';
+import { Injectable, BadRequestException, Logger, NotFoundException, ServiceUnavailableException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { JwtService } from '@nestjs/jwt';
@@ -12,6 +12,7 @@ import { CatalogService } from '../catalog/catalog.service';
 import { MarketingService } from '../marketing/marketing.service';
 import { Product } from '../catalog/entities/product.entity';
 import { PromosService } from '../promos/promos.service';
+import { FeatureFlagsService } from '../admin/feature-flags.service';
 
 // In-memory cache for idempotency keys (in production, use Redis)
 const idempotencyCache = new Map<string, { orderId: string; expiresAt: number }>();
@@ -64,6 +65,7 @@ export class OrdersService {
     private readonly promosService: PromosService,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
+    private readonly featureFlagsService: FeatureFlagsService,
   ) {
     this.jwtSecret = this.configService.get<string>('JWT_SECRET') ?? 'dev-secret-change-in-production';
   }
@@ -106,6 +108,13 @@ export class OrdersService {
   }
 
   async create(dto: CreateOrderDto, userId?: string): Promise<OrderResponseDto> {
+    // ========== FEATURE FLAG CHECK ==========
+    // Block order creation if payment processing is disabled
+    if (!this.featureFlagsService.isEnabled('payment_processing_enabled')) {
+      this.logger.warn('❌ Payment processing is disabled - rejecting order creation');
+      throw new ServiceUnavailableException('Payment processing is temporarily disabled. Please try again later.');
+    }
+
     // ========== IDEMPOTENCY CHECK ==========
     // If idempotencyKey is provided, check for existing order to prevent duplicates
     if (dto.idempotencyKey !== undefined && dto.idempotencyKey.length > 0) {

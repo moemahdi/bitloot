@@ -1,26 +1,50 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { BullModule } from '@nestjs/bullmq';
+import { TypeOrmModule } from '@nestjs/typeorm';
 import { AdminOpsService } from './admin-ops.service';
 import { AdminOpsController } from './admin-ops.controller';
+import { FeatureFlagsService } from './feature-flags.service';
+import { FeatureFlagsController } from './feature-flags.controller';
+import { SystemConfigService } from './system-config.service';
+import { SystemConfigController } from './system-config.controller';
+import { FeatureFlag } from '../../database/entities/feature-flag.entity';
+import { SystemConfig } from '../../database/entities/system-config.entity';
 import { UserDeletionCleanupService } from '../../jobs/user-deletion-cleanup.processor';
 import { AuthModule } from '../auth/auth.module';
 import { EmailsModule } from '../emails/emails.module';
 
 /**
- * Admin Ops Module - Phase 3: Ops Panels & Monitoring
- * Provides feature flags, queue stats, balance monitoring, system health
+ * Admin Ops Module - Feature Flags, System Configuration, Ops Panels
+ *
+ * Features:
+ * - Feature flags with database persistence
+ * - System configuration for API credentials (encrypted secrets)
+ * - Sandbox/Production environment switching
+ * - Queue statistics and monitoring
+ * - Balance monitoring (NOWPayments, Kinguin)
+ * - System health checks
  */
 @Module({
   imports: [
+    TypeOrmModule.forFeature([FeatureFlag, SystemConfig]),
     BullModule.registerQueue(
       { name: 'payments' },
       { name: 'fulfillment' },
     ),
-    AuthModule,
-    EmailsModule,
+    forwardRef(() => AuthModule),
+    forwardRef(() => EmailsModule),
   ],
-  providers: [AdminOpsService, UserDeletionCleanupService],
-  controllers: [AdminOpsController],
-  exports: [AdminOpsService],
+  providers: [
+    AdminOpsService,
+    FeatureFlagsService,
+    SystemConfigService,
+    UserDeletionCleanupService,
+  ],
+  controllers: [
+    AdminOpsController,
+    FeatureFlagsController,
+    SystemConfigController,
+  ],
+  exports: [AdminOpsService, FeatureFlagsService, SystemConfigService],
 })
 export class AdminOpsModule {}

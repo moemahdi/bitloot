@@ -7,6 +7,7 @@ import { FulfillmentService } from '../modules/fulfillment/fulfillment.service';
 import { OrdersService } from '../modules/orders/orders.service';
 import { FulfillmentGateway } from '../modules/fulfillment/fulfillment.gateway';
 import { KinguinClient } from '../modules/fulfillment/kinguin.client';
+import { FeatureFlagsService } from '../modules/admin/feature-flags.service';
 import { QUEUE_NAMES } from './queues';
 import { WebhookLog } from '../database/entities/webhook-log.entity';
 
@@ -51,6 +52,7 @@ export class FulfillmentProcessor extends WorkerHost {
     private readonly ordersService: OrdersService,
     private readonly fulfillmentGateway: FulfillmentGateway,
     private readonly kinguinClient: KinguinClient,
+    private readonly featureFlagsService: FeatureFlagsService,
     @InjectRepository(WebhookLog)
     private readonly webhookLogsRepo: Repository<WebhookLog>,
     @InjectQueue(QUEUE_NAMES.FULFILLMENT)
@@ -112,6 +114,23 @@ export class FulfillmentProcessor extends WorkerHost {
       this.logger.log(
         `[Fulfillment] Processing job ID ${job.id ?? 'unknown'} for order ${orderId} (attempt ${job.attemptsMade + 1})`,
       );
+
+      // ========== FEATURE FLAG CHECK ==========
+      // Block fulfillment if feature is disabled - re-queue the job to retry later
+      if (!this.featureFlagsService.isEnabled('fulfillment_enabled')) {
+        this.logger.warn(`[Fulfillment] ⏸️ Fulfillment is disabled - delaying job ${job.id} for order ${orderId}`);
+        // Re-queue the job with a 5-minute delay instead of failing
+        await this.fulfillmentQueue.add(
+          job.name,
+          job.data,
+          { delay: 5 * 60 * 1000 }, // 5 minutes
+        );
+        return {
+          orderId,
+          status: 'delayed',
+          message: 'Fulfillment disabled - job re-queued for later processing',
+        };
+      }
 
       // Step 1: Load order (validates it exists)
       const order = await this.ordersService.get(orderId);

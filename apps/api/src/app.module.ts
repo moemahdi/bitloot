@@ -16,6 +16,7 @@ import { OrdersService } from './modules/orders/orders.service';
 import { StorageService } from './modules/storage/storage.service';
 import { WebhooksModule } from './modules/webhooks/webhooks.module';
 import { AdminModule } from './modules/admin/admin.module';
+import { AdminOpsModule } from './modules/admin/admin-ops.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { PaymentsModule } from './modules/payments/payments.module';
 import { BullQueues, FulfillmentQueue } from './jobs/queues';
@@ -34,6 +35,7 @@ import { ReviewsModule } from './modules/reviews/reviews.module';
 import { WatchlistModule } from './modules/watchlist/watchlist.module';
 import { MarketingModule } from './modules/marketing/marketing.module';
 import { PromosModule } from './modules/promos/promos.module';
+import { StatusModule } from './modules/status/status.module';
 
 @Module({
   imports: [
@@ -80,6 +82,7 @@ import { PromosModule } from './modules/promos/promos.module';
     // Feature modules
     WebhooksModule,
     AdminModule,
+    AdminOpsModule, // Provides FeatureFlagsService for processors
     AuthModule,
     PaymentsModule,
     // Fulfillment & WebSocket modules (providers for services/gateway)
@@ -105,6 +108,8 @@ import { PromosModule } from './modules/promos/promos.module';
     MarketingModule,
     // Promo codes module (discount codes, redemption tracking)
     PromosModule,
+    // Status module (public maintenance mode check, health)
+    StatusModule,
   ],
   controllers: [HealthController],
   providers: [

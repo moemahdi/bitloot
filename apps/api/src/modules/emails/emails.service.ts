@@ -1,9 +1,10 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Inject, forwardRef } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { ConfigService } from '@nestjs/config';
 import { MetricsService } from '../metrics/metrics.service';
 import { SuppressionListService } from './suppression-list.service';
 import { RetryService } from './retry.service';
+import { FeatureFlagsService } from '../admin/feature-flags.service';
 import { randomUUID } from 'crypto';
 import { firstValueFrom } from 'rxjs';
 
@@ -61,6 +62,8 @@ export class EmailsService {
     private readonly metricsService: MetricsService,
     private readonly suppressionList: SuppressionListService,
     private readonly retry: RetryService,
+    @Inject(forwardRef(() => FeatureFlagsService))
+    private readonly featureFlagsService: FeatureFlagsService,
   ) {
     this.resendApiKey = this.configService.get<string>('RESEND_API_KEY') ?? '';
     this.isProduction = this.configService.get<string>('NODE_ENV') === 'production';
@@ -318,6 +321,12 @@ export class EmailsService {
       paymentLink: string;
     },
   ): Promise<void> {
+    // ========== FEATURE FLAG CHECK ==========
+    if (!this.featureFlagsService.isEnabled('email_notifications_enabled')) {
+      this.logger.log(`⏭️  Email notifications disabled - skipping order confirmation email`);
+      return;
+    }
+
     const { orderId, total, currency, items, paymentLink } = data;
     const shortOrderId = orderId.substring(0, 8);
     
@@ -459,6 +468,12 @@ export class EmailsService {
       expiresIn?: string;
     },
   ): Promise<void> {
+    // ========== FEATURE FLAG CHECK ==========
+    if (!this.featureFlagsService.isEnabled('email_notifications_enabled')) {
+      this.logger.log(`⏭️  Email notifications disabled - skipping order completed email`);
+      return;
+    }
+
     const { orderId, productName, downloadUrl, expiresIn = '3 hours' } = data;
     const shortOrderId = orderId.substring(0, 8);
 

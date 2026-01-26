@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
@@ -12,6 +12,7 @@ import { EmailsModule } from '../emails/emails.module';
 import { CatalogModule } from '../catalog/catalog.module';
 import { MarketingModule } from '../marketing/marketing.module';
 import { PromosModule } from '../promos/promos.module';
+import { AdminOpsModule } from '../admin/admin-ops.module';
 
 /**
  * Orders Module
@@ -24,6 +25,10 @@ import { PromosModule } from '../promos/promos.module';
  * - Email notifications for order status changes (Level 4)
  * - Order session tokens for immediate guest access
  * - Promo code validation and redemption tracking
+ *
+ * Feature Flags:
+ * - payment_processing_enabled: Controls order creation
+ * - maintenance_mode: Blocks all orders when enabled
  *
  * @example
  * // In app.module.ts:
@@ -38,11 +43,12 @@ import { PromosModule } from '../promos/promos.module';
 @Module({
   imports: [
     TypeOrmModule.forFeature([Order, OrderItem, Key, Payment]),
-    EmailsModule,
+    forwardRef(() => EmailsModule),
     CatalogModule,
     MarketingModule,
     PromosModule,
     ConfigModule,
+    forwardRef(() => AdminOpsModule),
     JwtModule.registerAsync({
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => ({

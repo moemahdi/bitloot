@@ -13,6 +13,7 @@ import { WebhookLog } from '../../database/entities/webhook-log.entity';
 import { Order } from '../orders/order.entity';
 import { Payment } from '../payments/payment.entity';
 import { MetricsService } from '../metrics/metrics.service';
+import { FeatureFlagsService } from '../admin/feature-flags.service';
 import { QUEUE_NAMES } from '../../jobs/queues';
 import { invalidateOrderCache } from '../orders/orders.service';
 
@@ -45,6 +46,7 @@ export class IpnHandlerService {
     @InjectRepository(Payment)
     private readonly paymentRepo: Repository<Payment>,
     private readonly metrics: MetricsService,
+    private readonly featureFlagsService: FeatureFlagsService,
     @InjectQueue(QUEUE_NAMES.FULFILLMENT)
     private readonly fulfillmentQueue: Queue,
   ) {}
@@ -431,6 +433,13 @@ export class IpnHandlerService {
       case 'finished': {
         // Payment complete - trigger fulfillment
         order.status = 'paid';
+
+        // ========== AUTO-FULFILL FEATURE FLAG CHECK ==========
+        if (!this.featureFlagsService.isEnabled('auto_fulfill_enabled')) {
+          this.logger.log(`[IPN] ⏸️ Auto-fulfill disabled - order ${order.id} requires manual fulfillment`);
+          fulfillmentTriggered = false;
+          break;
+        }
 
         // ========== FULFILLMENT JOB DEDUPLICATION ==========
         // Check if a fulfillment job for this order already exists

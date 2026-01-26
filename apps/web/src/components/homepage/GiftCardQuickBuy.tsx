@@ -1,14 +1,13 @@
 'use client';
 
-import { useCallback, useState } from 'react';
-import Image from 'next/image';
+import { useCallback, useMemo } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { useQuery } from '@tanstack/react-query';
 import {
     Gift,
     ShoppingCart,
-    Check,
     Zap,
     AlertCircle,
 } from 'lucide-react';
@@ -21,6 +20,10 @@ import { useCart } from '@/context/CartContext';
 import { Configuration, CatalogApi } from '@bitloot/sdk';
 import type { ProductResponseDto } from '@bitloot/sdk';
 
+// Use the same ProductCard as catalog for consistency
+import { ProductCard } from '@/features/catalog/components/ProductCard';
+import type { Product } from '@/features/catalog/components/ProductCard';
+
 // ============================================================================
 // API CONFIGURATION
 // ============================================================================
@@ -32,150 +35,20 @@ const apiConfig = new Configuration({
 const catalogApi = new CatalogApi(apiConfig);
 
 // ============================================================================
-// TYPE DEFINITIONS
-// ============================================================================
-
-interface GiftCardProduct {
-    id: string;
-    title: string;
-    slug: string;
-    price: number;
-    imageUrl?: string;
-    platform?: string;
-    platformColor: string;
-}
-
-const DEFAULT_COLOR = '#6366f1';
-
-// Platform color mapping for styling
-const PLATFORM_COLORS: Record<string, string> = {
-    'steam': '#1b2838',
-    'playstation': '#003791',
-    'psn': '#003791',
-    'xbox': '#107c10',
-    'nintendo': '#e60012',
-    'spotify': '#1db954',
-    'netflix': '#e50914',
-    'google play': '#01875f',
-    'apple': '#555555',
-    'amazon': '#ff9900',
-};
-
-function getPlatformColor(platform?: string): string {
-    if (!platform) return DEFAULT_COLOR;
-    const lowerPlatform = platform.toLowerCase();
-    for (const [key, color] of Object.entries(PLATFORM_COLORS)) {
-        if (lowerPlatform.includes(key)) {
-            return color;
-        }
-    }
-    return DEFAULT_COLOR;
-}
-
-// ============================================================================
-// GIFT CARD PRODUCT CARD
-// ============================================================================
-
-interface GiftCardProductCardProps {
-    product: GiftCardProduct;
-    onAddToCart: (product: GiftCardProduct) => void;
-    isAdded: boolean;
-}
-
-function GiftCardProductCard({ product, onAddToCart, isAdded }: GiftCardProductCardProps): React.ReactElement {
-    const [imageError, setImageError] = useState(false);
-
-    return (
-        <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.4 }}
-        >
-            <Card className="h-full bg-bg-secondary border-border-subtle hover:border-cyan-glow/30 transition-all duration-300 overflow-hidden group">
-                <CardContent className="p-5">
-                    {/* Product Header */}
-                    <div className="flex items-center gap-3 mb-4">
-                        <div 
-                            className="flex items-center justify-center w-12 h-12 rounded-xl transition-transform duration-300 group-hover:scale-105 overflow-hidden"
-                            style={{ backgroundColor: `${product.platformColor}20` }}
-                        >
-                            {product.imageUrl && !imageError ? (
-                                <Image
-                                    src={product.imageUrl}
-                                    alt={product.title}
-                                    width={48}
-                                    height={48}
-                                    className="object-cover w-full h-full"
-                                    onError={() => setImageError(true)}
-                                />
-                            ) : (
-                                <Gift className="w-6 h-6 text-text-muted" />
-                            )}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                            <h3 className="font-semibold text-text-primary text-sm truncate">{product.title}</h3>
-                            {product.platform && (
-                                <p className="text-xs text-text-muted">{product.platform}</p>
-                            )}
-                        </div>
-                    </div>
-
-                    {/* Price & Add Button */}
-                    <div className="flex items-center justify-between gap-3">
-                        <span className="text-lg font-bold text-text-primary">
-                            €{product.price.toFixed(2)}
-                        </span>
-                        <motion.button
-                            whileHover={{ scale: 1.05 }}
-                            whileTap={{ scale: 0.95 }}
-                            onClick={() => onAddToCart(product)}
-                            disabled={isAdded}
-                            className={`flex items-center justify-center px-4 py-2 rounded-lg font-semibold text-sm transition-all duration-300 ${
-                                isAdded
-                                    ? 'bg-green-success/20 text-green-success border border-green-success/40'
-                                    : 'bg-cyan-glow text-bg-primary hover:shadow-glow-cyan-sm'
-                            }`}
-                        >
-                            {isAdded ? (
-                                <>
-                                    <Check className="w-4 h-4 mr-1" />
-                                    Added
-                                </>
-                            ) : (
-                                <>
-                                    <ShoppingCart className="w-4 h-4 mr-1" />
-                                    Add
-                                </>
-                            )}
-                        </motion.button>
-                    </div>
-                </CardContent>
-            </Card>
-        </motion.div>
-    );
-}
-
-// ============================================================================
 // LOADING SKELETON
 // ============================================================================
 
 function GiftCardSkeleton(): React.ReactElement {
     return (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[...Array(6)].map((_, i) => (
-                <Card key={i} className="h-full bg-bg-secondary border-border-subtle animate-pulse">
-                    <CardContent className="p-5">
-                        <div className="flex items-center gap-3 mb-4">
-                            <div className="w-12 h-12 rounded-xl bg-bg-tertiary" />
-                            <div className="flex-1">
-                                <div className="h-4 bg-bg-tertiary rounded w-3/4 mb-2" />
-                                <div className="h-3 bg-bg-tertiary rounded w-1/2" />
-                            </div>
-                        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {[...Array(8)].map((_, i) => (
+                <Card key={i} className="h-full bg-bg-secondary border-border-subtle animate-pulse overflow-hidden">
+                    <div className="aspect-4/3 bg-bg-tertiary" />
+                    <CardContent className="p-4">
+                        <div className="h-4 bg-bg-tertiary rounded w-3/4 mb-3" />
                         <div className="flex items-center justify-between">
-                            <div className="h-6 bg-bg-tertiary rounded w-16" />
-                            <div className="h-9 bg-bg-tertiary rounded w-20" />
+                            <div className="h-5 bg-bg-tertiary rounded w-16" />
+                            <div className="h-8 bg-bg-tertiary rounded w-20" />
                         </div>
                     </CardContent>
                 </Card>
@@ -190,55 +63,60 @@ function GiftCardSkeleton(): React.ReactElement {
 
 export function GiftCardQuickBuy(): React.ReactElement {
     const { addItem } = useCart();
-    const [addedItems, setAddedItems] = useState<Set<string>>(new Set());
+    const router = useRouter();
 
     // Fetch gift card products from quick_buy_gift_cards section
-    const { data: products, isLoading, error } = useQuery({
+    const { data: productsData, isLoading, error } = useQuery({
         queryKey: ['homepage-quick-buy-gift-cards'],
-        queryFn: async (): Promise<GiftCardProduct[]> => {
-            const response = await catalogApi.catalogControllerGetProductsBySection({
-                sectionKey: 'quick_buy_gift_cards',
-                limit: 6,
-            });
-            
-            return response.data.map((p: ProductResponseDto) => ({
-                id: p.id,
-                title: p.title,
-                slug: p.slug,
-                price: parseFloat(p.price),
-                imageUrl: p.imageUrl,
-                platform: p.platform,
-                platformColor: getPlatformColor(p.platform),
-            }));
-        },
+        queryFn: () => catalogApi.catalogControllerGetProductsBySection({
+            sectionKey: 'quick_buy_gift_cards',
+            limit: 8,
+        }),
         staleTime: 2 * 60 * 1000, // 2 minutes - pick up admin changes quickly
     });
 
-    const handleAddToCart = useCallback((product: GiftCardProduct) => {
-        // Add to cart
+    // Transform API response to ProductCard format
+    const products: Product[] = useMemo(() => {
+        if (productsData?.data == null) return [];
+        return productsData.data.map((p: ProductResponseDto) => ({
+            id: p.id,
+            slug: p.slug,
+            name: p.title,
+            description: p.description ?? '',
+            price: p.price,
+            currency: p.currency ?? 'EUR',
+            image: p.imageUrl ?? undefined,
+            platform: p.platform ?? undefined,
+            isAvailable: p.isPublished,
+            rating: p.metacriticScore != null ? p.metacriticScore / 20 : undefined,
+        }));
+    }, [productsData]);
+
+    // Handle Add to Cart
+    const handleAddToCart = useCallback((product: Product) => {
         addItem({
             productId: product.id,
-            title: product.title,
-            price: product.price,
+            title: product.name,
+            price: parseFloat(product.price),
             quantity: 1,
-            image: product.imageUrl,
+            image: product.image,
         });
-
-        // Mark as added (temporary visual feedback)
-        setAddedItems((prev) => new Set(prev).add(product.id));
-
-        // Remove the "added" state after 2 seconds
-        setTimeout(() => {
-            setAddedItems((prev) => {
-                const next = new Set(prev);
-                next.delete(product.id);
-                return next;
-            });
-        }, 2000);
     }, [addItem]);
 
+    // Handle Buy Now
+    const handleBuyNow = useCallback((product: Product) => {
+        addItem({
+            productId: product.id,
+            title: product.name,
+            price: parseFloat(product.price),
+            quantity: 1,
+            image: product.image,
+        });
+        router.push('/checkout');
+    }, [addItem, router]);
+
     // Don't render section if no products assigned
-    if (!isLoading && (!products || products.length === 0)) {
+    if (!isLoading && products.length === 0) {
         return <></>;
     }
 
@@ -246,7 +124,7 @@ export function GiftCardQuickBuy(): React.ReactElement {
         <section className="py-20 bg-bg-primary relative overflow-hidden">
             {/* Background effects */}
             <div
-                className="absolute inset-0 bg-linear-to-b from-transparent via-green-success/2 to-transparent pointer-events-none"
+                className="absolute inset-0 bg-linear-to-b from-transparent via-green-success/3 to-transparent pointer-events-none"
                 aria-hidden="true"
             />
             <div
@@ -283,7 +161,7 @@ export function GiftCardQuickBuy(): React.ReactElement {
                     </p>
                 </motion.div>
 
-                {/* Gift Card Grid */}
+                {/* Gift Card Grid - Using consistent ProductCard */}
                 {isLoading ? (
                     <GiftCardSkeleton />
                 ) : error ? (
@@ -292,20 +170,21 @@ export function GiftCardQuickBuy(): React.ReactElement {
                         <p className="text-text-secondary">Unable to load gift cards</p>
                     </div>
                 ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {products?.map((product) => (
-                            <GiftCardProductCard
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                        {products.map((product, index) => (
+                            <ProductCard
                                 key={product.id}
                                 product={product}
                                 onAddToCart={handleAddToCart}
-                                isAdded={addedItems.has(product.id)}
+                                onBuyNow={handleBuyNow}
+                                isAboveFold={index < 4}
                             />
                         ))}
                     </div>
                 )}
 
                 {/* Info Banner */}
-                {products && products.length > 0 && (
+                {products.length > 0 && (
                     <motion.div
                         initial={{ opacity: 0, y: 20 }}
                         whileInView={{ opacity: 1, y: 0 }}

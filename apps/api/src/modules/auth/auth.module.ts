@@ -55,7 +55,7 @@ import { OrdersModule } from '../orders/orders.module';
       },
     }),
     MetricsModule,
-    EmailsModule,
+    forwardRef(() => EmailsModule),
     forwardRef(() => OrdersModule), // Link guest orders to users on login
   ],
 

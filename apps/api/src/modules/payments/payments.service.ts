@@ -16,6 +16,7 @@ import { WebhookLog } from '../../database/entities/webhook-log.entity';
 import { OrdersService } from '../orders/orders.service';
 import { QUEUE_NAMES } from '../../jobs/queues';
 import { MetricsService } from '../metrics/metrics.service';
+import { FeatureFlagsService } from '../admin/feature-flags.service';
 
 /**
  * PaymentsService handles payment lifecycle:
@@ -33,6 +34,7 @@ export class PaymentsService {
     @InjectRepository(WebhookLog) private readonly webhookLogsRepo: Repository<WebhookLog>,
     private readonly ordersService: OrdersService,
     private readonly metricsService: MetricsService,
+    private readonly featureFlagsService: FeatureFlagsService,
     @InjectQueue(QUEUE_NAMES.FULFILLMENT) private readonly fulfillmentQueue: Queue,
   ) {}
 
@@ -212,55 +214,65 @@ export class PaymentsService {
         });
 
         // Queue fulfillment job (Phase 4: BullMQ async processing)
-        try {
-          // Fetch order with items to extract details for fulfillment job
-          const orderDto = await this.ordersService.get(orderId);
-          const firstItem = orderDto.items?.[0];
-          const quantity = Array.isArray(orderDto.items) ? orderDto.items.length : 1;
+        // Only auto-fulfill if feature flag is enabled
+        if (!this.featureFlagsService.isEnabled('auto_fulfill_enabled')) {
+          this.logStructured('info', 'handleIpn:auto_fulfill_disabled', 'skipping_auto_fulfillment', {
+            orderId,
+            paymentId: externalId,
+            message: 'Auto-fulfill is disabled - order requires manual fulfillment',
+          });
+          this.logger.log(`[Feature Flag] ⏸️ Auto-fulfill disabled - order ${orderId} requires manual fulfillment`);
+        } else {
+          try {
+            // Fetch order with items to extract details for fulfillment job
+            const orderDto = await this.ordersService.get(orderId);
+            const firstItem = orderDto.items?.[0];
+            const quantity = Array.isArray(orderDto.items) ? orderDto.items.length : 1;
 
-          const job = await this.fulfillmentQueue.add(
-            'reserve',
-            {
+            const job = await this.fulfillmentQueue.add(
+              'reserve',
+              {
+                orderId,
+                paymentId: payment?.id ?? 'unknown',
+                kinguinOfferId: firstItem?.productId ?? 'demo-product',
+                userEmail: orderDto.email,
+                quantity,
+              },
+              {
+                jobId: `reserve-${orderId}`,
+                removeOnComplete: true,
+                removeOnFail: false, // Keep failed jobs for debugging
+              },
+            );
+
+            this.logStructured('info', 'handleIpn:job_enqueued', 'fulfillment_job_created', {
               orderId,
-              paymentId: payment?.id ?? 'unknown',
+              paymentId: externalId,
+              jobId: job?.id ?? 'unknown',
               kinguinOfferId: firstItem?.productId ?? 'demo-product',
-              userEmail: orderDto.email,
               quantity,
-            },
-            {
-              jobId: `reserve-${orderId}`,
-              removeOnComplete: true,
-              removeOnFail: false, // Keep failed jobs for debugging
-            },
-          );
+              email: orderDto.email,
+            });
 
-          this.logStructured('info', 'handleIpn:job_enqueued', 'fulfillment_job_created', {
-            orderId,
-            paymentId: externalId,
-            jobId: job?.id ?? 'unknown',
-            kinguinOfferId: firstItem?.productId ?? 'demo-product',
-            quantity,
-            email: orderDto.email,
-          });
+            this.logger.log(
+              `[Phase 4] Reservation job queued: order ${orderId}, job ID ${job?.id ?? 'unknown'}, email ${orderDto.email}, items ${quantity}`,
+            );
+          } catch (error) {
+            this.logStructured('error', 'handleIpn:job_queueing_failed', 'fulfillment_job_failed', {
+              orderId,
+              paymentId: externalId,
+              error: error instanceof Error ? error.message : String(error),
+              errorType: error?.constructor?.name,
+            });
 
-          this.logger.log(
-            `[Phase 4] Reservation job queued: order ${orderId}, job ID ${job?.id ?? 'unknown'}, email ${orderDto.email}, items ${quantity}`,
-          );
-        } catch (error) {
-          this.logStructured('error', 'handleIpn:job_queueing_failed', 'fulfillment_job_failed', {
-            orderId,
-            paymentId: externalId,
-            error: error instanceof Error ? error.message : String(error),
-            errorType: error?.constructor?.name,
-          });
+            this.logger.error(
+              `[Phase 4] Failed to queue fulfillment job for order ${orderId}:`,
+              error instanceof Error ? error.message : String(error),
+            );
 
-          this.logger.error(
-            `[Phase 4] Failed to queue fulfillment job for order ${orderId}:`,
-            error instanceof Error ? error.message : String(error),
-          );
-
-          // Don't fail IPN processing - job queueing should be resilient
-          // In production, use dead-letter queue or alerting for queueing failures
+            // Don't fail IPN processing - job queueing should be resilient
+            // In production, use dead-letter queue or alerting for queueing failures
+          }
         }
       } else if (status === 'underpaid') {
         await this.ordersService.markUnderpaid(orderId);

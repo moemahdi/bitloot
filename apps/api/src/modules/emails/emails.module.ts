@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { HttpModule } from '@nestjs/axios';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { EmailsService } from './emails.service';
@@ -8,6 +8,7 @@ import { MetricsModule } from '../metrics/metrics.module';
 import { RetryService } from './retry.service';
 import { SuppressionListService } from './suppression-list.service';
 import { EmailBounce } from '../../database/entities/email-bounce.entity';
+import { AdminOpsModule } from '../admin/admin-ops.module';
 
 /**
  * Emails Module
@@ -31,9 +32,17 @@ import { EmailBounce } from '../../database/entities/email-bounce.entity';
  *   - Email priority headers (X-Priority, X-MSMail-Priority)
  *   - Idempotency keys for replay prevention
  *   - Email metrics (latency, success/failure, bounce rate)
+ *   
+ * Feature Flags:
+ *   - email_notifications_enabled: Controls all email sending (except OTP)
  */
 @Module({
-  imports: [HttpModule, MetricsModule, TypeOrmModule.forFeature([EmailBounce])],
+  imports: [
+    HttpModule, 
+    MetricsModule, 
+    TypeOrmModule.forFeature([EmailBounce]),
+    forwardRef(() => AdminOpsModule),
+  ],
   providers: [EmailsService, EmailUnsubscribeService, RetryService, SuppressionListService],
   exports: [EmailsService, EmailUnsubscribeService, SuppressionListService],
   controllers: [EmailUnsubscribeController],

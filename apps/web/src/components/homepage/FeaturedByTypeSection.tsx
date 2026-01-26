@@ -22,6 +22,7 @@ import {
     ArrowRight,
     Package,
     Shield,
+    TrendingUp,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
@@ -88,6 +89,44 @@ const PRODUCT_TYPE_TABS: ProductTypeTab[] = [
         description: 'Game Pass, EA Play, Ubisoft+ & more'
     },
 ];
+
+// Category-specific background gradients
+const CATEGORY_BACKGROUNDS: Record<string, string> = {
+    'cyan': 'from-cyan-glow/5 via-cyan-glow/2 to-transparent',
+    'purple': 'from-purple-neon/5 via-purple-neon/2 to-transparent',
+    'green': 'from-green-success/5 via-green-success/2 to-transparent',
+    'pink': 'from-pink-featured/5 via-pink-featured/2 to-transparent',
+};
+
+// ============================================================================
+// ANIMATED TAB ICON - Icon with animation on tab switch
+// ============================================================================
+
+function AnimatedTabIcon({ Icon, isActive, color }: { Icon: LucideIcon; isActive: boolean; color: string }): React.ReactElement {
+    const getColorClass = (c: string, active: boolean): string => {
+        if (!active) return 'text-current';
+        switch (c) {
+            case 'cyan': return 'text-bg-primary';
+            case 'purple': return 'text-white';
+            case 'green': return 'text-white';
+            case 'pink': return 'text-white';
+            default: return 'text-current';
+        }
+    };
+
+    return (
+        <motion.div
+            initial={false}
+            animate={isActive ? { 
+                scale: [1, 1.2, 1],
+                rotate: [0, -10, 10, 0],
+            } : { scale: 1, rotate: 0 }}
+            transition={{ duration: 0.4, ease: 'easeOut' }}
+        >
+            <Icon className={`w-4 h-4 ${getColorClass(color, isActive)}`} aria-hidden="true" />
+        </motion.div>
+    );
+}
 
 // ============================================================================
 // LOADING SKELETON
@@ -243,10 +282,33 @@ export function FeaturedByTypeSection(): React.ReactElement {
     };
 
     return (
-        <section className="py-20 bg-bg-primary relative">
-            {/* Subtle background gradient */}
-            <div
-                className="absolute inset-0 bg-linear-to-b from-transparent via-purple-neon/2 to-transparent pointer-events-none"
+        <section className="py-20 bg-bg-primary relative overflow-hidden">
+            {/* Animated category-specific background gradient */}
+            <AnimatePresence mode="wait">
+                <motion.div
+                    key={currentTab.color}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.5 }}
+                    className={`absolute inset-0 bg-gradient-to-b ${CATEGORY_BACKGROUNDS[currentTab.color] ?? CATEGORY_BACKGROUNDS['cyan']} pointer-events-none`}
+                    aria-hidden="true"
+                />
+            </AnimatePresence>
+            
+            {/* Subtle orb effect matching category color */}
+            <motion.div
+                key={`orb-${currentTab.color}`}
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 0.4, scale: 1 }}
+                transition={{ duration: 0.6 }}
+                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[400px] rounded-full blur-[150px] pointer-events-none"
+                style={{
+                    background: currentTab.color === 'cyan' ? 'rgba(0, 217, 255, 0.08)' 
+                        : currentTab.color === 'purple' ? 'rgba(157, 78, 221, 0.08)'
+                        : currentTab.color === 'green' ? 'rgba(57, 255, 20, 0.08)'
+                        : 'rgba(255, 0, 110, 0.08)'
+                }}
                 aria-hidden="true"
             />
 
@@ -264,36 +326,91 @@ export function FeaturedByTypeSection(): React.ReactElement {
                         className="mb-4 px-3 py-1 bg-purple-neon/10 border border-purple-neon/30 text-purple-neon"
                     >
                         <Sparkles className="w-3.5 h-3.5 mr-2" aria-hidden="true" />
-                        Featured
+                        Featured Collections
                     </Badge>
                     <h2 className="text-3xl md:text-4xl font-display font-bold text-text-primary mb-4">
                         Shop by Category
                     </h2>
-                    <p className="text-text-secondary max-w-2xl mx-auto">
-                        {currentTab.description}
-                    </p>
+                    <AnimatePresence mode="wait">
+                        <motion.p
+                            key={currentTab.description}
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -10 }}
+                            transition={{ duration: 0.2 }}
+                            className="text-text-secondary max-w-2xl mx-auto"
+                        >
+                            {currentTab.description}
+                        </motion.p>
+                    </AnimatePresence>
                 </motion.div>
 
-                {/* Product Type Tabs */}
+                {/* Enhanced Product Type Tabs */}
                 <Tabs
                     value={activeTab}
                     onValueChange={setActiveTab}
                     className="w-full"
                 >
                     <div className="flex justify-center mb-10">
-                        <TabsList className="inline-flex p-1.5 bg-bg-secondary/50 border border-border-subtle rounded-2xl backdrop-blur-sm gap-1">
-                            {PRODUCT_TYPE_TABS.map((tab) => (
-                                <TabsTrigger
-                                    key={tab.id}
-                                    value={tab.id}
-                                    className={`flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-medium transition-all duration-300 ${getTabColorClasses(tab.id, activeTab === tab.id)}`}
-                                >
-                                    <tab.icon className="w-4 h-4" aria-hidden="true" />
-                                    <span>{tab.label}</span>
-                                </TabsTrigger>
-                            ))}
+                        <TabsList className="inline-flex p-1.5 bg-bg-secondary/70 border border-border-subtle rounded-2xl backdrop-blur-md gap-1 shadow-lg">
+                            {PRODUCT_TYPE_TABS.map((tab) => {
+                                const isActive = activeTab === tab.id;
+                                return (
+                                    <TabsTrigger
+                                        key={tab.id}
+                                        value={tab.id}
+                                        className={`relative flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-medium transition-all duration-300 ${getTabColorClasses(tab.id, isActive)}`}
+                                    >
+                                        <AnimatedTabIcon 
+                                            Icon={tab.icon} 
+                                            isActive={isActive} 
+                                            color={tab.color} 
+                                        />
+                                        <span className="hidden sm:inline">{tab.label}</span>
+                                        {/* Popular badge on hover */}
+                                        {isActive && (
+                                            <motion.span
+                                                initial={{ opacity: 0, scale: 0.8 }}
+                                                animate={{ opacity: 1, scale: 1 }}
+                                                className="hidden lg:inline-flex items-center ml-1 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded bg-white/20"
+                                            >
+                                                Popular
+                                            </motion.span>
+                                        )}
+                                    </TabsTrigger>
+                                );
+                            })}
                         </TabsList>
                     </div>
+
+                    {/* Category Stats Bar */}
+                    <motion.div
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="flex justify-center gap-4 md:gap-8 mb-8"
+                    >
+                        <div className="flex items-center gap-2 text-sm text-text-secondary">
+                            <span className="font-semibold text-text-primary">{products.length}</span>
+                            <span>products shown</span>
+                        </div>
+                        <div className="w-px h-4 bg-border-subtle" />
+                        <div className="flex items-center gap-2 text-sm">
+                            <motion.span 
+                                key={currentTab.color}
+                                initial={{ scale: 0.8 }}
+                                animate={{ scale: 1 }}
+                                className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${
+                                    currentTab.color === 'cyan' ? 'bg-cyan-glow/10 text-cyan-glow' :
+                                    currentTab.color === 'purple' ? 'bg-purple-neon/10 text-purple-neon' :
+                                    currentTab.color === 'green' ? 'bg-green-success/10 text-green-success' :
+                                    'bg-pink-featured/10 text-pink-featured'
+                                }`}
+                            >
+                                <TrendingUp className="w-3 h-3" />
+                                Trending in {currentTab.label}
+                            </motion.span>
+                        </div>
+                    </motion.div>
 
                     {/* Products Grid */}
                     <AnimatePresence mode="wait">

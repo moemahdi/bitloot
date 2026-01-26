@@ -1,6 +1,11 @@
 {
-  "extends": "../../tsconfig.base.json",
   "compilerOptions": {
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
     "outDir": "dist",
     "module": "commonjs",
     "moduleResolution": "node",
@@ -8,8 +13,11 @@
     "lib": ["ES2022"],
     "rootDir": "src",
     "experimentalDecorators": true,
-    "emitDecoratorMetadata": true
+    "emitDecoratorMetadata": true,
+    "esModuleInterop": true,
+    "declaration": false,
+    "sourceMap": true
   },
-  "include": ["src", "eslint.config.mjs"],
+  "include": ["src/**/*"],
   "exclude": ["node_modules", "dist", "**/*.spec.ts", "**/*.test.ts", "**/__tests__/**", "test/**", "**/vitest-global-setup.ts", "**/test-setup.ts", "**/vitest.config.ts"]
 }

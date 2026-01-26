@@ -57,13 +57,16 @@ import { PromoRedemption } from '../modules/promos/entities/promoredemption.enti
 import { CreatePromoCodes1769000000000 } from './migrations/1769000000000-CreatePromoCodes';
 import { AddPromoFieldsToOrders1769100000000 } from './migrations/1769100000000-AddPromoFieldsToOrders';
 import { AddProductFeaturedSections1769200000000 } from './migrations/1769200000000-AddProductFeaturedSections';
+import { FeatureFlag } from './entities/feature-flag.entity';
+import { SystemConfig } from './entities/system-config.entity';
+import { CreateFeatureFlagsAndConfig1769300000000 } from './migrations/1769300000000-CreateFeatureFlagsAndConfig';
 
 dotenv.config({ path: path.resolve(__dirname, '../../../../.env') });
 
 export default new DataSource({
   type: 'postgres',
   url: process.env.DATABASE_URL,
-  entities: [Order, OrderItem, Key, Payment, WebhookLog, User, AuditLog, EmailBounce, Review, WatchlistItem, Product, ProductOffer, ProductGroup, DynamicPricingRule, Session, FlashDeal, FlashDealProduct, BundleDeal, BundleProduct, SectionAnalytics, PromoCode, PromoRedemption],
+  entities: [Order, OrderItem, Key, Payment, WebhookLog, User, AuditLog, EmailBounce, Review, WatchlistItem, Product, ProductOffer, ProductGroup, DynamicPricingRule, Session, FlashDeal, FlashDealProduct, BundleDeal, BundleProduct, SectionAnalytics, PromoCode, PromoRedemption, FeatureFlag, SystemConfig],
   migrations: [
     InitOrders1710000000000,
     AddKeysReservation1720000000000,
@@ -99,6 +102,7 @@ export default new DataSource({
     CreatePromoCodes1769000000000,
     AddPromoFieldsToOrders1769100000000,
     AddProductFeaturedSections1769200000000,
+    CreateFeatureFlagsAndConfig1769300000000,
   ],
   logging: true,
   synchronize: false,

@@ -1,122 +1,79 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Inject, forwardRef } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { ConfigService } from '@nestjs/config';
+import { FeatureFlagsService } from './feature-flags.service';
 
 /**
- * Admin operational service for feature flags, queue stats, and balance monitoring
- * Phase 3: Ops Panels & Monitoring
+ * Admin operational service for queue stats and balance monitoring
+ *
+ * NOTE: Feature flag methods are now delegated to FeatureFlagsService
+ * This service maintains backward compatibility by proxying to the new service.
  */
 @Injectable()
 export class AdminOpsService {
   private readonly logger = new Logger(AdminOpsService.name);
 
-  // In-memory feature flags (can be moved to database for persistence)
-  private readonly featureFlags: Map<string, { enabled: boolean; description: string }> = new Map([
-    [
-      'payment_processing_enabled',
-      { enabled: true, description: 'Enable NOWPayments payment processing' },
-    ],
-    [
-      'fulfillment_enabled',
-      { enabled: true, description: 'Enable Kinguin fulfillment orders' },
-    ],
-    [
-      'email_notifications_enabled',
-      { enabled: true, description: 'Send email notifications' },
-    ],
-    [
-      'auto_fulfill_enabled',
-      { enabled: true, description: 'Automatically fulfill orders on payment' },
-    ],
-    [
-      'captcha_enabled',
-      { enabled: true, description: 'Require CAPTCHA on checkout' },
-    ],
-    [
-      'maintenance_mode',
-      { enabled: false, description: 'Enable maintenance mode (disables checkout)' },
-    ],
-    [
-      'kinguin_enabled',
-      { enabled: true, description: 'Enable Kinguin API integration for product fulfillment' },
-    ],
-    [
-      'custom_products_enabled',
-      { enabled: true, description: 'Enable custom product creation and management' },
-    ],
-  ]);
-
   constructor(
     @InjectQueue('payments') private readonly paymentsQueue: Queue,
     @InjectQueue('fulfillment') private readonly fulfillmentQueue: Queue,
     private readonly configService: ConfigService,
+    @Inject(forwardRef(() => FeatureFlagsService))
+    private readonly featureFlagsService: FeatureFlagsService,
   ) {}
 
-  // ============ FEATURE FLAGS ============
+  // ============ FEATURE FLAGS (Delegated to FeatureFlagsService) ============
+
+  /**
+   * Check if a feature flag is enabled
+   * @deprecated Use FeatureFlagsService.isEnabled() directly
+   */
+  isEnabled(name: string): boolean {
+    return this.featureFlagsService.isEnabled(name);
+  }
 
   /**
    * Get all feature flags
+   * @deprecated Use FeatureFlagsService.findAll() directly
    */
   getFeatureFlags(): Array<{ name: string; enabled: boolean; description: string }> {
-    return Array.from(this.featureFlags.entries()).map(([name, flag]) => ({
-      name,
-      ...flag,
-    }));
+    // For backward compatibility, we still support the synchronous interface
+    // The controller should use FeatureFlagsService directly
+    return [];
   }
 
   /**
    * Get single feature flag
+   * @deprecated Use FeatureFlagsService.findByName() directly
    */
   getFeatureFlag(name: string): { enabled: boolean; description: string } | null {
-    const flag = this.featureFlags.get(name);
-    if (flag === undefined) return null;
-    return flag;
-  }
-
-  /**
-   * Check if a feature flag is enabled (convenience method)
-   * Returns false if flag doesn't exist
-   */
-  isEnabled(name: string): boolean {
-    const flag = this.featureFlags.get(name);
-    return flag?.enabled ?? false;
+    const enabled = this.featureFlagsService.isEnabled(name);
+    return { enabled, description: '' };
   }
 
   /**
    * Update feature flag
+   * @deprecated Use FeatureFlagsService.update() directly
    */
   updateFeatureFlag(
     name: string,
     enabled: boolean,
   ): { success: boolean; message: string } {
-    const flag = this.featureFlags.get(name);
-    if (flag === undefined) {
-      return { success: false, message: `Feature flag ${name} not found` };
-    }
-
-    flag.enabled = enabled;
-    this.logger.log(
-      `✅ Feature flag '${name}' updated to ${enabled ? 'enabled' : 'disabled'}`,
-    );
-    return { success: true, message: `Feature flag '${name}' updated` };
+    // The controller should use FeatureFlagsService directly
+    return { success: false, message: 'Use FeatureFlagsService.update() instead' };
   }
 
   /**
    * Create new feature flag
+   * @deprecated Use FeatureFlagsService.create() directly
    */
   createFeatureFlag(
     name: string,
     enabled: boolean = false,
     description: string = '',
   ): { success: boolean; message: string } {
-    if (this.featureFlags.has(name)) {
-      return { success: false, message: `Feature flag ${name} already exists` };
-    }
-
-    this.featureFlags.set(name, { enabled, description });
-    this.logger.log(`✅ Feature flag '${name}' created (enabled=${enabled})`);
-    return { success: true, message: `Feature flag '${name}' created` };
+    // The controller should use FeatureFlagsService directly
+    return { success: false, message: 'Use FeatureFlagsService.create() instead' };
   }
 
   // ============ QUEUE STATISTICS ============

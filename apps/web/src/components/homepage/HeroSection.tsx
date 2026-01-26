@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
     Search,
     Zap,
@@ -13,6 +14,8 @@ import {
     Clock,
     Bitcoin,
     CreditCard,
+    TrendingUp,
+    Sparkles,
 } from 'lucide-react';
 
 // Design System Components
@@ -21,14 +24,157 @@ import { Input } from '@/design-system/primitives/input';
 import { Badge } from '@/design-system/primitives/badge';
 
 // ============================================================================
-// TRUST BAR - Compact trust indicators below CTAs
+// DYNAMIC TAGLINES - Rotating value propositions
+// ============================================================================
+
+const DYNAMIC_TAGLINES = [
+    { text: 'Save Up to 80% on Top Titles', icon: TrendingUp, color: 'text-green-success' },
+    { text: 'Keys & Accounts Delivered Instantly', icon: Zap, color: 'text-cyan-glow' },
+    { text: 'Games • Software • Gift Cards', icon: Sparkles, color: 'text-purple-neon' },
+    { text: 'Verified & Guaranteed Products', icon: ShieldCheck, color: 'text-orange-warning' },
+];
+
+function DynamicTagline(): React.ReactElement {
+    const [currentIndex, setCurrentIndex] = useState(0);
+
+    useEffect(() => {
+        const interval = setInterval(() => {
+            setCurrentIndex((prev) => (prev + 1) % DYNAMIC_TAGLINES.length);
+        }, 3000);
+        return () => clearInterval(interval);
+    }, []);
+
+    const current = DYNAMIC_TAGLINES[currentIndex];
+    if (!current) return <></>;
+
+    return (
+        <div className="h-7 relative overflow-hidden mb-4">
+            <AnimatePresence mode="wait">
+                <motion.div
+                    key={currentIndex}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -20 }}
+                    transition={{ duration: 0.3 }}
+                    className={`flex items-center justify-center gap-2 ${current.color}`}
+                >
+                    <current.icon className="w-4 h-4" aria-hidden="true" />
+                    <span className="text-sm font-semibold">{current.text}</span>
+                </motion.div>
+            </AnimatePresence>
+        </div>
+    );
+}
+
+// ============================================================================
+// DYNAMIC HEADLINE - Rotating product types
+// ============================================================================
+
+const HEADLINE_PRODUCTS = [
+    { text: 'Game Keys', color: 'text-cyan-glow' },
+    { text: 'Software Licenses', color: 'text-purple-neon' },
+    { text: 'Gift Cards', color: 'text-pink-featured' },
+    { text: 'Game Accounts', color: 'text-green-success' },
+    { text: 'Subscriptions', color: 'text-orange-warning' },
+];
+
+function DynamicHeadline(): React.ReactElement {
+    const [currentIndex, setCurrentIndex] = useState(0);
+
+    useEffect(() => {
+        const interval = setInterval(() => {
+            setCurrentIndex((prev) => (prev + 1) % HEADLINE_PRODUCTS.length);
+        }, 2500);
+        return () => clearInterval(interval);
+    }, []);
+
+    const current = HEADLINE_PRODUCTS[currentIndex];
+    if (!current) return <></>;
+
+    return (
+        <span className="inline-block min-w-[280px] sm:min-w-[380px] md:min-w-[480px]">
+            <AnimatePresence mode="wait">
+                <motion.span
+                    key={currentIndex}
+                    initial={{ opacity: 0, y: 30 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -30 }}
+                    transition={{ duration: 0.4, ease: 'easeOut' }}
+                    className={`inline-block text-gradient-primary text-glow-cyan`}
+                >
+                    {current.text}
+                </motion.span>
+            </AnimatePresence>
+        </span>
+    );
+}
+
+// ============================================================================
+// FLOATING GAME COVERS - Decorative elements around hero
+// ============================================================================
+
+const FLOATING_GAMES = [
+    { id: 1, position: 'left-top', delay: 0, rotate: -12 },
+    { id: 2, position: 'left-bottom', delay: 0.2, rotate: -8 },
+    { id: 3, position: 'right-top', delay: 0.1, rotate: 8 },
+    { id: 4, position: 'right-bottom', delay: 0.3, rotate: 15 },
+];
+
+function FloatingGameCovers(): React.ReactElement {
+    const positionClasses: Record<string, string> = {
+        'left-top': 'left-4 xl:left-16 top-[20%]',
+        'left-bottom': 'left-8 xl:left-28 bottom-[25%]',
+        'right-top': 'right-4 xl:right-16 top-[20%]',
+        'right-bottom': 'right-8 xl:right-28 bottom-[25%]',
+    };
+
+    const gradientColors: Record<string, string> = {
+        'left-top': 'from-cyan-glow/20 to-purple-neon/10',
+        'left-bottom': 'from-green-success/20 to-cyan-glow/10',
+        'right-top': 'from-purple-neon/20 to-pink-featured/10',
+        'right-bottom': 'from-orange-warning/20 to-pink-featured/10',
+    };
+
+    return (
+        <>
+            {FLOATING_GAMES.map((game) => (
+                <motion.div
+                    key={game.id}
+                    initial={{ opacity: 0, scale: 0.8, rotate: game.rotate * 1.5 }}
+                    animate={{ 
+                        opacity: 0.8, 
+                        scale: 1,
+                        rotate: game.rotate,
+                        y: [0, -8, 0],
+                    }}
+                    transition={{ 
+                        duration: 0.8, 
+                        delay: game.delay,
+                        y: { duration: 4 + game.id * 0.5, repeat: Infinity, ease: 'easeInOut' }
+                    }}
+                    className={`absolute ${positionClasses[game.position]} hidden xl:block z-0 pointer-events-none`}
+                >
+                    <div className={`relative w-16 h-20 2xl:w-20 2xl:h-28 rounded-lg overflow-hidden shadow-2xl border border-white/10 bg-gradient-to-br ${gradientColors[game.position]}`}>
+                        <div className="absolute inset-0 flex items-center justify-center">
+                            <Sparkles className="w-6 h-6 text-white/30" />
+                        </div>
+                        <div className="absolute inset-0 bg-gradient-to-t from-bg-primary/60 via-transparent to-transparent" />
+                    </div>
+                </motion.div>
+            ))}
+        </>
+    );
+}
+
+// ============================================================================
+// TRUST BAR - Enhanced with colors and hover effects
 // ============================================================================
 
 const TRUST_ITEMS = [
-    { icon: Bitcoin, text: '300+ Cryptos', color: 'text-orange-400' },
-    { icon: Clock, text: 'Instant Delivery', color: 'text-cyan-glow' },
-    { icon: ShieldCheck, text: '100% Secure', color: 'text-green-success' },
-    { icon: CreditCard, text: 'No Account Needed', color: 'text-purple-neon' },
+    { icon: Bitcoin, text: '300+ Cryptos', color: 'text-orange-warning', bgColor: 'bg-orange-warning/10 hover:bg-orange-warning/20' },
+    { icon: Clock, text: 'Instant Delivery', color: 'text-cyan-glow', bgColor: 'bg-cyan-glow/10 hover:bg-cyan-glow/20' },
+    { icon: ShieldCheck, text: '100% Secure', color: 'text-green-success', bgColor: 'bg-green-success/10 hover:bg-green-success/20' },
+    { icon: CreditCard, text: 'No Account Needed', color: 'text-purple-neon', bgColor: 'bg-purple-neon/10 hover:bg-purple-neon/20' },
 ];
 
 function TrustBar(): React.ReactElement {
@@ -37,26 +183,27 @@ function TrustBar(): React.ReactElement {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.5 }}
-            className="flex flex-wrap items-center justify-center gap-4 md:gap-8 mt-10"
+            className="flex flex-wrap items-center justify-center gap-3 md:gap-4 mt-10"
         >
             {TRUST_ITEMS.map((item, index) => (
-                <div
+                <motion.div
                     key={item.text}
-                    className="flex items-center gap-2 text-sm text-text-secondary"
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ duration: 0.3, delay: 0.6 + index * 0.1 }}
+                    whileHover={{ scale: 1.05, y: -2 }}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-full ${item.bgColor} border border-white/5 backdrop-blur-sm transition-all duration-300 cursor-default`}
                 >
                     <item.icon className={`w-4 h-4 ${item.color}`} aria-hidden="true" />
-                    <span>{item.text}</span>
-                    {index < TRUST_ITEMS.length - 1 && (
-                        <span className="hidden md:block ml-4 w-1 h-1 rounded-full bg-border-subtle" />
-                    )}
-                </div>
+                    <span className="text-sm font-medium text-text-primary">{item.text}</span>
+                </motion.div>
             ))}
         </motion.div>
     );
 }
 
 // ============================================================================
-// HERO SECTION - Simplified with value prop + search
+// HERO SECTION - Enhanced with floating elements and dynamic taglines
 // ============================================================================
 
 export function HeroSection(): React.ReactElement {
@@ -75,12 +222,15 @@ export function HeroSection(): React.ReactElement {
     );
 
     return (
-        <section className="relative min-h-[70vh] overflow-hidden flex items-center">
+        <section className="relative min-h-[75vh] overflow-hidden flex items-center">
             {/* Animated Mesh Background */}
             <div
                 className="absolute inset-0 bg-mesh-gradient opacity-60"
                 aria-hidden="true"
             />
+
+            {/* Floating Game Covers */}
+            <FloatingGameCovers />
 
             {/* Animated Gradient Orbs */}
             <motion.div
@@ -111,9 +261,33 @@ export function HeroSection(): React.ReactElement {
                 }}
                 aria-hidden="true"
             />
+            
+            {/* Additional accent orb */}
+            <motion.div
+                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full bg-gradient-radial from-cyan-glow/5 via-transparent to-transparent blur-[80px]"
+                animate={{
+                    scale: [1, 1.1, 1],
+                    opacity: [0.3, 0.5, 0.3],
+                }}
+                transition={{
+                    duration: 6,
+                    repeat: Infinity,
+                    ease: 'easeInOut',
+                }}
+                aria-hidden="true"
+            />
 
             {/* Content */}
             <div className="relative z-10 container mx-auto px-4 md:px-6 py-16 text-center">
+                {/* Dynamic Tagline */}
+                <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 0.5 }}
+                >
+                    <DynamicTagline />
+                </motion.div>
+
                 {/* Badge */}
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
@@ -125,7 +299,7 @@ export function HeroSection(): React.ReactElement {
                         className="mb-6 px-4 py-2 bg-cyan-glow/10 border border-cyan-glow/30 text-cyan-glow backdrop-blur-sm"
                     >
                         <Zap className="w-3.5 h-3.5 mr-2" aria-hidden="true" />
-                        Crypto-Native Game Store
+                        Your Digital Marketplace
                     </Badge>
                 </motion.div>
 
@@ -136,9 +310,9 @@ export function HeroSection(): React.ReactElement {
                     transition={{ duration: 0.6, delay: 0.1 }}
                     className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-display font-bold mb-6 leading-tight"
                 >
-                    <span className="text-text-primary">Buy Game Keys with</span>
+                    <span className="text-text-primary">Get Instant</span>
                     <br />
-                    <span className="text-gradient-primary">Cryptocurrency</span>
+                    <DynamicHeadline />
                 </motion.h1>
 
                 {/* Subheadline */}
@@ -148,8 +322,8 @@ export function HeroSection(): React.ReactElement {
                     transition={{ duration: 0.6, delay: 0.2 }}
                     className="text-lg md:text-xl text-text-secondary max-w-2xl mx-auto mb-10"
                 >
-                    Instant delivery, 300+ cryptocurrencies accepted, and unbeatable prices.
-                    Get your favorite games without the hassle.
+                    Discover thousands of digital products at unbeatable prices.
+                    Game keys, software licenses, gift cards & premium accounts — delivered instantly.
                 </motion.p>
 
                 {/* Search Bar */}
@@ -164,7 +338,7 @@ export function HeroSection(): React.ReactElement {
                         className={`relative flex items-center gap-2 p-2 rounded-2xl transition-all duration-300 ${
                             isSearchFocused
                                 ? 'bg-bg-secondary border-2 border-cyan-glow shadow-glow-cyan'
-                                : 'bg-bg-secondary/80 border-2 border-border-subtle'
+                                : 'bg-bg-secondary/80 border-2 border-border-subtle hover:border-border-accent'
                         }`}
                     >
                         <Search
@@ -202,7 +376,7 @@ export function HeroSection(): React.ReactElement {
                     <Button
                         asChild
                         size="lg"
-                        className="btn-primary min-w-[200px] group"
+                        className="btn-primary min-w-[200px] group shadow-glow-cyan-sm hover:shadow-glow-cyan"
                     >
                         <Link href="/catalog">
                             Browse Catalog
@@ -231,7 +405,7 @@ export function HeroSection(): React.ReactElement {
 
             {/* Bottom Gradient Fade */}
             <div
-                className="absolute bottom-0 left-0 right-0 h-24 bg-linear-to-t from-bg-primary to-transparent"
+                className="absolute bottom-0 left-0 right-0 h-32 bg-linear-to-t from-bg-primary via-bg-primary/80 to-transparent"
                 aria-hidden="true"
             />
         </section>

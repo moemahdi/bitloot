@@ -7,6 +7,7 @@ import { Order } from '../orders/order.entity';
 import { Payment } from '../payments/payment.entity';
 import { MetricsModule } from '../metrics/metrics.module';
 import { EmailsModule } from '../emails/emails.module';
+import { AdminOpsModule } from '../admin/admin-ops.module';
 import { ResendBounceController } from './resend-bounce.controller';
 import { FulfillmentQueue } from '../../jobs/queues';
 
@@ -19,6 +20,9 @@ import { FulfillmentQueue } from '../../jobs/queues';
  *
  * **Exported Services:**
  * - IpnHandlerService: Process NOWPayments IPN webhooks
+ *
+ * **Feature Flags:**
+ * - auto_fulfill_enabled: When disabled, orders won't auto-queue for fulfillment
  *
  * **Registered Entities:**
  * - WebhookLog: Audit trail and idempotency tracking
@@ -43,6 +47,7 @@ import { FulfillmentQueue } from '../../jobs/queues';
     TypeOrmModule.forFeature([WebhookLog, Order, Payment]),
     MetricsModule,
     EmailsModule,
+    AdminOpsModule, // Provides FeatureFlagsService for auto_fulfill check
     FulfillmentQueue, // Enable IpnHandlerService to queue fulfillment jobs
   ],
   controllers: [IpnHandlerController, ResendBounceController],

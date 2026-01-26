@@ -1,10 +1,10 @@
-.openapi-generator-ignore
 apis/AdminApi.ts
 apis/AdminCatalogKinguinApi.ts
 apis/AdminCatalogPricingApi.ts
 apis/AdminCatalogProductsApi.ts
 apis/AdminCatalogRepricingApi.ts
 apis/AdminCatalogSyncApi.ts
+apis/AdminFeatureFlagsApi.ts
 apis/AdminKinguinBalanceApi.ts
 apis/AdminKinguinProfitAnalyticsApi.ts
 apis/AdminMarketingApi.ts
@@ -12,6 +12,7 @@ apis/AdminOperationsApi.ts
 apis/AdminProductGroupsApi.ts
 apis/AdminPromosApi.ts
 apis/AdminReviewsApi.ts
+apis/AdminSystemConfigurationApi.ts
 apis/AuditLogsApi.ts
 apis/AuthenticationApi.ts
 apis/CatalogApi.ts
@@ -64,6 +65,7 @@ docs/AdminControllerRetryFulfillment200Response.md
 docs/AdminControllerRetryFulfillmentRequest.md
 docs/AdminControllerUpdateOrderStatus200Response.md
 docs/AdminCreateReviewDto.md
+docs/AdminFeatureFlagsApi.md
 docs/AdminKinguinBalanceApi.md
 docs/AdminKinguinProfitAnalyticsApi.md
 docs/AdminMarketingApi.md
@@ -94,6 +96,7 @@ docs/AdminPromosApi.md
 docs/AdminReviewResponseDto.md
 docs/AdminReviewsApi.md
 docs/AdminReviewsControllerBulkApprove200Response.md
+docs/AdminSystemConfigurationApi.md
 docs/AdminUpdateReviewDto.md
 docs/AssignProductsToGroupDto.md
 docs/AuditAdminDto.md
@@ -120,6 +123,7 @@ docs/CategoryDto.md
 docs/CheckWatchlistResponseDto.md
 docs/CreateAuditLogDto.md
 docs/CreateBundleDealDto.md
+docs/CreateFeatureFlagDto.md
 docs/CreateFlashDealDto.md
 docs/CreateOrderDto.md
 docs/CreateOrderItemDto.md
@@ -129,6 +133,7 @@ docs/CreateProductDto.md
 docs/CreateProductGroupDto.md
 docs/CreatePromoCodeDto.md
 docs/CreateReviewDto.md
+docs/CreateSystemConfigDto.md
 docs/DailyVolumeDto.md
 docs/DashboardStatsDto.md
 docs/DashboardStatsDtoRevenueHistoryInner.md
@@ -138,6 +143,7 @@ docs/EffectivePriceResponseDto.md
 docs/EmailChangeResponseDto.md
 docs/EmailsApi.md
 docs/EmbeddedPaymentResponseDto.md
+docs/FeatureFlagResponseDto.md
 docs/FeaturedCategoryDto.md
 docs/FiltersResponseDto.md
 docs/FlashDealProductDto.md
@@ -151,6 +157,7 @@ docs/GetEffectivePriceDto.md
 docs/GetEffectivePricesRequestDto.md
 docs/GetEffectivePricesResponseDto.md
 docs/GroupProductVariantDto.md
+docs/GroupedFeatureFlagsResponseDto.md
 docs/HealthApi.md
 docs/HealthCheckResultDto.md
 docs/IpnHandlerControllerAdminListWebhooks200Response.md
@@ -169,6 +176,8 @@ docs/KinguinScreenshotDto.md
 docs/KinguinSearchResponseDto.md
 docs/KinguinSystemRequirementDto.md
 docs/KinguinVideoDto.md
+docs/ListFeatureFlagsResponseDto.md
+docs/ListSystemConfigsResponseDto.md
 docs/MarginDistributionBucketDto.md
 docs/MarginDistributionDto.md
 docs/MetricsApi.md
@@ -214,6 +223,7 @@ docs/ProfitTrendPointDto.md
 docs/PromoCodeResponseDto.md
 docs/PromoRedemptionResponseDto.md
 docs/PromosApi.md
+docs/ProviderConfigResponseDto.md
 docs/PublicCancelDeletionResponseDto.md
 docs/PublicMarketingApi.md
 docs/RecoveryItemDto.md
@@ -236,16 +246,23 @@ docs/SessionsApi.md
 docs/SourceTypeCountDto.md
 docs/SpendingStatsDto.md
 docs/StatusCountDto.md
+docs/SwitchEnvironmentDto.md
+docs/SwitchEnvironmentResponseDto.md
 docs/SyncConfigStatusDto.md
 docs/SyncJobResponseDto.md
 docs/SyncJobStatusResponseDto.md
 docs/SyncJobStatusResponseDtoResult.md
+docs/SystemConfigControllerGetCurrentEnvironment200Response.md
+docs/SystemConfigResponseDto.md
 docs/SystemRequirementDto.md
+docs/TestConfigResponseDto.md
+docs/ToggleFeatureFlagResponseDto.md
 docs/TopProductDto.md
 docs/UnsubscribeEmailDto.md
 docs/UnsubscribeResponseDto.md
 docs/UpdateBundleDealDto.md
 docs/UpdateBundleProductDto.md
+docs/UpdateFeatureFlagDto.md
 docs/UpdateFlashDealDto.md
 docs/UpdateFlashDealProductDto.md
 docs/UpdateOrderStatusDto.md
@@ -257,6 +274,7 @@ docs/UpdateProductDto.md
 docs/UpdateProductGroupDto.md
 docs/UpdatePromoCodeDto.md
 docs/UpdateReviewDto.md
+docs/UpdateSystemConfigDto.md
 docs/UserOrderStatsDto.md
 docs/UserResponseDto.md
 docs/UsersApi.md
@@ -343,6 +361,7 @@ models/CategoryDto.ts
 models/CheckWatchlistResponseDto.ts
 models/CreateAuditLogDto.ts
 models/CreateBundleDealDto.ts
+models/CreateFeatureFlagDto.ts
 models/CreateFlashDealDto.ts
 models/CreateOrderDto.ts
 models/CreateOrderItemDto.ts
@@ -352,6 +371,7 @@ models/CreateProductDto.ts
 models/CreateProductGroupDto.ts
 models/CreatePromoCodeDto.ts
 models/CreateReviewDto.ts
+models/CreateSystemConfigDto.ts
 models/DailyVolumeDto.ts
 models/DashboardStatsDto.ts
 models/DashboardStatsDtoRevenueHistoryInner.ts
@@ -360,6 +380,7 @@ models/DeliveryLinkDto.ts
 models/EffectivePriceResponseDto.ts
 models/EmailChangeResponseDto.ts
 models/EmbeddedPaymentResponseDto.ts
+models/FeatureFlagResponseDto.ts
 models/FeaturedCategoryDto.ts
 models/FiltersResponseDto.ts
 models/FlashDealProductDto.ts
@@ -372,6 +393,7 @@ models/GetEffectivePriceDto.ts
 models/GetEffectivePricesRequestDto.ts
 models/GetEffectivePricesResponseDto.ts
 models/GroupProductVariantDto.ts
+models/GroupedFeatureFlagsResponseDto.ts
 models/HealthCheckResultDto.ts
 models/IpnHandlerControllerAdminListWebhooks200Response.ts
 models/IpnHandlerControllerAdminListWebhooks200ResponseDataInner.ts
@@ -388,6 +410,8 @@ models/KinguinScreenshotDto.ts
 models/KinguinSearchResponseDto.ts
 models/KinguinSystemRequirementDto.ts
 models/KinguinVideoDto.ts
+models/ListFeatureFlagsResponseDto.ts
+models/ListSystemConfigsResponseDto.ts
 models/MarginDistributionBucketDto.ts
 models/MarginDistributionDto.ts
 models/ModerateReviewDto.ts
@@ -429,6 +453,7 @@ models/ProfitTrendDto.ts
 models/ProfitTrendPointDto.ts
 models/PromoCodeResponseDto.ts
 models/PromoRedemptionResponseDto.ts
+models/ProviderConfigResponseDto.ts
 models/PublicCancelDeletionResponseDto.ts
 models/RecoveryItemDto.ts
 models/RecoveryResponseDto.ts
@@ -448,16 +473,23 @@ models/ScreenshotDto.ts
 models/SourceTypeCountDto.ts
 models/SpendingStatsDto.ts
 models/StatusCountDto.ts
+models/SwitchEnvironmentDto.ts
+models/SwitchEnvironmentResponseDto.ts
 models/SyncConfigStatusDto.ts
 models/SyncJobResponseDto.ts
 models/SyncJobStatusResponseDto.ts
 models/SyncJobStatusResponseDtoResult.ts
+models/SystemConfigControllerGetCurrentEnvironment200Response.ts
+models/SystemConfigResponseDto.ts
 models/SystemRequirementDto.ts
+models/TestConfigResponseDto.ts
+models/ToggleFeatureFlagResponseDto.ts
 models/TopProductDto.ts
 models/UnsubscribeEmailDto.ts
 models/UnsubscribeResponseDto.ts
 models/UpdateBundleDealDto.ts
 models/UpdateBundleProductDto.ts
+models/UpdateFeatureFlagDto.ts
 models/UpdateFlashDealDto.ts
 models/UpdateFlashDealProductDto.ts
 models/UpdateOrderStatusDto.ts
@@ -469,6 +501,7 @@ models/UpdateProductDto.ts
 models/UpdateProductGroupDto.ts
 models/UpdatePromoCodeDto.ts
 models/UpdateReviewDto.ts
+models/UpdateSystemConfigDto.ts
 models/UserOrderStatsDto.ts
 models/UserResponseDto.ts
 models/ValidatePromoDto.ts

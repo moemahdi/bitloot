@@ -7,6 +7,7 @@ import { CreateOrderDto, OrderResponseDto } from './dto/create-order.dto';
 import { OrderAccessStatusDto } from './dto/order-access.dto';
 import { OrdersService } from './orders.service';
 import { EmailsService } from '../emails/emails.service';
+import { FeatureFlagsService } from '../admin/feature-flags.service';
 import { verifyCaptchaToken } from '../../utils/captcha.util';
 
 interface JwtPayload {
@@ -25,6 +26,7 @@ export class OrdersController {
   constructor(
     private readonly orders: OrdersService,
     private readonly emailsService: EmailsService,
+    private readonly featureFlagsService: FeatureFlagsService,
   ) {}
 
   @Post()
@@ -33,9 +35,9 @@ export class OrdersController {
   @ApiOperation({ summary: 'Create a new order' })
   @ApiResponse({ status: 201, type: OrderResponseDto })
   async create(@Body() dto: CreateOrderDto, @Request() req: AuthenticatedRequest): Promise<OrderResponseDto> {
-    // Verify CAPTCHA token if enabled
-    const turnstileEnabled = process.env.TURNSTILE_ENABLED === 'true';
-    if (turnstileEnabled) {
+    // Verify CAPTCHA token if feature flag is enabled
+    const captchaEnabled = this.featureFlagsService.isEnabled('captcha_enabled');
+    if (captchaEnabled) {
       const captchaToken = dto.captchaToken ?? '';
       if (captchaToken.length === 0) {
         throw new Error('CAPTCHA token is required');
