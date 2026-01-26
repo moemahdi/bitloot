@@ -1159,7 +1159,7 @@ function InfiniteScrollSentinel({
         const observer = new IntersectionObserver(
             (entries) => {
                 const entry = entries[0];
-                if (entry !== undefined && entry.isIntersecting === true) {
+                if (entry?.isIntersecting === true) {
                     onIntersect();
                 }
             },
@@ -1351,7 +1351,7 @@ function CatalogContent(): React.ReactElement {
 
     // Accumulate products for infinite scroll
     useEffect(() => {
-        if (productsData !== null && productsData !== undefined && productsData.data !== null && productsData.data !== undefined && scrollMode === 'infinite') {
+        if (productsData?.data !== null && productsData?.data !== undefined && scrollMode === 'infinite') {
             const newProducts = productsData.data.map((item) => ({
                 id: item.id,
                 slug: item.slug ?? '',
@@ -1737,7 +1737,7 @@ function CatalogContent(): React.ReactElement {
                     {/* Products Section */}
                     <div className="flex-1 min-w-0">
                         {/* Quick Category Tabs */}
-                        {categoriesData !== null && categoriesData !== undefined && categoriesData.categories !== null && categoriesData.categories !== undefined && (
+                        {categoriesData?.categories !== null && categoriesData?.categories !== undefined && (
                             <motion.div
                                 initial={{ opacity: 0, y: 10 }}
                                 animate={{ opacity: 1, y: 0 }}

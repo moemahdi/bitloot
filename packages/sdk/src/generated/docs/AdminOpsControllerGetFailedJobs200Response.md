@@ -1,34 +1,26 @@
 
-# AdminOpsControllerGetQueueStats200ResponseValue
+# AdminOpsControllerGetFailedJobs200Response
 
 
 ## Properties
 
 Name | Type
 ------------ | -------------
-`waiting` | number
-`active` | number
-`failed` | number
-`delayed` | number
-`paused` | number
-`completed` | number
+`queueName` | string
 `total` | number
+`jobs` | [Array&lt;AdminOpsControllerGetFailedJobs200ResponseJobsInner&gt;](AdminOpsControllerGetFailedJobs200ResponseJobsInner.md)
 
 ## Example
 
 ```typescript
-import type { AdminOpsControllerGetQueueStats200ResponseValue } from ''
+import type { AdminOpsControllerGetFailedJobs200Response } from ''
 
 // TODO: Update the object below with actual values
 const example = {
-  "waiting": null,
-  "active": null,
-  "failed": null,
-  "delayed": null,
-  "paused": null,
-  "completed": null,
+  "queueName": null,
   "total": null,
-} satisfies AdminOpsControllerGetQueueStats200ResponseValue
+  "jobs": null,
+} satisfies AdminOpsControllerGetFailedJobs200Response
 
 console.log(example)
 
@@ -37,7 +29,7 @@ const exampleJSON: string = JSON.stringify(example)
 console.log(exampleJSON)
 
 // Parse the JSON string back to an object
-const exampleParsed = JSON.parse(exampleJSON) as AdminOpsControllerGetQueueStats200ResponseValue
+const exampleParsed = JSON.parse(exampleJSON) as AdminOpsControllerGetFailedJobs200Response
 console.log(exampleParsed)
 ```
 

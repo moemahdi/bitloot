@@ -18,6 +18,7 @@ import {
 } from '@nestjs/swagger';
 import { AdminGuard } from '../../common/guards/admin.guard';
 import { JwtAuthGuard } from '../../modules/auth/guards/jwt-auth.guard';
+import { AuditLog, SkipAuditLog } from '../../common/decorators/audit-log.decorator';
 import { SystemConfigService } from './system-config.service';
 import {
   CreateSystemConfigDto,
@@ -81,6 +82,13 @@ export class SystemConfigController {
   }
 
   @Post()
+  @AuditLog({
+    action: 'system_config.create',
+    target: 'body.provider',
+    includeBodyFields: ['provider', 'environment', 'key'],
+    excludeBodyFields: ['value'],
+    details: 'System configuration created',
+  })
   @ApiOperation({ summary: 'Create a new configuration entry' })
   @ApiResponse({
     status: 201,
@@ -96,6 +104,12 @@ export class SystemConfigController {
   }
 
   @Patch(':id')
+  @AuditLog({
+    action: 'system_config.update',
+    target: 'params.id',
+    excludeBodyFields: ['value'],
+    details: 'System configuration updated',
+  })
   @ApiOperation({ summary: 'Update a configuration entry' })
   @ApiParam({ name: 'id', description: 'Configuration UUID' })
   @ApiResponse({
@@ -113,6 +127,11 @@ export class SystemConfigController {
   }
 
   @Delete(':id')
+  @AuditLog({
+    action: 'system_config.delete',
+    target: 'params.id',
+    details: 'System configuration deleted',
+  })
   @ApiOperation({ summary: 'Delete a configuration entry' })
   @ApiParam({ name: 'id', description: 'Configuration UUID' })
   @ApiResponse({
@@ -125,6 +144,12 @@ export class SystemConfigController {
   }
 
   @Post('environment')
+  @AuditLog({
+    action: 'system_config.environment.switch',
+    target: 'body.provider',
+    includeBodyFields: ['provider', 'environment'],
+    details: 'Environment switched (sandbox/production)',
+  })
   @ApiOperation({ summary: 'Switch active environment (sandbox/production)' })
   @ApiResponse({
     status: 200,
@@ -154,6 +179,7 @@ export class SystemConfigController {
   }
 
   @Post('test/:provider')
+  @SkipAuditLog()
   @ApiOperation({ summary: 'Test a provider configuration' })
   @ApiParam({ name: 'provider', description: 'Provider to test (e.g., nowpayments, kinguin)' })
   @ApiResponse({
@@ -166,6 +192,7 @@ export class SystemConfigController {
   }
 
   @Post('test-all')
+  @SkipAuditLog()
   @ApiOperation({ summary: 'Test all provider configurations' })
   @ApiResponse({
     status: 200,

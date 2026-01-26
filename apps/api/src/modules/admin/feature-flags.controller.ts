@@ -18,6 +18,7 @@ import {
 } from '@nestjs/swagger';
 import { AdminGuard } from '../../common/guards/admin.guard';
 import { JwtAuthGuard } from '../../modules/auth/guards/jwt-auth.guard';
+import { AuditLog, SkipAuditLog } from '../../common/decorators/audit-log.decorator';
 import { FeatureFlagsService } from './feature-flags.service';
 import {
   CreateFeatureFlagDto,
@@ -77,6 +78,12 @@ export class FeatureFlagsController {
   }
 
   @Post()
+  @AuditLog({
+    action: 'feature_flag.create',
+    target: 'body.name',
+    includeBodyFields: ['name', 'enabled', 'description', 'category'],
+    details: 'New feature flag created',
+  })
   @ApiOperation({ summary: 'Create a new feature flag' })
   @ApiResponse({
     status: 201,
@@ -92,6 +99,12 @@ export class FeatureFlagsController {
   }
 
   @Patch(':name')
+  @AuditLog({
+    action: 'feature_flag.update',
+    target: 'params.name',
+    includeBodyFields: ['enabled', 'description'],
+    details: 'Feature flag updated',
+  })
   @ApiOperation({ summary: 'Update a feature flag' })
   @ApiParam({ name: 'name', description: 'Flag name (snake_case)' })
   @ApiResponse({
@@ -109,6 +122,11 @@ export class FeatureFlagsController {
   }
 
   @Patch(':name/toggle')
+  @AuditLog({
+    action: 'feature_flag.toggle',
+    target: 'params.name',
+    details: 'Feature flag toggled',
+  })
   @ApiOperation({ summary: 'Toggle a feature flag (enable/disable)' })
   @ApiParam({ name: 'name', description: 'Flag name (snake_case)' })
   @ApiResponse({
@@ -124,6 +142,11 @@ export class FeatureFlagsController {
   }
 
   @Delete(':name')
+  @AuditLog({
+    action: 'feature_flag.delete',
+    target: 'params.name',
+    details: 'Feature flag deleted',
+  })
   @ApiOperation({ summary: 'Delete a feature flag' })
   @ApiParam({ name: 'name', description: 'Flag name (snake_case)' })
   @ApiResponse({
@@ -138,6 +161,7 @@ export class FeatureFlagsController {
   }
 
   @Post('check')
+  @SkipAuditLog()
   @ApiOperation({ summary: 'Check multiple feature flags at once' })
   @ApiResponse({
     status: 200,
@@ -147,7 +171,7 @@ export class FeatureFlagsController {
       additionalProperties: { type: 'boolean' },
     },
   })
-  async checkFlags(@Body() { names }: { names: string[] }): Promise<Record<string, boolean>> {
+  checkFlags(@Body() { names }: { names: string[] }): Record<string, boolean> {
     return this.featureFlagsService.checkFlags(names);
   }
 }

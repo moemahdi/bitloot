@@ -522,7 +522,7 @@ export class SystemConfigService {
       let data: Record<string, unknown> = {};
       
       try {
-        data = text ? (JSON.parse(text) as Record<string, unknown>) : {};
+        data = (text !== '' && text !== undefined) ? (JSON.parse(text) as Record<string, unknown>) : {};
       } catch {
         return {
           provider: 'nowpayments',
@@ -560,7 +560,7 @@ export class SystemConfigService {
     const apiKey = this.getConfig('kinguin', 'api_key');
     const baseUrl = this.getConfig('kinguin', 'base_url');
 
-    if (apiKey === '' || apiKey === undefined) {
+    if (apiKey === '' || apiKey === undefined || apiKey === null) {
       return {
         provider: 'kinguin',
         environment: this.activeEnvironment,
@@ -570,8 +570,10 @@ export class SystemConfigService {
       };
     }
 
+    const actualBaseUrl = (baseUrl !== '' && baseUrl !== undefined) ? baseUrl : 'https://gateway.kinguin.net';
+
     try {
-      const response = await fetch(`${baseUrl}/v1/balance`, {
+      const response = await fetch(`${actualBaseUrl}/v1/balance`, {
         headers: { 'X-Api-Key': apiKey },
       });
 
@@ -580,7 +582,7 @@ export class SystemConfigService {
       let data: Record<string, unknown> = {};
       
       try {
-        data = text ? (JSON.parse(text) as Record<string, unknown>) : {};
+        data = (text !== undefined && text !== '') ? (JSON.parse(text) as Record<string, unknown>) : {};
       } catch {
         // Response is not valid JSON (likely HTML error page)
         return {
@@ -624,10 +626,10 @@ export class SystemConfigService {
     const apiKey = (dbApiKey !== '' && dbApiKey !== undefined) ? dbApiKey : envApiKey;
 
     // Debug log - show both sources
-    const maskedDbKey = dbApiKey 
+    const maskedDbKey = (dbApiKey !== '' && dbApiKey !== undefined)
       ? `${dbApiKey.substring(0, 8)}...${dbApiKey.substring(dbApiKey.length - 4)} (len: ${dbApiKey.length})`
       : '(empty)';
-    const maskedEnvKey = envApiKey 
+    const maskedEnvKey = (envApiKey !== '')
       ? `${envApiKey.substring(0, 8)}...${envApiKey.substring(envApiKey.length - 4)} (len: ${envApiKey.length})`
       : '(empty)';
     this.logger.log(`Testing Resend - DB key: ${maskedDbKey}, ENV key: ${maskedEnvKey}`);
@@ -664,7 +666,7 @@ export class SystemConfigService {
       let data: Record<string, unknown> = {};
 
       try {
-        data = text ? (JSON.parse(text) as Record<string, unknown>) : {};
+        data = (text !== undefined && text !== '') ? (JSON.parse(text) as Record<string, unknown>) : {};
       } catch {
         // JSON parse failed
       }
@@ -693,14 +695,16 @@ export class SystemConfigService {
         };
       }
       
-      this.logger.warn(`Resend test failed: ${response.status} - ${errorMessage || text.substring(0, 100)}`);
+      const logMessage = errorMessage !== '' ? errorMessage : text.substring(0, 100);
+      this.logger.warn(`Resend test failed: ${response.status} - ${logMessage}`);
       
       if (response.status === 401) {
+        const authFailMessage = errorMessage !== '' ? errorMessage : 'please verify your API key';
         return {
           provider: 'resend',
           environment: this.activeEnvironment,
           success: false,
-          message: `Authentication failed - ${errorMessage || 'please verify your API key'}`,
+          message: `Authentication failed - ${authFailMessage}`,
           responseTimeMs: Date.now() - start,
         };
       }

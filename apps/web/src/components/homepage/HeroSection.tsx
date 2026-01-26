@@ -2,7 +2,6 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -45,7 +44,7 @@ function DynamicTagline(): React.ReactElement {
     }, []);
 
     const current = DYNAMIC_TAGLINES[currentIndex];
-    if (!current) return <></>;
+    if (current === undefined || current === null) return <></>;
 
     return (
         <div className="h-7 relative overflow-hidden mb-4">
@@ -89,7 +88,7 @@ function DynamicHeadline(): React.ReactElement {
     }, []);
 
     const current = HEADLINE_PRODUCTS[currentIndex];
-    if (!current) return <></>;
+    if (current === undefined || current === null) return <></>;
 
     return (
         <span className="inline-block min-w-[280px] sm:min-w-[380px] md:min-w-[480px]">

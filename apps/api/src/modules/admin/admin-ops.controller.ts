@@ -1,9 +1,10 @@
-import { Controller, Get, Post, Patch, Param, Body, UseGuards } from '@nestjs/common';
-import { ApiTags, ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { Controller, Get, Post, Patch, Param, Body, UseGuards, Query, HttpCode, HttpStatus } from '@nestjs/common';
+import { ApiTags, ApiBearerAuth, ApiOperation, ApiResponse, ApiQuery } from '@nestjs/swagger';
 import { AdminOpsService } from './admin-ops.service';
 import { AdminGuard } from '../../common/guards/admin.guard';
 import { JwtAuthGuard } from '../../modules/auth/guards/jwt-auth.guard';
 import { UserDeletionCleanupService } from '../../jobs/user-deletion-cleanup.processor';
+import { AuditLog } from '../../common/decorators/audit-log.decorator';
 
 /**
  * Admin Ops Controller - Phase 3: Ops Panels & Monitoring
@@ -64,6 +65,12 @@ export class AdminOpsController {
   }
 
   @Patch('feature-flags/:name')
+  @AuditLog({
+    action: 'flag.toggle',
+    target: 'params.name',
+    includeBodyFields: ['enabled'],
+    details: 'Feature flag toggled',
+  })
   @ApiOperation({ summary: 'Update feature flag' })
   @ApiResponse({
     status: 200,
@@ -83,6 +90,12 @@ export class AdminOpsController {
   }
 
   @Post('feature-flags')
+  @AuditLog({
+    action: 'flag.create',
+    target: 'body.name',
+    includeBodyFields: ['name', 'enabled', 'description'],
+    details: 'New feature flag created',
+  })
   @ApiOperation({ summary: 'Create new feature flag' })
   @ApiResponse({
     status: 201,
@@ -106,16 +119,18 @@ export class AdminOpsController {
   @ApiOperation({ summary: 'Get BullMQ queue statistics' })
   @ApiResponse({
     status: 200,
-    description: 'Queue statistics (waiting, active, failed)',
+    description: 'Queue statistics (waiting, active, failed, completed)',
     schema: {
       type: 'object',
       additionalProperties: {
+        type: 'object',
         properties: {
           waiting: { type: 'number' },
           active: { type: 'number' },
           failed: { type: 'number' },
           delayed: { type: 'number' },
           paused: { type: 'number' },
+          completed: { type: 'number' },
           total: { type: 'number' },
         },
       },
@@ -182,6 +197,98 @@ export class AdminOpsController {
     }>;
   }> {
     return this.adminOpsService.getQueueDetails(name);
+  }
+
+  @Get('queues/:name/failed')
+  @ApiOperation({ summary: 'Get failed jobs with error details' })
+  @ApiQuery({ name: 'limit', type: Number, required: false, example: 20 })
+  @ApiQuery({ name: 'offset', type: Number, required: false, example: 0 })
+  @ApiResponse({
+    status: 200,
+    description: 'Failed jobs with error information',
+    schema: {
+      type: 'object',
+      properties: {
+        queueName: { type: 'string' },
+        total: { type: 'number' },
+        jobs: {
+          type: 'array',
+          items: {
+            type: 'object',
+            properties: {
+              id: { type: 'string' },
+              name: { type: 'string' },
+              data: { type: 'object' },
+              failedReason: { type: 'string' },
+              stacktrace: { type: 'array', items: { type: 'string' } },
+              attemptsMade: { type: 'number' },
+              maxAttempts: { type: 'number' },
+              timestamp: { type: 'number' },
+              processedOn: { type: 'number' },
+              finishedOn: { type: 'number' },
+            },
+          },
+        },
+      },
+    },
+  })
+  async getFailedJobs(
+    @Param('name') name: string,
+    @Query('limit') limit?: string,
+    @Query('offset') offset?: string,
+  ): Promise<{
+    queueName: string;
+    total: number;
+    jobs: Array<{
+      id: string;
+      name: string;
+      data: Record<string, unknown>;
+      failedReason: string;
+      stacktrace: string[];
+      attemptsMade: number;
+      maxAttempts: number;
+      timestamp: number;
+      processedOn: number | null;
+      finishedOn: number | null;
+    }>;
+  }> {
+    return this.adminOpsService.getFailedJobs(
+      name,
+      limit !== undefined && limit !== '' ? parseInt(limit, 10) : 20,
+      offset !== undefined && offset !== '' ? parseInt(offset, 10) : 0,
+    );
+  }
+
+  @Post('queues/:name/failed/:jobId/retry')
+  @HttpCode(HttpStatus.OK)
+  @AuditLog({
+    action: 'queue.job.retry',
+    target: 'params.jobId',
+    details: 'Admin retried failed job',
+  })
+  @ApiOperation({ summary: 'Retry a specific failed job' })
+  @ApiResponse({ status: 200, description: 'Job retried successfully' })
+  @ApiResponse({ status: 404, description: 'Job not found' })
+  async retryFailedJob(
+    @Param('name') name: string,
+    @Param('jobId') jobId: string,
+  ): Promise<{ ok: boolean; jobId: string }> {
+    return this.adminOpsService.retryFailedJob(name, jobId);
+  }
+
+  @Post('queues/:name/failed/clear')
+  @HttpCode(HttpStatus.OK)
+  @AuditLog({
+    action: 'queue.failed.clear',
+    target: 'params.name',
+    details: 'Admin cleared all failed jobs',
+  })
+  @ApiOperation({ summary: 'Clear all failed jobs from a queue' })
+  @ApiResponse({ status: 200, description: 'Failed jobs cleared' })
+  async clearFailedJobs(
+    @Param('name') name: string,
+  ): Promise<{ ok: boolean; cleared: number }> {
+    return this.adminOpsService.clearFailedJobs(name);
   }
 
   // ============ BALANCE MONITORING ============
@@ -276,6 +383,11 @@ export class AdminOpsController {
   // ============ USER DELETION CLEANUP ============
 
   @Post('user-deletion-cleanup')
+  @AuditLog({
+    action: 'system.cleanup.user_deletion',
+    target: 'user-deletion-cleanup',
+    details: 'Manual user deletion cleanup triggered',
+  })
   @ApiOperation({ summary: 'Manually trigger user deletion cleanup (30-day grace period expired)' })
   @ApiResponse({
     status: 200,

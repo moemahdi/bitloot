@@ -38,6 +38,9 @@ export class QueueStatsDto {
   @ApiProperty({ description: 'Number of paused jobs' })
   paused!: number;
 
+  @ApiProperty({ description: 'Number of completed jobs' })
+  completed!: number;
+
   @ApiProperty({ description: 'Total jobs count' })
   total!: number;
 }

@@ -18,6 +18,7 @@ import type {
   AdminOpsControllerCreateFeatureFlag201Response,
   AdminOpsControllerGetBalance200Response,
   AdminOpsControllerGetBalanceDetails200Response,
+  AdminOpsControllerGetFailedJobs200Response,
   AdminOpsControllerGetFeatureFlag200Response,
   AdminOpsControllerGetFeatureFlags200ResponseInner,
   AdminOpsControllerGetQueueDetails200Response,
@@ -32,6 +33,8 @@ import {
     AdminOpsControllerGetBalance200ResponseToJSON,
     AdminOpsControllerGetBalanceDetails200ResponseFromJSON,
     AdminOpsControllerGetBalanceDetails200ResponseToJSON,
+    AdminOpsControllerGetFailedJobs200ResponseFromJSON,
+    AdminOpsControllerGetFailedJobs200ResponseToJSON,
     AdminOpsControllerGetFeatureFlag200ResponseFromJSON,
     AdminOpsControllerGetFeatureFlag200ResponseToJSON,
     AdminOpsControllerGetFeatureFlags200ResponseInnerFromJSON,
@@ -46,12 +49,27 @@ import {
     AdminOpsControllerTriggerUserDeletionCleanup200ResponseToJSON,
 } from '../models/index';
 
+export interface AdminOpsControllerClearFailedJobsRequest {
+    name: string;
+}
+
+export interface AdminOpsControllerGetFailedJobsRequest {
+    name: string;
+    limit?: number;
+    offset?: number;
+}
+
 export interface AdminOpsControllerGetFeatureFlagRequest {
     name: string;
 }
 
 export interface AdminOpsControllerGetQueueDetailsRequest {
     name: string;
+}
+
+export interface AdminOpsControllerRetryFailedJobRequest {
+    name: string;
+    jobId: string;
 }
 
 export interface AdminOpsControllerUpdateFeatureFlagRequest {
@@ -62,6 +80,50 @@ export interface AdminOpsControllerUpdateFeatureFlagRequest {
  * 
  */
 export class AdminOperationsApi extends runtime.BaseAPI {
+
+    /**
+     * Clear all failed jobs from a queue
+     */
+    async adminOpsControllerClearFailedJobsRaw(requestParameters: AdminOpsControllerClearFailedJobsRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<void>> {
+        if (requestParameters['name'] == null) {
+            throw new runtime.RequiredError(
+                'name',
+                'Required parameter "name" was null or undefined when calling adminOpsControllerClearFailedJobs().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("JWT-auth", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/admin/ops/queues/{name}/failed/clear`;
+        urlPath = urlPath.replace(`{${"name"}}`, encodeURIComponent(String(requestParameters['name'])));
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.VoidApiResponse(response);
+    }
+
+    /**
+     * Clear all failed jobs from a queue
+     */
+    async adminOpsControllerClearFailedJobs(requestParameters: AdminOpsControllerClearFailedJobsRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<void> {
+        await this.adminOpsControllerClearFailedJobsRaw(requestParameters, initOverrides);
+    }
 
     /**
      * Create new feature flag
@@ -171,6 +233,59 @@ export class AdminOperationsApi extends runtime.BaseAPI {
      */
     async adminOpsControllerGetBalanceDetails(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<AdminOpsControllerGetBalanceDetails200Response> {
         const response = await this.adminOpsControllerGetBalanceDetailsRaw(initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Get failed jobs with error details
+     */
+    async adminOpsControllerGetFailedJobsRaw(requestParameters: AdminOpsControllerGetFailedJobsRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<AdminOpsControllerGetFailedJobs200Response>> {
+        if (requestParameters['name'] == null) {
+            throw new runtime.RequiredError(
+                'name',
+                'Required parameter "name" was null or undefined when calling adminOpsControllerGetFailedJobs().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        if (requestParameters['limit'] != null) {
+            queryParameters['limit'] = requestParameters['limit'];
+        }
+
+        if (requestParameters['offset'] != null) {
+            queryParameters['offset'] = requestParameters['offset'];
+        }
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("JWT-auth", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/admin/ops/queues/{name}/failed`;
+        urlPath = urlPath.replace(`{${"name"}}`, encodeURIComponent(String(requestParameters['name'])));
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => AdminOpsControllerGetFailedJobs200ResponseFromJSON(jsonValue));
+    }
+
+    /**
+     * Get failed jobs with error details
+     */
+    async adminOpsControllerGetFailedJobs(requestParameters: AdminOpsControllerGetFailedJobsRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<AdminOpsControllerGetFailedJobs200Response> {
+        const response = await this.adminOpsControllerGetFailedJobsRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
@@ -373,6 +488,58 @@ export class AdminOperationsApi extends runtime.BaseAPI {
     async adminOpsControllerGetSystemHealth(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<AdminOpsControllerGetSystemHealth200Response> {
         const response = await this.adminOpsControllerGetSystemHealthRaw(initOverrides);
         return await response.value();
+    }
+
+    /**
+     * Retry a specific failed job
+     */
+    async adminOpsControllerRetryFailedJobRaw(requestParameters: AdminOpsControllerRetryFailedJobRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<void>> {
+        if (requestParameters['name'] == null) {
+            throw new runtime.RequiredError(
+                'name',
+                'Required parameter "name" was null or undefined when calling adminOpsControllerRetryFailedJob().'
+            );
+        }
+
+        if (requestParameters['jobId'] == null) {
+            throw new runtime.RequiredError(
+                'jobId',
+                'Required parameter "jobId" was null or undefined when calling adminOpsControllerRetryFailedJob().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("JWT-auth", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/admin/ops/queues/{name}/failed/{jobId}/retry`;
+        urlPath = urlPath.replace(`{${"name"}}`, encodeURIComponent(String(requestParameters['name'])));
+        urlPath = urlPath.replace(`{${"jobId"}}`, encodeURIComponent(String(requestParameters['jobId'])));
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.VoidApiResponse(response);
+    }
+
+    /**
+     * Retry a specific failed job
+     */
+    async adminOpsControllerRetryFailedJob(requestParameters: AdminOpsControllerRetryFailedJobRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<void> {
+        await this.adminOpsControllerRetryFailedJobRaw(requestParameters, initOverrides);
     }
 
     /**

@@ -12,6 +12,7 @@ import { SystemConfig } from '../../database/entities/system-config.entity';
 import { UserDeletionCleanupService } from '../../jobs/user-deletion-cleanup.processor';
 import { AuthModule } from '../auth/auth.module';
 import { EmailsModule } from '../emails/emails.module';
+import { AuditModule } from '../audit/audit.module';
 
 /**
  * Admin Ops Module - Feature Flags, System Configuration, Ops Panels
@@ -28,17 +29,19 @@ import { EmailsModule } from '../emails/emails.module';
   imports: [
     TypeOrmModule.forFeature([FeatureFlag, SystemConfig]),
     BullModule.registerQueue(
-      { name: 'payments' },
-      { name: 'fulfillment' },
+      { name: 'payments-queue' },
+      { name: 'fulfillment-queue' },
     ),
     forwardRef(() => AuthModule),
     forwardRef(() => EmailsModule),
+    AuditModule,
   ],
   providers: [
     AdminOpsService,
     FeatureFlagsService,
     SystemConfigService,
     UserDeletionCleanupService,
+    // Note: AuditLogInterceptor is registered globally in AdminModule
   ],
   controllers: [
     AdminOpsController,

@@ -32,6 +32,7 @@ export default tseslint.config(
       '*.config.mjs', // ESLint config files
       'eslint.config.mjs', // ESLint config file
       'src/database/migrations/**', // TypeORM migrations use console.log
+      '*.json', // Ignore JSON files (nest-cli.json, package.json, etc.)
     ],
   },
 

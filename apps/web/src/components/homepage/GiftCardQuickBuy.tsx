@@ -6,7 +6,6 @@ import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { useQuery } from '@tanstack/react-query';
 import {
-    Gift,
     ShoppingCart,
     Zap,
     AlertCircle,
@@ -41,7 +40,7 @@ const catalogApi = new CatalogApi(apiConfig);
 function GiftCardSkeleton(): React.ReactElement {
     return (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {[...Array(8)].map((_, i) => (
+            {Array.from({ length: 8 }).map((_, i) => (
                 <Card key={i} className="h-full bg-bg-secondary border-border-subtle animate-pulse overflow-hidden">
                     <div className="aspect-4/3 bg-bg-tertiary" />
                     <CardContent className="p-4">
@@ -164,7 +163,7 @@ export function GiftCardQuickBuy(): React.ReactElement {
                 {/* Gift Card Grid - Using consistent ProductCard */}
                 {isLoading ? (
                     <GiftCardSkeleton />
-                ) : error ? (
+                ) : error !== null && error !== undefined ? (
                     <div className="flex flex-col items-center justify-center py-12 text-center">
                         <AlertCircle className="w-12 h-12 text-orange-warning mb-4" />
                         <p className="text-text-secondary">Unable to load gift cards</p>

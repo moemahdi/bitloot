@@ -54,6 +54,12 @@ export interface AdminOpsControllerGetQueueStats200ResponseValue {
      * @type {number}
      * @memberof AdminOpsControllerGetQueueStats200ResponseValue
      */
+    completed?: number;
+    /**
+     * 
+     * @type {number}
+     * @memberof AdminOpsControllerGetQueueStats200ResponseValue
+     */
     total?: number;
 }
 
@@ -79,6 +85,7 @@ export function AdminOpsControllerGetQueueStats200ResponseValueFromJSONTyped(jso
         'failed': json['failed'] == null ? undefined : json['failed'],
         'delayed': json['delayed'] == null ? undefined : json['delayed'],
         'paused': json['paused'] == null ? undefined : json['paused'],
+        'completed': json['completed'] == null ? undefined : json['completed'],
         'total': json['total'] == null ? undefined : json['total'],
     };
 }
@@ -99,6 +106,7 @@ export function AdminOpsControllerGetQueueStats200ResponseValueToJSONTyped(value
         'failed': value['failed'],
         'delayed': value['delayed'],
         'paused': value['paused'],
+        'completed': value['completed'],
         'total': value['total'],
     };
 }

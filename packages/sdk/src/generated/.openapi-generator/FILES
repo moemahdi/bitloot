@@ -28,6 +28,7 @@ apis/PromosApi.ts
 apis/PublicMarketingApi.ts
 apis/ReviewsApi.ts
 apis/SessionsApi.ts
+apis/StatusApi.ts
 apis/UsersApi.ts
 apis/WatchlistApi.ts
 apis/WebhooksApi.ts
@@ -76,6 +77,8 @@ docs/AdminOpsControllerGetBalance200ResponseNowpayments.md
 docs/AdminOpsControllerGetBalance200ResponseStatus.md
 docs/AdminOpsControllerGetBalanceDetails200Response.md
 docs/AdminOpsControllerGetBalanceDetails200ResponseAccountsInner.md
+docs/AdminOpsControllerGetFailedJobs200Response.md
+docs/AdminOpsControllerGetFailedJobs200ResponseJobsInner.md
 docs/AdminOpsControllerGetFeatureFlag200Response.md
 docs/AdminOpsControllerGetFeatureFlags200ResponseInner.md
 docs/AdminOpsControllerGetQueueDetails200Response.md
@@ -245,6 +248,9 @@ docs/ScreenshotDto.md
 docs/SessionsApi.md
 docs/SourceTypeCountDto.md
 docs/SpendingStatsDto.md
+docs/StatusApi.md
+docs/StatusControllerCheckMaintenance200Response.md
+docs/StatusControllerGetStatus200Response.md
 docs/StatusCountDto.md
 docs/SwitchEnvironmentDto.md
 docs/SwitchEnvironmentResponseDto.md
@@ -322,6 +328,8 @@ models/AdminOpsControllerGetBalance200ResponseNowpayments.ts
 models/AdminOpsControllerGetBalance200ResponseStatus.ts
 models/AdminOpsControllerGetBalanceDetails200Response.ts
 models/AdminOpsControllerGetBalanceDetails200ResponseAccountsInner.ts
+models/AdminOpsControllerGetFailedJobs200Response.ts
+models/AdminOpsControllerGetFailedJobs200ResponseJobsInner.ts
 models/AdminOpsControllerGetFeatureFlag200Response.ts
 models/AdminOpsControllerGetFeatureFlags200ResponseInner.ts
 models/AdminOpsControllerGetQueueDetails200Response.ts
@@ -472,6 +480,8 @@ models/ReviewsControllerCanReviewOrder200Response.ts
 models/ScreenshotDto.ts
 models/SourceTypeCountDto.ts
 models/SpendingStatsDto.ts
+models/StatusControllerCheckMaintenance200Response.ts
+models/StatusControllerGetStatus200Response.ts
 models/StatusCountDto.ts
 models/SwitchEnvironmentDto.ts
 models/SwitchEnvironmentResponseDto.ts

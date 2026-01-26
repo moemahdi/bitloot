@@ -15,8 +15,8 @@ export class AdminOpsService {
   private readonly logger = new Logger(AdminOpsService.name);
 
   constructor(
-    @InjectQueue('payments') private readonly paymentsQueue: Queue,
-    @InjectQueue('fulfillment') private readonly fulfillmentQueue: Queue,
+    @InjectQueue('payments-queue') private readonly paymentsQueue: Queue,
+    @InjectQueue('fulfillment-queue') private readonly fulfillmentQueue: Queue,
     private readonly configService: ConfigService,
     @Inject(forwardRef(() => FeatureFlagsService))
     private readonly featureFlagsService: FeatureFlagsService,
@@ -46,8 +46,8 @@ export class AdminOpsService {
    * Get single feature flag
    * @deprecated Use FeatureFlagsService.findByName() directly
    */
-  getFeatureFlag(name: string): { enabled: boolean; description: string } | null {
-    const enabled = this.featureFlagsService.isEnabled(name);
+  getFeatureFlag(_name: string): { enabled: boolean; description: string } {
+    const enabled = this.featureFlagsService.isEnabled(_name);
     return { enabled, description: '' };
   }
 
@@ -56,8 +56,8 @@ export class AdminOpsService {
    * @deprecated Use FeatureFlagsService.update() directly
    */
   updateFeatureFlag(
-    name: string,
-    enabled: boolean,
+    _name: string,
+    _enabled: boolean,
   ): { success: boolean; message: string } {
     // The controller should use FeatureFlagsService directly
     return { success: false, message: 'Use FeatureFlagsService.update() instead' };
@@ -68,9 +68,9 @@ export class AdminOpsService {
    * @deprecated Use FeatureFlagsService.create() directly
    */
   createFeatureFlag(
-    name: string,
-    enabled: boolean = false,
-    description: string = '',
+    _name: string,
+    _enabled: boolean = false,
+    _description: string = '',
   ): { success: boolean; message: string } {
     // The controller should use FeatureFlagsService directly
     return { success: false, message: 'Use FeatureFlagsService.create() instead' };
@@ -79,7 +79,7 @@ export class AdminOpsService {
   // ============ QUEUE STATISTICS ============
 
   /**
-   * Get queue statistics (jobs waiting, active, failed, delayed)
+   * Get queue statistics (jobs waiting, active, failed, delayed, completed)
    */
   async getQueueStats(): Promise<
     Record<
@@ -90,6 +90,7 @@ export class AdminOpsService {
         failed: number;
         delayed: number;
         paused: number;
+        completed: number;
         total: number;
       }
     >
@@ -102,6 +103,7 @@ export class AdminOpsService {
         failed: number;
         delayed: number;
         paused: number;
+        completed: number;
         total: number;
       }
     > = {};
@@ -114,10 +116,12 @@ export class AdminOpsService {
       failed: paymentCounts.failed ?? 0,
       delayed: paymentCounts.delayed ?? 0,
       paused: paymentCounts.paused ?? 0,
+      completed: paymentCounts.completed ?? 0,
       total:
         (paymentCounts.waiting ?? 0) +
         (paymentCounts.active ?? 0) +
-        (paymentCounts.failed ?? 0),
+        (paymentCounts.failed ?? 0) +
+        (paymentCounts.completed ?? 0),
     };
 
     // Fulfillment queue
@@ -128,10 +132,12 @@ export class AdminOpsService {
       failed: fulfillmentCounts.failed ?? 0,
       delayed: fulfillmentCounts.delayed ?? 0,
       paused: fulfillmentCounts.paused ?? 0,
+      completed: fulfillmentCounts.completed ?? 0,
       total:
         (fulfillmentCounts.waiting ?? 0) +
         (fulfillmentCounts.active ?? 0) +
-        (fulfillmentCounts.failed ?? 0),
+        (fulfillmentCounts.failed ?? 0) +
+        (fulfillmentCounts.completed ?? 0),
     };
 
     return stats;
@@ -183,6 +189,101 @@ export class AdminOpsService {
         };
       }),
     };
+  }
+
+  /**
+   * Get failed jobs with full error details
+   */
+  async getFailedJobs(
+    queueName: string,
+    limit: number = 20,
+    offset: number = 0,
+  ): Promise<{
+    queueName: string;
+    total: number;
+    jobs: Array<{
+      id: string;
+      name: string;
+      data: Record<string, unknown>;
+      failedReason: string;
+      stacktrace: string[];
+      attemptsMade: number;
+      maxAttempts: number;
+      timestamp: number;
+      processedOn: number | null;
+      finishedOn: number | null;
+    }>;
+  }> {
+    const queue = this.getQueueByName(queueName);
+    const failedJobs = await queue.getFailed(offset, offset + limit - 1);
+    const totalFailed = await queue.getFailedCount();
+
+    return {
+      queueName,
+      total: totalFailed,
+      jobs: failedJobs.map((job) => ({
+        id: job.id ?? 'unknown',
+        name: job.name ?? 'unknown',
+        data: (job.data ?? {}) as Record<string, unknown>,
+        failedReason: job.failedReason ?? 'Unknown error',
+        stacktrace: job.stacktrace ?? [],
+        attemptsMade: job.attemptsMade ?? 0,
+        maxAttempts: job.opts?.attempts ?? 5,
+        timestamp: job.timestamp ?? 0,
+        processedOn: job.processedOn ?? null,
+        finishedOn: job.finishedOn ?? null,
+      })),
+    };
+  }
+
+  /**
+   * Retry a specific failed job
+   */
+  async retryFailedJob(
+    queueName: string,
+    jobId: string,
+  ): Promise<{ ok: boolean; jobId: string }> {
+    const queue = this.getQueueByName(queueName);
+    const job = await queue.getJob(jobId);
+
+    if (job === null || job === undefined) {
+      throw new Error(`Job ${jobId} not found in queue ${queueName}`);
+    }
+
+    await job.retry();
+    this.logger.log(`Retried job ${jobId} in queue ${queueName}`);
+
+    return { ok: true, jobId };
+  }
+
+  /**
+   * Clear all failed jobs from a queue
+   */
+  async clearFailedJobs(queueName: string): Promise<{ ok: boolean; cleared: number }> {
+    const queue = this.getQueueByName(queueName);
+    const failedJobs = await queue.getFailed();
+    
+    let cleared = 0;
+    for (const job of failedJobs) {
+      await job.remove();
+      cleared++;
+    }
+
+    this.logger.log(`Cleared ${cleared} failed jobs from queue ${queueName}`);
+    return { ok: true, cleared };
+  }
+
+  /**
+   * Get queue by name helper
+   */
+  private getQueueByName(queueName: string): Queue {
+    if (queueName === 'payments' || queueName === 'payments-queue') {
+      return this.paymentsQueue;
+    } else if (queueName === 'fulfillment' || queueName === 'fulfillment-queue') {
+      return this.fulfillmentQueue;
+    } else {
+      throw new Error(`Queue ${queueName} not found`);
+    }
   }
 
   // ============ BALANCE MONITORING ============

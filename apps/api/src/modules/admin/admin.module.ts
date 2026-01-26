@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { APP_INTERCEPTOR } from '@nestjs/core';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AdminController } from './admin.controller';
 import { AdminService } from './admin.service';
@@ -12,6 +13,8 @@ import { User } from '../../database/entities/user.entity';
 import { EmailsModule } from '../emails/emails.module';
 import { StorageService } from '../storage/storage.service';
 import { FulfillmentModule } from '../fulfillment/fulfillment.module';
+import { AuditModule } from '../audit/audit.module';
+import { AuditLogInterceptor } from '../../common/interceptors/audit-log.interceptor';
 
 /**
  * Admin Module - Management API for BitLoot operators
@@ -32,8 +35,17 @@ import { FulfillmentModule } from '../fulfillment/fulfillment.module';
     AdminOpsModule,
     EmailsModule,
     FulfillmentModule, // Provides R2StorageClient and FulfillmentService
+    AuditModule, // For audit logging interceptor
   ],
-  providers: [AdminService, StorageService],
+  providers: [
+    AdminService,
+    StorageService,
+    // Apply AuditLogInterceptor to all admin endpoints
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: AuditLogInterceptor,
+    },
+  ],
   controllers: [AdminController],
   exports: [AdminService],
 })

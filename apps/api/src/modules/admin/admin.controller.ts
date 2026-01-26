@@ -3,6 +3,7 @@ import type { Request } from 'express';
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags, ApiQuery, ApiBody } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { AdminGuard } from '../../common/guards/admin.guard';
+import { AuditLog } from '../../common/decorators/audit-log.decorator';
 import { AdminService } from './admin.service';
 import { DashboardStatsDto } from './dto/dashboard-stats.dto';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
@@ -489,6 +490,11 @@ export class AdminController {
    */
   @Post('webhook-logs/bulk-replay')
   @HttpCode(HttpStatus.OK)
+  @AuditLog({
+    action: 'webhook.bulk.replay',
+    target: 'body.ids',
+    details: 'Bulk webhook replay initiated',
+  })
   @ApiOperation({
     summary: 'Bulk replay failed webhooks',
     description: 'Marks multiple webhooks for reprocessing',
@@ -661,6 +667,11 @@ export class AdminController {
    */
   @Post('webhook-logs/:id/replay')
   @HttpCode(HttpStatus.OK)
+  @AuditLog({
+    action: 'webhook.replay',
+    target: 'params.id',
+    details: 'Single webhook replay initiated',
+  })
   @ApiOperation({
     summary: 'Replay failed webhook',
     description: 'Marks webhook for reprocessing by resetting status to pending',
@@ -678,6 +689,12 @@ export class AdminController {
    * Used for manual refunds, status corrections, etc.
    */
   @Patch('orders/:id/status')
+  @AuditLog({
+    action: 'order.status.update',
+    target: 'params.id',
+    includeBodyFields: ['status', 'reason'],
+    details: 'Admin manual order status override',
+  })
   @ApiOperation({
     summary: 'Update order status',
     description: 'Admin override to update order status. Used for manual refunds or corrections. All changes are logged.',
@@ -711,6 +728,12 @@ export class AdminController {
    */
   @Post('orders/:id/retry-fulfillment')
   @HttpCode(HttpStatus.OK)
+  @AuditLog({
+    action: 'order.fulfillment.retry',
+    target: 'params.id',
+    includeBodyFields: ['reason'],
+    details: 'Admin triggered fulfillment retry',
+  })
   @ApiOperation({
     summary: 'Retry fulfillment for stuck order',
     description: 'Triggers the fulfillment process for orders stuck at paid/failed/waiting status. This actually reserves keys, encrypts them, and stores in R2. Use this instead of manually changing status to fulfilled.',
@@ -752,6 +775,11 @@ export class AdminController {
    */
   @Post('orders/:id/resend-keys')
   @HttpCode(HttpStatus.OK)
+  @AuditLog({
+    action: 'order.keys.resend',
+    target: 'params.id',
+    details: 'Admin resent key delivery email',
+  })
   @ApiOperation({
     summary: 'Resend key delivery email',
     description: 'Regenerates signed URLs for keys and resends delivery email to customer. Only works for fulfilled orders.',
@@ -779,6 +807,12 @@ export class AdminController {
    * Updates multiple orders at once with the same status
    */
   @Patch('orders/bulk-status')
+  @AuditLog({
+    action: 'order.bulk.status.update',
+    target: 'body.orderIds',
+    includeBodyFields: ['status', 'reason', 'orderIds'],
+    details: 'Bulk order status update',
+  })
   @ApiOperation({
     summary: 'Bulk update order status',
     description: 'Update status for multiple orders at once. Maximum 100 orders per request. All changes are logged.',
@@ -880,6 +914,12 @@ export class AdminController {
    * Use for edge cases where automatic status detection fails
    */
   @Patch('payments/:id/status')
+  @AuditLog({
+    action: 'payment.status.update',
+    target: 'params.id',
+    includeBodyFields: ['status', 'reason'],
+    details: 'Admin manual payment status override',
+  })
   @ApiOperation({
     summary: 'Manually update payment status (admin override)',
     description: 'Updates payment status for support edge cases. Requires reason for audit trail. Cannot change finalized payments.',

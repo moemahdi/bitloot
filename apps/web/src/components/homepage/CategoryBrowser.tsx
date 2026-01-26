@@ -7,7 +7,6 @@ import {
     Gamepad2,
     Monitor,
     CreditCard,
-    Repeat,
     ArrowRight,
     // Game Genres
     Swords,

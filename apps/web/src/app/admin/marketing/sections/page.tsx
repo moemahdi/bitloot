@@ -12,7 +12,7 @@
  * Follows Level 5 admin page patterns
  */
 
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient, useQueries } from '@tanstack/react-query';
 import { useState, useMemo, useCallback } from 'react';
 import Image from 'next/image';
 import {
@@ -407,14 +407,14 @@ function ProductSearch({
 
 interface SectionProductListProps {
   products: Product[];
-  sectionKey: string;
+  _sectionKey: string;
   onRemove: (product: Product) => void;
   onReorder: (product: Product, direction: 'up' | 'down') => void;
 }
 
 function SectionProductList({
   products,
-  sectionKey,
+  _sectionKey,
   onRemove,
   onReorder,
 }: SectionProductListProps): React.ReactElement {
@@ -674,7 +674,7 @@ function SectionManageDialog({
             <ScrollArea className="h-[340px]">
               <SectionProductList
                 products={products}
-                sectionKey={config.key}
+                _sectionKey={config.key}
                 onRemove={(product) => { void onRemoveProduct(product); }}
                 onReorder={(product, direction) => { void onReorderProduct(product, direction); }}
               />
@@ -703,15 +703,23 @@ export default function HomepageSectionsPage(): React.ReactElement {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Fetch products for all sections
-  const sectionQueries = HOMEPAGE_SECTIONS.map((config) => ({
-    key: config.key,
-    query: useQuery({
+  // Fetch products for all sections using useQueries (proper hook usage)
+  const sectionQueryResults = useQueries({
+    queries: HOMEPAGE_SECTIONS.map((config) => ({
       queryKey: ['admin', 'marketing', 'section-products', config.key],
       queryFn: () => fetchSectionProducts(config.key),
       staleTime: 30_000,
-    }),
-  }));
+    })),
+  });
+
+  // Map query results back to section keys with proper typing
+  const sectionQueries = HOMEPAGE_SECTIONS.map((config, index) => {
+    const queryResult = sectionQueryResults[index];
+    return {
+      key: config.key,
+      query: queryResult,
+    };
+  }).filter((sq): sq is { key: string; query: NonNullable<typeof sq.query> } => sq.query !== undefined);
 
   // Get products for a specific section
   const getSectionProducts = (key: string): Product[] => {
