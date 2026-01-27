@@ -300,6 +300,12 @@ export class AdminKinguinController {
     description: 'Kinguin product ID to import',
     example: '5c9b5b4b4f4c4c4c4c4c4c4c',
   })
+  @ApiQuery({
+    name: 'businessCategory',
+    required: false,
+    description: 'Business category for the imported product',
+    enum: ['games', 'software', 'gift-cards', 'subscriptions'],
+  })
   @ApiResponse({
     status: 200,
     description: 'Product imported successfully',
@@ -310,6 +316,7 @@ export class AdminKinguinController {
   @ApiResponse({ status: 403, description: 'Forbidden - Admin only' })
   async importProduct(
     @Param('productId') productId: string,
+    @Query('businessCategory') businessCategory?: 'games' | 'software' | 'gift-cards' | 'subscriptions',
   ): Promise<KinguinImportResponseDto> {
     // Validate productId
     if (productId === undefined || productId.trim().length === 0) {
@@ -333,8 +340,8 @@ export class AdminKinguinController {
     );
     const isNew = existingProduct === null;
 
-    // Upsert the product
-    const product = await this.catalogService.upsertProduct(kinguinProduct);
+    // Upsert the product with optional business category override
+    const product = await this.catalogService.upsertProduct(kinguinProduct, businessCategory);
 
     return {
       success: true,

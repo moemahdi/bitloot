@@ -39,6 +39,8 @@ function toProductResponseDto(product: Product): ProductResponseDto {
     drm: product.drm,
     ageRating: product.ageRating,
     category: product.category,
+    businessCategory: product.businessCategory ?? 'games',
+    isFeatured: product.isFeatured ?? false,
     price: product.price,
     currency: product.currency,
     isPublished: product.isPublished,
@@ -107,7 +109,9 @@ export class CatalogController {
   @ApiQuery({ name: 'q', required: false, description: 'Search query (full-text)' })
   @ApiQuery({ name: 'platform', required: false, description: 'Filter by platform (Steam, Epic, etc)' })
   @ApiQuery({ name: 'region', required: false, description: 'Filter by region (US, EU, etc)' })
-  @ApiQuery({ name: 'category', required: false, description: 'Filter by category' })
+  @ApiQuery({ name: 'businessCategory', required: false, description: 'Filter by BitLoot category: games, software, gift-cards, subscriptions' })
+  @ApiQuery({ name: 'category', required: false, description: 'Filter by genre (legacy Kinguin genres)' })
+  @ApiQuery({ name: 'featured', required: false, type: 'boolean', description: 'Show only featured products' })
   @ApiQuery({ name: 'sort', required: false, enum: ['newest', 'price_asc', 'price_desc', 'rating'] })
   @ApiQuery({ name: 'limit', required: false, type: 'number', description: 'Items per page (≤ 100)' })
   @ApiQuery({ name: 'offset', required: false, type: 'number', description: 'Pagination offset' })
@@ -116,7 +120,9 @@ export class CatalogController {
     @Query('q') q?: string,
     @Query('platform') platform?: string,
     @Query('region') region?: string,
+    @Query('businessCategory') businessCategory?: string,
     @Query('category') category?: string,
+    @Query('featured') featuredParam?: string,
     @Query('sort') sort?: 'newest' | 'price_asc' | 'price_desc' | 'rating',
     @Query('limit') limitParam?: string,
     @Query('offset') offsetParam?: string,
@@ -126,15 +132,18 @@ export class CatalogController {
     const offset = offsetParam !== undefined && offsetParam !== '' ? parseInt(offsetParam, 10) : 0;
     const safeLimit = Number.isNaN(limit) ? 24 : limit;
     const safeOffset = Number.isNaN(offset) ? 0 : offset;
+    const featured = featuredParam === 'true' || featuredParam === '1';
     
     try {
-      // Log: listProducts called with: q, platform, region, category, sort, limit, offset
+      // Log: listProducts called with: q, platform, region, businessCategory, category, sort, limit, offset
       
       const result = await this.catalogService.listProducts(safeLimit, safeOffset, {
         q,
         platform,
         region,
+        businessCategory,
         category,
+        featured,
         sort,
       });
       
@@ -161,6 +170,32 @@ export class CatalogController {
       console.error('[CatalogController] listProducts error:', error);
       throw error;
     }
+  }
+
+  @Get('products/featured')
+  @ApiOperation({
+    summary: 'Get featured products',
+    description: 'Returns products marked as featured (isFeatured=true), sorted by featured order. Use for homepage featured section.',
+  })
+  @ApiQuery({ name: 'limit', required: false, type: 'number', description: 'Max products to return (default 8, max 24)' })
+  @ApiResponse({ status: 200, type: ProductListResponseDto, description: 'Featured products list' })
+  async getFeaturedProducts(
+    @Query('limit') limitParam?: string,
+  ): Promise<ProductListResponseDto> {
+    const limit = limitParam !== undefined && limitParam !== '' ? parseInt(limitParam, 10) : 8;
+    const safeLimit = Number.isNaN(limit) || limit < 1 ? 8 : Math.min(limit, 24);
+    
+    const result = await this.catalogService.listProducts(safeLimit, 0, {
+      featured: true,
+    });
+    
+    return {
+      data: result.data.map(toProductResponseDto),
+      total: result.total,
+      limit: safeLimit,
+      offset: 0,
+      pages: Math.ceil(result.total / safeLimit),
+    };
   }
 
   @Get('products/:slug')

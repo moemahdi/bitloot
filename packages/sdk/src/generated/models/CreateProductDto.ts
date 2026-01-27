@@ -80,6 +80,18 @@ export interface CreateProductDto {
      */
     category?: string;
     /**
+     * Business category for store organization
+     * @type {string}
+     * @memberof CreateProductDto
+     */
+    businessCategory: CreateProductDtoBusinessCategoryEnum;
+    /**
+     * Whether this product is featured on the homepage
+     * @type {boolean}
+     * @memberof CreateProductDto
+     */
+    isFeatured: boolean;
+    /**
      * Wholesale cost (decimal string)
      * @type {string}
      * @memberof CreateProductDto
@@ -115,6 +127,17 @@ export const CreateProductDtoSourceTypeEnum = {
 } as const;
 export type CreateProductDtoSourceTypeEnum = typeof CreateProductDtoSourceTypeEnum[keyof typeof CreateProductDtoSourceTypeEnum];
 
+/**
+ * @export
+ */
+export const CreateProductDtoBusinessCategoryEnum = {
+    Games: 'games',
+    Software: 'software',
+    GiftCards: 'gift-cards',
+    Subscriptions: 'subscriptions'
+} as const;
+export type CreateProductDtoBusinessCategoryEnum = typeof CreateProductDtoBusinessCategoryEnum[keyof typeof CreateProductDtoBusinessCategoryEnum];
+
 
 /**
  * Check if a given object implements the CreateProductDto interface.
@@ -122,6 +145,8 @@ export type CreateProductDtoSourceTypeEnum = typeof CreateProductDtoSourceTypeEn
 export function instanceOfCreateProductDto(value: object): value is CreateProductDto {
     if (!('sourceType' in value) || value['sourceType'] === undefined) return false;
     if (!('title' in value) || value['title'] === undefined) return false;
+    if (!('businessCategory' in value) || value['businessCategory'] === undefined) return false;
+    if (!('isFeatured' in value) || value['isFeatured'] === undefined) return false;
     if (!('cost' in value) || value['cost'] === undefined) return false;
     if (!('price' in value) || value['price'] === undefined) return false;
     if (!('currency' in value) || value['currency'] === undefined) return false;
@@ -149,6 +174,8 @@ export function CreateProductDtoFromJSONTyped(json: any, ignoreDiscriminator: bo
         'drm': json['drm'] == null ? undefined : json['drm'],
         'ageRating': json['ageRating'] == null ? undefined : json['ageRating'],
         'category': json['category'] == null ? undefined : json['category'],
+        'businessCategory': json['businessCategory'],
+        'isFeatured': json['isFeatured'],
         'cost': json['cost'],
         'price': json['price'],
         'currency': json['currency'],
@@ -177,6 +204,8 @@ export function CreateProductDtoToJSONTyped(value?: CreateProductDto | null, ign
         'drm': value['drm'],
         'ageRating': value['ageRating'],
         'category': value['category'],
+        'businessCategory': value['businessCategory'],
+        'isFeatured': value['isFeatured'],
         'cost': value['cost'],
         'price': value['price'],
         'currency': value['currency'],

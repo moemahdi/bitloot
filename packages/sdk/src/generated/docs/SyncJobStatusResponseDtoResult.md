@@ -1,7 +1,7 @@
 
 # SyncJobStatusResponseDtoResult
 
-Job result data
+Job result data (available after completion)
 
 ## Properties
 
@@ -10,7 +10,10 @@ Name | Type
 `productsProcessed` | number
 `productsCreated` | number
 `productsUpdated` | number
+`productsSkipped` | number
 `errors` | Array&lt;string&gt;
+`skippedProducts` | [Array&lt;SkippedProductInfoDto&gt;](SkippedProductInfoDto.md)
+`updatedProducts` | [Array&lt;UpdatedProductInfoDto&gt;](UpdatedProductInfoDto.md)
 
 ## Example
 
@@ -22,7 +25,10 @@ const example = {
   "productsProcessed": null,
   "productsCreated": null,
   "productsUpdated": null,
+  "productsSkipped": null,
   "errors": null,
+  "skippedProducts": null,
+  "updatedProducts": null,
 } satisfies SyncJobStatusResponseDtoResult
 
 console.log(example)

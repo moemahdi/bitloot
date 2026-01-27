@@ -351,20 +351,28 @@ export default function AdminEditProductPage(): React.JSX.Element {
     // Loading state
     if (productQuery.isLoading) {
         return (
-            <div className="space-y-6 p-6">
+            <div className="space-y-6 p-6 animate-fade-in">
+                {/* Header skeleton */}
                 <div className="flex items-center gap-4">
-                    <Skeleton className="h-10 w-32" />
+                    <Skeleton className="h-10 w-32 animate-shimmer" />
                 </div>
-                <Skeleton className="h-12 w-96" />
-                <Skeleton className="h-6 w-64" />
+                <div className="relative">
+                    <div className="absolute -inset-x-6 top-0 h-32 bg-gradient-to-r from-cyan-glow/5 via-purple-neon/5 to-transparent rounded-xl" />
+                    <div className="relative space-y-2">
+                        <Skeleton className="h-12 w-96 animate-shimmer" />
+                        <Skeleton className="h-6 w-64 animate-shimmer" />
+                    </div>
+                </div>
                 <div className="grid gap-6 lg:grid-cols-3">
                     <div className="lg:col-span-2 space-y-6">
-                        <Skeleton className="h-64 w-full rounded-lg" />
-                        <Skeleton className="h-80 w-full rounded-lg" />
+                        <Skeleton className="h-64 w-full rounded-lg border border-border-subtle animate-shimmer" />
+                        <Skeleton className="h-80 w-full rounded-lg border border-border-subtle animate-shimmer" />
+                        <Skeleton className="h-64 w-full rounded-lg border border-border-subtle animate-shimmer" />
                     </div>
                     <div className="space-y-6">
-                        <Skeleton className="h-64 w-full rounded-lg" />
-                        <Skeleton className="h-32 w-full rounded-lg" />
+                        <Skeleton className="h-64 w-full rounded-lg border border-border-subtle animate-shimmer" />
+                        <Skeleton className="h-32 w-full rounded-lg border border-border-subtle animate-shimmer" />
+                        <Skeleton className="h-24 w-full rounded-lg border border-border-subtle animate-shimmer" />
                     </div>
                 </div>
             </div>
@@ -374,26 +382,32 @@ export default function AdminEditProductPage(): React.JSX.Element {
     // Error state
     if (productQuery.isError) {
         return (
-            <div className="space-y-6 p-6">
+            <div className="space-y-6 p-6 animate-fade-in">
                 <div className="flex items-center gap-4">
                     <Link href="/admin/catalog/products">
-                        <Button variant="ghost" size="sm" className="text-text-secondary hover:text-text-primary">
+                        <Button variant="ghost" size="sm" className="text-text-secondary hover:text-text-primary hover:bg-bg-tertiary/50 transition-all duration-250">
                             <ArrowLeft className="mr-2 h-4 w-4" />
                             Back to Products
                         </Button>
                     </Link>
                 </div>
-                <Alert variant="destructive" className="border-red-500/50 bg-red-500/10 text-red-500">
-                    <AlertTriangle className="h-4 w-4" />
-                    <AlertTitle>Error Loading Product</AlertTitle>
-                    <AlertDescription>
-                        {productQuery.error instanceof Error ? productQuery.error.message : 'Failed to load product'}
-                    </AlertDescription>
+                <Alert variant="destructive" className="border-destructive/50 bg-destructive/5">
+                    <div className="flex items-start gap-3">
+                        <div className="p-2 rounded-full bg-destructive/10">
+                            <AlertTriangle className="h-4 w-4 text-destructive" />
+                        </div>
+                        <div>
+                            <AlertTitle className="text-destructive">Error Loading Product</AlertTitle>
+                            <AlertDescription className="text-destructive/80">
+                                {productQuery.error instanceof Error ? productQuery.error.message : 'Failed to load product'}
+                            </AlertDescription>
+                        </div>
+                    </div>
                 </Alert>
                 <Button
                     variant="outline"
                     onClick={() => productQuery.refetch()}
-                    className="border-cyan-glow/30"
+                    className="border-cyan-glow/30 hover:border-cyan-glow/50 hover:bg-cyan-glow/5 hover:shadow-glow-cyan-sm transition-all duration-250"
                 >
                     <RefreshCw className="mr-2 h-4 w-4" />
                     Try Again
@@ -405,90 +419,127 @@ export default function AdminEditProductPage(): React.JSX.Element {
     // Product not found
     if (product == null) {
         return (
-            <div className="space-y-6 p-6">
+            <div className="space-y-6 p-6 animate-fade-in">
                 <div className="flex items-center gap-4">
                     <Link href="/admin/catalog/products">
-                        <Button variant="ghost" size="sm" className="text-text-secondary hover:text-text-primary">
+                        <Button variant="ghost" size="sm" className="text-text-secondary hover:text-text-primary hover:bg-bg-tertiary/50 transition-all duration-250">
                             <ArrowLeft className="mr-2 h-4 w-4" />
                             Back to Products
                         </Button>
                     </Link>
                 </div>
-                <Alert variant="destructive" className="border-red-500/50 bg-red-500/10 text-red-500">
-                    <AlertTriangle className="h-4 w-4" />
-                    <AlertTitle>Product Not Found</AlertTitle>
-                    <AlertDescription>
-                        The product with ID &quot;{productId}&quot; could not be found.
-                    </AlertDescription>
+                <Alert variant="destructive" className="border-orange-warning/50 bg-orange-warning/5">
+                    <div className="flex items-start gap-3">
+                        <div className="p-2 rounded-full bg-orange-warning/10">
+                            <Package className="h-4 w-4 text-orange-warning" />
+                        </div>
+                        <div>
+                            <AlertTitle className="text-orange-warning">Product Not Found</AlertTitle>
+                            <AlertDescription className="text-orange-warning/80">
+                                The product with ID &quot;{productId}&quot; could not be found.
+                            </AlertDescription>
+                        </div>
+                    </div>
                 </Alert>
+                <Link href="/admin/catalog/products">
+                    <Button
+                        variant="outline"
+                        className="border-cyan-glow/30 hover:border-cyan-glow/50 hover:bg-cyan-glow/5 hover:shadow-glow-cyan-sm transition-all duration-250"
+                    >
+                        <ArrowLeft className="mr-2 h-4 w-4" />
+                        Return to Products
+                    </Button>
+                </Link>
             </div>
         );
     }
 
     return (
-        <div className="space-y-6 p-6">
-            {/* Header */}
-            <div className="flex items-center gap-4">
-                <Link href="/admin/catalog/products">
-                    <Button variant="ghost" size="sm" className="text-text-secondary hover:text-text-primary">
-                        <ArrowLeft className="mr-2 h-4 w-4" />
-                        Back to Products
-                    </Button>
-                </Link>
-                {hasChanges && (
-                    <Badge variant="outline" className="border-yellow-500/50 text-yellow-500">
-                        Unsaved Changes
-                    </Badge>
-                )}
-            </div>
+        <div className="space-y-6 p-6 animate-fade-in">
+            {/* Header with gradient accent */}
+            <div className="relative">
+                <div className="absolute -inset-x-6 top-0 h-32 bg-gradient-to-r from-cyan-glow/5 via-purple-neon/5 to-transparent rounded-xl" />
+                <div className="relative">
+                    <div className="flex items-center gap-4">
+                        <Link href="/admin/catalog/products">
+                            <Button variant="ghost" size="sm" className="text-text-secondary hover:text-text-primary hover:bg-bg-tertiary/50 transition-all duration-250">
+                                <ArrowLeft className="mr-2 h-4 w-4" />
+                                Back to Products
+                            </Button>
+                        </Link>
+                        {hasChanges && (
+                            <Badge variant="outline" className="border-orange-warning/50 bg-orange-warning/10 text-orange-warning animate-pulse">
+                                Unsaved Changes
+                            </Badge>
+                        )}
+                    </div>
 
-            <div className="flex items-start justify-between">
-                <div>
-                    <h1 className="font-display text-3xl font-bold tracking-tight text-text-primary drop-shadow-[0_0_10px_rgba(0,217,255,0.1)]">
-                        Edit Product
-                    </h1>
-                    <p className="text-text-secondary mt-2">
-                        Update product details for &quot;{product.title}&quot;
-                    </p>
+                    <div className="flex items-start justify-between mt-4">
+                        <div className="flex items-center gap-4">
+                            <div className="p-3 rounded-xl bg-cyan-glow/10 border border-cyan-glow/20 shadow-glow-cyan-sm">
+                                <Package className="h-6 w-6 text-cyan-glow" />
+                            </div>
+                            <div>
+                                <h1 className="font-display text-3xl font-bold tracking-tight text-text-primary drop-shadow-[0_0_10px_rgba(0,217,255,0.15)]">
+                                    Edit Product
+                                </h1>
+                                <p className="text-text-secondary mt-1 line-clamp-1">
+                                    Update details for &quot;{product.title}&quot;
+                                </p>
+                            </div>
+                        </div>
+                        <Badge
+                            variant="outline"
+                            className={isKinguin
+                                ? 'border-orange-warning/50 bg-orange-warning/10 text-orange-warning shadow-glow-error'
+                                : 'border-cyan-glow/50 bg-cyan-glow/10 text-cyan-glow shadow-glow-cyan-sm'
+                            }
+                        >
+                            {isKinguin ? (
+                                <>
+                                    <Crown className="mr-1.5 h-3.5 w-3.5" />
+                                    Kinguin
+                                </>
+                            ) : (
+                                <>
+                                    <Store className="mr-1.5 h-3.5 w-3.5" />
+                                    Custom
+                                </>
+                            )}
+                        </Badge>
+                    </div>
                 </div>
-                <Badge
-                    variant="outline"
-                    className={isKinguin
-                        ? 'border-orange-500/50 bg-orange-500/10 text-orange-400'
-                        : 'border-cyan-glow/50 bg-cyan-glow/10 text-cyan-glow'
-                    }
-                >
-                    {isKinguin ? (
-                        <>
-                            <Crown className="mr-1 h-3 w-3" />
-                            Kinguin
-                        </>
-                    ) : (
-                        <>
-                            <Store className="mr-1 h-3 w-3" />
-                            Custom
-                        </>
-                    )}
-                </Badge>
             </div>
 
             {/* Network Status Alert */}
             {!isOnline && (
-                <Alert variant="destructive" className="border-red-500/50 bg-red-500/10 text-red-500">
-                    <AlertTriangle className="h-4 w-4" />
-                    <AlertTitle>No Internet Connection</AlertTitle>
-                    <AlertDescription>
-                        Please check your network connection and try again.
-                    </AlertDescription>
+                <Alert variant="destructive" className="border-orange-warning/50 bg-orange-warning/5">
+                    <div className="flex items-start gap-3">
+                        <div className="p-2 rounded-full bg-orange-warning/10 animate-pulse">
+                            <AlertTriangle className="h-4 w-4 text-orange-warning" />
+                        </div>
+                        <div>
+                            <AlertTitle className="text-orange-warning">No Internet Connection</AlertTitle>
+                            <AlertDescription className="text-orange-warning/80">
+                                Please check your network connection and try again.
+                            </AlertDescription>
+                        </div>
+                    </div>
                 </Alert>
             )}
 
             {/* Error Alert */}
             {lastError != null && lastError.length > 0 && isOnline && (
-                <Alert variant="destructive" className="border-red-500/50 bg-red-500/10 text-red-500">
-                    <AlertTriangle className="h-4 w-4" />
-                    <AlertTitle>Error Updating Product</AlertTitle>
-                    <AlertDescription>{lastError}</AlertDescription>
+                <Alert variant="destructive" className="border-destructive/50 bg-destructive/5">
+                    <div className="flex items-start gap-3">
+                        <div className="p-2 rounded-full bg-destructive/10">
+                            <AlertTriangle className="h-4 w-4 text-destructive" />
+                        </div>
+                        <div>
+                            <AlertTitle className="text-destructive">Error Updating Product</AlertTitle>
+                            <AlertDescription className="text-destructive/80">{lastError}</AlertDescription>
+                        </div>
+                    </div>
                 </Alert>
             )}
 
@@ -497,31 +548,35 @@ export default function AdminEditProductPage(): React.JSX.Element {
                     {/* Main Form */}
                     <div className="lg:col-span-2 space-y-6">
                         {/* Fulfillment Source Card (Read-Only) */}
-                        <Card className="border-cyan-glow/20 bg-bg-secondary/50 backdrop-blur-sm shadow-[0_0_15px_rgba(0,217,255,0.05)]">
+                        <Card className="border-border-subtle bg-bg-secondary/80 backdrop-blur-sm hover:border-border-accent transition-all duration-250">
                             <CardHeader>
-                                <CardTitle className="text-text-primary flex items-center gap-2">
-                                    <Package className="h-5 w-5 text-cyan-glow" />
-                                    Fulfillment Source
-                                </CardTitle>
-                                <CardDescription className="text-text-secondary">
-                                    Source type cannot be changed after creation
-                                </CardDescription>
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 rounded-lg bg-purple-neon/10 border border-purple-neon/20">
+                                        <Package className="h-5 w-5 text-purple-neon" />
+                                    </div>
+                                    <div>
+                                        <CardTitle className="text-text-primary">Fulfillment Source</CardTitle>
+                                        <CardDescription className="text-text-secondary">
+                                            Source type cannot be changed after creation
+                                        </CardDescription>
+                                    </div>
+                                </div>
                             </CardHeader>
                             <CardContent>
-                                <div className={`p-4 rounded-lg border-2 ${isKinguin
-                                        ? 'border-orange-500/50 bg-orange-500/10'
-                                        : 'border-cyan-glow/50 bg-cyan-glow/10'
+                                <div className={`p-4 rounded-lg border-2 transition-all duration-250 ${isKinguin
+                                        ? 'border-orange-warning/50 bg-orange-warning/5 shadow-glow-error'
+                                        : 'border-cyan-glow/50 bg-cyan-glow/5 shadow-glow-cyan-sm'
                                     }`}>
                                     <div className="flex items-center gap-3">
-                                        <div className={`p-2 rounded-full ${isKinguin ? 'bg-orange-500/20' : 'bg-cyan-glow/20'}`}>
+                                        <div className={`p-2.5 rounded-full ${isKinguin ? 'bg-orange-warning/20' : 'bg-cyan-glow/20'}`}>
                                             {isKinguin ? (
-                                                <Crown className="h-5 w-5 text-orange-400" />
+                                                <Crown className="h-5 w-5 text-orange-warning" />
                                             ) : (
                                                 <Store className="h-5 w-5 text-cyan-glow" />
                                             )}
                                         </div>
                                         <div>
-                                            <p className={`font-semibold ${isKinguin ? 'text-orange-400' : 'text-cyan-glow'}`}>
+                                            <p className={`font-semibold ${isKinguin ? 'text-orange-warning' : 'text-cyan-glow'}`}>
                                                 {isKinguin ? 'Kinguin' : 'Custom'}
                                             </p>
                                             <p className="text-xs text-text-secondary">
@@ -538,20 +593,20 @@ export default function AdminEditProductPage(): React.JSX.Element {
                                         animate={{ opacity: 1, height: 'auto' }}
                                         className="mt-4"
                                     >
-                                        <div className="space-y-2">
+                                        <div className="p-4 rounded-lg bg-orange-warning/5 border border-orange-warning/20 space-y-2">
                                             <Label htmlFor="kinguinOfferId" className="text-text-secondary">
-                                                Kinguin Offer ID <span className="text-red-500">*</span>
+                                                Kinguin Offer ID <span className="text-destructive">*</span>
                                             </Label>
                                             <Input
                                                 id="kinguinOfferId"
                                                 value={formData.kinguinOfferId}
                                                 onChange={(e) => updateField('kinguinOfferId', e.target.value)}
                                                 placeholder="e.g., 5c9b5b5a-e9f6-4e3b-8e5a-1b2c3d4e5f6g"
-                                                className={`border-orange-500/30 bg-bg-tertiary/50 focus:border-orange-500/50 focus:ring-orange-500/20 ${validationErrors.kinguinOfferId !== undefined ? 'border-red-500' : ''
+                                                className={`border-orange-warning/30 bg-bg-tertiary/50 focus:border-orange-warning/50 focus:ring-orange-warning/20 transition-all duration-250 ${validationErrors.kinguinOfferId !== undefined ? 'border-destructive' : ''
                                                     }`}
                                             />
                                             {validationErrors.kinguinOfferId !== undefined && (
-                                                <p className="text-xs text-red-500">{validationErrors.kinguinOfferId}</p>
+                                                <p className="text-xs text-destructive">{validationErrors.kinguinOfferId}</p>
                                             )}
                                             <p className="text-xs text-text-muted">
                                                 The unique offer ID from Kinguin that will be used for fulfillment
@@ -563,31 +618,35 @@ export default function AdminEditProductPage(): React.JSX.Element {
                         </Card>
 
                         {/* Basic Info Card */}
-                        <Card className="border-cyan-glow/20 bg-bg-secondary/50 backdrop-blur-sm shadow-[0_0_15px_rgba(0,217,255,0.05)]">
+                        <Card className="border-border-subtle bg-bg-secondary/80 backdrop-blur-sm hover:border-border-accent transition-all duration-250">
                             <CardHeader>
-                                <CardTitle className="text-text-primary flex items-center gap-2">
-                                    <Tag className="h-5 w-5 text-cyan-glow" />
-                                    Basic Information
-                                </CardTitle>
-                                <CardDescription className="text-text-secondary">
-                                    Product title, description, and category
-                                </CardDescription>
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 rounded-lg bg-cyan-glow/10 border border-cyan-glow/20">
+                                        <Tag className="h-5 w-5 text-cyan-glow" />
+                                    </div>
+                                    <div>
+                                        <CardTitle className="text-text-primary">Basic Information</CardTitle>
+                                        <CardDescription className="text-text-secondary">
+                                            Product title, description, and category
+                                        </CardDescription>
+                                    </div>
+                                </div>
                             </CardHeader>
                             <CardContent className="space-y-4">
                                 <div className="space-y-2">
                                     <Label htmlFor="title" className="text-text-secondary">
-                                        Title <span className="text-red-500">*</span>
+                                        Title <span className="text-destructive">*</span>
                                     </Label>
                                     <Input
                                         id="title"
                                         value={formData.title}
                                         onChange={(e) => updateField('title', e.target.value)}
                                         placeholder="e.g., Elden Ring - Steam Key"
-                                        className={`border-cyan-glow/20 bg-bg-tertiary/50 focus:border-cyan-glow/50 focus:ring-cyan-glow/20 ${validationErrors.title !== undefined ? 'border-red-500' : ''
+                                        className={`border-border-subtle bg-bg-tertiary/50 focus:border-cyan-glow/50 focus:ring-cyan-glow/20 transition-all duration-250 ${validationErrors.title !== undefined ? 'border-destructive' : ''
                                             }`}
                                     />
                                     {validationErrors.title !== undefined && (
-                                        <p className="text-xs text-red-500">{validationErrors.title}</p>
+                                        <p className="text-xs text-destructive">{validationErrors.title}</p>
                                     )}
                                 </div>
 
@@ -600,7 +659,7 @@ export default function AdminEditProductPage(): React.JSX.Element {
                                         value={formData.subtitle}
                                         onChange={(e) => updateField('subtitle', e.target.value)}
                                         placeholder="e.g., Digital Deluxe Edition"
-                                        className="border-cyan-glow/20 bg-bg-tertiary/50 focus:border-cyan-glow/50 focus:ring-cyan-glow/20"
+                                        className="border-border-subtle bg-bg-tertiary/50 focus:border-cyan-glow/50 focus:ring-cyan-glow/20 transition-all duration-250"
                                     />
                                 </div>
 
@@ -614,7 +673,7 @@ export default function AdminEditProductPage(): React.JSX.Element {
                                         onChange={(e) => updateField('description', e.target.value)}
                                         placeholder="Product description..."
                                         rows={4}
-                                        className="border-cyan-glow/20 bg-bg-tertiary/50 focus:border-cyan-glow/50 focus:ring-cyan-glow/20"
+                                        className="border-border-subtle bg-bg-tertiary/50 focus:border-cyan-glow/50 focus:ring-cyan-glow/20 transition-all duration-250"
                                     />
                                 </div>
 
@@ -623,10 +682,10 @@ export default function AdminEditProductPage(): React.JSX.Element {
                                         Category
                                     </Label>
                                     <Select value={formData.category} onValueChange={(v) => updateField('category', v)}>
-                                        <SelectTrigger className="border-cyan-glow/20 bg-bg-tertiary/50 focus:border-cyan-glow/50 focus:ring-cyan-glow/20">
+                                        <SelectTrigger className="border-border-subtle bg-bg-tertiary/50 focus:border-cyan-glow/50 focus:ring-cyan-glow/20 transition-all duration-250">
                                             <SelectValue placeholder="Select category" />
                                         </SelectTrigger>
-                                        <SelectContent className="border-cyan-glow/20 bg-bg-secondary/95 backdrop-blur-xl">
+                                        <SelectContent className="border-border-subtle bg-bg-secondary/95 backdrop-blur-xl">
                                             {CATEGORIES.map((cat) => (
                                                 <SelectItem key={cat.value} value={cat.value}>
                                                     {cat.label}
@@ -639,15 +698,19 @@ export default function AdminEditProductPage(): React.JSX.Element {
                         </Card>
 
                         {/* Platform & Region Card */}
-                        <Card className="border-cyan-glow/20 bg-bg-secondary/50 backdrop-blur-sm shadow-[0_0_15px_rgba(0,217,255,0.05)]">
+                        <Card className="border-border-subtle bg-bg-secondary/80 backdrop-blur-sm hover:border-border-accent transition-all duration-250">
                             <CardHeader>
-                                <CardTitle className="text-text-primary flex items-center gap-2">
-                                    <Globe className="h-5 w-5 text-cyan-glow" />
-                                    Platform & Region
-                                </CardTitle>
-                                <CardDescription className="text-text-secondary">
-                                    Where and how the product can be activated
-                                </CardDescription>
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 rounded-lg bg-green-success/10 border border-green-success/20">
+                                        <Globe className="h-5 w-5 text-green-success" />
+                                    </div>
+                                    <div>
+                                        <CardTitle className="text-text-primary">Platform & Region</CardTitle>
+                                        <CardDescription className="text-text-secondary">
+                                            Where and how the product can be activated
+                                        </CardDescription>
+                                    </div>
+                                </div>
                             </CardHeader>
                             <CardContent>
                                 <div className="grid gap-4 sm:grid-cols-2">
@@ -656,10 +719,10 @@ export default function AdminEditProductPage(): React.JSX.Element {
                                             Platform
                                         </Label>
                                         <Select value={formData.platform} onValueChange={(v) => updateField('platform', v)}>
-                                            <SelectTrigger className="border-cyan-glow/20 bg-bg-tertiary/50 focus:border-cyan-glow/50 focus:ring-cyan-glow/20">
+                                            <SelectTrigger className="border-border-subtle bg-bg-tertiary/50 focus:border-cyan-glow/50 focus:ring-cyan-glow/20 transition-all duration-250">
                                                 <SelectValue placeholder="Select platform" />
                                             </SelectTrigger>
-                                            <SelectContent className="border-cyan-glow/20 bg-bg-secondary/95 backdrop-blur-xl">
+                                            <SelectContent className="border-border-subtle bg-bg-secondary/95 backdrop-blur-xl max-h-60">
                                                 {PLATFORMS.map((p) => (
                                                     <SelectItem key={p.value} value={p.value}>
                                                         {p.label}
@@ -674,10 +737,10 @@ export default function AdminEditProductPage(): React.JSX.Element {
                                             Region
                                         </Label>
                                         <Select value={formData.region} onValueChange={(v) => updateField('region', v)}>
-                                            <SelectTrigger className="border-cyan-glow/20 bg-bg-tertiary/50 focus:border-cyan-glow/50 focus:ring-cyan-glow/20">
+                                            <SelectTrigger className="border-border-subtle bg-bg-tertiary/50 focus:border-cyan-glow/50 focus:ring-cyan-glow/20 transition-all duration-250">
                                                 <SelectValue placeholder="Select region" />
                                             </SelectTrigger>
-                                            <SelectContent className="border-cyan-glow/20 bg-bg-secondary/95 backdrop-blur-xl">
+                                            <SelectContent className="border-border-subtle bg-bg-secondary/95 backdrop-blur-xl">
                                                 {REGIONS.map((r) => (
                                                     <SelectItem key={r.value} value={r.value}>
                                                         {r.label}
@@ -696,7 +759,7 @@ export default function AdminEditProductPage(): React.JSX.Element {
                                             value={formData.drm}
                                             onChange={(e) => updateField('drm', e.target.value)}
                                             placeholder="e.g., Steam, DRM-Free"
-                                            className="border-cyan-glow/20 bg-bg-tertiary/50 focus:border-cyan-glow/50 focus:ring-cyan-glow/20"
+                                            className="border-border-subtle bg-bg-tertiary/50 focus:border-cyan-glow/50 focus:ring-cyan-glow/20 transition-all duration-250"
                                         />
                                     </div>
 
@@ -709,7 +772,7 @@ export default function AdminEditProductPage(): React.JSX.Element {
                                             value={formData.ageRating}
                                             onChange={(e) => updateField('ageRating', e.target.value)}
                                             placeholder="e.g., PEGI-18, ESRB-M"
-                                            className="border-cyan-glow/20 bg-bg-tertiary/50 focus:border-cyan-glow/50 focus:ring-cyan-glow/20"
+                                            className="border-border-subtle bg-bg-tertiary/50 focus:border-cyan-glow/50 focus:ring-cyan-glow/20 transition-all duration-250"
                                         />
                                     </div>
                                 </div>
@@ -720,15 +783,19 @@ export default function AdminEditProductPage(): React.JSX.Element {
                     {/* Sidebar */}
                     <div className="space-y-6">
                         {/* Pricing Card */}
-                        <Card className="border-cyan-glow/20 bg-bg-secondary/50 backdrop-blur-sm shadow-[0_0_15px_rgba(0,217,255,0.05)]">
+                        <Card className="border-border-subtle bg-bg-secondary/80 backdrop-blur-sm hover:border-border-accent transition-all duration-250">
                             <CardHeader>
-                                <CardTitle className="text-text-primary flex items-center gap-2">
-                                    <DollarSign className="h-5 w-5 text-cyan-glow" />
-                                    Pricing
-                                </CardTitle>
-                                <CardDescription className="text-text-secondary">
-                                    Set cost and retail price
-                                </CardDescription>
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 rounded-lg bg-pink-featured/10 border border-pink-featured/20">
+                                        <DollarSign className="h-5 w-5 text-pink-featured" />
+                                    </div>
+                                    <div>
+                                        <CardTitle className="text-text-primary">Pricing</CardTitle>
+                                        <CardDescription className="text-text-secondary">
+                                            Set cost and retail price
+                                        </CardDescription>
+                                    </div>
+                                </div>
                             </CardHeader>
                             <CardContent className="space-y-4">
                                 <div className="space-y-2">
@@ -736,10 +803,10 @@ export default function AdminEditProductPage(): React.JSX.Element {
                                         Currency
                                     </Label>
                                     <Select value={formData.currency} onValueChange={(v) => updateField('currency', v)}>
-                                        <SelectTrigger className="border-cyan-glow/20 bg-bg-tertiary/50 focus:border-cyan-glow/50 focus:ring-cyan-glow/20">
+                                        <SelectTrigger className="border-border-subtle bg-bg-tertiary/50 focus:border-cyan-glow/50 focus:ring-cyan-glow/20 transition-all duration-250">
                                             <SelectValue placeholder="Select currency" />
                                         </SelectTrigger>
-                                        <SelectContent className="border-cyan-glow/20 bg-bg-secondary/95 backdrop-blur-xl">
+                                        <SelectContent className="border-border-subtle bg-bg-secondary/95 backdrop-blur-xl">
                                             {CURRENCIES.map((c) => (
                                                 <SelectItem key={c.value} value={c.value}>
                                                     {c.label}
@@ -751,10 +818,10 @@ export default function AdminEditProductPage(): React.JSX.Element {
 
                                 <div className="space-y-2">
                                     <Label htmlFor="cost" className="text-text-secondary">
-                                        Cost <span className="text-red-500">*</span>
+                                        Cost <span className="text-destructive">*</span>
                                     </Label>
                                     <div className="relative">
-                                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted">
+                                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted font-mono">
                                             €
                                         </span>
                                         <Input
@@ -765,22 +832,22 @@ export default function AdminEditProductPage(): React.JSX.Element {
                                             value={formData.cost}
                                             onChange={(e) => updateField('cost', e.target.value)}
                                             placeholder="0.00"
-                                            className={`pl-7 border-cyan-glow/20 bg-bg-tertiary/50 focus:border-cyan-glow/50 focus:ring-cyan-glow/20 ${validationErrors.cost !== undefined ? 'border-red-500' : ''
+                                            className={`pl-7 font-mono border-border-subtle bg-bg-tertiary/50 focus:border-cyan-glow/50 focus:ring-cyan-glow/20 transition-all duration-250 ${validationErrors.cost !== undefined ? 'border-destructive' : ''
                                                 }`}
                                         />
                                     </div>
                                     {validationErrors.cost !== undefined && (
-                                        <p className="text-xs text-red-500">{validationErrors.cost}</p>
+                                        <p className="text-xs text-destructive">{validationErrors.cost}</p>
                                     )}
                                     <p className="text-xs text-text-muted">Your wholesale cost</p>
                                 </div>
 
                                 <div className="space-y-2">
                                     <Label htmlFor="price" className="text-text-secondary">
-                                        Retail Price <span className="text-red-500">*</span>
+                                        Retail Price <span className="text-destructive">*</span>
                                     </Label>
                                     <div className="relative">
-                                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted">
+                                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted font-mono">
                                             €
                                         </span>
                                         <Input
@@ -791,24 +858,24 @@ export default function AdminEditProductPage(): React.JSX.Element {
                                             value={formData.price}
                                             onChange={(e) => updateField('price', e.target.value)}
                                             placeholder="0.00"
-                                            className={`pl-7 border-cyan-glow/20 bg-bg-tertiary/50 focus:border-cyan-glow/50 focus:ring-cyan-glow/20 ${validationErrors.price !== undefined ? 'border-red-500' : ''
+                                            className={`pl-7 font-mono border-border-subtle bg-bg-tertiary/50 focus:border-cyan-glow/50 focus:ring-cyan-glow/20 transition-all duration-250 ${validationErrors.price !== undefined ? 'border-destructive' : ''
                                                 }`}
                                         />
                                     </div>
                                     {validationErrors.price !== undefined && (
-                                        <p className="text-xs text-red-500">{validationErrors.price}</p>
+                                        <p className="text-xs text-destructive">{validationErrors.price}</p>
                                     )}
                                     <p className="text-xs text-text-muted">Customer-facing price</p>
                                 </div>
 
                                 {/* Profit Preview */}
                                 {formData.cost.length > 0 && formData.price.length > 0 && (
-                                    <div className="pt-4 border-t border-cyan-glow/10">
+                                    <div className="p-3 rounded-lg bg-bg-tertiary/30 border border-border-subtle">
                                         <div className="flex justify-between items-center">
                                             <span className="text-sm text-text-secondary">Profit Margin</span>
                                             <span className={`font-mono font-semibold ${parseFloat(formData.price) - parseFloat(formData.cost) > 0
                                                     ? 'text-green-success'
-                                                    : 'text-red-500'
+                                                    : 'text-destructive'
                                                 }`}>
                                                 €{(parseFloat(formData.price) - parseFloat(formData.cost)).toFixed(2)}
                                             </span>
@@ -819,40 +886,47 @@ export default function AdminEditProductPage(): React.JSX.Element {
                         </Card>
 
                         {/* Publish Settings Card */}
-                        <Card className="border-cyan-glow/20 bg-bg-secondary/50 backdrop-blur-sm shadow-[0_0_15px_rgba(0,217,255,0.05)]">
+                        <Card className="border-border-subtle bg-bg-secondary/80 backdrop-blur-sm hover:border-border-accent transition-all duration-250">
                             <CardHeader>
-                                <CardTitle className="text-text-primary flex items-center gap-2">
-                                    <Shield className="h-5 w-5 text-cyan-glow" />
-                                    Visibility
-                                </CardTitle>
-                                <CardDescription className="text-text-secondary">
-                                    Control product visibility on storefront
-                                </CardDescription>
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 rounded-lg bg-orange-warning/10 border border-orange-warning/20">
+                                        <Shield className="h-5 w-5 text-orange-warning" />
+                                    </div>
+                                    <div>
+                                        <CardTitle className="text-text-primary">Visibility</CardTitle>
+                                        <CardDescription className="text-text-secondary">
+                                            Control product visibility on storefront
+                                        </CardDescription>
+                                    </div>
+                                </div>
                             </CardHeader>
                             <CardContent>
-                                <div className="flex items-center justify-between">
-                                    <div className="space-y-1">
-                                        <Label htmlFor="isPublished" className="text-text-primary">
-                                            Published
-                                        </Label>
-                                        <p className="text-xs text-text-muted">
-                                            {publishMutation.isPending || unpublishMutation.isPending
-                                                ? 'Updating visibility...'
-                                                : 'Show this product on the storefront'}
-                                        </p>
+                                <div className="p-3 rounded-lg bg-bg-tertiary/30 border border-border-subtle hover:border-cyan-glow/30 transition-all duration-250">
+                                    <div className="flex items-center justify-between">
+                                        <div className="space-y-1">
+                                            <Label htmlFor="isPublished" className="text-text-primary">
+                                                Published
+                                            </Label>
+                                            <p className="text-xs text-text-muted">
+                                                {publishMutation.isPending || unpublishMutation.isPending
+                                                    ? 'Updating visibility...'
+                                                    : 'Show this product on the storefront'}
+                                            </p>
+                                        </div>
+                                        <Switch
+                                            id="isPublished"
+                                            checked={product?.isPublished ?? false}
+                                            onCheckedChange={handlePublishToggle}
+                                            disabled={publishMutation.isPending || unpublishMutation.isPending || !isOnline}
+                                            className="data-[state=checked]:bg-cyan-glow"
+                                        />
                                     </div>
-                                    <Switch
-                                        id="isPublished"
-                                        checked={product?.isPublished ?? false}
-                                        onCheckedChange={handlePublishToggle}
-                                        disabled={publishMutation.isPending || unpublishMutation.isPending || !isOnline}
-                                    />
                                 </div>
                             </CardContent>
                         </Card>
 
                         {/* Action Buttons */}
-                        <div className="space-y-3">
+                        <div className="space-y-3 pt-4 border-t border-border-subtle">
                             <GlowButton
                                 type="submit"
                                 disabled={updateMutation.isPending || !isOnline || !hasChanges}
@@ -861,7 +935,7 @@ export default function AdminEditProductPage(): React.JSX.Element {
                             >
                                 {updateMutation.isPending ? (
                                     <>
-                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                        <Loader2 className="mr-2 h-4 w-4 animate-spin-glow" />
                                         Saving...
                                     </>
                                 ) : (
@@ -875,7 +949,7 @@ export default function AdminEditProductPage(): React.JSX.Element {
                             <Button
                                 type="button"
                                 variant="outline"
-                                className="w-full border-cyan-glow/30 text-text-secondary hover:text-text-primary"
+                                className="w-full border-border-subtle text-text-secondary hover:text-text-primary hover:border-cyan-glow/50 hover:bg-cyan-glow/5 transition-all duration-250"
                                 onClick={() => router.push('/admin/catalog/products')}
                             >
                                 Cancel

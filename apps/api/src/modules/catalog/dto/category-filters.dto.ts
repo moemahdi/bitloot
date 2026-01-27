@@ -2,27 +2,27 @@ import { ApiProperty } from '@nestjs/swagger';
 
 /**
  * Category item returned from dynamic aggregation
- * Categories are derived from product genres and special collections
+ * Now primarily uses BitLoot's 4 business categories
  */
 export class CategoryDto {
   @ApiProperty({
-    description: 'Unique category identifier (slug-format)',
-    example: 'action',
+    description: 'Unique category identifier',
+    example: 'games',
   })
   id!: string;
 
   @ApiProperty({
     description: 'Display label for the category',
-    example: 'Action',
+    example: 'Games',
   })
   label!: string;
 
   @ApiProperty({
-    description: 'Category type: genre, platform, collection, or custom',
-    enum: ['genre', 'platform', 'collection', 'custom'],
-    example: 'genre',
+    description: 'Category type: business (main 4), genre, platform, collection, or custom',
+    enum: ['business', 'genre', 'platform', 'collection', 'custom'],
+    example: 'business',
   })
-  type!: 'genre' | 'platform' | 'collection' | 'custom';
+  type!: 'business' | 'genre' | 'platform' | 'collection' | 'custom';
 
   @ApiProperty({
     description: 'Number of products in this category',
@@ -32,14 +32,21 @@ export class CategoryDto {
 
   @ApiProperty({
     description: 'Icon identifier for frontend (lucide icon name)',
-    example: 'gamepad-2',
+    example: 'Gamepad2',
     required: false,
   })
   icon?: string;
 
   @ApiProperty({
+    description: 'Category description for UI display',
+    example: 'PC & Console game keys and accounts',
+    required: false,
+  })
+  description?: string;
+
+  @ApiProperty({
     description: 'Sort order for display',
-    example: 1,
+    example: 0,
   })
   sortOrder!: number;
 }

@@ -23,6 +23,8 @@ Name | Type
 `drm` | string
 `ageRating` | string
 `category` | string
+`businessCategory` | string
+`isFeatured` | boolean
 `developers` | Array&lt;string&gt;
 `publishers` | Array&lt;string&gt;
 `genres` | Array&lt;string&gt;
@@ -83,6 +85,8 @@ const example = {
   "drm": null,
   "ageRating": null,
   "category": null,
+  "businessCategory": games,
+  "isFeatured": false,
   "developers": ["Valve"],
   "publishers": ["Valve"],
   "genres": ["Action","FPS"],

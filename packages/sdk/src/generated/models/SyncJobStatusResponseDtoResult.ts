@@ -13,8 +13,23 @@
  */
 
 import { mapValues } from '../runtime';
+import type { UpdatedProductInfoDto } from './UpdatedProductInfoDto';
+import {
+    UpdatedProductInfoDtoFromJSON,
+    UpdatedProductInfoDtoFromJSONTyped,
+    UpdatedProductInfoDtoToJSON,
+    UpdatedProductInfoDtoToJSONTyped,
+} from './UpdatedProductInfoDto';
+import type { SkippedProductInfoDto } from './SkippedProductInfoDto';
+import {
+    SkippedProductInfoDtoFromJSON,
+    SkippedProductInfoDtoFromJSONTyped,
+    SkippedProductInfoDtoToJSON,
+    SkippedProductInfoDtoToJSONTyped,
+} from './SkippedProductInfoDto';
+
 /**
- * Job result data
+ * Job result data (available after completion)
  * @export
  * @interface SyncJobStatusResponseDtoResult
  */
@@ -39,10 +54,28 @@ export interface SyncJobStatusResponseDtoResult {
     productsUpdated?: number;
     /**
      * 
+     * @type {number}
+     * @memberof SyncJobStatusResponseDtoResult
+     */
+    productsSkipped?: number;
+    /**
+     * 
      * @type {Array<string>}
      * @memberof SyncJobStatusResponseDtoResult
      */
     errors?: Array<string>;
+    /**
+     * 
+     * @type {Array<SkippedProductInfoDto>}
+     * @memberof SyncJobStatusResponseDtoResult
+     */
+    skippedProducts?: Array<SkippedProductInfoDto>;
+    /**
+     * 
+     * @type {Array<UpdatedProductInfoDto>}
+     * @memberof SyncJobStatusResponseDtoResult
+     */
+    updatedProducts?: Array<UpdatedProductInfoDto>;
 }
 
 /**
@@ -65,7 +98,10 @@ export function SyncJobStatusResponseDtoResultFromJSONTyped(json: any, ignoreDis
         'productsProcessed': json['productsProcessed'] == null ? undefined : json['productsProcessed'],
         'productsCreated': json['productsCreated'] == null ? undefined : json['productsCreated'],
         'productsUpdated': json['productsUpdated'] == null ? undefined : json['productsUpdated'],
+        'productsSkipped': json['productsSkipped'] == null ? undefined : json['productsSkipped'],
         'errors': json['errors'] == null ? undefined : json['errors'],
+        'skippedProducts': json['skippedProducts'] == null ? undefined : ((json['skippedProducts'] as Array<any>).map(SkippedProductInfoDtoFromJSON)),
+        'updatedProducts': json['updatedProducts'] == null ? undefined : ((json['updatedProducts'] as Array<any>).map(UpdatedProductInfoDtoFromJSON)),
     };
 }
 
@@ -83,7 +119,10 @@ export function SyncJobStatusResponseDtoResultToJSONTyped(value?: SyncJobStatusR
         'productsProcessed': value['productsProcessed'],
         'productsCreated': value['productsCreated'],
         'productsUpdated': value['productsUpdated'],
+        'productsSkipped': value['productsSkipped'],
         'errors': value['errors'],
+        'skippedProducts': value['skippedProducts'] == null ? undefined : ((value['skippedProducts'] as Array<any>).map(SkippedProductInfoDtoToJSON)),
+        'updatedProducts': value['updatedProducts'] == null ? undefined : ((value['updatedProducts'] as Array<any>).map(UpdatedProductInfoDtoToJSON)),
     };
 }
 

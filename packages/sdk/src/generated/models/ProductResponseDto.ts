@@ -96,11 +96,23 @@ export interface ProductResponseDto {
      */
     ageRating?: string;
     /**
-     * Product category
+     * Product category (Kinguin genre)
      * @type {string}
      * @memberof ProductResponseDto
      */
     category?: string;
+    /**
+     * BitLoot business category: games, software, gift-cards, subscriptions
+     * @type {string}
+     * @memberof ProductResponseDto
+     */
+    businessCategory?: ProductResponseDtoBusinessCategoryEnum;
+    /**
+     * Whether product is featured on homepage
+     * @type {boolean}
+     * @memberof ProductResponseDto
+     */
+    isFeatured?: boolean;
     /**
      * Price in crypto (decimal string)
      * @type {string}
@@ -229,6 +241,19 @@ export interface ProductResponseDto {
     rating?: number;
 }
 
+
+/**
+ * @export
+ */
+export const ProductResponseDtoBusinessCategoryEnum = {
+    Games: 'games',
+    Software: 'software',
+    GiftCards: 'gift-cards',
+    Subscriptions: 'subscriptions'
+} as const;
+export type ProductResponseDtoBusinessCategoryEnum = typeof ProductResponseDtoBusinessCategoryEnum[keyof typeof ProductResponseDtoBusinessCategoryEnum];
+
+
 /**
  * Check if a given object implements the ProductResponseDto interface.
  */
@@ -264,6 +289,8 @@ export function ProductResponseDtoFromJSONTyped(json: any, ignoreDiscriminator: 
         'drm': json['drm'] == null ? undefined : json['drm'],
         'ageRating': json['ageRating'] == null ? undefined : json['ageRating'],
         'category': json['category'] == null ? undefined : json['category'],
+        'businessCategory': json['businessCategory'] == null ? undefined : json['businessCategory'],
+        'isFeatured': json['isFeatured'] == null ? undefined : json['isFeatured'],
         'price': json['price'],
         'currency': json['currency'],
         'isPublished': json['isPublished'],
@@ -309,6 +336,8 @@ export function ProductResponseDtoToJSONTyped(value?: ProductResponseDto | null,
         'drm': value['drm'],
         'ageRating': value['ageRating'],
         'category': value['category'],
+        'businessCategory': value['businessCategory'],
+        'isFeatured': value['isFeatured'],
         'price': value['price'],
         'currency': value['currency'],
         'isPublished': value['isPublished'],

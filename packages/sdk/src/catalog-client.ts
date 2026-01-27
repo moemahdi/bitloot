@@ -11,14 +11,21 @@ const config = new Configuration({
 const catalogApiInstance = new CatalogApi(config);
 
 /**
+ * BitLoot Business Category - The 4 main store sections
+ */
+export type BusinessCategory = 'games' | 'software' | 'gift-cards' | 'subscriptions';
+
+/**
  * Category item returned from dynamic aggregation
+ * Updated to use 'business' type for the 4 main BitLoot categories
  */
 export interface CategoryDto {
     id: string;
     label: string;
-    type: 'genre' | 'platform' | 'collection' | 'custom';
+    type: 'business' | 'genre' | 'platform' | 'collection' | 'custom';
     count: number;
     icon?: string;
+    description?: string;
     sortOrder: number;
 }
 
@@ -94,12 +101,14 @@ export interface FiltersResponseDto {
 export const catalogClient = {
     /**
      * Get all products with optional filtering
+     * Supports both businessCategory (4 main store sections) and category (legacy genres)
      */
     async findAll(params?: {
         q?: string;
         platform?: string;
         region?: string;
-        category?: string;
+        businessCategory?: string; // 'games' | 'software' | 'gift-cards' | 'subscriptions'
+        category?: string; // Legacy genre filter
         sort?: 'newest' | 'price_asc' | 'price_desc' | 'rating';
         limit?: number;
         offset?: number;
@@ -112,17 +121,23 @@ export const catalogClient = {
         // Convert page to offset if provided
         const offset = params?.page != null ? (params.page - 1) * (params?.limit ?? 12) : (params?.offset ?? 0);
 
-        const response = await catalogApiInstance.catalogControllerListProducts({
-            q: params?.q ?? params?.search,
-            platform: params?.platform,
-            region: params?.region,
-            category: params?.category,
-            sort: params?.sort,
-            limit: (params?.limit ?? 12),
-            offset: offset,
-        });
+        // Build query params manually since generated API may not have businessCategory yet
+        const queryParams = new URLSearchParams();
+        if (params?.q ?? params?.search) queryParams.set('q', params?.q ?? params?.search ?? '');
+        if (params?.platform) queryParams.set('platform', params.platform);
+        if (params?.region) queryParams.set('region', params.region);
+        if (params?.businessCategory) queryParams.set('businessCategory', params.businessCategory);
+        if (params?.category) queryParams.set('category', params.category);
+        if (params?.featured) queryParams.set('featured', 'true');
+        if (params?.sort) queryParams.set('sort', params.sort);
+        queryParams.set('limit', String(params?.limit ?? 12));
+        queryParams.set('offset', String(offset));
 
-        return response;
+        const response = await fetch(`${API_BASE}/catalog/products?${queryParams.toString()}`);
+        if (!response.ok) {
+            throw new Error(`Failed to fetch products: ${response.status}`);
+        }
+        return response.json() as Promise<ProductListResponseDto>;
     },
 
     /**

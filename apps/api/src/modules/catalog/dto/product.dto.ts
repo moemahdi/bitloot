@@ -96,11 +96,26 @@ export class ProductResponseDto {
   ageRating?: string;
 
   @ApiProperty({
-    description: 'Product category',
+    description: 'Product category (Kinguin genre)',
     example: 'Games',
     required: false,
   })
   category?: string;
+
+  @ApiProperty({
+    description: 'BitLoot business category: games, software, gift-cards, subscriptions',
+    example: 'games',
+    enum: ['games', 'software', 'gift-cards', 'subscriptions'],
+    required: false,
+  })
+  businessCategory?: string;
+
+  @ApiProperty({
+    description: 'Whether product is featured on homepage',
+    example: false,
+    required: false,
+  })
+  isFeatured?: boolean;
 
   @ApiProperty({
     description: 'Price in crypto (decimal string)',

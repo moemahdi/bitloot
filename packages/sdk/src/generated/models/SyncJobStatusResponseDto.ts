@@ -13,6 +13,13 @@
  */
 
 import { mapValues } from '../runtime';
+import type { SyncJobStatusResponseDtoProgressData } from './SyncJobStatusResponseDtoProgressData';
+import {
+    SyncJobStatusResponseDtoProgressDataFromJSON,
+    SyncJobStatusResponseDtoProgressDataFromJSONTyped,
+    SyncJobStatusResponseDtoProgressDataToJSON,
+    SyncJobStatusResponseDtoProgressDataToJSONTyped,
+} from './SyncJobStatusResponseDtoProgressData';
 import type { SyncJobStatusResponseDtoResult } from './SyncJobStatusResponseDtoResult';
 import {
     SyncJobStatusResponseDtoResultFromJSON,
@@ -45,6 +52,12 @@ export interface SyncJobStatusResponseDto {
      * @memberof SyncJobStatusResponseDto
      */
     progress?: number;
+    /**
+     * 
+     * @type {SyncJobStatusResponseDtoProgressData}
+     * @memberof SyncJobStatusResponseDto
+     */
+    progressData?: SyncJobStatusResponseDtoProgressData;
     /**
      * 
      * @type {SyncJobStatusResponseDtoResult}
@@ -99,6 +112,7 @@ export function SyncJobStatusResponseDtoFromJSONTyped(json: any, ignoreDiscrimin
         'jobId': json['jobId'],
         'status': json['status'],
         'progress': json['progress'] == null ? undefined : json['progress'],
+        'progressData': json['progressData'] == null ? undefined : SyncJobStatusResponseDtoProgressDataFromJSON(json['progressData']),
         'result': json['result'] == null ? undefined : SyncJobStatusResponseDtoResultFromJSON(json['result']),
         'failedReason': json['failedReason'] == null ? undefined : json['failedReason'],
         'createdAt': json['createdAt'] == null ? undefined : (new Date(json['createdAt'])),
@@ -121,6 +135,7 @@ export function SyncJobStatusResponseDtoToJSONTyped(value?: SyncJobStatusRespons
         'jobId': value['jobId'],
         'status': value['status'],
         'progress': value['progress'],
+        'progressData': SyncJobStatusResponseDtoProgressDataToJSON(value['progressData']),
         'result': SyncJobStatusResponseDtoResultToJSON(value['result']),
         'failedReason': value['failedReason'],
         'createdAt': value['createdAt'] == null ? value['createdAt'] : value['createdAt'].toISOString(),

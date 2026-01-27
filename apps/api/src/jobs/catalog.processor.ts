@@ -50,6 +50,45 @@ export interface SyncSingleProductJobData {
 }
 
 /**
+ * Details about a product that was skipped during sync
+ */
+export interface SkippedProductInfo {
+  id: string;
+  title: string;
+  externalId: string;
+  reason: string;
+}
+
+/**
+ * Details about a product that was updated during sync
+ */
+export interface UpdatedProductInfo {
+  id: string;
+  title: string;
+  externalId: string;
+  priceChange?: {
+    oldPrice: number;
+    newPrice: number;
+  };
+}
+
+/**
+ * Result returned from sync jobs for BullMQ to store
+ * This is accessible via job.returnvalue and displayed in the admin UI
+ */
+export interface CatalogSyncResult {
+  productsProcessed: number;
+  productsUpdated: number;
+  productsCreated: number;
+  productsSkipped: number;
+  errors: string[];
+  /** Detailed info about each skipped product */
+  skippedProducts?: SkippedProductInfo[];
+  /** Detailed info about each updated product */
+  updatedProducts?: UpdatedProductInfo[];
+}
+
+/**
  * BullMQ processor for asynchronous catalog operations
  * Handles product sync from Kinguin and batch repricing
  * 
@@ -112,8 +151,9 @@ export class CatalogProcessor extends WorkerHost implements OnModuleInit {
 
   /**
    * Main job handler - routes to specific job types
+   * Returns result data for sync jobs so BullMQ stores it in job.returnvalue
    */
-  async process(job: Job): Promise<void> {
+  async process(job: Job): Promise<CatalogSyncResult | void> {
     try {
       this.logger.debug(`Processing job ${job.id}: ${job.name}`);
 
@@ -121,16 +161,14 @@ export class CatalogProcessor extends WorkerHost implements OnModuleInit {
 
       switch (jobType) {
         case CatalogJobType.SYNC_FULL:
-          await this.handleFullSync(job as Job<CatalogSyncFullJobData>);
-          break;
+          return await this.handleFullSync(job as Job<CatalogSyncFullJobData>);
 
         case CatalogJobType.SYNC_PAGE:
           await this.handlePageSync(job as Job<CatalogSyncPageJobData>);
           break;
 
         case CatalogJobType.SYNC_IMPORTED:
-          await this.handleSyncImported(job as Job<CatalogSyncImportedJobData>);
-          break;
+          return await this.handleSyncImported(job as Job<CatalogSyncImportedJobData>);
 
         case CatalogJobType.SYNC_SINGLE_PRODUCT:
           await this.handleSyncSingleProduct(job as Job<SyncSingleProductJobData>);
@@ -165,11 +203,13 @@ export class CatalogProcessor extends WorkerHost implements OnModuleInit {
   /**
    * Handle full Kinguin sync with automatic pagination
    * Processes all offers page by page, upserting each one
+   * Returns result stats that are stored in BullMQ job.returnvalue for UI display
    */
-  private async handleFullSync(job: Job<CatalogSyncFullJobData>): Promise<void> {
+  private async handleFullSync(job: Job<CatalogSyncFullJobData>): Promise<CatalogSyncResult> {
     const { maxPages, startPage = 1 } = job.data;
     let processedCount = 0;
-    let errorCount = 0;
+    let createdCount = 0;
+    const errors: string[] = [];
 
     const maxPagesDisplay = maxPages ?? 'unlimited';
     this.logger.log(
@@ -182,26 +222,43 @@ export class CatalogProcessor extends WorkerHost implements OnModuleInit {
         try {
           await this.catalogService.upsertProduct(product);
           processedCount++;
+          createdCount++; // Full sync creates/updates all products
 
-          // Update job progress every 50 products
-          if (processedCount % 50 === 0) {
+          // Update job progress every 25 products with detailed stats
+          if (processedCount % 25 === 0) {
             const progress = Math.round((processedCount / 1000) * 100); // Estimate 1000 total
-            // @ts-expect-error BullMQ Job type includes JobProgress interface which is not directly callable
-            await job.progress(Math.min(progress, 100));
+            await job.updateProgress({
+              percent: Math.min(progress, 99),
+              current: processedCount,
+              total: 1000, // Estimate
+              updated: createdCount,
+              skipped: 0,
+              errors: errors.length,
+            });
             this.logger.debug(`📊 Sync progress: ${processedCount} products processed`);
           }
         } catch (error) {
-          errorCount++;
+          const errorMsg = error instanceof Error ? error.message : String(error);
+          errors.push(`Product ${product.productId}: ${errorMsg}`);
           this.logger.warn(
-            `⚠️ Failed to upsert product ${product.productId}: ${error instanceof Error ? error.message : String(error)}`,
+            `⚠️ Failed to upsert product ${product.productId}: ${errorMsg}`,
           );
           // Continue processing other products on error
         }
       }
 
+      const result: CatalogSyncResult = {
+        productsProcessed: processedCount,
+        productsUpdated: createdCount,
+        productsCreated: createdCount,
+        productsSkipped: 0,
+        errors,
+      };
+
       this.logger.log(
-        `✅ Full sync completed: ${processedCount} processed, ${errorCount} errors`,
+        `✅ Full sync completed: ${processedCount} processed, ${errors.length} errors`,
       );
+      return result;
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
       this.logger.error(`❌ Full sync failed after ${processedCount} products: ${errorMsg}`);
@@ -344,9 +401,13 @@ export class CatalogProcessor extends WorkerHost implements OnModuleInit {
   /**
    * Sync only already-imported Kinguin products (no new imports)
    * This refreshes prices, stock, and metadata for products already in the catalog
+   * Returns result stats that are stored in BullMQ job.returnvalue for UI display
    */
-  private async handleSyncImported(job: Job<CatalogSyncImportedJobData>): Promise<void> {
+  private async handleSyncImported(job: Job<CatalogSyncImportedJobData>): Promise<CatalogSyncResult> {
     const batchSize = job.data.batchSize ?? 50;
+    const errors: string[] = [];
+    const skippedProducts: SkippedProductInfo[] = [];
+    const updatedProducts: UpdatedProductInfo[] = [];
     
     this.logger.log(`🔄 Starting sync of imported Kinguin products...`);
 
@@ -356,13 +417,20 @@ export class CatalogProcessor extends WorkerHost implements OnModuleInit {
       
       if (importedProducts.length === 0) {
         this.logger.log(`ℹ️ No imported Kinguin products to sync`);
-        return;
+        return {
+          productsProcessed: 0,
+          productsUpdated: 0,
+          productsCreated: 0,
+          productsSkipped: 0,
+          errors: [],
+          skippedProducts: [],
+          updatedProducts: [],
+        };
       }
 
       this.logger.log(`📦 Found ${importedProducts.length} imported Kinguin products to sync`);
 
       let updatedCount = 0;
-      let errorCount = 0;
       let skippedCount = 0;
 
       // Process in batches to avoid API rate limits
@@ -378,31 +446,69 @@ export class CatalogProcessor extends WorkerHost implements OnModuleInit {
         if (product.externalId === undefined || product.externalId === null || product.externalId === '') {
           this.logger.warn(`⚠️ Product ${product.id} has no externalId, skipping`);
           skippedCount++;
+          skippedProducts.push({
+            id: product.id,
+            title: product.title ?? 'Unknown',
+            externalId: '',
+            reason: 'No external ID - product was not properly linked to Kinguin',
+          });
+          errors.push(`Product ${product.id}: No external ID`);
           continue;
         }
 
         try {
-          // Fetch latest data from Kinguin
-          const kinguinProduct = await this.kinguinClient.getProduct(product.externalId);
+          // Store old price for comparison
+          const oldPrice = product.price;
+          
+          // Fetch latest data from Kinguin using V2 API (productId format)
+          // externalId stores the Kinguin productId (string format like "5c9b5f6b2539a4e8f172916a")
+          const kinguinProduct = await this.kinguinClient.getProductV2(product.externalId);
           
           if (kinguinProduct === undefined || kinguinProduct === null) {
             this.logger.warn(`⚠️ Product ${product.externalId} not found on Kinguin, skipping`);
             skippedCount++;
+            skippedProducts.push({
+              id: product.id,
+              title: product.title ?? product.externalId,
+              externalId: product.externalId,
+              reason: 'Not found on Kinguin API - product may be out of stock or delisted',
+            });
             continue;
           }
 
           // Update the product with fresh Kinguin data
           await this.catalogService.upsertProduct(kinguinProduct);
           updatedCount++;
+          
+          // Track updated product with price change info
+          const newPrice = kinguinProduct.price ?? 0;
+          const oldPriceNum = parseFloat(oldPrice);
+          const priceChanged = !Number.isNaN(oldPriceNum) && oldPriceNum !== newPrice;
+          updatedProducts.push({
+            id: product.id,
+            title: product.title ?? product.externalId,
+            externalId: product.externalId,
+            priceChange: priceChanged ? {
+              oldPrice: oldPriceNum,
+              newPrice: newPrice,
+            } : undefined,
+          });
 
           this.logger.debug(`✅ Synced product: ${product.title ?? product.externalId}`);
 
-          // Update progress
-          if ((i + 1) % 10 === 0 || i === importedProducts.length - 1) {
+          // Update progress with intermediate stats every 5 products or at end
+          if ((i + 1) % 5 === 0 || i === importedProducts.length - 1) {
             const progress = Math.round(((i + 1) / importedProducts.length) * 100);
-            // @ts-expect-error BullMQ Job type includes JobProgress interface which is not directly callable
-            await job.progress(progress);
-            this.logger.debug(`📊 Sync progress: ${i + 1}/${importedProducts.length}`);
+            // Store intermediate results in job data for real-time display
+            await job.updateProgress({
+              percent: progress,
+              current: i + 1,
+              total: importedProducts.length,
+              updated: updatedCount,
+              skipped: skippedCount,
+              errors: errors.length,
+            });
+            this.logger.debug(`📊 Sync progress: ${i + 1}/${importedProducts.length} (${updatedCount} updated, ${skippedCount} skipped)`);
           }
 
           // Rate limiting: small delay between API calls
@@ -411,14 +517,26 @@ export class CatalogProcessor extends WorkerHost implements OnModuleInit {
             await new Promise(resolve => setTimeout(resolve, 1000));
           }
         } catch (error) {
-          errorCount++;
           const errorMsg = error instanceof Error ? error.message : String(error);
+          const productTitle = product.title ?? product.externalId;
+          errors.push(`${productTitle}: ${errorMsg}`);
           this.logger.warn(`⚠️ Failed to sync product ${product.externalId}: ${errorMsg}`);
           // Continue syncing other products on error
         }
       }
 
-      this.logger.log(`✅ Sync completed: ${updatedCount} updated, ${errorCount} errors, ${skippedCount} skipped`);
+      const result: CatalogSyncResult = {
+        productsProcessed: importedProducts.length,
+        productsUpdated: updatedCount,
+        productsCreated: 0, // Imported sync doesn't create new products
+        productsSkipped: skippedCount,
+        errors,
+        skippedProducts,
+        updatedProducts,
+      };
+
+      this.logger.log(`✅ Sync completed: ${updatedCount} updated, ${errors.length} errors, ${skippedCount} skipped`);
+      return result;
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
       this.logger.error(`❌ Sync imported products failed: ${errorMsg}`);

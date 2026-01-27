@@ -11,6 +11,7 @@ Name | Type
 `type` | string
 `count` | number
 `icon` | string
+`description` | string
 `sortOrder` | number
 
 ## Example
@@ -20,12 +21,13 @@ import type { CategoryDto } from ''
 
 // TODO: Update the object below with actual values
 const example = {
-  "id": action,
-  "label": Action,
-  "type": genre,
+  "id": games,
+  "label": Games,
+  "type": business,
   "count": 150,
-  "icon": gamepad-2,
-  "sortOrder": 1,
+  "icon": Gamepad2,
+  "description": PC & Console game keys and accounts,
+  "sortOrder": 0,
 } satisfies CategoryDto
 
 console.log(example)

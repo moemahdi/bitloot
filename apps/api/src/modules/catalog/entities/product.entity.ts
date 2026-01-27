@@ -48,6 +48,8 @@ export interface KinguinSystemRequirement {
 @Index(['platform', 'region', 'isPublished'])
 @Index(['slug'])
 @Index(['category', 'isPublished'])
+@Index(['businessCategory', 'isPublished'])
+@Index(['isFeatured', 'isPublished'])
 @Index(['sourceType'])
 export class Product {
   @PrimaryGeneratedColumn('uuid')
@@ -94,6 +96,26 @@ export class Product {
 
   @Column({ type: 'varchar', length: 50, nullable: true })
   category?: string;
+
+  /**
+   * Business category for BitLoot store organization
+   * - 'games': Game keys and accounts
+   * - 'software': Windows, Office, antivirus, etc.
+   * - 'gift-cards': Steam Wallet, PlayStation, Xbox, etc.
+   * - 'subscriptions': Game Pass, PS Plus, EA Play, etc.
+   */
+  @Column({
+    type: 'varchar',
+    length: 50,
+    default: 'games',
+  })
+  businessCategory!: 'games' | 'software' | 'gift-cards' | 'subscriptions';
+
+  /**
+   * Whether this product is featured on the homepage
+   */
+  @Column({ type: 'boolean', default: false })
+  isFeatured!: boolean;
 
   // ============================================
   // KINGUIN API EXTENDED FIELDS

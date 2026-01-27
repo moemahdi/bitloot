@@ -16,17 +16,24 @@
 import * as runtime from '../runtime';
 import type {
   SyncConfigStatusDto,
+  SyncHistoryResponseDto,
   SyncJobResponseDto,
   SyncJobStatusResponseDto,
 } from '../models/index';
 import {
     SyncConfigStatusDtoFromJSON,
     SyncConfigStatusDtoToJSON,
+    SyncHistoryResponseDtoFromJSON,
+    SyncHistoryResponseDtoToJSON,
     SyncJobResponseDtoFromJSON,
     SyncJobResponseDtoToJSON,
     SyncJobStatusResponseDtoFromJSON,
     SyncJobStatusResponseDtoToJSON,
 } from '../models/index';
+
+export interface AdminSyncControllerGetSyncHistoryRequest {
+    limit?: string;
+}
 
 export interface AdminSyncControllerGetSyncStatusRequest {
     jobId: string;
@@ -73,6 +80,49 @@ export class AdminCatalogSyncApi extends runtime.BaseAPI {
      */
     async adminSyncControllerGetConfigStatus(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<SyncConfigStatusDto> {
         const response = await this.adminSyncControllerGetConfigStatusRaw(initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Retrieve the history of completed and failed sync jobs
+     * Get sync job history
+     */
+    async adminSyncControllerGetSyncHistoryRaw(requestParameters: AdminSyncControllerGetSyncHistoryRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<SyncHistoryResponseDto>> {
+        const queryParameters: any = {};
+
+        if (requestParameters['limit'] != null) {
+            queryParameters['limit'] = requestParameters['limit'];
+        }
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("JWT-auth", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/admin/catalog/sync/history`;
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => SyncHistoryResponseDtoFromJSON(jsonValue));
+    }
+
+    /**
+     * Retrieve the history of completed and failed sync jobs
+     * Get sync job history
+     */
+    async adminSyncControllerGetSyncHistory(requestParameters: AdminSyncControllerGetSyncHistoryRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<SyncHistoryResponseDto> {
+        const response = await this.adminSyncControllerGetSyncHistoryRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

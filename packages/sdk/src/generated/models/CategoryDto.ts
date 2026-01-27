@@ -20,7 +20,7 @@ import { mapValues } from '../runtime';
  */
 export interface CategoryDto {
     /**
-     * Unique category identifier (slug-format)
+     * Unique category identifier
      * @type {string}
      * @memberof CategoryDto
      */
@@ -32,7 +32,7 @@ export interface CategoryDto {
      */
     label: string;
     /**
-     * Category type: genre, platform, collection, or custom
+     * Category type: business (main 4), genre, platform, collection, or custom
      * @type {string}
      * @memberof CategoryDto
      */
@@ -50,6 +50,12 @@ export interface CategoryDto {
      */
     icon?: string;
     /**
+     * Category description for UI display
+     * @type {string}
+     * @memberof CategoryDto
+     */
+    description?: string;
+    /**
      * Sort order for display
      * @type {number}
      * @memberof CategoryDto
@@ -62,6 +68,7 @@ export interface CategoryDto {
  * @export
  */
 export const CategoryDtoTypeEnum = {
+    Business: 'business',
     Genre: 'genre',
     Platform: 'platform',
     Collection: 'collection',
@@ -97,6 +104,7 @@ export function CategoryDtoFromJSONTyped(json: any, ignoreDiscriminator: boolean
         'type': json['type'],
         'count': json['count'],
         'icon': json['icon'] == null ? undefined : json['icon'],
+        'description': json['description'] == null ? undefined : json['description'],
         'sortOrder': json['sortOrder'],
     };
 }
@@ -117,6 +125,7 @@ export function CategoryDtoToJSONTyped(value?: CategoryDto | null, ignoreDiscrim
         'type': value['type'],
         'count': value['count'],
         'icon': value['icon'],
+        'description': value['description'],
         'sortOrder': value['sortOrder'],
     };
 }

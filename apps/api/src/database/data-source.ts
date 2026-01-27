@@ -60,6 +60,8 @@ import { AddProductFeaturedSections1769200000000 } from './migrations/1769200000
 import { FeatureFlag } from './entities/feature-flag.entity';
 import { SystemConfig } from './entities/system-config.entity';
 import { CreateFeatureFlagsAndConfig1769300000000 } from './migrations/1769300000000-CreateFeatureFlagsAndConfig';
+import { AddBusinessCategory1770000000000 } from './migrations/1770000000000-AddBusinessCategory';
+import { NormalizePlatformNames1780000000000 } from './migrations/1780000000000-NormalizePlatformNames';
 
 dotenv.config({ path: path.resolve(__dirname, '../../../../.env') });
 
@@ -103,6 +105,8 @@ export default new DataSource({
     AddPromoFieldsToOrders1769100000000,
     AddProductFeaturedSections1769200000000,
     CreateFeatureFlagsAndConfig1769300000000,
+    AddBusinessCategory1770000000000,
+    NormalizePlatformNames1780000000000,
   ],
   logging: true,
   synchronize: false,

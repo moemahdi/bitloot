@@ -90,6 +90,8 @@ export function ProductCard({
     const [imageError, setImageError] = useState(false);
     
     const isOutOfStock = typeof product.stock === 'number' && product.stock <= 0;
+    const isLowStock = typeof product.stock === 'number' && product.stock > 0 && product.stock <= 5;
+    const stockStatus = isOutOfStock ? 'out' : isLowStock ? 'low' : 'in';
     const isFeatured = variant === 'featured' || product.isFeatured === true;
     // Prioritize image loading for above-fold or featured cards (LCP optimization)
     const shouldPrioritize = isAboveFold === true || isFeatured;
@@ -201,17 +203,29 @@ export function ProductCard({
                                         -{product.discount}%
                                     </Badge>
                                 )}
-                                {isOutOfStock && (
+                                {/* Stock Status Badge */}
+                                {stockStatus === 'out' && (
                                     <Badge variant="destructive" className="text-xs font-medium">
-                                        Sold Out
+                                        Out of Stock
+                                    </Badge>
+                                )}
+                                {stockStatus === 'low' && (
+                                    <Badge className="bg-orange-warning border-0 text-bg-primary font-medium text-xs px-1.5">
+                                        Low Stock
                                     </Badge>
                                 )}
                             </div>
                         </div>
 
-                        {/* Bottom Badges - Platform & Instant */}
+                        {/* Bottom Badges - Platform & Stock/Instant */}
                         <div className="absolute bottom-2 left-2 right-2 z-20 flex items-end justify-between">
-                            {!isOutOfStock && (
+                            {stockStatus === 'in' && (
+                                <Badge variant="secondary" className="glass text-xs px-1.5 py-0.5">
+                                    <Zap className="w-2.5 h-2.5 mr-0.5 text-green-success" aria-hidden="true" />
+                                    In Stock
+                                </Badge>
+                            )}
+                            {stockStatus === 'low' && (
                                 <Badge variant="secondary" className="glass text-xs px-1.5 py-0.5">
                                     <Zap className="w-2.5 h-2.5 mr-0.5 text-green-success" aria-hidden="true" />
                                     Instant
@@ -225,21 +239,32 @@ export function ProductCard({
                             )}
                         </div>
 
-                        {/* Hover Overlay - Quick View Only */}
+                        {/* Hover Overlay - Quick Actions */}
                         <AnimatePresence>
-                            {isHovered && !isOutOfStock && onQuickView !== undefined && (
+                            {isHovered && !isOutOfStock && (
                                 <motion.div
                                     initial={{ opacity: 0 }}
                                     animate={{ opacity: 1 }}
                                     exit={{ opacity: 0 }}
                                     transition={{ duration: 0.15 }}
-                                    className="absolute inset-0 flex items-center justify-center z-30"
+                                    className="absolute inset-0 flex items-center justify-center z-30 gap-2"
                                     aria-hidden="true"
                                 >
-                                    <Button size="sm" onClick={handleQuickView} className="btn-outline h-9 px-4 backdrop-blur-sm">
-                                        <Eye className="h-4 w-4 mr-1.5" aria-hidden="true" />
-                                        Quick View
-                                    </Button>
+                                    {onQuickView !== undefined && (
+                                        <Button size="sm" onClick={handleQuickView} className="btn-outline h-9 px-3 backdrop-blur-sm">
+                                            <Eye className="h-4 w-4" aria-hidden="true" />
+                                        </Button>
+                                    )}
+                                    {onAddToCart !== undefined && (
+                                        <Button 
+                                            size="sm" 
+                                            onClick={handleAddToCart} 
+                                            className="h-9 px-4 bg-cyan-glow text-bg-primary hover:bg-cyan-glow/90 hover:shadow-glow-cyan backdrop-blur-sm"
+                                        >
+                                            <ShoppingCart className="h-4 w-4 mr-1.5" aria-hidden="true" />
+                                            Add to Cart
+                                        </Button>
+                                    )}
                                 </motion.div>
                             )}
                         </AnimatePresence>

@@ -35,6 +35,10 @@ import {
   BulkDeleteResponseDto,
   BulkRepriceProductsDto,
   BulkRepriceResponseDto,
+  BulkPublishProductsDto,
+  BulkPublishResponseDto,
+  BulkUnpublishProductsDto,
+  BulkUnpublishResponseDto,
 } from './dto/admin-product.dto';
 import { Product } from './entities/product.entity';
 
@@ -136,6 +140,10 @@ export class AdminProductsController {
       isPublished: product.isPublished,
       isCustom: product.isCustom,
       
+      // Business category and featured
+      businessCategory: product.businessCategory ?? 'games',
+      isFeatured: product.isFeatured ?? false,
+      
       // Homepage sections
       featuredSections: product.featuredSections ?? undefined,
       featuredOrder: product.featuredOrder ?? 0,
@@ -153,6 +161,9 @@ export class AdminProductsController {
   @ApiQuery({ name: 'region', required: false, description: 'Filter by region' })
   @ApiQuery({ name: 'published', required: false, description: 'Filter by published status (true/false)' })
   @ApiQuery({ name: 'source', required: false, description: 'Filter by source (kinguin/custom)' })
+  @ApiQuery({ name: 'businessCategory', required: false, description: 'Filter by business category (games/software/gift-cards/subscriptions)' })
+  @ApiQuery({ name: 'genre', required: false, description: 'Filter by genre (e.g., Action, RPG, Strategy)' })
+  @ApiQuery({ name: 'featured', required: false, description: 'Filter by featured status (true/false)' })
   @ApiQuery({ name: 'page', required: false, description: 'Page number (1-based)', example: 1 })
   @ApiQuery({ name: 'limit', required: false, description: 'Items per page (max 100)', example: 25 })
   @ApiResponse({
@@ -166,12 +177,17 @@ export class AdminProductsController {
     @Query('region') region?: string,
     @Query('published') published?: string,
     @Query('source') source?: string,
+    @Query('businessCategory') businessCategory?: string,
+    @Query('genre') genre?: string,
+    @Query('featured') featured?: string,
     @Query('page') pageStr?: string,
     @Query('limit') limitStr?: string,
   ): Promise<AdminProductsListResponseDto> {
     try {
       const publishedBool =
         published === 'true' ? true : published === 'false' ? false : undefined;
+      const featuredBool =
+        featured === 'true' ? true : featured === 'false' ? false : undefined;
       
       // Parse pagination params with defaults
       const parsedPage = parseInt(pageStr ?? '1', 10);
@@ -187,6 +203,9 @@ export class AdminProductsController {
         source,
         page,
         limit,
+        businessCategory,
+        featuredBool,
+        genre,
       );
 
       return {
@@ -199,6 +218,20 @@ export class AdminProductsController {
     } catch (error) {
       throw new HttpException(
         `Failed to list products: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Get('genres')
+  @ApiOperation({ summary: 'Get all unique genres from products' })
+  @ApiResponse({ status: 200, type: [String], description: 'List of unique genre names' })
+  async getGenres(): Promise<string[]> {
+    try {
+      return await this.catalogService.getDistinctGenres();
+    } catch (error) {
+      throw new HttpException(
+        `Failed to get genres: ${error instanceof Error ? error.message : 'Unknown error'}`,
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
@@ -392,6 +425,90 @@ export class AdminProductsController {
     } catch (error) {
       throw new HttpException(
         `Failed to bulk reprice products: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Post('bulk-publish')
+  @ApiOperation({ summary: 'Bulk publish products (set isPublished=true)' })
+  @ApiResponse({ status: 200, type: BulkPublishResponseDto, description: 'Products published' })
+  async bulkPublish(@Body() dto: BulkPublishProductsDto): Promise<BulkPublishResponseDto> {
+    try {
+      const result = await this.catalogService.bulkPublishProducts(dto.ids);
+      return result;
+    } catch (error) {
+      throw new HttpException(
+        `Failed to bulk publish products: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Post('bulk-unpublish')
+  @ApiOperation({ summary: 'Bulk unpublish products (set isPublished=false)' })
+  @ApiResponse({ status: 200, type: BulkUnpublishResponseDto, description: 'Products unpublished' })
+  async bulkUnpublish(@Body() dto: BulkUnpublishProductsDto): Promise<BulkUnpublishResponseDto> {
+    try {
+      const result = await this.catalogService.bulkUnpublishProducts(dto.ids);
+      return result;
+    } catch (error) {
+      throw new HttpException(
+        `Failed to bulk unpublish products: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Patch(':id/feature')
+  @ApiOperation({ summary: 'Mark product as featured' })
+  @ApiResponse({ status: 200, type: AdminProductResponseDto, description: 'Product marked as featured' })
+  @ApiResponse({ status: 404, description: 'Product not found' })
+  async feature(@Param('id') id: string): Promise<AdminProductResponseDto> {
+    const product = await this.catalogService.setFeatured(id, true);
+    if (product == null) {
+      throw new NotFoundException(`Product with ID ${id} not found`);
+    }
+    return this.toResponseDto(product);
+  }
+
+  @Patch(':id/unfeature')
+  @ApiOperation({ summary: 'Remove product from featured' })
+  @ApiResponse({ status: 200, type: AdminProductResponseDto, description: 'Product removed from featured' })
+  @ApiResponse({ status: 404, description: 'Product not found' })
+  async unfeature(@Param('id') id: string): Promise<AdminProductResponseDto> {
+    const product = await this.catalogService.setFeatured(id, false);
+    if (product == null) {
+      throw new NotFoundException(`Product with ID ${id} not found`);
+    }
+    return this.toResponseDto(product);
+  }
+
+  @Post('bulk-feature')
+  @ApiOperation({ summary: 'Bulk feature products (set isFeatured=true)' })
+  @ApiResponse({ status: 200, type: BulkPublishResponseDto, description: 'Products featured' })
+  async bulkFeature(@Body() dto: BulkPublishProductsDto): Promise<BulkPublishResponseDto> {
+    try {
+      const result = await this.catalogService.bulkSetFeatured(dto.ids, true);
+      return result;
+    } catch (error) {
+      throw new HttpException(
+        `Failed to bulk feature products: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  @Post('bulk-unfeature')
+  @ApiOperation({ summary: 'Bulk unfeature products (set isFeatured=false)' })
+  @ApiResponse({ status: 200, type: BulkPublishResponseDto, description: 'Products unfeatured' })
+  async bulkUnfeature(@Body() dto: BulkPublishProductsDto): Promise<BulkPublishResponseDto> {
+    try {
+      const result = await this.catalogService.bulkSetFeatured(dto.ids, false);
+      return result;
+    } catch (error) {
+      throw new HttpException(
+        `Failed to bulk unfeature products: ${error instanceof Error ? error.message : 'Unknown error'}`,
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }

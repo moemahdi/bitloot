@@ -149,6 +149,15 @@ const CATEGORY_ICONS: Record<string, React.ElementType> = {
     deals: Flame,
 };
 
+// BitLoot business categories for quick mobile filter
+const BITLOOT_CATEGORIES = [
+    { id: 'all', label: 'All', icon: Sparkles },
+    { id: 'games', label: 'Games', icon: Gamepad2 },
+    { id: 'software', label: 'Software', icon: Monitor },
+    { id: 'gift-cards', label: 'Gift Cards', icon: Gift },
+    { id: 'subscriptions', label: 'Subscriptions', icon: Clock },
+] as const;
+
 // Sort options
 const SORT_OPTIONS = [
     { value: 'newest', label: 'Newest First', icon: Clock },
@@ -1331,7 +1340,8 @@ function CatalogContent(): React.ReactElement {
         queryFn: () =>
             catalogClient.findAll({
                 search: filters.search !== '' ? filters.search : undefined,
-                category: filters.category !== 'all' ? filters.category : undefined,
+                // Use businessCategory for the 4 main BitLoot categories
+                businessCategory: filters.category !== 'all' ? filters.category : undefined,
                 platform: filters.platform.length > 0 ? filters.platform[0] : undefined,
                 region: filters.region !== 'all' ? filters.region : undefined,
                 minPrice: filters.minPrice > 0 ? filters.minPrice : undefined,
@@ -1685,6 +1695,32 @@ function CatalogContent(): React.ReactElement {
                             </Card>
                         </div>
                     </aside>
+
+                    {/* Mobile Quick Category Filter Bar */}
+                    <div className="lg:hidden mb-4">
+                        <div className="flex overflow-x-auto gap-2 pb-2 scrollbar-thin scroll-smooth -mx-1 px-1">
+                            {BITLOOT_CATEGORIES.map((cat) => {
+                                const IconComponent = cat.icon;
+                                const isSelected = filters.category === cat.id || (filters.category === 'all' && cat.id === 'all');
+                                return (
+                                    <motion.button
+                                        key={cat.id}
+                                        onClick={() => handleFilterChange({ category: cat.id })}
+                                        whileHover={{ scale: 1.02 }}
+                                        whileTap={{ scale: 0.98 }}
+                                        className={`flex items-center gap-1.5 px-3 py-2 rounded-full shrink-0 font-medium text-sm transition-all duration-200 ${
+                                            isSelected
+                                                ? 'bg-cyan-glow text-bg-primary shadow-glow-cyan-sm'
+                                                : 'bg-bg-secondary border border-border-subtle text-text-secondary hover:text-text-primary hover:border-cyan-glow/40'
+                                        }`}
+                                    >
+                                        <IconComponent className="w-4 h-4" aria-hidden="true" />
+                                        <span>{cat.label}</span>
+                                    </motion.button>
+                                );
+                            })}
+                        </div>
+                    </div>
 
                     {/* Mobile Filter Sheet */}
                     <div className="lg:hidden">

@@ -1,518 +1,931 @@
 'use client';
 
-/**
- * Admin Catalog Sync Page
- * 
- * Features:
- * - Trigger Kinguin catalog sync
- * - Monitor sync status and progress
- * - View sync history
- * - Display sync statistics
- * - Real-time data with refresh capability
- * - Error handling with retry capability
- * - Network status awareness
- * 
- * Follows Level 5 admin page patterns from orders/page.tsx
- */
-
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useState, useCallback } from 'react';
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/design-system/primitives/card';
-import { Badge } from '@/design-system/primitives/badge';
+  AdminCatalogSyncApi,
+  Configuration,
+  type SyncJobStatusResponseDto,
+  type SyncJobStatusResponseDtoResult,
+} from '@bitloot/sdk';
 import { Button } from '@/design-system/primitives/button';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/design-system/primitives/card';
 import { Alert, AlertDescription, AlertTitle } from '@/design-system/primitives/alert';
+import { Badge } from '@/design-system/primitives/badge';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/design-system/primitives/table';
 import {
   RefreshCw,
-  Play,
-  AlertTriangle,
-  Loader2,
-  WifiOff,
-  CheckCircle,
+  CheckCircle2,
   XCircle,
   Clock,
-  Database,
+  AlertCircle,
+  Play,
+  Loader2,
+  Package,
+  ArrowUpCircle,
+  PlusCircle,
+  SkipForward,
+  History,
+  Zap,
+  ChevronDown,
+  Settings,
+  RotateCcw,
 } from 'lucide-react';
-import { useErrorHandler } from '@/hooks/useErrorHandler';
-import { AdminCatalogSyncApi } from '@bitloot/sdk';
-import type {
-  SyncConfigStatusDto,
-  SyncJobStatusResponseDto,
-} from '@bitloot/sdk';
 
+// ============ TYPES ============
 
-import { apiConfig } from '@/lib/api-config';
+interface LiveStats {
+  percent: number;
+  current: number;
+  total: number;
+  updated: number;
+  created: number;
+  skipped: number;
+  errors: number;
+}
 
-export default function AdminCatalogSyncPage(): React.ReactNode {
-  // State management
-  const [lastError, setLastError] = useState<string | null>(null);
-  const [autoRefreshEnabled, setAutoRefreshEnabled] = useState(true);
-  const [syncJobId, _setSyncJobId] = useState<string>('');
-  const _queryClient = useQueryClient();
+// Use SDK types for sync result data
+type SyncResult = SyncJobStatusResponseDtoResult;
+// Note: SkippedProductInfoDto and UpdatedProductInfoDto types are used via SyncJobStatusResponseDtoResult
 
-  // Error handling with retry logic
-  const { handleError, clearError } = useErrorHandler({
-    maxRetries: 3,
-    retryDelay: 1000,
-    onError: (error: Error, context: string): void => {
-      setLastError(error.message);
-      console.error('Sync status fetch error:', { error, context });
-    },
-    onRetry: (attempt: number): void => {
-      console.info(`Retrying sync status fetch (attempt ${attempt})...`);
-    },
-    onRecovery: (): void => {
-      setLastError(null);
-      console.info('Sync status fetch recovered successfully');
-    },
-  });
+// ============ API CONFIG ============
 
-  // Network status (basic implementation)
-  const isOnline = typeof navigator !== 'undefined' ? navigator.onLine : true;
+function getCookie(name: string): string | null {
+  if (typeof document === 'undefined') return null;
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; ${name}=`);
+  if (parts.length === 2) return parts[1]?.split(';')[0] ?? null;
+  return null;
+}
 
-  // Check Kinguin configuration status
-  const configQuery = useQuery({
-    queryKey: ['admin', 'catalog', 'sync', 'config'],
-    queryFn: async (): Promise<SyncConfigStatusDto> => {
-      try {
-        const api = new AdminCatalogSyncApi(apiConfig);
-        const response = await api.adminSyncControllerGetConfigStatus();
-        return response;
-      } catch (error) {
-        console.error('Configuration check error:', error);
-        throw error;
-      }
-    },
-    staleTime: 60_000, // 1 minute - configuration doesn't change often
-    retry: 2,
-  });
+const apiConfig = new Configuration({
+  basePath: process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000',
+  accessToken: () => getCookie('accessToken') ?? '',
+});
 
-  // Fetch sync status
-  const statusQuery = useQuery({
-    queryKey: ['admin', 'catalog', 'sync', 'status'],
-    queryFn: async (): Promise<SyncJobStatusResponseDto> => {
-      if (!isOnline) {
-        throw new Error('No internet connection');
-      }
+const syncApi = new AdminCatalogSyncApi(apiConfig);
 
-      // If no sync job ID, return a default "idle" status instead of making an API call
-      if (syncJobId === undefined || syncJobId === '' || syncJobId.trim() === '') {
-        return {
-          jobId: '',
-          status: 'idle',
-          progress: 0,
-          result: {
-            productsProcessed: 0,
-            productsCreated: 0,
-            productsUpdated: 0,
-            errors: [],
-          },
-        } as SyncJobStatusResponseDto;
-      }
+// ============ HELPERS ============
 
-      try {
-        const api = new AdminCatalogSyncApi(apiConfig);
-        const response = await api.adminSyncControllerGetSyncStatus({
-          jobId: syncJobId,
-        });
+function formatDuration(ms: number): string {
+  if (ms < 1000) return `${ms}ms`;
+  const seconds = Math.floor(ms / 1000);
+  if (seconds < 60) return `${seconds}s`;
+  const minutes = Math.floor(seconds / 60);
+  const remainingSeconds = seconds % 60;
+  if (minutes < 60) return `${minutes}m ${remainingSeconds}s`;
+  const hours = Math.floor(minutes / 60);
+  const remainingMinutes = minutes % 60;
+  return `${hours}h ${remainingMinutes}m`;
+}
 
-        clearError();
-        return response;
-      } catch (error) {
-        // Handle specific sync-related errors
-        if (error instanceof Error) {
-          const message = error.message.toLowerCase();
-          if (message.includes('no sync job is currently running') || 
-              message.includes('job') && message.includes('not found')) {
-            // Return idle status instead of throwing error for missing jobs
-            return {
-              jobId: '',
-              status: 'idle',
-              progress: 0,
-              result: {
-                productsProcessed: 0,
-                productsCreated: 0,
-                productsUpdated: 0,
-                errors: [],
-              },
-            } as SyncJobStatusResponseDto;
-          }
-        }
-        
-        handleError(error instanceof Error ? error : new Error(String(error)), 'fetch-sync-status');
-        throw error;
-      }
-    },
-    staleTime: 10_000, // 10 seconds for faster status updates
-    retry: (failureCount: number, error: Error): boolean => {
-      if (failureCount < 3) {
-        const message = error instanceof Error ? error.message.toLowerCase() : '';
-        return message.includes('network') || message.includes('timeout');
-      }
-      return false;
-    },
-    refetchInterval: autoRefreshEnabled ? 5_000 : false, // 5 second polling during sync
-  });
+function formatRelativeTime(date: Date): string {
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  
+  if (diffMins < 1) return 'Just now';
+  if (diffMins < 60) return `${diffMins}m ago`;
+  
+  const diffHours = Math.floor(diffMins / 60);
+  if (diffHours < 24) return `${diffHours}h ago`;
+  
+  const diffDays = Math.floor(diffHours / 24);
+  if (diffDays < 7) return `${diffDays}d ago`;
+  
+  return date.toLocaleDateString();
+}
 
-  // Trigger sync mutation
-  const syncMutation = useMutation({
-    mutationFn: async () => {
-      const api = new AdminCatalogSyncApi(apiConfig);
-      return api.adminSyncControllerTriggerSync({});
-    },
-    onSuccess: (): void => {
-      // Immediately refetch status after triggering sync
-      void statusQuery.refetch();
-      // Enable auto-refresh to watch sync progress
-      setAutoRefreshEnabled(true);
-      setLastError(null); // Clear any previous errors
-    },
-    onError: (error: Error): void => {
-      // Enhanced error handling for sync trigger
-      let friendlyMessage = error.message;
-      if (error.message.includes('Kinguin API key')) {
-        friendlyMessage = 'Kinguin API is not properly configured. Please check KINGUIN_API_KEY environment variable.';
-      } else if (error.message.includes('KINGUIN_BASE_URL')) {
-        friendlyMessage = 'Kinguin API base URL is not configured. Please check KINGUIN_BASE_URL environment variable.';
-      } else if (error.message.includes('configuration')) {
-        friendlyMessage = 'Kinguin integration is not properly configured. Please contact your administrator.';
-      } else if (error.message.includes('network') || error.message.includes('fetch')) {
-        friendlyMessage = 'Network error: Unable to connect to Kinguin API. Please check your internet connection.';
-      }
-      
-      setLastError(friendlyMessage);
-      handleError(error, 'trigger-sync');
-    },
-  });
+// ============ COMPONENTS ============
 
-  // Refresh handler
-  const handleRefresh = useCallback((): void => {
-    void statusQuery.refetch();
-    void configQuery.refetch(); // Also refresh config status
-  }, [statusQuery, configQuery]);
-
-  // Sync trigger handler
-  const handleTriggerSync = useCallback((): void => {
-    // Check configuration before triggering
-    if (configQuery.data !== null && configQuery.data !== undefined) {
-      const config = configQuery.data;
-      if (!config.configured) {
-        setLastError(config.message ?? 'Kinguin API is not properly configured');
-        return;
-      }
-    }
-    
-    syncMutation.mutate();
-  }, [syncMutation, configQuery.data]);
-
-  // Loading and state
-  const isLoading = statusQuery.isLoading;
-  const isRefetching = statusQuery.isRefetching;
-  const status = statusQuery.data ?? {
-    jobId: '',
-    status: 'idle' as const,
-    progress: 0,
-    result: {
-      productsProcessed: 0,
-      productsCreated: 0,
-      productsUpdated: 0,
-      errors: [],
-    },
-  };
-  const hasError = statusQuery.isError || lastError !== null;
-  const isSyncing = status.status === 'running' || syncMutation.isPending;
-
-  // Status badge color
-  const getStatusColor = (s: string): 'default' | 'secondary' | 'destructive' | 'outline' => {
-    switch (s) {
-      case 'running':
-        return 'default';
-      case 'completed':
-        return 'secondary';
-      case 'failed':
-        return 'destructive';
-      case 'idle':
-      default:
-        return 'outline';
-    }
+function StatsCard({
+  title,
+  value,
+  icon: Icon,
+  color = 'cyan',
+  subtitle,
+  animate = false,
+}: {
+  title: string;
+  value: number | string;
+  icon: React.ElementType;
+  color?: 'cyan' | 'green' | 'purple' | 'orange' | 'pink';
+  subtitle?: string;
+  animate?: boolean;
+}) {
+  const colorClasses = {
+    cyan: 'text-cyan-glow bg-cyan-glow/10 border-cyan-glow/30',
+    green: 'text-green-success bg-green-success/10 border-green-success/30',
+    purple: 'text-purple-neon bg-purple-neon/10 border-purple-neon/30',
+    orange: 'text-orange-warning bg-orange-warning/10 border-orange-warning/30',
+    pink: 'text-pink-featured bg-pink-featured/10 border-pink-featured/30',
   };
 
   return (
-    <div className="flex flex-col gap-4">
+    <Card className={`border ${colorClasses[color]} ${animate ? 'animate-pulse' : ''}`}>
+      <CardContent className="p-4">
+        <div className="flex items-center gap-3">
+          <div className={`p-2 rounded-lg ${colorClasses[color]}`}>
+            <Icon className="h-5 w-5" />
+          </div>
+          <div>
+            <p className="text-sm text-text-secondary">{title}</p>
+            <p className="text-2xl font-bold text-text-primary">{value}</p>
+            {subtitle !== undefined && subtitle !== '' && (
+              <p className="text-xs text-text-muted mt-0.5">{subtitle}</p>
+            )}
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function LiveSyncProgress({
+  status,
+  stats,
+  startTime,
+}: {
+  status: SyncJobStatusResponseDto;
+  stats: LiveStats;
+  startTime: Date | null;
+}) {
+  const elapsed = startTime !== null ? Date.now() - startTime.getTime() : 0;
+  const percent = stats.percent ?? 0;
+  const estimatedTotal = percent > 0 ? (elapsed / percent) * 100 : 0;
+  const remaining = Math.max(0, estimatedTotal - elapsed);
+
+  return (
+    <Card className="border-cyan-glow/50 shadow-glow-cyan-sm">
+      <CardHeader className="pb-2">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Loader2 className="h-5 w-5 text-cyan-glow animate-spin" />
+            <CardTitle className="text-lg">Sync In Progress</CardTitle>
+          </div>
+          <Badge variant="outline" className="border-cyan-glow text-cyan-glow">
+            {status.status}
+          </Badge>
+        </div>
+        <CardDescription>
+          Synchronizing products from Kinguin catalog...
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        {/* Progress Bar */}
+        <div className="space-y-2">
+          <div className="flex justify-between text-sm">
+            <span className="text-text-secondary">
+              Progress: {stats.current.toLocaleString()} / {stats.total.toLocaleString()} products
+            </span>
+            <span className="text-cyan-glow font-medium">{percent.toFixed(1)}%</span>
+          </div>
+          <div className="h-3 bg-bg-tertiary rounded-full overflow-hidden">
+            <div
+              className="h-full bg-linear-to-r from-cyan-glow to-purple-neon transition-all duration-500 ease-out shadow-glow-cyan-sm"
+              style={{ width: `${Math.min(100, percent)}%` }}
+            />
+          </div>
+          <div className="flex justify-between text-xs text-text-muted">
+            <span>Elapsed: {formatDuration(elapsed)}</span>
+            {remaining > 0 && percent > 5 && (
+              <span>~{formatDuration(remaining)} remaining</span>
+            )}
+          </div>
+        </div>
+
+        {/* Live Stats Grid */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="text-center p-3 bg-bg-tertiary rounded-lg">
+            <Package className="h-5 w-5 mx-auto mb-1 text-cyan-glow" />
+            <p className="text-xl font-bold text-text-primary">{stats.current.toLocaleString()}</p>
+            <p className="text-xs text-text-secondary">Processed</p>
+          </div>
+          <div className="text-center p-3 bg-bg-tertiary rounded-lg">
+            <ArrowUpCircle className="h-5 w-5 mx-auto mb-1 text-purple-neon" />
+            <p className="text-xl font-bold text-text-primary">{stats.updated.toLocaleString()}</p>
+            <p className="text-xs text-text-secondary">Updated</p>
+          </div>
+          <div className="text-center p-3 bg-bg-tertiary rounded-lg">
+            <PlusCircle className="h-5 w-5 mx-auto mb-1 text-green-success" />
+            <p className="text-xl font-bold text-text-primary">{stats.created.toLocaleString()}</p>
+            <p className="text-xs text-text-secondary">Created</p>
+          </div>
+          <div className="text-center p-3 bg-bg-tertiary rounded-lg">
+            <SkipForward className="h-5 w-5 mx-auto mb-1 text-text-muted" />
+            <p className="text-xl font-bold text-text-primary">{stats.skipped.toLocaleString()}</p>
+            <p className="text-xs text-text-secondary">Skipped</p>
+          </div>
+        </div>
+
+        {/* Error Counter */}
+        {stats.errors > 0 && (
+          <Alert variant="destructive" className="border-orange-warning/50 bg-orange-warning/10">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Sync Errors</AlertTitle>
+            <AlertDescription>
+              {stats.errors} error(s) encountered. Check logs for details.
+            </AlertDescription>
+          </Alert>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function SyncCompletedSummary({ result, duration }: { result: SyncResult; duration: number }) {
+  const [showSkipped, setShowSkipped] = useState(false);
+  const [showUpdated, setShowUpdated] = useState(false);
+  
+  const total = result.productsProcessed ?? 0;
+  const hasErrors = (result.errors?.length ?? 0) > 0;
+  const hasSkipped = (result.skippedProducts?.length ?? 0) > 0;
+  const hasUpdated = (result.updatedProducts?.length ?? 0) > 0;
+
+  return (
+    <div className="space-y-4">
+      {/* Summary Alert */}
+      <Alert className={hasErrors 
+        ? 'border-orange-warning/50 bg-orange-warning/10' 
+        : 'border-green-success/50 bg-green-success/10 shadow-glow-success'
+      }>
+        {hasErrors ? (
+          <AlertCircle className="h-5 w-5 text-orange-warning" />
+        ) : (
+          <CheckCircle2 className="h-5 w-5 text-green-success" />
+        )}
+        <AlertTitle className="text-lg">
+          {hasErrors ? 'Sync Completed with Errors' : 'Sync Completed Successfully!'}
+        </AlertTitle>
+        <AlertDescription className="mt-2">
+          <div className="flex flex-wrap gap-4 text-sm">
+            <span className="flex items-center gap-1">
+              <Package className="h-4 w-4" />
+              <strong>{total.toLocaleString()}</strong> processed
+            </span>
+            <span className="flex items-center gap-1 text-purple-neon">
+              <ArrowUpCircle className="h-4 w-4" />
+              <strong>{(result.productsUpdated ?? 0).toLocaleString()}</strong> updated
+            </span>
+            <span className="flex items-center gap-1 text-green-success">
+              <PlusCircle className="h-4 w-4" />
+              <strong>{(result.productsCreated ?? 0).toLocaleString()}</strong> created
+            </span>
+            <span className="flex items-center gap-1 text-text-muted">
+              <SkipForward className="h-4 w-4" />
+              <strong>{(result.productsSkipped ?? 0).toLocaleString()}</strong> skipped
+            </span>
+            <span className="flex items-center gap-1">
+              <Clock className="h-4 w-4" />
+              {formatDuration(duration)}
+            </span>
+          </div>
+          {hasErrors && (
+            <div className="mt-3 text-orange-warning">
+              <strong>{result.errors?.length}</strong> error(s) occurred during sync.
+            </div>
+          )}
+        </AlertDescription>
+      </Alert>
+
+      {/* Updated Products Details */}
+      {hasUpdated && (
+        <Card className="border-purple-neon/30">
+          <CardHeader className="pb-2">
+            <button 
+              onClick={() => setShowUpdated(!showUpdated)}
+              className="flex items-center justify-between w-full text-left"
+            >
+              <div className="flex items-center gap-2">
+                <ArrowUpCircle className="h-5 w-5 text-purple-neon" />
+                <CardTitle className="text-base">
+                  Updated Products ({result.updatedProducts?.length ?? 0})
+                </CardTitle>
+              </div>
+              <ChevronDown className={`h-4 w-4 text-text-muted transition-transform ${showUpdated ? 'rotate-180' : ''}`} />
+            </button>
+          </CardHeader>
+          {showUpdated && (
+            <CardContent className="pt-2">
+              <div className="max-h-64 overflow-y-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Product</TableHead>
+                      <TableHead className="text-right">Price Change</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {result.updatedProducts?.map((product) => (
+                      <TableRow key={product.id}>
+                        <TableCell>
+                          <div>
+                            <p className="font-medium text-text-primary text-sm">{product.title}</p>
+                            <p className="text-xs text-text-muted font-mono">{product.externalId}</p>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {product.priceChange?.oldPrice !== undefined && product.priceChange?.newPrice !== undefined ? (
+                            <div className="text-sm">
+                              <span className="text-text-muted line-through">
+                                €{product.priceChange.oldPrice.toFixed(2)}
+                              </span>
+                              <span className="mx-1">→</span>
+                              <span className={product.priceChange.newPrice > product.priceChange.oldPrice 
+                                ? 'text-orange-warning' 
+                                : 'text-green-success'
+                              }>
+                                €{product.priceChange.newPrice.toFixed(2)}
+                              </span>
+                            </div>
+                          ) : (
+                            <span className="text-text-muted text-sm">No price change</span>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          )}
+        </Card>
+      )}
+
+      {/* Skipped Products Details */}
+      {hasSkipped && (
+        <Card className="border-orange-warning/30">
+          <CardHeader className="pb-2">
+            <button 
+              onClick={() => setShowSkipped(!showSkipped)}
+              className="flex items-center justify-between w-full text-left"
+            >
+              <div className="flex items-center gap-2">
+                <SkipForward className="h-5 w-5 text-orange-warning" />
+                <CardTitle className="text-base">
+                  Skipped Products ({result.skippedProducts?.length ?? 0})
+                </CardTitle>
+              </div>
+              <ChevronDown className={`h-4 w-4 text-text-muted transition-transform ${showSkipped ? 'rotate-180' : ''}`} />
+            </button>
+          </CardHeader>
+          {showSkipped && (
+            <CardContent className="pt-2">
+              <div className="max-h-64 overflow-y-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Product</TableHead>
+                      <TableHead>Reason</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {result.skippedProducts?.map((product) => (
+                      <TableRow key={product.id}>
+                        <TableCell>
+                          <div>
+                            <p className="font-medium text-text-primary text-sm">{product.title}</p>
+                            <p className="text-xs text-text-muted font-mono">{product.externalId}</p>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <span className="text-orange-warning text-sm">{product.reason}</span>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          )}
+        </Card>
+      )}
+
+      {/* Errors Details */}
+      {hasErrors && (
+        <Card className="border-destructive/30">
+          <CardHeader className="pb-2">
+            <div className="flex items-center gap-2">
+              <XCircle className="h-5 w-5 text-destructive" />
+              <CardTitle className="text-base">
+                Errors ({result.errors?.length ?? 0})
+              </CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent className="pt-2">
+            <div className="max-h-48 overflow-y-auto space-y-2">
+              {result.errors?.map((error, index) => (
+                <div key={index} className="text-sm text-destructive bg-destructive/10 px-3 py-2 rounded-md">
+                  {error}
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+    </div>
+  );
+}
+
+function StatusBadge({ status }: { status: string }) {
+  switch (status) {
+    case 'completed':
+      return (
+        <Badge className="badge-success">
+          <CheckCircle2 className="h-3 w-3 mr-1" />
+          Completed
+        </Badge>
+      );
+    case 'failed':
+      return (
+        <Badge className="badge-error">
+          <XCircle className="h-3 w-3 mr-1" />
+          Failed
+        </Badge>
+      );
+    case 'active':
+      return (
+        <Badge className="badge-info">
+          <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+          Running
+        </Badge>
+      );
+    case 'waiting':
+      return (
+        <Badge variant="outline" className="border-text-muted text-text-muted">
+          <Clock className="h-3 w-3 mr-1" />
+          Waiting
+        </Badge>
+      );
+    default:
+      return (
+        <Badge variant="outline">{status}</Badge>
+      );
+  }
+}
+
+// ============ MAIN PAGE ============
+
+export default function CatalogSyncPage() {
+  const queryClient = useQueryClient();
+  const [currentJobId, setCurrentJobId] = useState<string | null>(null);
+  const [syncStartTime, setSyncStartTime] = useState<Date | null>(null);
+  const [selectedHistoryResult, setSelectedHistoryResult] = useState<{
+    result: SyncResult;
+    duration: number;
+    date: Date;
+  } | null>(null);
+  const [completedResult, setCompletedResult] = useState<{
+    result: SyncResult;
+    duration: number;
+  } | null>(null);
+  const [failedReason, setFailedReason] = useState<string | null>(null);
+
+  // ============ QUERIES ============
+
+  // Check Kinguin configuration status
+  const { data: configStatus, isLoading: configLoading } = useQuery({
+    queryKey: ['kinguin-config'],
+    queryFn: () => syncApi.adminSyncControllerGetConfigStatus(),
+    staleTime: 60000, // Cache for 1 minute
+  });
+
+  // Poll current job status
+  const { data: status, error: statusError } = useQuery({
+    queryKey: ['sync-status', currentJobId],
+    queryFn: async () => {
+      if (currentJobId === null || currentJobId === '') return null;
+      try {
+        return await syncApi.adminSyncControllerGetSyncStatus({ jobId: currentJobId });
+      } catch (error) {
+        // If 404, job completed and was removed - fetch from history to get full result
+        if (error instanceof Error && error.message.includes('404')) {
+          // Fetch history to get complete result with skippedProducts/updatedProducts
+          const historyResponse = await syncApi.adminSyncControllerGetSyncHistory({ limit: '5' });
+          const completedJob = historyResponse.jobs?.find(
+            (job) => job.jobId === currentJobId
+          );
+          
+          if (completedJob !== undefined) {
+            // Return the full job data from history (includes result with product details)
+            return completedJob;
+          }
+          
+          // Fallback if job not found in history
+          return {
+            jobId: currentJobId,
+            status: 'completed',
+            progress: 100,
+          } as SyncJobStatusResponseDto;
+        }
+        throw error;
+      }
+    },
+    enabled: currentJobId !== null && currentJobId !== '',
+    refetchInterval: (query) => {
+      const data = query.state.data;
+      if (data === null || data === undefined) return 1000;
+      // Stop polling when job is complete
+      if (data.status === 'completed' || data.status === 'failed') {
+        return false;
+      }
+      return 1000; // Poll every second while running
+    },
+    staleTime: 0,
+  });
+
+  // Sync history
+  const { data: historyData, isLoading: historyLoading } = useQuery({
+    queryKey: ['sync-history'],
+    queryFn: () => syncApi.adminSyncControllerGetSyncHistory({ limit: '10' }),
+    staleTime: 30000,
+  });
+
+  // ============ MUTATIONS ============
+
+  const triggerSyncMutation = useMutation({
+    mutationFn: () => syncApi.adminSyncControllerTriggerSync(),
+    onSuccess: (data) => {
+      setCurrentJobId(data.jobId);
+      setSyncStartTime(new Date());
+      setCompletedResult(null);
+      setFailedReason(null);
+      void queryClient.invalidateQueries({ queryKey: ['sync-history'] });
+    },
+  });
+
+  // Retry failed sync
+  const handleRetrySync = () => {
+    setFailedReason(null);
+    setCompletedResult(null);
+    triggerSyncMutation.mutate();
+  };
+
+  // ============ DERIVED STATE ============
+
+  const isJobActive = currentJobId !== null && currentJobId !== '' && (status?.status === 'active' || status?.status === 'waiting');
+  const isConfigured = configStatus?.configured === true;
+  const history = historyData?.jobs ?? [];
+
+  // Parse live stats from progressData (cast to any to access dynamic properties from job.progress)
+  const progressData = status?.progressData as {
+    percent?: number;
+    current?: number;
+    total?: number;
+    updated?: number;
+    skipped?: number;
+    errors?: number;
+  } | undefined;
+  
+  const liveStats: LiveStats = {
+    percent: progressData?.percent ?? status?.progress ?? 0,
+    current: progressData?.current ?? 0,
+    total: progressData?.total ?? 0,
+    updated: progressData?.updated ?? 0,
+    created: 0, // Not tracked in progress, only in result
+    skipped: progressData?.skipped ?? 0,
+    errors: progressData?.errors ?? 0,
+  };
+
+  // ============ EFFECTS ============
+
+  // Handle job completion
+  useEffect(() => {
+    if (status?.status === 'completed' && currentJobId !== null && currentJobId !== '') {
+      const duration = syncStartTime !== null ? Date.now() - syncStartTime.getTime() : 0;
+      
+      // Use result if available (from direct status or history fallback)
+      // The result should include skippedProducts and updatedProducts arrays
+      const result: SyncResult = status.result ?? {
+        productsProcessed: progressData?.total ?? progressData?.current ?? 0,
+        productsUpdated: progressData?.updated ?? 0,
+        productsCreated: 0,
+        productsSkipped: progressData?.skipped ?? 0,
+        errors: (progressData?.errors !== undefined && progressData.errors > 0) ? [`${progressData.errors} error(s)`] : [],
+        // Note: skippedProducts and updatedProducts will be undefined in fallback
+        // This should rarely happen now that we fetch from history on 404
+      };
+      
+      setCompletedResult({ result, duration });
+      setFailedReason(null);
+      setCurrentJobId(null);
+      setSyncStartTime(null);
+      
+      // Refresh history
+      void queryClient.invalidateQueries({ queryKey: ['sync-history'] });
+    } else if (status?.status === 'failed' && currentJobId !== null && currentJobId !== '') {
+      // Capture the failure reason before clearing state
+      setFailedReason(status.failedReason ?? 'Unknown error occurred during sync');
+      setCurrentJobId(null);
+      setSyncStartTime(null);
+      void queryClient.invalidateQueries({ queryKey: ['sync-history'] });
+    }
+  }, [status?.status, status?.result, status?.failedReason, currentJobId, syncStartTime, queryClient, progressData]);
+
+  // ============ RENDER ============
+
+  return (
+    <div className="p-6 space-y-6 max-w-6xl mx-auto">
       {/* Header */}
-      <div className="flex flex-col gap-2">
-        <h1 className="text-3xl font-bold">Catalog Sync</h1>
-        <p className="text-gray-600">Manage Kinguin catalog synchronization</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-text-primary flex items-center gap-2">
+            <RefreshCw className="h-6 w-6 text-cyan-glow" />
+            Kinguin Catalog Sync
+          </h1>
+          <p className="text-text-secondary mt-1">
+            Synchronize products from Kinguin API to your catalog
+          </p>
+        </div>
+        <Button
+          onClick={() => triggerSyncMutation.mutate()}
+          disabled={!isConfigured || isJobActive || triggerSyncMutation.isPending || configLoading}
+          className="btn-primary shadow-glow-cyan"
+          title={!isConfigured ? 'Kinguin API not configured' : undefined}
+        >
+          {configLoading ? (
+            <>
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              Checking...
+            </>
+          ) : triggerSyncMutation.isPending ? (
+            <>
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              Starting...
+            </>
+          ) : isJobActive ? (
+            <>
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              {status?.status === 'waiting' ? 'Waiting in Queue...' : 'Sync Running...'}
+            </>
+          ) : (
+            <>
+              <Play className="h-4 w-4 mr-2" />
+              Start Sync
+            </>
+          )}
+        </Button>
       </div>
 
-      {/* Configuration Status Card */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Database className="h-5 w-5" />
-            Kinguin Integration Status
-          </CardTitle>
-          <CardDescription>Verify API configuration and connectivity</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {configQuery.isLoading ? (
-            <div className="flex items-center gap-2">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              <span>Checking configuration...</span>
-            </div>
-          ) : configQuery.error !== null && configQuery.error !== undefined ? (
-            <div className="flex items-center gap-2 text-destructive">
-              <XCircle className="h-4 w-4" />
-              <span>Configuration check failed: {configQuery.error instanceof Error ? configQuery.error.message : String(configQuery.error)}</span>
-            </div>
-          ) : (
-            (() => {
-              const config = configQuery.data;
-              const isConfigured = config?.configured === true;
-              // Extract error string safely - SDK might type error differently
-              const rawError = config !== null && config !== undefined && 'error' in config ? config.error : undefined;
-              const configError = typeof rawError === 'string' ? rawError : undefined;
-              
-              return (
-                <div className="flex items-center gap-2">
-                  {isConfigured ? (
-                    <>
-                      <CheckCircle className="h-4 w-4 text-green-600" />
-                      <span className="text-green-600">Kinguin API is properly configured</span>
-                      {config?.message !== undefined && config.message !== '' && (
-                        <Badge variant="outline" className="ml-2">
-                          {config.message}
-                        </Badge>
-                      )}
-                    </>
-                  ) : (
-                    <>
-                      <XCircle className="h-4 w-4 text-destructive" />
-                      <span className="text-destructive">
-                        {configError ?? 'Kinguin API is not configured'}
-                      </span>
-                      <Badge variant="destructive" className="ml-2">
-                        Configuration Required
-                      </Badge>
-                    </>
-                  )}
-                </div>
-              );
-            })()
-          )}
-        </CardContent>
-      </Card>
+      {/* Configuration Warning */}
+      {!configLoading && !isConfigured && (
+        <Alert className="border-orange-warning/50 bg-orange-warning/10">
+          <Settings className="h-4 w-4 text-orange-warning" />
+          <AlertTitle>Kinguin API Not Configured</AlertTitle>
+          <AlertDescription>
+            {configStatus?.message ?? 'Please configure your Kinguin API key in environment variables to enable catalog sync.'}
+          </AlertDescription>
+        </Alert>
+      )}
 
-      {/* Error Alert */}
-      {hasError && (
+      {/* Completed Summary */}
+      {completedResult !== null && (
+        <SyncCompletedSummary
+          result={completedResult.result}
+          duration={completedResult.duration}
+        />
+      )}
+
+      {/* Live Progress */}
+      {isJobActive && status !== null && status !== undefined && (
+        <LiveSyncProgress
+          status={status}
+          stats={liveStats}
+          startTime={syncStartTime}
+        />
+      )}
+
+      {/* Error Display */}
+      {(triggerSyncMutation.error !== null || statusError !== null) && (
         <Alert variant="destructive">
-          <AlertTriangle className="h-4 w-4" />
+          <XCircle className="h-4 w-4" />
           <AlertTitle>Error</AlertTitle>
           <AlertDescription>
-            {lastError ?? 'Failed to fetch sync status. Please try again.'}
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleRefresh}
-              className="ml-2"
-              disabled={isRefetching}
-            >
-              {isRefetching ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : null}
-              Retry
-            </Button>
+            {triggerSyncMutation.error?.message ?? 
+             (statusError instanceof Error ? statusError.message : 'Unknown error')}
           </AlertDescription>
         </Alert>
       )}
 
-      {/* Network Alert */}
-      {!isOnline && (
-        <Alert variant="destructive">
-          <WifiOff className="h-4 w-4" />
-          <AlertTitle>Offline</AlertTitle>
-          <AlertDescription>
-            You appear to be offline. Sync operations are disabled.
+      {/* Failed Sync Alert */}
+      {failedReason !== null && (
+        <Alert variant="destructive" className="border-destructive/50 bg-destructive/10">
+          <XCircle className="h-5 w-5" />
+          <AlertTitle className="text-lg">Sync Failed</AlertTitle>
+          <AlertDescription className="mt-2">
+            <p className="text-sm">{failedReason}</p>
+            <div className="flex gap-2 mt-3">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleRetrySync}
+                disabled={triggerSyncMutation.isPending || !isConfigured}
+                className="border-cyan-glow/50 text-cyan-glow hover:bg-cyan-glow/10"
+              >
+                <RotateCcw className="h-4 w-4 mr-1" />
+                Retry Sync
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setFailedReason(null)}
+                className="text-text-muted hover:text-text-primary"
+              >
+                Dismiss
+              </Button>
+            </div>
           </AlertDescription>
         </Alert>
       )}
 
-      {/* Status Overview Card */}
+      {/* Last Sync Quick Stats */}
+      {history.length > 0 && !isJobActive && completedResult === null && (
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+          <StatsCard
+            title="Last Sync"
+            value={formatRelativeTime(new Date(history[0]?.processedOn ?? Date.now()))}
+            icon={Clock}
+            color="cyan"
+            subtitle={history[0]?.status}
+          />
+          <StatsCard
+            title="Processed"
+            value={((history[0]?.result)?.productsProcessed ?? 0).toLocaleString()}
+            icon={Package}
+            color="purple"
+          />
+          <StatsCard
+            title="Updated"
+            value={((history[0]?.result)?.productsUpdated ?? 0).toLocaleString()}
+            icon={ArrowUpCircle}
+            color="cyan"
+          />
+          <StatsCard
+            title="Created"
+            value={((history[0]?.result)?.productsCreated ?? 0).toLocaleString()}
+            icon={PlusCircle}
+            color="green"
+          />
+          <StatsCard
+            title="Skipped"
+            value={((history[0]?.result)?.productsSkipped ?? 0).toLocaleString()}
+            icon={SkipForward}
+            color="orange"
+          />
+        </div>
+      )}
+
+      {/* Sync History */}
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <div>
-            <CardTitle>Sync Status</CardTitle>
-            <CardDescription>Current synchronization state</CardDescription>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <History className="h-5 w-5 text-text-secondary" />
+            <CardTitle>Sync History</CardTitle>
           </div>
-          <div className="flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleRefresh}
-              disabled={isRefetching || !isOnline || isSyncing}
-            >
-              {isRefetching ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <RefreshCw className="h-4 w-4" />
-              )}
-            </Button>
-            <Button
-              variant="default"
-              size="sm"
-              disabled={!isOnline || isSyncing || syncMutation.isPending}
-              onClick={handleTriggerSync}
-            >
-              {syncMutation.isPending ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Starting...
-                </>
-              ) : isSyncing ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Syncing...
-                </>
-              ) : (
-                <>
-                  <Play className="h-4 w-4 mr-2" />
-                  Trigger Sync
-                </>
-              )}
-            </Button>
-          </div>
+          <CardDescription>
+            Recent synchronization jobs and their results
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          {isLoading ? (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
+          {historyLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-6 w-6 animate-spin text-cyan-glow" />
             </div>
-          ) : (
-            <div className="space-y-4">
-              {/* Status Grid */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                {/* Current Status */}
-                <div className="border rounded-lg p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    {status.status === 'running' && (
-                      <Loader2 className="h-4 w-4 animate-spin text-blue-500" />
-                    )}
-                    {status.status === 'completed' && (
-                      <CheckCircle className="h-4 w-4 text-green-500" />
-                    )}
-                    {status.status === 'failed' && (
-                      <XCircle className="h-4 w-4 text-red-500" />
-                    )}
-                    {status.status === 'idle' && (
-                      <Clock className="h-4 w-4 text-gray-500" />
-                    )}
-                    <span className="text-xs font-medium text-gray-600">Status</span>
-                  </div>
-                  <Badge variant={getStatusColor(status.status)}>
-                    {status.status.charAt(0).toUpperCase() + status.status.slice(1)}
-                  </Badge>
-                </div>
-
-                {/* Products Processed */}
-                <div className="border rounded-lg p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Database className="h-4 w-4 text-blue-500" />
-                    <span className="text-xs font-medium text-gray-600">Products</span>
-                  </div>
-                  <p className="text-2xl font-bold">{status.result?.productsProcessed ?? 0}</p>
-                </div>
-
-                {/* Products Created */}
-                <div className="border rounded-lg p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Database className="h-4 w-4 text-purple-500" />
-                    <span className="text-xs font-medium text-gray-600">Created</span>
-                  </div>
-                  <p className="text-2xl font-bold">{status.result?.productsCreated ?? 0}</p>
-                </div>
-
-                {/* Errors Count */}
-                <div className="border rounded-lg p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <AlertTriangle className="h-4 w-4 text-orange-500" />
-                    <span className="text-xs font-medium text-gray-600">Errors</span>
-                  </div>
-                  <p className={`text-2xl font-bold ${(status.result?.errors?.length ?? 0) > 0 ? 'text-orange-500' : 'text-gray-600'}`}>
-                    {status.result?.errors?.length ?? 0}
-                  </p>
-                </div>
+          ) : history.length === 0 ? (
+            <div className="text-center py-12">
+              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-bg-tertiary mb-4">
+                <Zap className="h-8 w-8 text-cyan-glow/50" />
               </div>
-
-              {/* Timestamps */}
-              <div className="border-t pt-4 space-y-2 text-sm">
-                {status.processedOn !== null && status.processedOn !== undefined && (
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Sync Started:</span>
-                    <span className="font-medium">
-                      {new Date(status.processedOn).toLocaleString()}
-                    </span>
-                  </div>
-                )}
-                {status.finishedOn !== null && status.finishedOn !== undefined && (
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Completed:</span>
-                    <span className="font-medium">
-                      {new Date(status.finishedOn).toLocaleString()}
-                    </span>
-                  </div>
-                )}
-                {status.createdAt !== null && status.createdAt !== undefined && (
-                  <div className="flex justify-between">
-                    <span className="text-gray-600">Job Created:</span>
-                    <span className="font-medium">
-                      {new Date(status.createdAt).toLocaleString()}
-                    </span>
-                  </div>
-                )}
-              </div>
-
-              {/* Error Message if failed */}
-              {status.status === 'failed' && (
-                <Alert variant="destructive">
-                  <AlertTriangle className="h-4 w-4" />
-                  <AlertTitle>Sync Failed</AlertTitle>
-                  <AlertDescription>
-                    The last synchronization failed. Please check the logs and try again.
-                  </AlertDescription>
-                </Alert>
+              <h3 className="text-lg font-medium text-text-primary mb-2">No Sync History</h3>
+              <p className="text-text-muted max-w-sm mx-auto mb-4">
+                {isConfigured 
+                  ? "You haven't run any catalog syncs yet. Click 'Start Sync' to synchronize your imported Kinguin products."
+                  : "Configure your Kinguin API key first, then start syncing products."}
+              </p>
+              {isConfigured && (
+                <Button
+                  onClick={() => triggerSyncMutation.mutate()}
+                  disabled={isJobActive || triggerSyncMutation.isPending}
+                  variant="outline"
+                  className="border-cyan-glow/50 text-cyan-glow hover:bg-cyan-glow/10"
+                >
+                  <Play className="h-4 w-4 mr-2" />
+                  Start First Sync
+                </Button>
               )}
             </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Started</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Processed</TableHead>
+                  <TableHead className="text-right">Updated</TableHead>
+                  <TableHead className="text-right">Created</TableHead>
+                  <TableHead className="text-right">Skipped</TableHead>
+                  <TableHead className="text-right">Duration</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {history.map((job) => {
+                  const duration = (job.finishedOn !== null && job.finishedOn !== undefined && job.processedOn !== null && job.processedOn !== undefined)
+                    ? new Date(job.finishedOn).getTime() - new Date(job.processedOn).getTime()
+                    : 0;
+                  const result = job.result;
+                  
+                  return (
+                    <TableRow key={job.jobId}>
+                      <TableCell>
+                        <div>
+                          <p className="text-sm">
+                            {new Date(job.processedOn ?? job.createdAt ?? '').toLocaleString()}
+                          </p>
+                          <p className="text-xs text-text-muted">
+                            {formatRelativeTime(new Date(job.processedOn ?? job.createdAt ?? ''))}
+                          </p>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <StatusBadge status={job.status} />
+                      </TableCell>
+                      <TableCell className="text-right font-mono">
+                        {(result?.productsProcessed ?? 0).toLocaleString()}
+                      </TableCell>
+                      <TableCell className="text-right font-mono text-purple-neon">
+                        {(result?.productsUpdated ?? 0).toLocaleString()}
+                      </TableCell>
+                      <TableCell className="text-right font-mono text-green-success">
+                        {(result?.productsCreated ?? 0).toLocaleString()}
+                      </TableCell>
+                      <TableCell className="text-right font-mono text-text-muted">
+                        {(result?.productsSkipped ?? 0).toLocaleString()}
+                      </TableCell>
+                      <TableCell className="text-right text-text-secondary">
+                        {duration > 0 ? formatDuration(duration) : '-'}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setSelectedHistoryResult({
+                            result: result ?? {},
+                            duration,
+                            date: new Date(job.processedOn ?? job.createdAt ?? ''),
+                          })}
+                          className="text-cyan-glow hover:text-cyan-glow/80"
+                        >
+                          View Details
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
           )}
         </CardContent>
       </Card>
 
-      {/* Information Card */}
-      <Card>
-        <CardHeader>
-          <CardTitle>About Sync</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3 text-sm text-gray-600">
-          <p>
-            <span className="font-medium">Kinguin Sync</span> synchronizes the latest product
-            offers from Kinguin&rsquo;s catalog into your BitLoot storefront.
-          </p>
-          <p>
-            <span className="font-medium">Frequency:</span> Syncs can be triggered manually or run
-            on a schedule (typically once per day).
-          </p>
-          <p>
-            <span className="font-medium">Processing:</span> Each offer is processed with pricing
-            rules applied to compute retail prices.
-          </p>
-          <p>
-            <span className="font-medium">Deduplication:</span> Duplicate offers across platforms
-            are consolidated into single products.
-          </p>
-        </CardContent>
-      </Card>
+      {/* Selected History Details */}
+      {selectedHistoryResult !== null && (
+        <Card className="border-cyan-glow/30 shadow-glow-cyan-sm">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <History className="h-5 w-5 text-cyan-glow" />
+                <CardTitle>Sync Details</CardTitle>
+                <span className="text-sm text-text-muted">
+                  {selectedHistoryResult.date.toLocaleString()}
+                </span>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setSelectedHistoryResult(null)}
+                className="text-text-muted hover:text-text-primary"
+              >
+                <XCircle className="h-4 w-4 mr-1" />
+                Close
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <SyncCompletedSummary
+              result={selectedHistoryResult.result}
+              duration={selectedHistoryResult.duration}
+            />
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

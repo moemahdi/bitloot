@@ -19,8 +19,12 @@ import type {
   AdminProductsListResponseDto,
   BulkDeleteProductsDto,
   BulkDeleteResponseDto,
+  BulkPublishProductsDto,
+  BulkPublishResponseDto,
   BulkRepriceProductsDto,
   BulkRepriceResponseDto,
+  BulkUnpublishProductsDto,
+  BulkUnpublishResponseDto,
   CreateProductDto,
   UpdateProductDto,
 } from '../models/index';
@@ -33,10 +37,18 @@ import {
     BulkDeleteProductsDtoToJSON,
     BulkDeleteResponseDtoFromJSON,
     BulkDeleteResponseDtoToJSON,
+    BulkPublishProductsDtoFromJSON,
+    BulkPublishProductsDtoToJSON,
+    BulkPublishResponseDtoFromJSON,
+    BulkPublishResponseDtoToJSON,
     BulkRepriceProductsDtoFromJSON,
     BulkRepriceProductsDtoToJSON,
     BulkRepriceResponseDtoFromJSON,
     BulkRepriceResponseDtoToJSON,
+    BulkUnpublishProductsDtoFromJSON,
+    BulkUnpublishProductsDtoToJSON,
+    BulkUnpublishResponseDtoFromJSON,
+    BulkUnpublishResponseDtoToJSON,
     CreateProductDtoFromJSON,
     CreateProductDtoToJSON,
     UpdateProductDtoFromJSON,
@@ -47,8 +59,24 @@ export interface AdminProductsControllerBulkDeleteRequest {
     bulkDeleteProductsDto: BulkDeleteProductsDto;
 }
 
+export interface AdminProductsControllerBulkFeatureRequest {
+    bulkPublishProductsDto: BulkPublishProductsDto;
+}
+
+export interface AdminProductsControllerBulkPublishRequest {
+    bulkPublishProductsDto: BulkPublishProductsDto;
+}
+
 export interface AdminProductsControllerBulkRepriceRequest {
     bulkRepriceProductsDto: BulkRepriceProductsDto;
+}
+
+export interface AdminProductsControllerBulkUnfeatureRequest {
+    bulkPublishProductsDto: BulkPublishProductsDto;
+}
+
+export interface AdminProductsControllerBulkUnpublishRequest {
+    bulkUnpublishProductsDto: BulkUnpublishProductsDto;
 }
 
 export interface AdminProductsControllerCreateRequest {
@@ -56,6 +84,10 @@ export interface AdminProductsControllerCreateRequest {
 }
 
 export interface AdminProductsControllerDeleteRequest {
+    id: string;
+}
+
+export interface AdminProductsControllerFeatureRequest {
     id: string;
 }
 
@@ -69,6 +101,9 @@ export interface AdminProductsControllerListAllRequest {
     region?: string;
     published?: string;
     source?: string;
+    businessCategory?: string;
+    genre?: string;
+    featured?: string;
     page?: string;
     limit?: string;
 }
@@ -78,6 +113,10 @@ export interface AdminProductsControllerPublishRequest {
 }
 
 export interface AdminProductsControllerRepriceRequest {
+    id: string;
+}
+
+export interface AdminProductsControllerUnfeatureRequest {
     id: string;
 }
 
@@ -143,6 +182,100 @@ export class AdminCatalogProductsApi extends runtime.BaseAPI {
     }
 
     /**
+     * Bulk feature products (set isFeatured=true)
+     */
+    async adminProductsControllerBulkFeatureRaw(requestParameters: AdminProductsControllerBulkFeatureRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<BulkPublishResponseDto>> {
+        if (requestParameters['bulkPublishProductsDto'] == null) {
+            throw new runtime.RequiredError(
+                'bulkPublishProductsDto',
+                'Required parameter "bulkPublishProductsDto" was null or undefined when calling adminProductsControllerBulkFeature().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("JWT-auth", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/admin/catalog/products/bulk-feature`;
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+            body: BulkPublishProductsDtoToJSON(requestParameters['bulkPublishProductsDto']),
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => BulkPublishResponseDtoFromJSON(jsonValue));
+    }
+
+    /**
+     * Bulk feature products (set isFeatured=true)
+     */
+    async adminProductsControllerBulkFeature(requestParameters: AdminProductsControllerBulkFeatureRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<BulkPublishResponseDto> {
+        const response = await this.adminProductsControllerBulkFeatureRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Bulk publish products (set isPublished=true)
+     */
+    async adminProductsControllerBulkPublishRaw(requestParameters: AdminProductsControllerBulkPublishRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<BulkPublishResponseDto>> {
+        if (requestParameters['bulkPublishProductsDto'] == null) {
+            throw new runtime.RequiredError(
+                'bulkPublishProductsDto',
+                'Required parameter "bulkPublishProductsDto" was null or undefined when calling adminProductsControllerBulkPublish().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("JWT-auth", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/admin/catalog/products/bulk-publish`;
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+            body: BulkPublishProductsDtoToJSON(requestParameters['bulkPublishProductsDto']),
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => BulkPublishResponseDtoFromJSON(jsonValue));
+    }
+
+    /**
+     * Bulk publish products (set isPublished=true)
+     */
+    async adminProductsControllerBulkPublish(requestParameters: AdminProductsControllerBulkPublishRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<BulkPublishResponseDto> {
+        const response = await this.adminProductsControllerBulkPublishRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
      * Bulk reprice products based on current pricing rules
      */
     async adminProductsControllerBulkRepriceRaw(requestParameters: AdminProductsControllerBulkRepriceRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<BulkRepriceResponseDto>> {
@@ -186,6 +319,100 @@ export class AdminCatalogProductsApi extends runtime.BaseAPI {
      */
     async adminProductsControllerBulkReprice(requestParameters: AdminProductsControllerBulkRepriceRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<BulkRepriceResponseDto> {
         const response = await this.adminProductsControllerBulkRepriceRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Bulk unfeature products (set isFeatured=false)
+     */
+    async adminProductsControllerBulkUnfeatureRaw(requestParameters: AdminProductsControllerBulkUnfeatureRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<BulkPublishResponseDto>> {
+        if (requestParameters['bulkPublishProductsDto'] == null) {
+            throw new runtime.RequiredError(
+                'bulkPublishProductsDto',
+                'Required parameter "bulkPublishProductsDto" was null or undefined when calling adminProductsControllerBulkUnfeature().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("JWT-auth", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/admin/catalog/products/bulk-unfeature`;
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+            body: BulkPublishProductsDtoToJSON(requestParameters['bulkPublishProductsDto']),
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => BulkPublishResponseDtoFromJSON(jsonValue));
+    }
+
+    /**
+     * Bulk unfeature products (set isFeatured=false)
+     */
+    async adminProductsControllerBulkUnfeature(requestParameters: AdminProductsControllerBulkUnfeatureRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<BulkPublishResponseDto> {
+        const response = await this.adminProductsControllerBulkUnfeatureRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Bulk unpublish products (set isPublished=false)
+     */
+    async adminProductsControllerBulkUnpublishRaw(requestParameters: AdminProductsControllerBulkUnpublishRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<BulkUnpublishResponseDto>> {
+        if (requestParameters['bulkUnpublishProductsDto'] == null) {
+            throw new runtime.RequiredError(
+                'bulkUnpublishProductsDto',
+                'Required parameter "bulkUnpublishProductsDto" was null or undefined when calling adminProductsControllerBulkUnpublish().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("JWT-auth", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/admin/catalog/products/bulk-unpublish`;
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+            body: BulkUnpublishProductsDtoToJSON(requestParameters['bulkUnpublishProductsDto']),
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => BulkUnpublishResponseDtoFromJSON(jsonValue));
+    }
+
+    /**
+     * Bulk unpublish products (set isPublished=false)
+     */
+    async adminProductsControllerBulkUnpublish(requestParameters: AdminProductsControllerBulkUnpublishRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<BulkUnpublishResponseDto> {
+        const response = await this.adminProductsControllerBulkUnpublishRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
@@ -281,6 +508,51 @@ export class AdminCatalogProductsApi extends runtime.BaseAPI {
     }
 
     /**
+     * Mark product as featured
+     */
+    async adminProductsControllerFeatureRaw(requestParameters: AdminProductsControllerFeatureRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<AdminProductResponseDto>> {
+        if (requestParameters['id'] == null) {
+            throw new runtime.RequiredError(
+                'id',
+                'Required parameter "id" was null or undefined when calling adminProductsControllerFeature().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("JWT-auth", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/admin/catalog/products/{id}/feature`;
+        urlPath = urlPath.replace(`{${"id"}}`, encodeURIComponent(String(requestParameters['id'])));
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'PATCH',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => AdminProductResponseDtoFromJSON(jsonValue));
+    }
+
+    /**
+     * Mark product as featured
+     */
+    async adminProductsControllerFeature(requestParameters: AdminProductsControllerFeatureRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<AdminProductResponseDto> {
+        const response = await this.adminProductsControllerFeatureRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
      * Get product by ID (admin)
      */
     async adminProductsControllerGetByIdRaw(requestParameters: AdminProductsControllerGetByIdRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<AdminProductResponseDto>> {
@@ -326,6 +598,43 @@ export class AdminCatalogProductsApi extends runtime.BaseAPI {
     }
 
     /**
+     * Get all unique genres from products
+     */
+    async adminProductsControllerGetGenresRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<string>>> {
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("JWT-auth", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/admin/catalog/products/genres`;
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse<any>(response);
+    }
+
+    /**
+     * Get all unique genres from products
+     */
+    async adminProductsControllerGetGenres(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<string>> {
+        const response = await this.adminProductsControllerGetGenresRaw(initOverrides);
+        return await response.value();
+    }
+
+    /**
      * List products with pagination (admin)
      */
     async adminProductsControllerListAllRaw(requestParameters: AdminProductsControllerListAllRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<AdminProductsListResponseDto>> {
@@ -349,6 +658,18 @@ export class AdminCatalogProductsApi extends runtime.BaseAPI {
 
         if (requestParameters['source'] != null) {
             queryParameters['source'] = requestParameters['source'];
+        }
+
+        if (requestParameters['businessCategory'] != null) {
+            queryParameters['businessCategory'] = requestParameters['businessCategory'];
+        }
+
+        if (requestParameters['genre'] != null) {
+            queryParameters['genre'] = requestParameters['genre'];
+        }
+
+        if (requestParameters['featured'] != null) {
+            queryParameters['featured'] = requestParameters['featured'];
         }
 
         if (requestParameters['page'] != null) {
@@ -477,6 +798,51 @@ export class AdminCatalogProductsApi extends runtime.BaseAPI {
      */
     async adminProductsControllerReprice(requestParameters: AdminProductsControllerRepriceRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<AdminProductResponseDto> {
         const response = await this.adminProductsControllerRepriceRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Remove product from featured
+     */
+    async adminProductsControllerUnfeatureRaw(requestParameters: AdminProductsControllerUnfeatureRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<AdminProductResponseDto>> {
+        if (requestParameters['id'] == null) {
+            throw new runtime.RequiredError(
+                'id',
+                'Required parameter "id" was null or undefined when calling adminProductsControllerUnfeature().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("JWT-auth", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/admin/catalog/products/{id}/unfeature`;
+        urlPath = urlPath.replace(`{${"id"}}`, encodeURIComponent(String(requestParameters['id'])));
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'PATCH',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => AdminProductResponseDtoFromJSON(jsonValue));
+    }
+
+    /**
+     * Remove product from featured
+     */
+    async adminProductsControllerUnfeature(requestParameters: AdminProductsControllerUnfeatureRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<AdminProductResponseDto> {
+        const response = await this.adminProductsControllerUnfeatureRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

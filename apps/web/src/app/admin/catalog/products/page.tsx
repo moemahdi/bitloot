@@ -132,6 +132,14 @@ const REGIONS = [
   'South America',
 ] as const;
 
+// Business category options - matches database enum
+const BUSINESS_CATEGORIES = [
+  { value: 'games', label: 'Games' },
+  { value: 'software', label: 'Software' },
+  { value: 'gift-cards', label: 'Gift Cards' },
+  { value: 'subscriptions', label: 'Subscriptions' },
+] as const;
+
 export default function AdminCatalogProductsPage(): React.JSX.Element {
   // State: filters and search
   const [searchQuery, setSearchQuery] = useState('');
@@ -139,6 +147,8 @@ export default function AdminCatalogProductsPage(): React.JSX.Element {
   const [regionFilter, setRegionFilter] = useState('all');
   const [publishedFilter, setPublishedFilter] = useState('all');
   const [sourceFilter, setSourceFilter] = useState('all');
+  const [businessCategoryFilter, setBusinessCategoryFilter] = useState('all');
+  const [genreFilter, setGenreFilter] = useState('all');
   const [lastError, setLastError] = useState<string | null>(null);
 
   // Product detail dialog state
@@ -175,9 +185,28 @@ export default function AdminCatalogProductsPage(): React.JSX.Element {
   const isOnline = useNetworkStatus();
   const queryClient = useQueryClient();
 
+  // Fetch available genres for filter dropdown
+  const genresQuery = useQuery({
+    queryKey: ['admin', 'catalog', 'genres'],
+    queryFn: async (): Promise<string[]> => {
+      if (!isOnline) {
+        return [];
+      }
+      try {
+        const api = new AdminCatalogProductsApi(apiConfig);
+        return await api.adminProductsControllerGetGenres();
+      } catch (error) {
+        console.error('Failed to fetch genres:', error);
+        return [];
+      }
+    },
+    staleTime: 300_000, // 5 minutes - genres don't change often
+    gcTime: 600_000, // 10 minutes cache
+  });
+
   // Fetch products with filters and pagination
   const productsQuery = useQuery({
-    queryKey: ['admin', 'catalog', 'products', searchQuery, platformFilter, regionFilter, publishedFilter, sourceFilter, currentPage, pageSize],
+    queryKey: ['admin', 'catalog', 'products', searchQuery, platformFilter, regionFilter, publishedFilter, sourceFilter, businessCategoryFilter, genreFilter, currentPage, pageSize],
     queryFn: async (): Promise<AdminProductsListResponseDto> => {
       if (!isOnline) {
         throw new Error('No internet connection. Please check your network.');
@@ -193,6 +222,8 @@ export default function AdminCatalogProductsPage(): React.JSX.Element {
           region: regionFilter === 'all' ? undefined : regionFilter,
           published: publishedFilter === 'all' ? undefined : publishedFilter,
           source: sourceFilter === 'all' ? undefined : sourceFilter,
+          businessCategory: businessCategoryFilter === 'all' ? undefined : businessCategoryFilter,
+          genre: genreFilter === 'all' ? undefined : genreFilter,
           page: String(currentPage),
           limit: String(pageSize),
         });
@@ -286,6 +317,112 @@ export default function AdminCatalogProductsPage(): React.JSX.Element {
     },
     onError: (error: unknown): void => {
       handleError(error instanceof Error ? error : new Error(String(error)), 'bulk-delete-products');
+    },
+  });
+
+  // Bulk publish mutation
+  const bulkPublishMutation = useMutation({
+    mutationFn: async (productIds: string[]) => {
+      if (!isOnline) {
+        throw new Error('No internet connection');
+      }
+      const api = new AdminCatalogProductsApi(apiConfig);
+      return await api.adminProductsControllerBulkPublish({ bulkPublishProductsDto: { ids: productIds } });
+    },
+    onSuccess: (): void => {
+      void queryClient.invalidateQueries({ queryKey: ['admin', 'catalog', 'products'] });
+      setSelectedProductIds(new Set());
+    },
+    onError: (error: unknown): void => {
+      handleError(error instanceof Error ? error : new Error(String(error)), 'bulk-publish-products');
+    },
+  });
+
+  // Bulk unpublish mutation
+  const bulkUnpublishMutation = useMutation({
+    mutationFn: async (productIds: string[]) => {
+      if (!isOnline) {
+        throw new Error('No internet connection');
+      }
+      const api = new AdminCatalogProductsApi(apiConfig);
+      return await api.adminProductsControllerBulkUnpublish({ bulkUnpublishProductsDto: { ids: productIds } });
+    },
+    onSuccess: (): void => {
+      void queryClient.invalidateQueries({ queryKey: ['admin', 'catalog', 'products'] });
+      setSelectedProductIds(new Set());
+    },
+    onError: (error: unknown): void => {
+      handleError(error instanceof Error ? error : new Error(String(error)), 'bulk-unpublish-products');
+    },
+  });
+
+  // Single feature mutation
+  const featureMutation = useMutation({
+    mutationFn: async (productId: string) => {
+      if (!isOnline) {
+        throw new Error('No internet connection');
+      }
+      const api = new AdminCatalogProductsApi(apiConfig);
+      return await api.adminProductsControllerFeature({ id: productId });
+    },
+    onSuccess: (): void => {
+      void queryClient.invalidateQueries({ queryKey: ['admin', 'catalog', 'products'] });
+    },
+    onError: (error: unknown): void => {
+      handleError(error instanceof Error ? error : new Error(String(error)), 'feature-product');
+    },
+  });
+
+  // Single unfeature mutation
+  const unfeatureMutation = useMutation({
+    mutationFn: async (productId: string) => {
+      if (!isOnline) {
+        throw new Error('No internet connection');
+      }
+      const api = new AdminCatalogProductsApi(apiConfig);
+      return await api.adminProductsControllerUnfeature({ id: productId });
+    },
+    onSuccess: (): void => {
+      void queryClient.invalidateQueries({ queryKey: ['admin', 'catalog', 'products'] });
+    },
+    onError: (error: unknown): void => {
+      handleError(error instanceof Error ? error : new Error(String(error)), 'unfeature-product');
+    },
+  });
+
+  // Bulk feature mutation
+  const bulkFeatureMutation = useMutation({
+    mutationFn: async (productIds: string[]) => {
+      if (!isOnline) {
+        throw new Error('No internet connection');
+      }
+      const api = new AdminCatalogProductsApi(apiConfig);
+      return await api.adminProductsControllerBulkFeature({ bulkPublishProductsDto: { ids: productIds } });
+    },
+    onSuccess: (): void => {
+      void queryClient.invalidateQueries({ queryKey: ['admin', 'catalog', 'products'] });
+      setSelectedProductIds(new Set());
+    },
+    onError: (error: unknown): void => {
+      handleError(error instanceof Error ? error : new Error(String(error)), 'bulk-feature-products');
+    },
+  });
+
+  // Bulk unfeature mutation
+  const bulkUnfeatureMutation = useMutation({
+    mutationFn: async (productIds: string[]) => {
+      if (!isOnline) {
+        throw new Error('No internet connection');
+      }
+      const api = new AdminCatalogProductsApi(apiConfig);
+      return await api.adminProductsControllerBulkUnfeature({ bulkPublishProductsDto: { ids: productIds } });
+    },
+    onSuccess: (): void => {
+      void queryClient.invalidateQueries({ queryKey: ['admin', 'catalog', 'products'] });
+      setSelectedProductIds(new Set());
+    },
+    onError: (error: unknown): void => {
+      handleError(error instanceof Error ? error : new Error(String(error)), 'bulk-unfeature-products');
     },
   });
 
@@ -391,13 +528,20 @@ export default function AdminCatalogProductsPage(): React.JSX.Element {
 
   return (
     <div className="space-y-6 p-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="font-display text-3xl font-bold tracking-tight text-text-primary drop-shadow-[0_0_10px_rgba(0,217,255,0.1)]">Catalog Products</h1>
-          <p className="text-text-secondary mt-2">
-            Manage products from Kinguin sync and custom listings
-          </p>
+      {/* Header with gradient accent */}
+      <div className="relative">
+        <div className="absolute inset-0 bg-gradient-to-r from-cyan-glow/5 via-purple-neon/5 to-transparent rounded-2xl blur-xl" />
+        <div className="relative flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex items-start gap-4">
+          <div className="p-3 rounded-xl bg-cyan-glow/10 border border-cyan-glow/20 shadow-glow-cyan-sm">
+            <Package className="h-7 w-7 text-cyan-glow" />
+          </div>
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight text-text-primary">Catalog Products</h1>
+            <p className="text-text-secondary mt-1">
+              Manage products from Kinguin sync and custom listings
+            </p>
+          </div>
         </div>
         <div className="flex items-center gap-3">
           <Link href="/admin/catalog/products/new">
@@ -421,61 +565,148 @@ export default function AdminCatalogProductsPage(): React.JSX.Element {
             Refresh
           </GlowButton>
           {selectedProductIds.size > 0 && (
-            <GlowButton
-              onClick={handleBulkDeleteClick}
-              disabled={bulkDeleteMutation.isPending}
-              variant="secondary"
-              size="sm"
-              glowColor="red"
-              className="border-red-500/50 text-red-500 hover:bg-red-500/10"
-            >
-              <Trash2 className="mr-2 h-4 w-4" />
-              Delete ({selectedProductIds.size})
-            </GlowButton>
+            <div className="flex flex-wrap items-center gap-2 p-2 rounded-lg bg-bg-tertiary/50 border border-border-subtle">
+              <span className="text-sm text-text-secondary px-2">
+                {selectedProductIds.size} selected
+              </span>
+              <div className="w-px h-6 bg-border-subtle" />
+              <GlowButton
+                onClick={() => bulkPublishMutation.mutate(Array.from(selectedProductIds))}
+                disabled={bulkPublishMutation.isPending}
+                variant="secondary"
+                size="sm"
+                glowColor="green"
+                className="border-green-success/50 text-green-success hover:bg-green-success/10 hover:shadow-glow-success transition-all duration-250"
+              >
+                {bulkPublishMutation.isPending ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Eye className="mr-2 h-4 w-4" />
+                )}
+                Publish
+              </GlowButton>
+              <GlowButton
+                onClick={() => bulkUnpublishMutation.mutate(Array.from(selectedProductIds))}
+                disabled={bulkUnpublishMutation.isPending}
+                variant="secondary"
+                size="sm"
+                glowColor="orange"
+                className="border-orange-warning/50 text-orange-warning hover:bg-orange-warning/10 transition-all duration-250"
+              >
+                {bulkUnpublishMutation.isPending ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <XCircle className="mr-2 h-4 w-4" />
+                )}
+                Unpublish
+              </GlowButton>
+              <GlowButton
+                onClick={() => bulkFeatureMutation.mutate(Array.from(selectedProductIds))}
+                disabled={bulkFeatureMutation.isPending}
+                variant="secondary"
+                size="sm"
+                glowColor="yellow"
+                className="border-pink-featured/50 text-pink-featured hover:bg-pink-featured/10 hover:shadow-glow-pink transition-all duration-250"
+              >
+                {bulkFeatureMutation.isPending ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Star className="mr-2 h-4 w-4" />
+                )}
+                Feature
+              </GlowButton>
+              <GlowButton
+                onClick={() => bulkUnfeatureMutation.mutate(Array.from(selectedProductIds))}
+                disabled={bulkUnfeatureMutation.isPending}
+                variant="secondary"
+                size="sm"
+                glowColor="gray"
+                className="border-border-accent text-text-muted hover:bg-bg-tertiary transition-all duration-250"
+              >
+                {bulkUnfeatureMutation.isPending ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Star className="mr-2 h-4 w-4" />
+                )}
+                Unfeature
+              </GlowButton>
+              <GlowButton
+                onClick={handleBulkDeleteClick}
+                disabled={bulkDeleteMutation.isPending}
+                variant="secondary"
+                size="sm"
+                glowColor="red"
+                className="border-destructive/50 text-destructive hover:bg-destructive/10 transition-all duration-250"
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                Delete
+              </GlowButton>
+            </div>
           )}
         </div>
+      </div>
       </div>
 
       {/* Network Status Alert */}
       {!isOnline && (
-        <Alert variant="destructive" className="border-red-500/50 bg-red-500/10 text-red-500">
-          <AlertTriangle className="h-4 w-4" />
-          <AlertTitle>No Internet Connection</AlertTitle>
-          <AlertDescription>
-            Please check your network connection and try again.
-          </AlertDescription>
+        <Alert variant="destructive" className="border-orange-warning/50 bg-orange-warning/5 animate-fade-in">
+          <div className="flex items-start gap-3">
+            <div className="p-2 rounded-lg bg-orange-warning/10">
+              <AlertTriangle className="h-5 w-5 text-orange-warning" />
+            </div>
+            <div>
+              <AlertTitle className="text-orange-warning font-semibold">No Internet Connection</AlertTitle>
+              <AlertDescription className="text-text-secondary mt-1">
+                Please check your network connection and try again.
+              </AlertDescription>
+            </div>
+          </div>
         </Alert>
       )}
 
       {/* Error Alert */}
       {lastError != null && lastError.length > 0 && isOnline && (
-        <Alert variant="destructive" className="border-red-500/50 bg-red-500/10 text-red-500">
-          <AlertTriangle className="h-4 w-4" />
-          <AlertTitle>Error Loading Products</AlertTitle>
-          <AlertDescription className="mt-2 space-y-2">
-            <p>{lastError}</p>
-            <Button
-              onClick={handleRefresh}
-              variant="outline"
-              size="sm"
-              className="mt-2 border-red-500/30 hover:bg-red-500/10"
-            >
-              Try Again
-            </Button>
-          </AlertDescription>
+        <Alert variant="destructive" className="border-destructive/50 bg-destructive/5 animate-fade-in">
+          <div className="flex items-start gap-3">
+            <div className="p-2 rounded-lg bg-destructive/10">
+              <AlertTriangle className="h-5 w-5 text-destructive" />
+            </div>
+            <div className="flex-1">
+              <AlertTitle className="text-destructive font-semibold">Error Loading Products</AlertTitle>
+              <AlertDescription className="text-text-secondary mt-1">
+                <p>{lastError}</p>
+              </AlertDescription>
+              <Button
+                onClick={handleRefresh}
+                variant="outline"
+                size="sm"
+                className="mt-3 border-destructive/30 text-destructive hover:bg-destructive/10 hover:border-destructive/50 transition-all duration-250"
+              >
+                <RefreshCw className="mr-2 h-4 w-4" />
+                Try Again
+              </Button>
+            </div>
+          </div>
         </Alert>
       )}
 
       {/* Filters Card */}
-      <Card className="border-cyan-glow/20 bg-bg-secondary/50 backdrop-blur-sm shadow-[0_0_15px_rgba(0,217,255,0.05)]">
-        <CardHeader>
-          <CardTitle className="text-text-primary">Filters</CardTitle>
-          <CardDescription className="text-text-secondary">
-            Search and filter products by various criteria
-          </CardDescription>
+      <Card className="border-border-subtle bg-bg-secondary/80 backdrop-blur-sm hover:border-border-accent transition-colors duration-250">
+        <CardHeader className="pb-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-purple-neon/10">
+              <Search className="h-4 w-4 text-purple-neon" />
+            </div>
+            <div>
+              <CardTitle className="text-text-primary text-lg">Filters</CardTitle>
+              <CardDescription className="text-text-muted text-sm">
+                Search and filter products by various criteria
+              </CardDescription>
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
             {/* Search Input */}
             <div className="space-y-2">
               <Label htmlFor="search" className="text-text-secondary">Search</Label>
@@ -502,6 +733,42 @@ export default function AdminCatalogProductsPage(): React.JSX.Element {
                   <SelectItem value="all">All Sources</SelectItem>
                   <SelectItem value="custom">Custom</SelectItem>
                   <SelectItem value="kinguin">Kinguin</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Business Category Filter */}
+            <div className="space-y-2">
+              <Label htmlFor="businessCategory" className="text-text-secondary">Category</Label>
+              <Select value={businessCategoryFilter} onValueChange={setBusinessCategoryFilter}>
+                <SelectTrigger id="businessCategory" className="border-cyan-glow/20 bg-bg-tertiary/50 focus:border-cyan-glow/50 focus:ring-cyan-glow/20">
+                  <SelectValue placeholder="All categories" />
+                </SelectTrigger>
+                <SelectContent className="border-cyan-glow/20 bg-bg-secondary/95 backdrop-blur-xl">
+                  <SelectItem value="all">All Categories</SelectItem>
+                  {BUSINESS_CATEGORIES.map((category) => (
+                    <SelectItem key={category.value} value={category.value}>
+                      {category.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Genre Filter */}
+            <div className="space-y-2">
+              <Label htmlFor="genre" className="text-text-secondary">Genre</Label>
+              <Select value={genreFilter} onValueChange={setGenreFilter}>
+                <SelectTrigger id="genre" className="border-cyan-glow/20 bg-bg-tertiary/50 focus:border-cyan-glow/50 focus:ring-cyan-glow/20">
+                  <SelectValue placeholder="All genres" />
+                </SelectTrigger>
+                <SelectContent className="border-cyan-glow/20 bg-bg-secondary/95 backdrop-blur-xl max-h-60">
+                  <SelectItem value="all">All Genres</SelectItem>
+                  {(genresQuery.data ?? []).map((genre) => (
+                    <SelectItem key={genre} value={genre}>
+                      {genre}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -561,21 +828,35 @@ export default function AdminCatalogProductsPage(): React.JSX.Element {
       </Card>
 
       {/* Products Table Card */}
-      <Card className="border-cyan-glow/20 bg-bg-secondary/50 backdrop-blur-sm shadow-[0_0_15px_rgba(0,217,255,0.05)]">
-        <CardHeader>
-          <CardTitle className="text-text-primary">Products</CardTitle>
-          <CardDescription className="text-text-secondary">
-            {isLoading
-              ? 'Loading products...'
-              : products != null
-                ? `${totalProducts} total product${totalProducts === 1 ? '' : 's'} (showing ${products.length} on this page)`
-                : 'No products'}
-          </CardDescription>
+      <Card className="border-border-subtle bg-bg-secondary/80 backdrop-blur-sm hover:border-border-accent transition-colors duration-250 overflow-hidden">
+        <CardHeader className="pb-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-cyan-glow/10">
+                <Store className="h-4 w-4 text-cyan-glow" />
+              </div>
+              <div>
+                <CardTitle className="text-text-primary text-lg">Products</CardTitle>
+                <CardDescription className="text-text-muted text-sm">
+                  {isLoading
+                    ? 'Loading products...'
+                    : products != null
+                      ? `${totalProducts.toLocaleString()} total product${totalProducts === 1 ? '' : 's'}`
+                      : 'No products'}
+                </CardDescription>
+              </div>
+            </div>
+            {!isLoading && products.length > 0 && (
+              <Badge variant="outline" className="border-cyan-glow/30 text-cyan-glow bg-cyan-glow/5">
+                Page {currentPage} of {totalPages}
+              </Badge>
+            )}
+          </div>
         </CardHeader>
 
         {/* Loading Progress Bar */}
         {isLoading && (
-          <div className="relative h-1 w-full overflow-hidden bg-gray-surface">
+          <div className="relative h-1 w-full overflow-hidden bg-bg-tertiary">
             <div className="absolute h-full w-full bg-cyan-glow/30 animate-pulse" />
             <div className="absolute h-full w-1/3 animate-[shimmer_1.5s_ease-in-out_infinite] bg-gradient-to-r from-transparent via-cyan-glow to-transparent" />
           </div>
@@ -583,9 +864,12 @@ export default function AdminCatalogProductsPage(): React.JSX.Element {
 
         <CardContent>
           {isLoading ? (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="h-8 w-8 animate-spin text-cyan-glow" />
-              <span className="ml-3 text-text-secondary">Loading products...</span>
+            <div className="flex flex-col items-center justify-center py-16 gap-4">
+              <div className="relative">
+                <div className="absolute inset-0 animate-ping rounded-full bg-cyan-glow/20" />
+                <Loader2 className="relative h-10 w-10 animate-spin-glow text-cyan-glow" />
+              </div>
+              <p className="text-text-secondary animate-pulse">Loading products...</p>
             </div>
           ) : error != null && (lastError == null || lastError.length === 0) ? (
             <Alert variant="destructive" className="border-red-500/50 bg-red-500/10 text-red-500">
@@ -596,12 +880,30 @@ export default function AdminCatalogProductsPage(): React.JSX.Element {
               </AlertDescription>
             </Alert>
           ) : products == null || products.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 text-center">
-              <Eye className="h-12 w-12 text-text-muted mb-4" />
-              <p className="text-lg font-medium text-text-primary">No products found</p>
-              <p className="text-sm text-text-secondary mt-1">
-                Try adjusting your filters or run a Kinguin sync
+            <div className="empty-state py-16">
+              <div className="p-4 rounded-full bg-cyan-glow/10 mb-4">
+                <Package className="empty-state-icon text-cyan-glow" />
+              </div>
+              <h3 className="empty-state-title text-text-primary">No products found</h3>
+              <p className="empty-state-description text-text-secondary">
+                Try adjusting your filters or import products from Kinguin
               </p>
+              <div className="flex flex-col sm:flex-row gap-3 mt-6">
+                <Link href="/admin/catalog/import">
+                  <Button className="btn-primary gap-2 shadow-glow-cyan-sm hover:shadow-glow-cyan transition-all duration-250">
+                    <Crown className="h-4 w-4" />
+                    Import from Kinguin
+                  </Button>
+                </Link>
+                <Button
+                  variant="outline"
+                  onClick={handleRefresh}
+                  className="gap-2 hover:border-cyan-glow/50 hover:text-cyan-glow transition-all duration-250"
+                >
+                  <RefreshCw className="h-4 w-4" />
+                  Refresh
+                </Button>
+              </div>
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -623,6 +925,7 @@ export default function AdminCatalogProductsPage(): React.JSX.Element {
                     <TableHead className="text-right text-text-secondary uppercase tracking-wider text-xs">Cost</TableHead>
                     <TableHead className="text-right text-text-secondary uppercase tracking-wider text-xs">Price</TableHead>
                     <TableHead className="text-text-secondary uppercase tracking-wider text-xs">Status</TableHead>
+                    <TableHead className="text-text-secondary uppercase tracking-wider text-xs">Featured</TableHead>
                     <TableHead className="text-right text-text-secondary uppercase tracking-wider text-xs">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -632,7 +935,9 @@ export default function AdminCatalogProductsPage(): React.JSX.Element {
                       const isPublishing = publishMutation.isPending && publishMutation.variables === product.id;
                       const isUnpublishing = unpublishMutation.isPending && unpublishMutation.variables === product.id;
                       const isRepricing = repriceMutation.isPending && repriceMutation.variables === product.id;
-                      const isActionPending = isPublishing || isUnpublishing || isRepricing;
+                      const isFeaturing = featureMutation.isPending && featureMutation.variables === product.id;
+                      const isUnfeaturing = unfeatureMutation.isPending && unfeatureMutation.variables === product.id;
+                      const isActionPending = isPublishing || isUnpublishing || isRepricing || isFeaturing || isUnfeaturing;
 
                       return (
                         <motion.tr
@@ -698,6 +1003,39 @@ export default function AdminCatalogProductsPage(): React.JSX.Element {
                                 <XCircle className="mr-1 h-3 w-3" />
                                 Hidden
                               </Badge>
+                            )}
+                          </TableCell>
+                          <TableCell>
+                            {product.isFeatured ? (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => unfeatureMutation.mutate(product.id)}
+                                disabled={isActionPending || !isOnline}
+                                className="text-yellow-500 hover:text-yellow-400 hover:bg-yellow-500/10 p-1"
+                                title="Remove from featured"
+                              >
+                                {isUnfeaturing ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  <Star className="h-4 w-4 fill-yellow-500" />
+                                )}
+                              </Button>
+                            ) : (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => featureMutation.mutate(product.id)}
+                                disabled={isActionPending || !isOnline}
+                                className="text-text-muted hover:text-yellow-500 hover:bg-yellow-500/10 p-1"
+                                title="Add to featured"
+                              >
+                                {isFeaturing ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  <Star className="h-4 w-4" />
+                                )}
+                              </Button>
                             )}
                           </TableCell>
                           <TableCell className="text-right">
@@ -807,15 +1145,15 @@ export default function AdminCatalogProductsPage(): React.JSX.Element {
 
           {/* Pagination Controls */}
           {!isLoading && products.length > 0 && (
-            <div className="mt-6 flex items-center justify-between border-t border-gray-border pt-4">
+            <div className="mt-6 flex flex-col md:flex-row items-center justify-between gap-4 border-t border-border-subtle pt-4">
               {/* Results info */}
               <div className="text-sm text-text-secondary">
                 Showing{' '}
-                <span className="font-medium text-text-primary">
+                <span className="font-medium text-cyan-glow">
                   {(currentPage - 1) * pageSize + 1}
                 </span>
                 {' '}-{' '}
-                <span className="font-medium text-text-primary">
+                <span className="font-medium text-cyan-glow">
                   {Math.min(currentPage * pageSize, totalProducts)}
                 </span>
                 {' '}of{' '}
@@ -825,14 +1163,14 @@ export default function AdminCatalogProductsPage(): React.JSX.Element {
 
               {/* Page size selector */}
               <div className="flex items-center gap-2">
-                <span className="text-sm text-text-secondary">Items per page:</span>
+                <span className="text-sm text-text-muted">Items per page:</span>
                 <select
                   value={pageSize}
                   onChange={(e) => {
                     setPageSize(Number(e.target.value));
                     setCurrentPage(1); // Reset to first page when changing page size
                   }}
-                  className="rounded-lg border border-gray-border bg-gray-surface px-3 py-1 text-sm text-text-primary focus:border-cyan-glow focus:outline-none focus:ring-1 focus:ring-cyan-glow"
+                  className="rounded-lg border border-border-subtle bg-bg-tertiary px-3 py-1.5 text-sm text-text-primary focus:border-cyan-glow focus:outline-none focus:ring-2 focus:ring-cyan-glow/20 transition-all duration-250"
                 >
                   <option value={10}>10</option>
                   <option value={25}>25</option>
@@ -842,13 +1180,13 @@ export default function AdminCatalogProductsPage(): React.JSX.Element {
               </div>
 
               {/* Pagination buttons */}
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1">
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => setCurrentPage(1)}
                   disabled={currentPage === 1 || isLoading}
-                  className="border-gray-border"
+                  className="border-border-subtle hover:border-cyan-glow/50 hover:text-cyan-glow disabled:opacity-30 transition-all duration-250"
                 >
                   <ChevronsLeft className="h-4 w-4" />
                 </Button>
@@ -857,22 +1195,22 @@ export default function AdminCatalogProductsPage(): React.JSX.Element {
                   size="sm"
                   onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
                   disabled={currentPage === 1 || isLoading}
-                  className="border-gray-border"
+                  className="border-border-subtle hover:border-cyan-glow/50 hover:text-cyan-glow disabled:opacity-30 transition-all duration-250"
                 >
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
-                <span className="text-sm text-text-secondary">
-                  Page{' '}
-                  <span className="font-medium text-text-primary">{currentPage}</span>
-                  {' '}of{' '}
+                <div className="px-3 py-1.5 rounded-lg bg-bg-tertiary border border-border-subtle text-sm">
+                  <span className="text-text-muted">Page </span>
+                  <span className="font-medium text-cyan-glow">{currentPage}</span>
+                  <span className="text-text-muted"> of </span>
                   <span className="font-medium text-text-primary">{totalPages}</span>
-                </span>
+                </div>
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
                   disabled={currentPage >= totalPages || isLoading}
-                  className="border-gray-border"
+                  className="border-border-subtle hover:border-cyan-glow/50 hover:text-cyan-glow disabled:opacity-30 transition-all duration-250"
                 >
                   <ChevronRight className="h-4 w-4" />
                 </Button>
@@ -881,7 +1219,7 @@ export default function AdminCatalogProductsPage(): React.JSX.Element {
                   size="sm"
                   onClick={() => setCurrentPage(totalPages)}
                   disabled={currentPage >= totalPages || isLoading}
-                  className="border-gray-border"
+                  className="border-border-subtle hover:border-cyan-glow/50 hover:text-cyan-glow disabled:opacity-30 transition-all duration-250"
                 >
                   <ChevronsRight className="h-4 w-4" />
                 </Button>
@@ -893,16 +1231,16 @@ export default function AdminCatalogProductsPage(): React.JSX.Element {
 
       {/* Product Detail Dialog - Enhanced with ALL Kinguin fields */}
       <Dialog open={isDetailOpen} onOpenChange={setIsDetailOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] bg-bg-secondary border-cyan-glow/20 text-text-primary">
+        <DialogContent className="max-w-4xl max-h-[90vh] bg-bg-secondary border border-border-subtle shadow-glow-cyan-sm text-text-primary">
           {selectedProduct !== null && selectedProduct !== undefined && (
             <>
-              <DialogHeader className="pb-2">
+              <DialogHeader className="pb-4 border-b border-border-subtle">
                 <DialogTitle className="text-xl font-bold text-text-primary flex items-center gap-2 flex-wrap">
                   {selectedProduct.title}
                   <Badge
                     variant="outline"
                     className={selectedProduct.sourceType === 'kinguin'
-                      ? 'border-orange-500/50 bg-orange-500/10 text-orange-400'
+                      ? 'border-orange-warning/50 bg-orange-warning/10 text-orange-warning'
                       : 'border-cyan-glow/50 bg-cyan-glow/10 text-cyan-glow'
                     }
                   >
@@ -912,13 +1250,13 @@ export default function AdminCatalogProductsPage(): React.JSX.Element {
                     variant="outline"
                     className={selectedProduct.isPublished
                       ? 'border-green-success/50 bg-green-success/10 text-green-success'
-                      : 'border-gray-border bg-gray-600/10 text-gray-400'
+                      : 'border-border-accent bg-bg-tertiary text-text-muted'
                     }
                   >
                     {selectedProduct.isPublished ? 'Published' : 'Draft'}
                   </Badge>
                   {selectedProduct.isPreorder && (
-                    <Badge variant="outline" className="border-purple-500/50 bg-purple-500/10 text-purple-400">
+                    <Badge variant="outline" className="border-purple-neon/50 bg-purple-neon/10 text-purple-neon">
                       <Clock className="h-3 w-3 mr-1" />Pre-order
                     </Badge>
                   )}
@@ -929,20 +1267,20 @@ export default function AdminCatalogProductsPage(): React.JSX.Element {
               </DialogHeader>
 
               <Tabs defaultValue="overview" className="w-full">
-                <TabsList className="grid w-full grid-cols-5 bg-bg-primary">
-                  <TabsTrigger value="overview" className="text-xs">
+                <TabsList className="grid w-full grid-cols-5 bg-bg-primary/50 p-1">
+                  <TabsTrigger value="overview" className="text-xs data-[state=active]:bg-cyan-glow/10 data-[state=active]:text-cyan-glow">
                     <Info className="h-3 w-3 mr-1" />Overview
                   </TabsTrigger>
-                  <TabsTrigger value="pricing" className="text-xs">
+                  <TabsTrigger value="pricing" className="text-xs data-[state=active]:bg-cyan-glow/10 data-[state=active]:text-cyan-glow">
                     <DollarSign className="h-3 w-3 mr-1" />Pricing
                   </TabsTrigger>
-                  <TabsTrigger value="metadata" className="text-xs">
+                  <TabsTrigger value="metadata" className="text-xs data-[state=active]:bg-cyan-glow/10 data-[state=active]:text-cyan-glow">
                     <Tag className="h-3 w-3 mr-1" />Metadata
                   </TabsTrigger>
-                  <TabsTrigger value="media" className="text-xs">
+                  <TabsTrigger value="media" className="text-xs data-[state=active]:bg-cyan-glow/10 data-[state=active]:text-cyan-glow">
                     <ImageIcon className="h-3 w-3 mr-1" />Media
                   </TabsTrigger>
-                  <TabsTrigger value="technical" className="text-xs">
+                  <TabsTrigger value="technical" className="text-xs data-[state=active]:bg-cyan-glow/10 data-[state=active]:text-cyan-glow">
                     <Cpu className="h-3 w-3 mr-1" />Technical
                   </TabsTrigger>
                 </TabsList>
@@ -1432,11 +1770,11 @@ export default function AdminCatalogProductsPage(): React.JSX.Element {
               </Tabs>
 
               {/* Actions - Always visible at bottom */}
-              <div className="flex gap-2 pt-4 border-t border-cyan-glow/10">
+              <div className="flex gap-2 pt-4 border-t border-border-subtle">
                 <Link href={`/admin/catalog/products/${selectedProduct.id}`} className="flex-1">
                   <Button
                     variant="outline"
-                    className="w-full border-cyan-glow/30 text-cyan-glow hover:bg-cyan-glow/10"
+                    className="w-full border-cyan-glow/30 text-cyan-glow hover:bg-cyan-glow/10 hover:shadow-glow-cyan-sm transition-all duration-250"
                     onClick={() => setIsDetailOpen(false)}
                   >
                     <Pencil className="mr-2 h-4 w-4" />
@@ -1445,7 +1783,7 @@ export default function AdminCatalogProductsPage(): React.JSX.Element {
                 </Link>
                 <Button
                   variant="outline"
-                  className="border-gray-border text-text-secondary hover:text-text-primary"
+                  className="border-border-subtle text-text-secondary hover:text-text-primary hover:border-border-accent transition-all duration-250"
                   onClick={() => setIsDetailOpen(false)}
                 >
                   Close
@@ -1458,24 +1796,26 @@ export default function AdminCatalogProductsPage(): React.JSX.Element {
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
-        <DialogContent className="bg-bg-secondary border border-red-500/30 sm:max-w-md">
+        <DialogContent className="bg-bg-secondary border border-destructive/30 shadow-[0_0_20px_rgba(239,68,68,0.1)] sm:max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-red-400 flex items-center gap-2">
-              <Trash2 className="h-5 w-5" />
+            <DialogTitle className="text-destructive flex items-center gap-2">
+              <div className="p-2 rounded-lg bg-destructive/10">
+                <Trash2 className="h-5 w-5" />
+              </div>
               {isBulkDelete ? 'Delete Multiple Products' : 'Delete Product'}
             </DialogTitle>
-            <DialogDescription className="text-text-secondary">
+            <DialogDescription className="text-text-secondary pt-2">
               {isBulkDelete
                 ? `You are about to permanently delete ${selectedProductIds.size} product${selectedProductIds.size > 1 ? 's' : ''}. This action cannot be undone.`
                 : 'You are about to permanently delete this product. This action cannot be undone.'}
             </DialogDescription>
           </DialogHeader>
-          <DialogFooter className="flex gap-2 sm:justify-end">
+          <DialogFooter className="flex gap-2 sm:justify-end pt-4 border-t border-border-subtle">
             <Button
               variant="outline"
               onClick={() => setDeleteConfirmOpen(false)}
               disabled={deleteMutation.isPending || bulkDeleteMutation.isPending}
-              className="border-gray-border"
+              className="border-border-subtle hover:border-border-accent transition-all duration-250"
             >
               Cancel
             </Button>
@@ -1483,7 +1823,7 @@ export default function AdminCatalogProductsPage(): React.JSX.Element {
               variant="destructive"
               onClick={confirmDelete}
               disabled={deleteMutation.isPending || bulkDeleteMutation.isPending}
-              className="bg-red-600 hover:bg-red-700"
+              className="bg-destructive hover:bg-destructive/90 hover:shadow-glow-error transition-all duration-250"
             >
               {(deleteMutation.isPending || bulkDeleteMutation.isPending) ? (
                 <>

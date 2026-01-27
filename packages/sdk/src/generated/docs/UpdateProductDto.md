@@ -16,6 +16,8 @@ Name | Type
 `drm` | string
 `ageRating` | string
 `category` | string
+`businessCategory` | string
+`isFeatured` | boolean
 `cost` | string
 `price` | string
 `currency` | string
@@ -39,6 +41,8 @@ const example = {
   "drm": null,
   "ageRating": null,
   "category": null,
+  "businessCategory": games,
+  "isFeatured": null,
   "cost": null,
   "price": null,
   "currency": null,

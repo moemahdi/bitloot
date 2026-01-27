@@ -80,6 +80,18 @@ export interface UpdateProductDto {
      */
     category?: string;
     /**
+     * Business category for store organization
+     * @type {string}
+     * @memberof UpdateProductDto
+     */
+    businessCategory?: UpdateProductDtoBusinessCategoryEnum;
+    /**
+     * Whether this product is featured on the homepage
+     * @type {boolean}
+     * @memberof UpdateProductDto
+     */
+    isFeatured?: boolean;
+    /**
      * Wholesale cost
      * @type {string}
      * @memberof UpdateProductDto
@@ -121,6 +133,17 @@ export const UpdateProductDtoSourceTypeEnum = {
 } as const;
 export type UpdateProductDtoSourceTypeEnum = typeof UpdateProductDtoSourceTypeEnum[keyof typeof UpdateProductDtoSourceTypeEnum];
 
+/**
+ * @export
+ */
+export const UpdateProductDtoBusinessCategoryEnum = {
+    Games: 'games',
+    Software: 'software',
+    GiftCards: 'gift-cards',
+    Subscriptions: 'subscriptions'
+} as const;
+export type UpdateProductDtoBusinessCategoryEnum = typeof UpdateProductDtoBusinessCategoryEnum[keyof typeof UpdateProductDtoBusinessCategoryEnum];
+
 
 /**
  * Check if a given object implements the UpdateProductDto interface.
@@ -149,6 +172,8 @@ export function UpdateProductDtoFromJSONTyped(json: any, ignoreDiscriminator: bo
         'drm': json['drm'] == null ? undefined : json['drm'],
         'ageRating': json['ageRating'] == null ? undefined : json['ageRating'],
         'category': json['category'] == null ? undefined : json['category'],
+        'businessCategory': json['businessCategory'] == null ? undefined : json['businessCategory'],
+        'isFeatured': json['isFeatured'] == null ? undefined : json['isFeatured'],
         'cost': json['cost'] == null ? undefined : json['cost'],
         'price': json['price'] == null ? undefined : json['price'],
         'currency': json['currency'] == null ? undefined : json['currency'],
@@ -178,6 +203,8 @@ export function UpdateProductDtoToJSONTyped(value?: UpdateProductDto | null, ign
         'drm': value['drm'],
         'ageRating': value['ageRating'],
         'category': value['category'],
+        'businessCategory': value['businessCategory'],
+        'isFeatured': value['isFeatured'],
         'cost': value['cost'],
         'price': value['price'],
         'currency': value['currency'],

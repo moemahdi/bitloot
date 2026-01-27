@@ -31,6 +31,10 @@ import {
     ProductResponseDtoToJSON,
 } from '../models/index';
 
+export interface CatalogControllerGetFeaturedProductsRequest {
+    limit?: number;
+}
+
 export interface CatalogControllerGetProductRequest {
     slug: string;
 }
@@ -44,7 +48,9 @@ export interface CatalogControllerListProductsRequest {
     q?: string;
     platform?: string;
     region?: string;
+    businessCategory?: string;
     category?: string;
+    featured?: boolean;
     sort?: CatalogControllerListProductsSortEnum;
     limit?: number;
     offset?: number;
@@ -83,6 +89,41 @@ export class CatalogApi extends runtime.BaseAPI {
      */
     async catalogControllerGetCategories(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<CategoriesResponseDto> {
         const response = await this.catalogControllerGetCategoriesRaw(initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Returns products marked as featured (isFeatured=true), sorted by featured order. Use for homepage featured section.
+     * Get featured products
+     */
+    async catalogControllerGetFeaturedProductsRaw(requestParameters: CatalogControllerGetFeaturedProductsRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<ProductListResponseDto>> {
+        const queryParameters: any = {};
+
+        if (requestParameters['limit'] != null) {
+            queryParameters['limit'] = requestParameters['limit'];
+        }
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/catalog/products/featured`;
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => ProductListResponseDtoFromJSON(jsonValue));
+    }
+
+    /**
+     * Returns products marked as featured (isFeatured=true), sorted by featured order. Use for homepage featured section.
+     * Get featured products
+     */
+    async catalogControllerGetFeaturedProducts(requestParameters: CatalogControllerGetFeaturedProductsRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ProductListResponseDto> {
+        const response = await this.catalogControllerGetFeaturedProductsRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
@@ -215,8 +256,16 @@ export class CatalogApi extends runtime.BaseAPI {
             queryParameters['region'] = requestParameters['region'];
         }
 
+        if (requestParameters['businessCategory'] != null) {
+            queryParameters['businessCategory'] = requestParameters['businessCategory'];
+        }
+
         if (requestParameters['category'] != null) {
             queryParameters['category'] = requestParameters['category'];
+        }
+
+        if (requestParameters['featured'] != null) {
+            queryParameters['featured'] = requestParameters['featured'];
         }
 
         if (requestParameters['sort'] != null) {

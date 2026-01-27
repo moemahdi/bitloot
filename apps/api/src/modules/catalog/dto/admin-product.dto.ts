@@ -23,6 +23,21 @@ import {
 export type ProductSourceType = 'custom' | 'kinguin';
 
 /**
+ * Business category for BitLoot store organization
+ */
+export type BusinessCategory = 'games' | 'software' | 'gift-cards' | 'subscriptions';
+
+/**
+ * Canonical business categories for BitLoot
+ */
+export const BITLOOT_CATEGORIES = [
+  { id: 'games' as const, label: 'Games', icon: 'Gamepad2', description: 'PC & Console game keys and accounts' },
+  { id: 'software' as const, label: 'Software', icon: 'Monitor', description: 'Windows, Office, antivirus & more' },
+  { id: 'gift-cards' as const, label: 'Gift Cards', icon: 'Gift', description: 'Steam, PlayStation, Xbox & more' },
+  { id: 'subscriptions' as const, label: 'Subscriptions', icon: 'Clock', description: 'Game Pass, PS Plus, EA Play' },
+] as const;
+
+/**
  * Admin Product DTOs
  *
  * Used for creating/updating products via admin API endpoints.
@@ -96,6 +111,24 @@ export class CreateProductDto {
   @IsString()
   @MaxLength(50)
   category?: string;
+
+  @ApiProperty({
+    description: 'Business category for store organization',
+    enum: ['games', 'software', 'gift-cards', 'subscriptions'],
+    default: 'games',
+    example: 'games',
+  })
+  @IsOptional()
+  @IsIn(['games', 'software', 'gift-cards', 'subscriptions'])
+  businessCategory?: BusinessCategory;
+
+  @ApiProperty({
+    description: 'Whether this product is featured on the homepage',
+    default: false,
+  })
+  @IsOptional()
+  @IsBoolean()
+  isFeatured?: boolean;
 
   @ApiProperty({ description: 'Wholesale cost (decimal string)', example: '45.00' })
   @IsNumberString()
@@ -188,6 +221,24 @@ export class UpdateProductDto {
   @IsString()
   @MaxLength(50)
   category?: string;
+
+  @ApiProperty({
+    description: 'Business category for store organization',
+    enum: ['games', 'software', 'gift-cards', 'subscriptions'],
+    required: false,
+    example: 'games',
+  })
+  @IsOptional()
+  @IsIn(['games', 'software', 'gift-cards', 'subscriptions'])
+  businessCategory?: BusinessCategory;
+
+  @ApiProperty({
+    description: 'Whether this product is featured on the homepage',
+    required: false,
+  })
+  @IsOptional()
+  @IsBoolean()
+  isFeatured?: boolean;
 
   @ApiProperty({ description: 'Wholesale cost', required: false })
   @IsOptional()
@@ -342,6 +393,19 @@ export class AdminProductResponseDto {
 
   @ApiProperty({ required: false })
   category?: string;
+
+  @ApiProperty({
+    description: 'Business category for store organization',
+    enum: ['games', 'software', 'gift-cards', 'subscriptions'],
+    example: 'games',
+  })
+  businessCategory!: 'games' | 'software' | 'gift-cards' | 'subscriptions';
+
+  @ApiProperty({
+    description: 'Whether this product is featured on the homepage',
+    example: false,
+  })
+  isFeatured!: boolean;
 
   // ============================================
   // KINGUIN API EXTENDED FIELDS
@@ -716,4 +780,64 @@ export class BulkRepriceResponseDto {
 
   @ApiProperty({ description: 'Number of products that failed to reprice' })
   failed!: number;
+}
+
+/**
+ * DTO for bulk publish request
+ */
+export class BulkPublishProductsDto {
+  @ApiProperty({
+    description: 'Array of product IDs to publish',
+    example: ['uuid-1', 'uuid-2', 'uuid-3'],
+    type: [String],
+  })
+  @IsArray()
+  @IsUUID('4', { each: true })
+  @ArrayMinSize(1)
+  ids!: string[];
+}
+
+/**
+ * DTO for bulk publish response
+ */
+export class BulkPublishResponseDto {
+  @ApiProperty({ description: 'Number of products successfully published' })
+  published!: number;
+
+  @ApiProperty({
+    description: 'IDs of products that were not found',
+    type: [String],
+    required: false,
+  })
+  notFound?: string[];
+}
+
+/**
+ * DTO for bulk unpublish request
+ */
+export class BulkUnpublishProductsDto {
+  @ApiProperty({
+    description: 'Array of product IDs to unpublish',
+    example: ['uuid-1', 'uuid-2', 'uuid-3'],
+    type: [String],
+  })
+  @IsArray()
+  @IsUUID('4', { each: true })
+  @ArrayMinSize(1)
+  ids!: string[];
+}
+
+/**
+ * DTO for bulk unpublish response
+ */
+export class BulkUnpublishResponseDto {
+  @ApiProperty({ description: 'Number of products successfully unpublished' })
+  unpublished!: number;
+
+  @ApiProperty({
+    description: 'IDs of products that were not found',
+    type: [String],
+    required: false,
+  })
+  notFound?: string[];
 }

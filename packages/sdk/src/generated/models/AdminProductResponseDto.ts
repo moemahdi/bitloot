@@ -144,6 +144,18 @@ export interface AdminProductResponseDto {
      */
     category?: string;
     /**
+     * Business category for store organization
+     * @type {string}
+     * @memberof AdminProductResponseDto
+     */
+    businessCategory: AdminProductResponseDtoBusinessCategoryEnum;
+    /**
+     * Whether this product is featured on the homepage
+     * @type {boolean}
+     * @memberof AdminProductResponseDto
+     */
+    isFeatured: boolean;
+    /**
      * Game developers
      * @type {Array<string>}
      * @memberof AdminProductResponseDto
@@ -365,6 +377,17 @@ export const AdminProductResponseDtoSourceTypeEnum = {
 } as const;
 export type AdminProductResponseDtoSourceTypeEnum = typeof AdminProductResponseDtoSourceTypeEnum[keyof typeof AdminProductResponseDtoSourceTypeEnum];
 
+/**
+ * @export
+ */
+export const AdminProductResponseDtoBusinessCategoryEnum = {
+    Games: 'games',
+    Software: 'software',
+    GiftCards: 'gift-cards',
+    Subscriptions: 'subscriptions'
+} as const;
+export type AdminProductResponseDtoBusinessCategoryEnum = typeof AdminProductResponseDtoBusinessCategoryEnum[keyof typeof AdminProductResponseDtoBusinessCategoryEnum];
+
 
 /**
  * Check if a given object implements the AdminProductResponseDto interface.
@@ -375,6 +398,8 @@ export function instanceOfAdminProductResponseDto(value: object): value is Admin
     if (!('slug' in value) || value['slug'] === undefined) return false;
     if (!('title' in value) || value['title'] === undefined) return false;
     if (!('name' in value) || value['name'] === undefined) return false;
+    if (!('businessCategory' in value) || value['businessCategory'] === undefined) return false;
+    if (!('isFeatured' in value) || value['isFeatured'] === undefined) return false;
     if (!('isPreorder' in value) || value['isPreorder'] === undefined) return false;
     if (!('cost' in value) || value['cost'] === undefined) return false;
     if (!('price' in value) || value['price'] === undefined) return false;
@@ -413,6 +438,8 @@ export function AdminProductResponseDtoFromJSONTyped(json: any, ignoreDiscrimina
         'drm': json['drm'] == null ? undefined : json['drm'],
         'ageRating': json['ageRating'] == null ? undefined : json['ageRating'],
         'category': json['category'] == null ? undefined : json['category'],
+        'businessCategory': json['businessCategory'],
+        'isFeatured': json['isFeatured'],
         'developers': json['developers'] == null ? undefined : json['developers'],
         'publishers': json['publishers'] == null ? undefined : json['publishers'],
         'genres': json['genres'] == null ? undefined : json['genres'],
@@ -479,6 +506,8 @@ export function AdminProductResponseDtoToJSONTyped(value?: AdminProductResponseD
         'drm': value['drm'],
         'ageRating': value['ageRating'],
         'category': value['category'],
+        'businessCategory': value['businessCategory'],
+        'isFeatured': value['isFeatured'],
         'developers': value['developers'],
         'publishers': value['publishers'],
         'genres': value['genres'],

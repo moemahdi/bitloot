@@ -16,6 +16,8 @@ Name | Type
 `drm` | string
 `ageRating` | string
 `category` | string
+`businessCategory` | string
+`isFeatured` | boolean
 `price` | string
 `currency` | string
 `isPublished` | boolean
@@ -55,6 +57,8 @@ const example = {
   "drm": Steam,
   "ageRating": M - Mature 17+,
   "category": Games,
+  "businessCategory": games,
+  "isFeatured": false,
   "price": 59.99000000,
   "currency": EUR,
   "isPublished": true,

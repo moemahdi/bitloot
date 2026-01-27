@@ -111,8 +111,12 @@ docs/BalanceAlertDto.md
 docs/BalanceHistoryPointDto.md
 docs/BulkDeleteProductsDto.md
 docs/BulkDeleteResponseDto.md
+docs/BulkPublishProductsDto.md
+docs/BulkPublishResponseDto.md
 docs/BulkRepriceProductsDto.md
 docs/BulkRepriceResponseDto.md
+docs/BulkUnpublishProductsDto.md
+docs/BulkUnpublishResponseDto.md
 docs/BulkUpdateStatusDto.md
 docs/BulkUpdateStatusResponseDto.md
 docs/BundleDealResponseDto.md
@@ -246,6 +250,7 @@ docs/ReviewsApi.md
 docs/ReviewsControllerCanReviewOrder200Response.md
 docs/ScreenshotDto.md
 docs/SessionsApi.md
+docs/SkippedProductInfoDto.md
 docs/SourceTypeCountDto.md
 docs/SpendingStatsDto.md
 docs/StatusApi.md
@@ -255,8 +260,10 @@ docs/StatusCountDto.md
 docs/SwitchEnvironmentDto.md
 docs/SwitchEnvironmentResponseDto.md
 docs/SyncConfigStatusDto.md
+docs/SyncHistoryResponseDto.md
 docs/SyncJobResponseDto.md
 docs/SyncJobStatusResponseDto.md
+docs/SyncJobStatusResponseDtoProgressData.md
 docs/SyncJobStatusResponseDtoResult.md
 docs/SystemConfigControllerGetCurrentEnvironment200Response.md
 docs/SystemConfigResponseDto.md
@@ -281,6 +288,8 @@ docs/UpdateProductGroupDto.md
 docs/UpdatePromoCodeDto.md
 docs/UpdateReviewDto.md
 docs/UpdateSystemConfigDto.md
+docs/UpdatedProductInfoDto.md
+docs/UpdatedProductInfoDtoPriceChange.md
 docs/UserOrderStatsDto.md
 docs/UserResponseDto.md
 docs/UsersApi.md
@@ -356,8 +365,12 @@ models/BalanceAlertDto.ts
 models/BalanceHistoryPointDto.ts
 models/BulkDeleteProductsDto.ts
 models/BulkDeleteResponseDto.ts
+models/BulkPublishProductsDto.ts
+models/BulkPublishResponseDto.ts
 models/BulkRepriceProductsDto.ts
 models/BulkRepriceResponseDto.ts
+models/BulkUnpublishProductsDto.ts
+models/BulkUnpublishResponseDto.ts
 models/BulkUpdateStatusDto.ts
 models/BulkUpdateStatusResponseDto.ts
 models/BundleDealResponseDto.ts
@@ -478,6 +491,7 @@ models/ReviewResponseDto.ts
 models/ReviewStatsDto.ts
 models/ReviewsControllerCanReviewOrder200Response.ts
 models/ScreenshotDto.ts
+models/SkippedProductInfoDto.ts
 models/SourceTypeCountDto.ts
 models/SpendingStatsDto.ts
 models/StatusControllerCheckMaintenance200Response.ts
@@ -486,8 +500,10 @@ models/StatusCountDto.ts
 models/SwitchEnvironmentDto.ts
 models/SwitchEnvironmentResponseDto.ts
 models/SyncConfigStatusDto.ts
+models/SyncHistoryResponseDto.ts
 models/SyncJobResponseDto.ts
 models/SyncJobStatusResponseDto.ts
+models/SyncJobStatusResponseDtoProgressData.ts
 models/SyncJobStatusResponseDtoResult.ts
 models/SystemConfigControllerGetCurrentEnvironment200Response.ts
 models/SystemConfigResponseDto.ts
@@ -512,6 +528,8 @@ models/UpdateProductGroupDto.ts
 models/UpdatePromoCodeDto.ts
 models/UpdateReviewDto.ts
 models/UpdateSystemConfigDto.ts
+models/UpdatedProductInfoDto.ts
+models/UpdatedProductInfoDtoPriceChange.ts
 models/UserOrderStatsDto.ts
 models/UserResponseDto.ts
 models/ValidatePromoDto.ts

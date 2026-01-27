@@ -5,6 +5,8 @@ import { Product } from './entities/product.entity';
 import { ProductOffer } from './entities/product-offer.entity';
 import { DynamicPricingRule } from './entities/dynamic-pricing-rule.entity';
 import { KinguinProductRaw } from './kinguin-catalog.client';
+import { BITLOOT_CATEGORIES, type BusinessCategory } from './dto/admin-product.dto';
+import { normalizePlatform } from './utils/platform-normalizer';
 
 // Internal interface for pricing rule calculations
 interface PricingRuleData {
@@ -13,6 +15,76 @@ interface PricingRuleData {
   fixedMarkupMinor?: number;
   floorMinor?: number;
   capMinor?: number;
+}
+
+/**
+ * Detect business category based on Kinguin product data
+ * Uses product name and genres to determine the appropriate BitLoot category
+ */
+function detectBusinessCategory(kinguinProduct: KinguinProductRaw): BusinessCategory {
+  const name = kinguinProduct.name.toLowerCase();
+  const genres = kinguinProduct.genres?.map(g => g.toLowerCase()) ?? [];
+
+  // Gift Cards detection
+  if (
+    name.includes('gift card') ||
+    name.includes('wallet code') ||
+    name.includes('wallet card') ||
+    name.includes('psn card') ||
+    name.includes('nintendo eshop') ||
+    name.includes('steam wallet') ||
+    name.includes('google play') ||
+    name.includes('itunes') ||
+    name.includes('spotify') ||
+    name.includes('netflix') ||
+    (name.includes('xbox live gold') && !name.includes('game pass'))
+  ) {
+    return 'gift-cards';
+  }
+
+  // Subscriptions detection
+  if (
+    name.includes('game pass') ||
+    name.includes('gamepass') ||
+    name.includes('ps plus') ||
+    name.includes('playstation plus') ||
+    name.includes('ea play') ||
+    name.includes('ubisoft+') ||
+    name.includes('ubisoft plus') ||
+    name.includes('subscription') ||
+    name.includes('membership') ||
+    name.includes(' month') ||
+    name.includes(' year') ||
+    name.includes('12 months') ||
+    name.includes('365 days')
+  ) {
+    return 'subscriptions';
+  }
+
+  // Software detection
+  if (
+    name.includes('windows') ||
+    name.includes('office') ||
+    name.includes('microsoft 365') ||
+    name.includes('antivirus') ||
+    name.includes('vpn') ||
+    name.includes('adobe') ||
+    name.includes('photoshop') ||
+    name.includes('visual studio') ||
+    name.includes('autocad') ||
+    name.includes('avg') ||
+    name.includes('norton') ||
+    name.includes('kaspersky') ||
+    name.includes('mcafee') ||
+    genres.includes('software') ||
+    genres.includes('application') ||
+    genres.includes('applications')
+  ) {
+    return 'software';
+  }
+
+  // Default to games
+  return 'games';
 }
 
 /**
@@ -30,8 +102,12 @@ export class CatalogService {
   /**
    * Create or update product from Kinguin product data
    * @param product - Kinguin product object from v1/products API
+   * @param businessCategoryOverride - Optional override for business category (admin import)
    */
-  async upsertProduct(kinguinProduct: KinguinProductRaw): Promise<Product> {
+  async upsertProduct(
+    kinguinProduct: KinguinProductRaw,
+    businessCategoryOverride?: 'games' | 'software' | 'gift-cards' | 'subscriptions',
+  ): Promise<Product> {
     // Use productId as the unique external identifier
     const externalId = kinguinProduct.productId;
 
@@ -76,6 +152,9 @@ export class CatalogService {
     // Get the cheapest offer ID if available (for fulfillment)
     const cheapestOffer = kinguinProduct.cheapestOfferId?.[0] ?? kinguinProduct.offers?.[0]?.offerId;
 
+    // Detect business category based on product name and genres, or use override
+    const businessCategory = businessCategoryOverride ?? detectBusinessCategory(kinguinProduct);
+
     if (product === null) {
       // Create new product from Kinguin data with ALL available fields
       product = this.productRepo.create({
@@ -91,10 +170,11 @@ export class CatalogService {
         subtitle: kinguinProduct.originalName,
         description: kinguinProduct.description,
         
-        // Categorization
-        platform: kinguinProduct.platform,
+        // Categorization (platform is normalized for consistency)
+        platform: normalizePlatform(kinguinProduct.platform),
         region,
         category: kinguinProduct.genres?.[0] ?? 'Games',
+        businessCategory, // Set detected business category
         ageRating: kinguinProduct.ageRating,
         drm: kinguinProduct.steam !== undefined ? 'Steam' : kinguinProduct.activationDetails,
         
@@ -167,8 +247,8 @@ export class CatalogService {
       if (kinguinProduct.originalName !== undefined) product.originalName = kinguinProduct.originalName;
       if (kinguinProduct.description !== undefined) product.description = kinguinProduct.description;
       
-      // Categorization
-      if (kinguinProduct.platform !== undefined) product.platform = kinguinProduct.platform;
+      // Categorization (platform is normalized for consistency)
+      if (kinguinProduct.platform !== undefined) product.platform = normalizePlatform(kinguinProduct.platform);
       if (region !== undefined) product.region = region;
       if (kinguinProduct.genres?.[0] !== undefined) product.category = kinguinProduct.genres[0];
       if (kinguinProduct.ageRating !== undefined) product.ageRating = kinguinProduct.ageRating;
@@ -214,6 +294,15 @@ export class CatalogService {
       if (kinguinProduct.languages !== undefined) product.languages = kinguinProduct.languages;
       if (kinguinProduct.systemRequirements !== undefined) product.systemRequirements = kinguinProduct.systemRequirements;
       if (kinguinProduct.steam !== undefined) product.steam = kinguinProduct.steam;
+
+      // Update businessCategory only if not manually set (still 'games' default)
+      // This allows admins to set categories manually while auto-detecting new imports
+      if (product.businessCategory === 'games' || product.businessCategory === undefined) {
+        const detectedCategory = detectBusinessCategory(kinguinProduct);
+        if (detectedCategory !== 'games') {
+          product.businessCategory = detectedCategory;
+        }
+      }
 
       // Ensure sourceType is 'kinguin' (fix existing products synced before this fix)
       product.sourceType = 'kinguin';
@@ -400,8 +489,10 @@ export class CatalogService {
       q?: string;
       platform?: string;
       region?: string;
-      category?: string;
+      category?: string; // Kinguin genre
+      businessCategory?: string; // BitLoot category: games, software, gift-cards, subscriptions
       sort?: 'newest' | 'price_asc' | 'price_desc' | 'rating';
+      featured?: boolean;
     } = {},
   ): Promise<{ data: Product[]; total: number; limit: number; offset: number; pages: number }> {
     let query = this.productRepo
@@ -430,11 +521,23 @@ export class CatalogService {
       });
     }
 
-    // Filter by category (case-insensitive to match slugified IDs from frontend)
+    // Filter by businessCategory (the 4 BitLoot categories)
+    if (typeof filters.businessCategory === 'string' && filters.businessCategory.length > 0) {
+      query = query.andWhere('product.businessCategory = :businessCategory', {
+        businessCategory: filters.businessCategory,
+      });
+    }
+
+    // Filter by category/genre (Kinguin genres - legacy support)
     if (typeof filters.category === 'string' && filters.category.length > 0) {
       query = query.andWhere('LOWER(product.category) = LOWER(:category)', {
         category: filters.category,
       });
+    }
+
+    // Filter by featured products only
+    if (filters.featured === true) {
+      query = query.andWhere('product.isFeatured = true');
     }
 
     // Sorting
@@ -784,7 +887,7 @@ export class CatalogService {
     if (typeof data.title === 'string') product.title = data.title;
     if (typeof data.subtitle === 'string') product.subtitle = data.subtitle;
     if (typeof data.description === 'string') product.description = data.description;
-    if (typeof data.platform === 'string') product.platform = data.platform;
+    if (typeof data.platform === 'string') product.platform = normalizePlatform(data.platform);
     if (typeof data.region === 'string') product.region = data.region;
     if (typeof data.drm === 'string') product.drm = data.drm;
     if (typeof data.ageRating === 'string') product.ageRating = data.ageRating;
@@ -870,6 +973,81 @@ export class CatalogService {
   }
 
   /**
+   * Bulk publish products (set isPublished = true)
+   */
+  async bulkPublishProducts(ids: string[]): Promise<{ published: number; notFound: string[] }> {
+    const notFound: string[] = [];
+    let published = 0;
+
+    for (const id of ids) {
+      const product = await this.productRepo.findOne({ where: { id } });
+      if (product === null) {
+        notFound.push(id);
+        continue;
+      }
+      product.isPublished = true;
+      await this.productRepo.save(product);
+      published++;
+    }
+
+    return { published, notFound };
+  }
+
+  /**
+   * Bulk unpublish products (set isPublished = false)
+   */
+  async bulkUnpublishProducts(ids: string[]): Promise<{ unpublished: number; notFound: string[] }> {
+    const notFound: string[] = [];
+    let unpublished = 0;
+
+    for (const id of ids) {
+      const product = await this.productRepo.findOne({ where: { id } });
+      if (product === null) {
+        notFound.push(id);
+        continue;
+      }
+      product.isPublished = false;
+      await this.productRepo.save(product);
+      unpublished++;
+    }
+
+    return { unpublished, notFound };
+  }
+
+  /**
+   * Set featured status for a single product
+   */
+  async setFeatured(id: string, isFeatured: boolean): Promise<Product | null> {
+    const product = await this.productRepo.findOne({ where: { id } });
+    if (product === null) {
+      return null;
+    }
+    product.isFeatured = isFeatured;
+    return this.productRepo.save(product);
+  }
+
+  /**
+   * Bulk set featured status for products
+   */
+  async bulkSetFeatured(ids: string[], isFeatured: boolean): Promise<{ published: number; notFound: string[] }> {
+    const notFound: string[] = [];
+    let published = 0;
+
+    for (const id of ids) {
+      const product = await this.productRepo.findOne({ where: { id } });
+      if (product === null) {
+        notFound.push(id);
+        continue;
+      }
+      product.isFeatured = isFeatured;
+      await this.productRepo.save(product);
+      published++;
+    }
+
+    return { published, notFound };
+  }
+
+  /**
    * List all products with pagination (admin - no published filter)
    * Returns paginated results with total count for UI
    */
@@ -881,6 +1059,9 @@ export class CatalogService {
     source?: string,
     page: number = 1,
     limit: number = 25,
+    businessCategory?: string,
+    featured?: boolean,
+    genre?: string,
   ): Promise<{ products: Product[]; total: number; page: number; limit: number; totalPages: number }> {
     let query = this.productRepo.createQueryBuilder('product');
 
@@ -912,6 +1093,22 @@ export class CatalogService {
       query = query.andWhere('product.sourceType = :source', { source });
     }
 
+    // Optional business category filter
+    if (typeof businessCategory === 'string' && businessCategory.length > 0) {
+      query = query.andWhere('product.businessCategory = :businessCategory', { businessCategory });
+    }
+
+    // Optional featured filter
+    if (typeof featured === 'boolean') {
+      query = query.andWhere('product.isFeatured = :featured', { featured });
+    }
+
+    // Optional genre filter - search within simple-array column (comma-separated)
+    if (typeof genre === 'string' && genre.length > 0) {
+      // PostgreSQL: genres is stored as comma-separated text, use ILIKE for partial match
+      query = query.andWhere('LOWER(product.genres) LIKE LOWER(:genre)', { genre: `%${genre}%` });
+    }
+
     // Ensure valid pagination values
     const validPage = Math.max(1, page);
     const validLimit = Math.min(100, Math.max(1, limit)); // Max 100 items per page
@@ -933,6 +1130,35 @@ export class CatalogService {
       limit: validLimit,
       totalPages,
     };
+  }
+
+  /**
+   * Get all distinct genres from products
+   * Returns a sorted list of unique genre names
+   */
+  async getDistinctGenres(): Promise<string[]> {
+    // Fetch all non-null genres from products
+    const products = await this.productRepo
+      .createQueryBuilder('product')
+      .select('product.genres')
+      .where('product.genres IS NOT NULL')
+      .andWhere("product.genres != ''")
+      .getMany();
+
+    // Extract and deduplicate genres (simple-array stores as comma-separated)
+    const genreSet = new Set<string>();
+    for (const product of products) {
+      if (product.genres !== null && product.genres !== undefined && Array.isArray(product.genres)) {
+        for (const genre of product.genres) {
+          if (genre !== null && genre !== undefined && genre.trim().length > 0) {
+            genreSet.add(genre.trim());
+          }
+        }
+      }
+    }
+
+    // Return sorted list
+    return Array.from(genreSet).sort((a, b) => a.localeCompare(b));
   }
 
   /**
@@ -1043,16 +1269,17 @@ export class CatalogService {
   }
 
   /**
-   * Get dynamic categories aggregated from published products
-   * Returns categories with product counts, featured collections, and metadata
+   * Get BitLoot business categories with product counts
+   * Returns the 4 main store categories: Games, Software, Gift Cards, Subscriptions
    */
   async getCategories(): Promise<{
     categories: Array<{
       id: string;
       label: string;
-      type: 'genre' | 'platform' | 'collection' | 'custom';
+      type: 'business' | 'genre' | 'platform' | 'collection' | 'custom';
       count: number;
       icon: string;
+      description: string;
       sortOrder: number;
     }>;
     featured: Array<{
@@ -1068,71 +1295,32 @@ export class CatalogService {
       where: { isPublished: true },
     });
 
-    // Aggregate categories from published products
-    // Categories are stored in the 'category' field (set from first genre during import)
-    const categoryAggregation = await this.productRepo
+    // Aggregate by businessCategory for the 4 main store categories
+    const businessCategoryAggregation = await this.productRepo
       .createQueryBuilder('product')
-      .select('product.category', 'category')
+      .select('product.businessCategory', 'businessCategory')
       .addSelect('COUNT(product.id)', 'count')
       .where('product.isPublished = true')
-      .andWhere('product.category IS NOT NULL')
-      .andWhere("product.category != ''")
-      .groupBy('product.category')
-      .orderBy('count', 'DESC')
-      .getRawMany<{ category: string; count: string }>();
+      .andWhere('product.businessCategory IS NOT NULL')
+      .groupBy('product.businessCategory')
+      .getRawMany<{ businessCategory: string; count: string }>();
 
-    // Aggregate platforms from published products
-    const platformAggregation = await this.productRepo
-      .createQueryBuilder('product')
-      .select('product.platform', 'platform')
-      .addSelect('COUNT(product.id)', 'count')
-      .where('product.isPublished = true')
-      .andWhere('product.platform IS NOT NULL')
-      .andWhere("product.platform != ''")
-      .groupBy('product.platform')
-      .orderBy('count', 'DESC')
-      .getRawMany<{ platform: string; count: string }>();
-
-    // Build categories array
-    const categories: Array<{
-      id: string;
-      label: string;
-      type: 'genre' | 'platform' | 'collection' | 'custom';
-      count: number;
-      icon: string;
-      sortOrder: number;
-    }> = [];
-
-    // Add platform-based categories first (most important for gaming)
-    let sortOrder = 0;
-    for (const item of platformAggregation) {
-      categories.push({
-        id: item.platform.toLowerCase().replace(/\s+/g, '-'),
-        label: item.platform,
-        type: 'platform',
-        count: parseInt(item.count, 10),
-        icon: this.getPlatformIcon(item.platform),
-        sortOrder: sortOrder++,
-      });
+    // Create a map of businessCategory -> count
+    const countMap = new Map<string, number>();
+    for (const item of businessCategoryAggregation) {
+      countMap.set(item.businessCategory, parseInt(item.count, 10));
     }
 
-    // Add genre-based categories
-    for (const item of categoryAggregation) {
-      // Skip if already added as platform
-      const id = item.category.toLowerCase().replace(/\s+/g, '-');
-      if (categories.some((c) => c.id === id)) {
-        continue;
-      }
-
-      categories.push({
-        id,
-        label: item.category,
-        type: this.getCategoryType(item.category),
-        count: parseInt(item.count, 10),
-        icon: 'Tag',
-        sortOrder: sortOrder++,
-      });
-    }
+    // Build categories array using BITLOOT_CATEGORIES with counts
+    const categories = BITLOOT_CATEGORIES.map((cat, index) => ({
+      id: cat.id,
+      label: cat.label,
+      type: 'business' as const,
+      count: countMap.get(cat.id) ?? 0,
+      icon: cat.icon,
+      description: cat.description,
+      sortOrder: index,
+    }));
 
     // Featured collections (virtual categories based on sorting)
     const featured = [

@@ -16,6 +16,7 @@ import {
   ApiBearerAuth,
   ApiQuery,
   ApiProperty,
+  ApiExtraModels,
 } from '@nestjs/swagger';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
@@ -24,6 +25,52 @@ import { AdminGuard } from '../../common/guards/admin.guard';
 import { KinguinCatalogClient } from './kinguin-catalog.client';
 
 // ============ DTOs ============
+
+/**
+ * Details about a product that was skipped during sync
+ */
+export class SkippedProductInfoDto {
+  @ApiProperty({ description: 'Product ID in BitLoot database' })
+  id!: string;
+
+  @ApiProperty({ description: 'Product title' })
+  title!: string;
+
+  @ApiProperty({ description: 'Kinguin external product ID' })
+  externalId!: string;
+
+  @ApiProperty({ description: 'Reason why the product was skipped' })
+  reason!: string;
+}
+
+/**
+ * Details about a product that was updated during sync
+ */
+export class UpdatedProductInfoDto {
+  @ApiProperty({ description: 'Product ID in BitLoot database' })
+  id!: string;
+
+  @ApiProperty({ description: 'Product title' })
+  title!: string;
+
+  @ApiProperty({ description: 'Kinguin external product ID' })
+  externalId!: string;
+
+  @ApiProperty({
+    description: 'Price change details if price was updated',
+    required: false,
+    type: 'object',
+    properties: {
+      oldPrice: { type: 'number', description: 'Previous price' },
+      newPrice: { type: 'number', description: 'New price after sync' },
+    },
+  })
+  priceChange?: {
+    oldPrice: number;
+    newPrice: number;
+  };
+}
+
 export class SyncJobResponseDto {
   @ApiProperty({ description: 'BullMQ job ID' })
   jobId!: string;
@@ -35,6 +82,7 @@ export class SyncJobResponseDto {
   message!: string;
 }
 
+@ApiExtraModels(SkippedProductInfoDto, UpdatedProductInfoDto)
 export class SyncJobStatusResponseDto {
   @ApiProperty({ description: 'BullMQ job ID' })
   jobId!: string;
@@ -46,21 +94,49 @@ export class SyncJobStatusResponseDto {
   progress?: number;
 
   @ApiProperty({
-    description: 'Job result data',
+    description: 'Detailed progress data with live stats',
+    required: false,
+    type: 'object',
+    properties: {
+      percent: { type: 'number', description: 'Progress percentage 0-100' },
+      current: { type: 'number', description: 'Current product index' },
+      total: { type: 'number', description: 'Total products to process' },
+      updated: { type: 'number', description: 'Products updated so far' },
+      skipped: { type: 'number', description: 'Products skipped so far' },
+      errors: { type: 'number', description: 'Errors encountered so far' },
+    },
+  })
+  progressData?: {
+    percent?: number;
+    current?: number;
+    total?: number;
+    updated?: number;
+    skipped?: number;
+    errors?: number;
+  };
+
+  @ApiProperty({
+    description: 'Job result data (available after completion)',
     required: false,
     type: 'object',
     properties: {
       productsProcessed: { type: 'number' },
       productsCreated: { type: 'number' },
       productsUpdated: { type: 'number' },
+      productsSkipped: { type: 'number' },
       errors: { type: 'array', items: { type: 'string' } },
+      skippedProducts: { type: 'array', items: { $ref: '#/components/schemas/SkippedProductInfoDto' } },
+      updatedProducts: { type: 'array', items: { $ref: '#/components/schemas/UpdatedProductInfoDto' } },
     },
   })
   result?: {
     productsProcessed?: number;
     productsCreated?: number;
     productsUpdated?: number;
+    productsSkipped?: number;
     errors?: string[];
+    skippedProducts?: SkippedProductInfoDto[];
+    updatedProducts?: UpdatedProductInfoDto[];
   };
 
   @ApiProperty({ description: 'Failure reason if job failed', required: false })
@@ -84,7 +160,16 @@ export class SyncConfigStatusDto {
   message!: string;
 }
 
+export class SyncHistoryResponseDto {
+  @ApiProperty({ description: 'List of sync jobs', type: [SyncJobStatusResponseDto] })
+  jobs!: SyncJobStatusResponseDto[];
+
+  @ApiProperty({ description: 'Total count of jobs in history' })
+  total!: number;
+}
+
 @ApiTags('Admin - Catalog Sync')
+@ApiExtraModels(SkippedProductInfoDto, UpdatedProductInfoDto)
 @Controller('admin/catalog/sync')
 @UseGuards(JwtAuthGuard, AdminGuard)
 @ApiBearerAuth('JWT-auth')
@@ -131,6 +216,15 @@ export class AdminSyncController {
         backoff: {
           type: 'exponential',
           delay: 5000,
+        },
+        // Keep completed jobs for 60 seconds so frontend can poll final status
+        removeOnComplete: {
+          age: 60, // seconds
+          count: 100, // keep last 100 jobs
+        },
+        removeOnFail: {
+          age: 300, // 5 minutes for failed jobs
+          count: 50,
         },
       },
     );
@@ -205,18 +299,41 @@ export class AdminSyncController {
     }
 
     const state = await job.getState();
-    const progress = job.progress as number | undefined;
+    
+    // Progress can be a number (legacy) or an object with detailed stats
+    const rawProgress = job.progress;
+    let progressPercent: number | undefined;
+    let progressData: SyncJobStatusResponseDto['progressData'];
+    
+    if (typeof rawProgress === 'number') {
+      progressPercent = rawProgress;
+    } else if (typeof rawProgress === 'object' && rawProgress !== null) {
+      const pd = rawProgress as { percent?: number; current?: number; total?: number; updated?: number; skipped?: number; errors?: number };
+      progressPercent = pd.percent;
+      progressData = {
+        percent: pd.percent,
+        current: pd.current,
+        total: pd.total,
+        updated: pd.updated,
+        skipped: pd.skipped,
+        errors: pd.errors,
+      };
+    }
 
     return {
       jobId: job.id ?? 'unknown',
       status: state,
-      progress,
+      progress: progressPercent,
+      progressData,
       result: job.returnvalue as
         | {
             productsProcessed?: number;
             productsCreated?: number;
             productsUpdated?: number;
+            productsSkipped?: number;
             errors?: string[];
+            skippedProducts?: SkippedProductInfoDto[];
+            updatedProducts?: UpdatedProductInfoDto[];
           }
         | undefined,
       failedReason: job.failedReason,
@@ -241,6 +358,91 @@ export class AdminSyncController {
         !Number.isNaN(job.finishedOn)
           ? new Date(job.finishedOn)
           : undefined,
+    };
+  }
+
+  /**
+   * GET /admin/catalog/sync/history
+   * Get history of sync jobs
+   */
+  @Get('history')
+  @ApiOperation({
+    summary: 'Get sync job history',
+    description: 'Retrieve the history of completed and failed sync jobs',
+  })
+  @ApiQuery({
+    name: 'limit',
+    required: false,
+    description: 'Maximum number of jobs to return (default: 10, max: 50)',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Sync history retrieved',
+    type: SyncHistoryResponseDto,
+  })
+  @ApiResponse({ status: 401, description: 'Unauthorized' })
+  @ApiResponse({ status: 403, description: 'Forbidden - Admin only' })
+  async getSyncHistory(
+    @Query('limit') limitParam?: string,
+  ): Promise<SyncHistoryResponseDto> {
+    const parsedLimit = parseInt(limitParam ?? '10', 10);
+    const limit = Math.min(Math.max(Number.isNaN(parsedLimit) ? 10 : parsedLimit, 1), 50);
+    
+    // Get completed and failed jobs, sorted by timestamp descending
+    const completedJobs = await this.catalogQueue.getJobs(['completed', 'failed'], 0, limit);
+    
+    // Filter to only sync jobs (not reprice or other catalog jobs)
+    const syncJobs = completedJobs.filter(
+      (job) => job.name === 'catalog.sync.imported' || job.name === 'catalog.sync.full',
+    );
+
+    const jobs = await Promise.all(
+      syncJobs.slice(0, limit).map(async (job) => {
+        const state = await job.getState();
+        return {
+          jobId: job.id ?? 'unknown',
+          status: state,
+          progress: typeof job.progress === 'number' ? job.progress : (job.progress as { percent?: number } | undefined)?.percent,
+          result: job.returnvalue as
+            | {
+                productsProcessed?: number;
+                productsCreated?: number;
+                productsUpdated?: number;
+                productsSkipped?: number;
+                errors?: string[];
+                skippedProducts?: SkippedProductInfoDto[];
+                updatedProducts?: UpdatedProductInfoDto[];
+              }
+            | undefined,
+          failedReason: job.failedReason,
+          createdAt:
+            job.timestamp !== null &&
+            job.timestamp !== undefined &&
+            job.timestamp !== 0 &&
+            !Number.isNaN(job.timestamp)
+              ? new Date(job.timestamp)
+              : undefined,
+          processedOn:
+            job.processedOn !== null &&
+            job.processedOn !== undefined &&
+            job.processedOn !== 0 &&
+            !Number.isNaN(job.processedOn)
+              ? new Date(job.processedOn)
+              : undefined,
+          finishedOn:
+            job.finishedOn !== null &&
+            job.finishedOn !== undefined &&
+            job.finishedOn !== 0 &&
+            !Number.isNaN(job.finishedOn)
+              ? new Date(job.finishedOn)
+              : undefined,
+        };
+      }),
+    );
+
+    return {
+      jobs,
+      total: syncJobs.length,
     };
   }
 }

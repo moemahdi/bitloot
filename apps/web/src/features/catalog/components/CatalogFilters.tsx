@@ -12,19 +12,39 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from '@/design-system/primitives/accordion';
-import { Tag, Monitor, DollarSign, Star, RotateCcw } from 'lucide-react';
+import { Gamepad2, Monitor, Gift, Clock, DollarSign, Star, RotateCcw, Tag } from 'lucide-react';
 import { cn } from '@/design-system/utils/utils';
 
-// Category options with icons
-const CATEGORIES = [
-  { id: 'Action', label: 'Action', icon: '🔥' },
-  { id: 'Adventure', label: 'Adventure', icon: '🗺️' },
-  { id: 'RPG', label: 'RPG', icon: '⚔️' },
-  { id: 'Strategy', label: 'Strategy', icon: '♟️' },
-  { id: 'Sports', label: 'Sports', icon: '⚽' },
-  { id: 'Racing', label: 'Racing', icon: '🏎️' },
-  { id: 'Simulation', label: 'Simulation', icon: '🎮' },
-  { id: 'Indie', label: 'Indie', icon: '💎' },
+// BitLoot Business Categories - The 4 main store sections
+const BITLOOT_CATEGORIES = [
+  { 
+    id: 'games', 
+    label: 'Games', 
+    icon: Gamepad2,
+    description: 'PC & Console game keys',
+    color: 'text-cyan-glow',
+  },
+  { 
+    id: 'software', 
+    label: 'Software', 
+    icon: Monitor,
+    description: 'Windows, Office & more',
+    color: 'text-purple-neon',
+  },
+  { 
+    id: 'gift-cards', 
+    label: 'Gift Cards', 
+    icon: Gift,
+    description: 'Steam, PSN, Xbox & more',
+    color: 'text-pink-featured',
+  },
+  { 
+    id: 'subscriptions', 
+    label: 'Subscriptions', 
+    icon: Clock,
+    description: 'Game Pass, PS Plus & more',
+    color: 'text-green-success',
+  },
 ];
 
 // Platform options with colors
@@ -44,7 +64,7 @@ export function CatalogFilters(): React.ReactElement {
   const searchParams = useSearchParams();
 
   const [priceRange, setPriceRange] = useState([0, 200]);
-  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]);
 
   // Initialize from URL
@@ -55,8 +75,9 @@ export function CatalogFilters(): React.ReactElement {
       setPriceRange([Number(minPrice), Number(maxPrice)]);
     }
 
-    const categories = (searchParams.get('category') ?? '').split(',').filter(Boolean);
-    setSelectedCategories(categories);
+    // Use businessCategory for the 4 main categories
+    const category = searchParams.get('businessCategory');
+    setSelectedCategory(category);
 
     const platforms = (searchParams.get('platform') ?? '').split(',').filter(Boolean);
     setSelectedPlatforms(platforms);
@@ -65,10 +86,10 @@ export function CatalogFilters(): React.ReactElement {
   const updateFilters = (): void => {
     const params = new URLSearchParams(searchParams.toString());
 
-    if (selectedCategories.length > 0) {
-      params.set('category', selectedCategories.join(','));
+    if (selectedCategory !== null && selectedCategory !== '') {
+      params.set('businessCategory', selectedCategory);
     } else {
-      params.delete('category');
+      params.delete('businessCategory');
     }
 
     if (selectedPlatforms.length > 0) {
@@ -86,15 +107,13 @@ export function CatalogFilters(): React.ReactElement {
 
   const resetFilters = (): void => {
     setPriceRange([0, 200]);
-    setSelectedCategories([]);
+    setSelectedCategory(null);
     setSelectedPlatforms([]);
     router.push('/catalog');
   };
 
-  const toggleCategory = (category: string): void => {
-    setSelectedCategories((prev) =>
-      prev.includes(category) ? prev.filter((c) => c !== category) : [...prev, category]
-    );
+  const selectCategory = (categoryId: string): void => {
+    setSelectedCategory((prev) => (prev === categoryId ? null : categoryId));
   };
 
   const togglePlatform = (platform: string): void => {
@@ -104,7 +123,7 @@ export function CatalogFilters(): React.ReactElement {
   };
 
   const hasActiveFilters =
-    selectedCategories.length > 0 ||
+    selectedCategory !== null ||
     selectedPlatforms.length > 0 ||
     priceRange[0] !== 0 ||
     priceRange[1] !== 200;
@@ -115,7 +134,7 @@ export function CatalogFilters(): React.ReactElement {
       {hasActiveFilters && (
         <div className="flex items-center justify-between rounded-lg border border-cyan-glow/20 bg-cyan-glow/5 px-3 py-2">
           <span className="text-sm text-cyan-glow">
-            {selectedCategories.length + selectedPlatforms.length + (priceRange[0] !== 0 || priceRange[1] !== 200 ? 1 : 0)}{' '}
+            {(selectedCategory !== null ? 1 : 0) + selectedPlatforms.length + (priceRange[0] !== 0 || priceRange[1] !== 200 ? 1 : 0)}{' '}
             filters active
           </span>
           <button
@@ -128,36 +147,42 @@ export function CatalogFilters(): React.ReactElement {
       )}
 
       <Accordion type="multiple" defaultValue={['category', 'platform', 'price']} className="w-full">
-        {/* Categories */}
+        {/* Categories - The 4 BitLoot Business Categories */}
         <AccordionItem value="category" className="border-border-subtle">
           <AccordionTrigger className="text-white hover:text-cyan-glow hover:no-underline">
             <div className="flex items-center gap-2">
               <Tag className="h-4 w-4 text-cyan-glow" />
               <span>Categories</span>
-              {selectedCategories.length > 0 && (
+              {selectedCategory !== null && (
                 <span className="ml-2 rounded-full bg-cyan-glow/20 px-2 py-0.5 text-xs text-cyan-glow">
-                  {selectedCategories.length}
+                  1
                 </span>
               )}
             </div>
           </AccordionTrigger>
           <AccordionContent>
-            <div className="grid grid-cols-2 gap-2 pt-2">
-              {CATEGORIES.map((category) => {
-                const isSelected = selectedCategories.includes(category.id);
+            <div className="grid grid-cols-1 gap-2 pt-2">
+              {BITLOOT_CATEGORIES.map((category) => {
+                const isSelected = selectedCategory === category.id;
+                const IconComponent = category.icon;
                 return (
                   <button
                     key={category.id}
-                    onClick={() => toggleCategory(category.id)}
+                    onClick={() => selectCategory(category.id)}
                     className={cn(
-                      'flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-left text-sm transition-all',
+                      'flex cursor-pointer items-center gap-3 rounded-lg border px-3 py-3 text-left transition-all',
                       isSelected
-                        ? 'border-cyan-glow/30 bg-cyan-glow/10 text-cyan-glow'
+                        ? 'border-cyan-glow/30 bg-cyan-glow/10 shadow-glow-cyan-sm'
                         : 'border-border-subtle text-text-muted hover:border-cyan-glow/20 hover:text-white'
                     )}
                   >
-                    <span>{category.icon}</span>
-                    <span>{category.label}</span>
+                    <IconComponent className={cn('h-5 w-5', isSelected ? 'text-cyan-glow' : category.color)} />
+                    <div className="flex flex-col">
+                      <span className={cn('text-sm font-medium', isSelected ? 'text-cyan-glow' : 'text-white')}>
+                        {category.label}
+                      </span>
+                      <span className="text-xs text-text-muted">{category.description}</span>
+                    </div>
                   </button>
                 );
               })}

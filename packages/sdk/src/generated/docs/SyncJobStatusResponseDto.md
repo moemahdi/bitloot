@@ -9,6 +9,7 @@ Name | Type
 `jobId` | string
 `status` | string
 `progress` | number
+`progressData` | [SyncJobStatusResponseDtoProgressData](SyncJobStatusResponseDtoProgressData.md)
 `result` | [SyncJobStatusResponseDtoResult](SyncJobStatusResponseDtoResult.md)
 `failedReason` | string
 `createdAt` | Date
@@ -25,6 +26,7 @@ const example = {
   "jobId": null,
   "status": null,
   "progress": null,
+  "progressData": null,
   "result": null,
   "failedReason": null,
   "createdAt": null,

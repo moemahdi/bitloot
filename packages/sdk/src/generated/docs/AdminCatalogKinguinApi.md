@@ -11,7 +11,7 @@ All URIs are relative to *http://localhost*
 
 ## adminKinguinControllerImportProduct
 
-> KinguinImportResponseDto adminKinguinControllerImportProduct(productId)
+> KinguinImportResponseDto adminKinguinControllerImportProduct(productId, businessCategory)
 
 Import Kinguin product
 
@@ -37,6 +37,8 @@ async function example() {
   const body = {
     // string | Kinguin product ID to import
     productId: 5c9b5b4b4f4c4c4c4c4c4c4c,
+    // 'games' | 'software' | 'gift-cards' | 'subscriptions' | Business category for the imported product (optional)
+    businessCategory: businessCategory_example,
   } satisfies AdminKinguinControllerImportProductRequest;
 
   try {
@@ -57,6 +59,7 @@ example().catch(console.error);
 | Name | Type | Description  | Notes |
 |------------- | ------------- | ------------- | -------------|
 | **productId** | `string` | Kinguin product ID to import | [Defaults to `undefined`] |
+| **businessCategory** | `games`, `software`, `gift-cards`, `subscriptions` | Business category for the imported product | [Optional] [Defaults to `undefined`] [Enum: games, software, gift-cards, subscriptions] |
 
 ### Return type
 

@@ -110,10 +110,12 @@ interface FormData {
     drm: string;
     ageRating: string;
     category: string;
+    businessCategory: 'games' | 'software' | 'gift-cards' | 'subscriptions';
     cost: string;
     price: string;
     currency: string;
     isPublished: boolean;
+    isFeatured: boolean;
 }
 
 const initialFormData: FormData = {
@@ -127,10 +129,12 @@ const initialFormData: FormData = {
     drm: '',
     ageRating: '',
     category: 'games',
+    businessCategory: 'games',
     cost: '',
     price: '',
     currency: 'USD',
     isPublished: false,
+    isFeatured: false,
 };
 
 export default function AdminCreateProductPage(): React.JSX.Element {
@@ -219,10 +223,12 @@ export default function AdminCreateProductPage(): React.JSX.Element {
             drm: formData.drm.length > 0 ? formData.drm : undefined,
             ageRating: formData.ageRating.length > 0 ? formData.ageRating : undefined,
             category: formData.category.length > 0 ? formData.category : undefined,
+            businessCategory: formData.businessCategory,
             cost: formData.cost,
             price: formData.price,
             currency: formData.currency,
             isPublished: formData.isPublished,
+            isFeatured: formData.isFeatured,
         };
 
         createMutation.mutate(productData);
@@ -245,42 +251,62 @@ export default function AdminCreateProductPage(): React.JSX.Element {
 
     return (
         <div className="space-y-6 p-6">
-            {/* Header */}
-            <div className="flex items-center gap-4">
-                <Link href="/admin/catalog/products">
-                    <Button variant="ghost" size="sm" className="text-text-secondary hover:text-text-primary">
-                        <ArrowLeft className="mr-2 h-4 w-4" />
-                        Back to Products
-                    </Button>
-                </Link>
-            </div>
+            {/* Header with gradient accent */}
+            <div className="relative">
+                <div className="absolute inset-0 bg-gradient-to-r from-cyan-glow/5 via-purple-neon/5 to-transparent rounded-2xl blur-xl" />
+                <div className="relative space-y-4">
+                    <Link href="/admin/catalog/products">
+                        <Button variant="ghost" size="sm" className="text-text-secondary hover:text-cyan-glow hover:bg-cyan-glow/5 transition-all duration-250">
+                            <ArrowLeft className="mr-2 h-4 w-4" />
+                            Back to Products
+                        </Button>
+                    </Link>
 
-            <div>
-                <h1 className="font-display text-3xl font-bold tracking-tight text-text-primary drop-shadow-[0_0_10px_rgba(0,217,255,0.1)]">
-                    Create New Product
-                </h1>
-                <p className="text-text-secondary mt-2">
-                    Add a new product to your catalog - choose between Custom or Kinguin fulfillment
-                </p>
+                    <div className="flex items-start gap-4">
+                        <div className="p-3 rounded-xl bg-cyan-glow/10 border border-cyan-glow/20 shadow-glow-cyan-sm">
+                            <Package className="h-7 w-7 text-cyan-glow" />
+                        </div>
+                        <div>
+                            <h1 className="text-3xl font-bold tracking-tight text-text-primary">
+                                Create New Product
+                            </h1>
+                            <p className="text-text-secondary mt-1">
+                                Add a new product to your catalog - choose between Custom or Kinguin fulfillment
+                            </p>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             {/* Network Status Alert */}
             {!isOnline && (
-                <Alert variant="destructive" className="border-red-500/50 bg-red-500/10 text-red-500">
-                    <AlertTriangle className="h-4 w-4" />
-                    <AlertTitle>No Internet Connection</AlertTitle>
-                    <AlertDescription>
-                        Please check your network connection and try again.
-                    </AlertDescription>
+                <Alert variant="destructive" className="border-orange-warning/50 bg-orange-warning/5 animate-fade-in">
+                    <div className="flex items-start gap-3">
+                        <div className="p-2 rounded-lg bg-orange-warning/10">
+                            <AlertTriangle className="h-5 w-5 text-orange-warning" />
+                        </div>
+                        <div>
+                            <AlertTitle className="text-orange-warning font-semibold">No Internet Connection</AlertTitle>
+                            <AlertDescription className="text-text-secondary mt-1">
+                                Please check your network connection and try again.
+                            </AlertDescription>
+                        </div>
+                    </div>
                 </Alert>
             )}
 
             {/* Error Alert */}
             {lastError != null && lastError.length > 0 && isOnline && (
-                <Alert variant="destructive" className="border-red-500/50 bg-red-500/10 text-red-500">
-                    <AlertTriangle className="h-4 w-4" />
-                    <AlertTitle>Error Creating Product</AlertTitle>
-                    <AlertDescription>{lastError}</AlertDescription>
+                <Alert variant="destructive" className="border-destructive/50 bg-destructive/5 animate-fade-in">
+                    <div className="flex items-start gap-3">
+                        <div className="p-2 rounded-lg bg-destructive/10">
+                            <AlertTriangle className="h-5 w-5 text-destructive" />
+                        </div>
+                        <div>
+                            <AlertTitle className="text-destructive font-semibold">Error Creating Product</AlertTitle>
+                            <AlertDescription className="text-text-secondary mt-1">{lastError}</AlertDescription>
+                        </div>
+                    </div>
                 </Alert>
             )}
 
@@ -289,15 +315,19 @@ export default function AdminCreateProductPage(): React.JSX.Element {
                     {/* Main Form */}
                     <div className="lg:col-span-2 space-y-6">
                         {/* Source Type Card */}
-                        <Card className="border-cyan-glow/20 bg-bg-secondary/50 backdrop-blur-sm shadow-[0_0_15px_rgba(0,217,255,0.05)]">
-                            <CardHeader>
-                                <CardTitle className="text-text-primary flex items-center gap-2">
-                                    <Package className="h-5 w-5 text-cyan-glow" />
-                                    Fulfillment Source
-                                </CardTitle>
-                                <CardDescription className="text-text-secondary">
-                                    Choose how this product will be fulfilled
-                                </CardDescription>
+                        <Card className="border-border-subtle bg-bg-secondary/80 backdrop-blur-sm hover:border-border-accent transition-colors duration-250">
+                            <CardHeader className="pb-4">
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 rounded-lg bg-purple-neon/10">
+                                        <Package className="h-4 w-4 text-purple-neon" />
+                                    </div>
+                                    <div>
+                                        <CardTitle className="text-text-primary text-lg">Fulfillment Source</CardTitle>
+                                        <CardDescription className="text-text-muted text-sm">
+                                            Choose how this product will be fulfilled
+                                        </CardDescription>
+                                    </div>
+                                </div>
                             </CardHeader>
                             <CardContent>
                                 <div className="grid gap-4 sm:grid-cols-2">
@@ -308,17 +338,17 @@ export default function AdminCreateProductPage(): React.JSX.Element {
                                         <button
                                             type="button"
                                             onClick={() => updateField('sourceType', 'custom')}
-                                            className={`w-full p-4 rounded-lg border-2 transition-all text-left ${!isKinguin
-                                                    ? 'border-cyan-glow bg-cyan-glow/10 shadow-[0_0_15px_rgba(0,217,255,0.2)]'
-                                                    : 'border-cyan-glow/20 bg-bg-tertiary/50 hover:border-cyan-glow/40'
+                                            className={`w-full p-4 rounded-lg border-2 transition-all duration-250 text-left ${!isKinguin
+                                                    ? 'border-cyan-glow bg-cyan-glow/10 shadow-glow-cyan-sm'
+                                                    : 'border-border-subtle bg-bg-tertiary/50 hover:border-cyan-glow/40 hover:bg-bg-tertiary'
                                                 }`}
                                         >
                                             <div className="flex items-center gap-3">
-                                                <div className={`p-2 rounded-full ${!isKinguin ? 'bg-cyan-glow/20' : 'bg-bg-tertiary'}`}>
-                                                    <Store className={`h-5 w-5 ${!isKinguin ? 'text-cyan-glow' : 'text-text-muted'}`} />
+                                                <div className={`p-2.5 rounded-lg transition-colors duration-250 ${!isKinguin ? 'bg-cyan-glow/20' : 'bg-bg-primary'}`}>
+                                                    <Store className={`h-5 w-5 transition-colors duration-250 ${!isKinguin ? 'text-cyan-glow' : 'text-text-muted'}`} />
                                                 </div>
                                                 <div>
-                                                    <p className={`font-semibold ${!isKinguin ? 'text-cyan-glow' : 'text-text-primary'}`}>
+                                                    <p className={`font-semibold transition-colors duration-250 ${!isKinguin ? 'text-cyan-glow' : 'text-text-primary'}`}>
                                                         Custom
                                                     </p>
                                                     <p className="text-xs text-text-secondary">
@@ -336,17 +366,17 @@ export default function AdminCreateProductPage(): React.JSX.Element {
                                         <button
                                             type="button"
                                             onClick={() => updateField('sourceType', 'kinguin')}
-                                            className={`w-full p-4 rounded-lg border-2 transition-all text-left ${isKinguin
-                                                    ? 'border-orange-500 bg-orange-500/10 shadow-[0_0_15px_rgba(249,115,22,0.2)]'
-                                                    : 'border-cyan-glow/20 bg-bg-tertiary/50 hover:border-cyan-glow/40'
+                                            className={`w-full p-4 rounded-lg border-2 transition-all duration-250 text-left ${isKinguin
+                                                    ? 'border-orange-warning bg-orange-warning/10 shadow-[0_0_15px_rgba(255,107,0,0.2)]'
+                                                    : 'border-border-subtle bg-bg-tertiary/50 hover:border-orange-warning/40 hover:bg-bg-tertiary'
                                                 }`}
                                         >
                                             <div className="flex items-center gap-3">
-                                                <div className={`p-2 rounded-full ${isKinguin ? 'bg-orange-500/20' : 'bg-bg-tertiary'}`}>
-                                                    <Crown className={`h-5 w-5 ${isKinguin ? 'text-orange-400' : 'text-text-muted'}`} />
+                                                <div className={`p-2.5 rounded-lg transition-colors duration-250 ${isKinguin ? 'bg-orange-warning/20' : 'bg-bg-primary'}`}>
+                                                    <Crown className={`h-5 w-5 transition-colors duration-250 ${isKinguin ? 'text-orange-warning' : 'text-text-muted'}`} />
                                                 </div>
                                                 <div>
-                                                    <p className={`font-semibold ${isKinguin ? 'text-orange-400' : 'text-text-primary'}`}>
+                                                    <p className={`font-semibold transition-colors duration-250 ${isKinguin ? 'text-orange-warning' : 'text-text-primary'}`}>
                                                         Kinguin
                                                     </p>
                                                     <p className="text-xs text-text-secondary">
@@ -364,22 +394,23 @@ export default function AdminCreateProductPage(): React.JSX.Element {
                                         initial={{ opacity: 0, height: 0 }}
                                         animate={{ opacity: 1, height: 'auto' }}
                                         exit={{ opacity: 0, height: 0 }}
-                                        className="mt-4"
+                                        className="mt-4 p-4 rounded-lg bg-orange-warning/5 border border-orange-warning/20"
                                     >
                                         <div className="space-y-2">
-                                            <Label htmlFor="kinguinOfferId" className="text-text-secondary">
-                                                Kinguin Offer ID <span className="text-red-500">*</span>
+                                            <Label htmlFor="kinguinOfferId" className="text-text-primary flex items-center gap-2">
+                                                <Crown className="h-4 w-4 text-orange-warning" />
+                                                Kinguin Offer ID <span className="text-destructive">*</span>
                                             </Label>
                                             <Input
                                                 id="kinguinOfferId"
                                                 value={formData.kinguinOfferId}
                                                 onChange={(e) => updateField('kinguinOfferId', e.target.value)}
                                                 placeholder="e.g., 5c9b5b5a-e9f6-4e3b-8e5a-1b2c3d4e5f6g"
-                                                className={`border-orange-500/30 bg-bg-tertiary/50 focus:border-orange-500/50 focus:ring-orange-500/20 ${validationErrors.kinguinOfferId !== undefined ? 'border-red-500' : ''
+                                                className={`border-orange-warning/30 bg-bg-tertiary/50 focus:border-orange-warning/50 focus:ring-orange-warning/20 ${validationErrors.kinguinOfferId !== undefined ? 'border-destructive' : ''
                                                     }`}
                                             />
                                             {validationErrors.kinguinOfferId !== undefined && (
-                                                <p className="text-xs text-red-500">{validationErrors.kinguinOfferId}</p>
+                                                <p className="text-xs text-destructive">{validationErrors.kinguinOfferId}</p>
                                             )}
                                             <p className="text-xs text-text-muted">
                                                 The unique offer ID from Kinguin that will be used for fulfillment
@@ -391,31 +422,35 @@ export default function AdminCreateProductPage(): React.JSX.Element {
                         </Card>
 
                         {/* Basic Info Card */}
-                        <Card className="border-cyan-glow/20 bg-bg-secondary/50 backdrop-blur-sm shadow-[0_0_15px_rgba(0,217,255,0.05)]">
-                            <CardHeader>
-                                <CardTitle className="text-text-primary flex items-center gap-2">
-                                    <Tag className="h-5 w-5 text-cyan-glow" />
-                                    Basic Information
-                                </CardTitle>
-                                <CardDescription className="text-text-secondary">
-                                    Product title, description, and category
-                                </CardDescription>
+                        <Card className="border-border-subtle bg-bg-secondary/80 backdrop-blur-sm hover:border-border-accent transition-colors duration-250">
+                            <CardHeader className="pb-4">
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 rounded-lg bg-cyan-glow/10">
+                                        <Tag className="h-4 w-4 text-cyan-glow" />
+                                    </div>
+                                    <div>
+                                        <CardTitle className="text-text-primary text-lg">Basic Information</CardTitle>
+                                        <CardDescription className="text-text-muted text-sm">
+                                            Product title, description, and category
+                                        </CardDescription>
+                                    </div>
+                                </div>
                             </CardHeader>
                             <CardContent className="space-y-4">
                                 <div className="space-y-2">
                                     <Label htmlFor="title" className="text-text-secondary">
-                                        Title <span className="text-red-500">*</span>
+                                        Title <span className="text-destructive">*</span>
                                     </Label>
                                     <Input
                                         id="title"
                                         value={formData.title}
                                         onChange={(e) => updateField('title', e.target.value)}
                                         placeholder="e.g., Elden Ring - Steam Key"
-                                        className={`border-cyan-glow/20 bg-bg-tertiary/50 focus:border-cyan-glow/50 focus:ring-cyan-glow/20 ${validationErrors.title !== undefined ? 'border-red-500' : ''
+                                        className={`border-border-subtle bg-bg-tertiary/50 focus:border-cyan-glow/50 focus:ring-cyan-glow/20 transition-all duration-250 ${validationErrors.title !== undefined ? 'border-destructive' : ''
                                             }`}
                                     />
                                     {validationErrors.title !== undefined && (
-                                        <p className="text-xs text-red-500">{validationErrors.title}</p>
+                                        <p className="text-xs text-destructive">{validationErrors.title}</p>
                                     )}
                                 </div>
 
@@ -428,7 +463,7 @@ export default function AdminCreateProductPage(): React.JSX.Element {
                                         value={formData.subtitle}
                                         onChange={(e) => updateField('subtitle', e.target.value)}
                                         placeholder="e.g., Digital Deluxe Edition"
-                                        className="border-cyan-glow/20 bg-bg-tertiary/50 focus:border-cyan-glow/50 focus:ring-cyan-glow/20"
+                                        className="border-border-subtle bg-bg-tertiary/50 focus:border-cyan-glow/50 focus:ring-cyan-glow/20 transition-all duration-250"
                                     />
                                 </div>
 
@@ -442,7 +477,7 @@ export default function AdminCreateProductPage(): React.JSX.Element {
                                         onChange={(e) => updateField('description', e.target.value)}
                                         placeholder="Product description..."
                                         rows={4}
-                                        className="border-cyan-glow/20 bg-bg-tertiary/50 focus:border-cyan-glow/50 focus:ring-cyan-glow/20"
+                                        className="border-border-subtle bg-bg-tertiary/50 focus:border-cyan-glow/50 focus:ring-cyan-glow/20 transition-all duration-250 resize-none"
                                     />
                                 </div>
 
@@ -451,10 +486,10 @@ export default function AdminCreateProductPage(): React.JSX.Element {
                                         Category
                                     </Label>
                                     <Select value={formData.category} onValueChange={(v) => updateField('category', v)}>
-                                        <SelectTrigger className="border-cyan-glow/20 bg-bg-tertiary/50 focus:border-cyan-glow/50 focus:ring-cyan-glow/20">
+                                        <SelectTrigger className="border-border-subtle bg-bg-tertiary/50 focus:border-cyan-glow/50 focus:ring-cyan-glow/20 transition-all duration-250">
                                             <SelectValue placeholder="Select category" />
                                         </SelectTrigger>
-                                        <SelectContent className="border-cyan-glow/20 bg-bg-secondary/95 backdrop-blur-xl">
+                                        <SelectContent className="border-border-subtle bg-bg-secondary/95 backdrop-blur-xl">
                                             {CATEGORIES.map((cat) => (
                                                 <SelectItem key={cat.value} value={cat.value}>
                                                     {cat.label}
@@ -463,19 +498,46 @@ export default function AdminCreateProductPage(): React.JSX.Element {
                                         </SelectContent>
                                     </Select>
                                 </div>
+
+                                <div className="space-y-2">
+                                    <Label htmlFor="businessCategory" className="text-text-secondary">
+                                        Business Category <span className="text-destructive">*</span>
+                                    </Label>
+                                    <Select 
+                                        value={formData.businessCategory} 
+                                        onValueChange={(v) => updateField('businessCategory', v as FormData['businessCategory'])}
+                                    >
+                                        <SelectTrigger className="border-border-subtle bg-bg-tertiary/50 focus:border-cyan-glow/50 focus:ring-cyan-glow/20 transition-all duration-250">
+                                            <SelectValue placeholder="Select business category" />
+                                        </SelectTrigger>
+                                        <SelectContent className="border-border-subtle bg-bg-secondary/95 backdrop-blur-xl">
+                                            <SelectItem value="games">Games</SelectItem>
+                                            <SelectItem value="software">Software</SelectItem>
+                                            <SelectItem value="gift-cards">Gift Cards</SelectItem>
+                                            <SelectItem value="subscriptions">Subscriptions</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                    <p className="text-xs text-text-muted">
+                                        Used for catalog organization and customer-facing filters
+                                    </p>
+                                </div>
                             </CardContent>
                         </Card>
 
                         {/* Platform & Region Card */}
-                        <Card className="border-cyan-glow/20 bg-bg-secondary/50 backdrop-blur-sm shadow-[0_0_15px_rgba(0,217,255,0.05)]">
-                            <CardHeader>
-                                <CardTitle className="text-text-primary flex items-center gap-2">
-                                    <Globe className="h-5 w-5 text-cyan-glow" />
-                                    Platform & Region
-                                </CardTitle>
-                                <CardDescription className="text-text-secondary">
-                                    Where and how the product can be activated
-                                </CardDescription>
+                        <Card className="border-border-subtle bg-bg-secondary/80 backdrop-blur-sm hover:border-border-accent transition-colors duration-250">
+                            <CardHeader className="pb-4">
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 rounded-lg bg-green-success/10">
+                                        <Globe className="h-4 w-4 text-green-success" />
+                                    </div>
+                                    <div>
+                                        <CardTitle className="text-text-primary text-lg">Platform & Region</CardTitle>
+                                        <CardDescription className="text-text-muted text-sm">
+                                            Platform, region, and DRM settings
+                                        </CardDescription>
+                                    </div>
+                                </div>
                             </CardHeader>
                             <CardContent>
                                 <div className="grid gap-4 sm:grid-cols-2">
@@ -484,10 +546,10 @@ export default function AdminCreateProductPage(): React.JSX.Element {
                                             Platform
                                         </Label>
                                         <Select value={formData.platform} onValueChange={(v) => updateField('platform', v)}>
-                                            <SelectTrigger className="border-cyan-glow/20 bg-bg-tertiary/50 focus:border-cyan-glow/50 focus:ring-cyan-glow/20">
+                                            <SelectTrigger className="border-border-subtle bg-bg-tertiary/50 focus:border-cyan-glow/50 focus:ring-cyan-glow/20 transition-all duration-250">
                                                 <SelectValue placeholder="Select platform" />
                                             </SelectTrigger>
-                                            <SelectContent className="border-cyan-glow/20 bg-bg-secondary/95 backdrop-blur-xl">
+                                            <SelectContent className="border-border-subtle bg-bg-secondary/95 backdrop-blur-xl max-h-60">
                                                 {PLATFORMS.map((p) => (
                                                     <SelectItem key={p.value} value={p.value}>
                                                         {p.label}
@@ -502,10 +564,10 @@ export default function AdminCreateProductPage(): React.JSX.Element {
                                             Region
                                         </Label>
                                         <Select value={formData.region} onValueChange={(v) => updateField('region', v)}>
-                                            <SelectTrigger className="border-cyan-glow/20 bg-bg-tertiary/50 focus:border-cyan-glow/50 focus:ring-cyan-glow/20">
+                                            <SelectTrigger className="border-border-subtle bg-bg-tertiary/50 focus:border-cyan-glow/50 focus:ring-cyan-glow/20 transition-all duration-250">
                                                 <SelectValue placeholder="Select region" />
                                             </SelectTrigger>
-                                            <SelectContent className="border-cyan-glow/20 bg-bg-secondary/95 backdrop-blur-xl">
+                                            <SelectContent className="border-border-subtle bg-bg-secondary/95 backdrop-blur-xl">
                                                 {REGIONS.map((r) => (
                                                     <SelectItem key={r.value} value={r.value}>
                                                         {r.label}
@@ -524,7 +586,7 @@ export default function AdminCreateProductPage(): React.JSX.Element {
                                             value={formData.drm}
                                             onChange={(e) => updateField('drm', e.target.value)}
                                             placeholder="e.g., Steam, DRM-Free"
-                                            className="border-cyan-glow/20 bg-bg-tertiary/50 focus:border-cyan-glow/50 focus:ring-cyan-glow/20"
+                                            className="border-border-subtle bg-bg-tertiary/50 focus:border-cyan-glow/50 focus:ring-cyan-glow/20 transition-all duration-250"
                                         />
                                     </div>
 
@@ -537,7 +599,7 @@ export default function AdminCreateProductPage(): React.JSX.Element {
                                             value={formData.ageRating}
                                             onChange={(e) => updateField('ageRating', e.target.value)}
                                             placeholder="e.g., PEGI-18, ESRB-M"
-                                            className="border-cyan-glow/20 bg-bg-tertiary/50 focus:border-cyan-glow/50 focus:ring-cyan-glow/20"
+                                            className="border-border-subtle bg-bg-tertiary/50 focus:border-cyan-glow/50 focus:ring-cyan-glow/20 transition-all duration-250"
                                         />
                                     </div>
                                 </div>
@@ -548,15 +610,19 @@ export default function AdminCreateProductPage(): React.JSX.Element {
                     {/* Sidebar */}
                     <div className="space-y-6">
                         {/* Pricing Card */}
-                        <Card className="border-cyan-glow/20 bg-bg-secondary/50 backdrop-blur-sm shadow-[0_0_15px_rgba(0,217,255,0.05)]">
-                            <CardHeader>
-                                <CardTitle className="text-text-primary flex items-center gap-2">
-                                    <DollarSign className="h-5 w-5 text-cyan-glow" />
-                                    Pricing
-                                </CardTitle>
-                                <CardDescription className="text-text-secondary">
-                                    Set cost and retail price
-                                </CardDescription>
+                        <Card className="border-border-subtle bg-bg-secondary/80 backdrop-blur-sm hover:border-border-accent transition-colors duration-250">
+                            <CardHeader className="pb-4">
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 rounded-lg bg-pink-featured/10">
+                                        <DollarSign className="h-4 w-4 text-pink-featured" />
+                                    </div>
+                                    <div>
+                                        <CardTitle className="text-text-primary text-lg">Pricing</CardTitle>
+                                        <CardDescription className="text-text-muted text-sm">
+                                            Cost and retail price settings
+                                        </CardDescription>
+                                    </div>
+                                </div>
                             </CardHeader>
                             <CardContent className="space-y-4">
                                 <div className="space-y-2">
@@ -564,10 +630,10 @@ export default function AdminCreateProductPage(): React.JSX.Element {
                                         Currency
                                     </Label>
                                     <Select value={formData.currency} onValueChange={(v) => updateField('currency', v)}>
-                                        <SelectTrigger className="border-cyan-glow/20 bg-bg-tertiary/50 focus:border-cyan-glow/50 focus:ring-cyan-glow/20">
+                                        <SelectTrigger className="border-border-subtle bg-bg-tertiary/50 focus:border-cyan-glow/50 focus:ring-cyan-glow/20 transition-all duration-250">
                                             <SelectValue placeholder="Select currency" />
                                         </SelectTrigger>
-                                        <SelectContent className="border-cyan-glow/20 bg-bg-secondary/95 backdrop-blur-xl">
+                                        <SelectContent className="border-border-subtle bg-bg-secondary/95 backdrop-blur-xl">
                                             {CURRENCIES.map((c) => (
                                                 <SelectItem key={c.value} value={c.value}>
                                                     {c.label}
@@ -579,7 +645,7 @@ export default function AdminCreateProductPage(): React.JSX.Element {
 
                                 <div className="space-y-2">
                                     <Label htmlFor="cost" className="text-text-secondary">
-                                        Cost <span className="text-red-500">*</span>
+                                        Cost <span className="text-destructive">*</span>
                                     </Label>
                                     <div className="relative">
                                         <span className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted">
@@ -593,19 +659,18 @@ export default function AdminCreateProductPage(): React.JSX.Element {
                                             value={formData.cost}
                                             onChange={(e) => updateField('cost', e.target.value)}
                                             placeholder="0.00"
-                                            className={`pl-7 border-cyan-glow/20 bg-bg-tertiary/50 focus:border-cyan-glow/50 focus:ring-cyan-glow/20 ${validationErrors.cost !== undefined ? 'border-red-500' : ''
-                                                }`}
+                                            className={`pl-7 border-border-subtle bg-bg-tertiary/50 focus:border-cyan-glow/50 focus:ring-cyan-glow/20 font-mono transition-all duration-250 ${validationErrors.cost !== undefined ? 'border-destructive' : ''}`}
                                         />
                                     </div>
                                     {validationErrors.cost !== undefined && (
-                                        <p className="text-xs text-red-500">{validationErrors.cost}</p>
+                                        <p className="text-xs text-destructive">{validationErrors.cost}</p>
                                     )}
                                     <p className="text-xs text-text-muted">Your wholesale cost</p>
                                 </div>
 
                                 <div className="space-y-2">
                                     <Label htmlFor="price" className="text-text-secondary">
-                                        Retail Price <span className="text-red-500">*</span>
+                                        Retail Price <span className="text-destructive">*</span>
                                     </Label>
                                     <div className="relative">
                                         <span className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted">
@@ -619,24 +684,23 @@ export default function AdminCreateProductPage(): React.JSX.Element {
                                             value={formData.price}
                                             onChange={(e) => updateField('price', e.target.value)}
                                             placeholder="0.00"
-                                            className={`pl-7 border-cyan-glow/20 bg-bg-tertiary/50 focus:border-cyan-glow/50 focus:ring-cyan-glow/20 ${validationErrors.price !== undefined ? 'border-red-500' : ''
-                                                }`}
+                                            className={`pl-7 border-border-subtle bg-bg-tertiary/50 focus:border-cyan-glow/50 focus:ring-cyan-glow/20 font-mono transition-all duration-250 ${validationErrors.price !== undefined ? 'border-destructive' : ''}`}
                                         />
                                     </div>
                                     {validationErrors.price !== undefined && (
-                                        <p className="text-xs text-red-500">{validationErrors.price}</p>
+                                        <p className="text-xs text-destructive">{validationErrors.price}</p>
                                     )}
                                     <p className="text-xs text-text-muted">Customer-facing price</p>
                                 </div>
 
                                 {/* Profit Preview */}
                                 {formData.cost.length > 0 && formData.price.length > 0 && (
-                                    <div className="pt-4 border-t border-cyan-glow/10">
-                                        <div className="flex justify-between items-center">
+                                    <div className="pt-4 border-t border-border-subtle">
+                                        <div className="flex justify-between items-center p-3 rounded-lg bg-bg-tertiary/30">
                                             <span className="text-sm text-text-secondary">Profit Margin</span>
                                             <span className={`font-mono font-semibold ${parseFloat(formData.price) - parseFloat(formData.cost) > 0
                                                     ? 'text-green-success'
-                                                    : 'text-red-500'
+                                                    : 'text-destructive'
                                                 }`}>
                                                 €{(parseFloat(formData.price) - parseFloat(formData.cost)).toFixed(2)}
                                             </span>
@@ -647,20 +711,24 @@ export default function AdminCreateProductPage(): React.JSX.Element {
                         </Card>
 
                         {/* Publish Settings Card */}
-                        <Card className="border-cyan-glow/20 bg-bg-secondary/50 backdrop-blur-sm shadow-[0_0_15px_rgba(0,217,255,0.05)]">
-                            <CardHeader>
-                                <CardTitle className="text-text-primary flex items-center gap-2">
-                                    <Shield className="h-5 w-5 text-cyan-glow" />
-                                    Visibility
-                                </CardTitle>
-                                <CardDescription className="text-text-secondary">
-                                    Control product visibility on storefront
-                                </CardDescription>
+                        <Card className="border-border-subtle bg-bg-secondary/80 backdrop-blur-sm hover:border-border-accent transition-colors duration-250">
+                            <CardHeader className="pb-4">
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 rounded-lg bg-orange-warning/10">
+                                        <Shield className="h-4 w-4 text-orange-warning" />
+                                    </div>
+                                    <div>
+                                        <CardTitle className="text-text-primary text-lg">Visibility</CardTitle>
+                                        <CardDescription className="text-text-muted text-sm">
+                                            Control product visibility on storefront
+                                        </CardDescription>
+                                    </div>
+                                </div>
                             </CardHeader>
-                            <CardContent>
-                                <div className="flex items-center justify-between">
+                            <CardContent className="space-y-4">
+                                <div className="flex items-center justify-between p-3 rounded-lg bg-bg-tertiary/30 border border-border-subtle hover:border-cyan-glow/30 transition-colors duration-250">
                                     <div className="space-y-1">
-                                        <Label htmlFor="isPublished" className="text-text-primary">
+                                        <Label htmlFor="isPublished" className="text-text-primary font-medium">
                                             Published
                                         </Label>
                                         <p className="text-xs text-text-muted">
@@ -671,13 +739,31 @@ export default function AdminCreateProductPage(): React.JSX.Element {
                                         id="isPublished"
                                         checked={formData.isPublished}
                                         onCheckedChange={(checked) => updateField('isPublished', checked)}
+                                        className="data-[state=checked]:bg-cyan-glow"
+                                    />
+                                </div>
+
+                                <div className="flex items-center justify-between p-3 rounded-lg bg-bg-tertiary/30 border border-border-subtle hover:border-pink-featured/30 transition-colors duration-250">
+                                    <div className="space-y-1">
+                                        <Label htmlFor="isFeatured" className="text-text-primary font-medium">
+                                            Featured
+                                        </Label>
+                                        <p className="text-xs text-text-muted">
+                                            Highlight this product on homepage
+                                        </p>
+                                    </div>
+                                    <Switch
+                                        id="isFeatured"
+                                        checked={formData.isFeatured}
+                                        onCheckedChange={(checked) => updateField('isFeatured', checked)}
+                                        className="data-[state=checked]:bg-pink-featured"
                                     />
                                 </div>
                             </CardContent>
                         </Card>
 
                         {/* Action Buttons */}
-                        <div className="space-y-3">
+                        <div className="space-y-3 pt-4 border-t border-border-subtle">
                             <GlowButton
                                 type="submit"
                                 disabled={createMutation.isPending || !isOnline}
@@ -686,7 +772,7 @@ export default function AdminCreateProductPage(): React.JSX.Element {
                             >
                                 {createMutation.isPending ? (
                                     <>
-                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                        <Loader2 className="mr-2 h-4 w-4 animate-spin-glow" />
                                         Creating...
                                     </>
                                 ) : (
@@ -700,7 +786,7 @@ export default function AdminCreateProductPage(): React.JSX.Element {
                             <Button
                                 type="button"
                                 variant="outline"
-                                className="w-full border-cyan-glow/30 text-text-secondary hover:text-text-primary"
+                                className="w-full border-border-subtle hover:border-cyan-glow/50 hover:bg-cyan-glow/5 text-text-secondary hover:text-text-primary transition-all duration-250"
                                 onClick={() => router.push('/admin/catalog/products')}
                             >
                                 Cancel

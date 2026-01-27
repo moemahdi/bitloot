@@ -5,6 +5,7 @@ All URIs are relative to *http://localhost*
 | Method | HTTP request | Description |
 |------------- | ------------- | -------------|
 | [**adminSyncControllerGetConfigStatus**](AdminCatalogSyncApi.md#adminsynccontrollergetconfigstatus) | **GET** /admin/catalog/sync/config | Check Kinguin integration status |
+| [**adminSyncControllerGetSyncHistory**](AdminCatalogSyncApi.md#adminsynccontrollergetsynchistory) | **GET** /admin/catalog/sync/history | Get sync job history |
 | [**adminSyncControllerGetSyncStatus**](AdminCatalogSyncApi.md#adminsynccontrollergetsyncstatus) | **GET** /admin/catalog/sync/status | Check sync job status |
 | [**adminSyncControllerTriggerSync**](AdminCatalogSyncApi.md#adminsynccontrollertriggersync) | **POST** /admin/catalog/sync | Sync imported Kinguin products |
 
@@ -69,6 +70,79 @@ This endpoint does not need any parameter.
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
 | **200** | Configuration status |  -  |
+| **401** | Unauthorized |  -  |
+| **403** | Forbidden - Admin only |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## adminSyncControllerGetSyncHistory
+
+> SyncHistoryResponseDto adminSyncControllerGetSyncHistory(limit)
+
+Get sync job history
+
+Retrieve the history of completed and failed sync jobs
+
+### Example
+
+```ts
+import {
+  Configuration,
+  AdminCatalogSyncApi,
+} from '';
+import type { AdminSyncControllerGetSyncHistoryRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const config = new Configuration({ 
+    // Configure HTTP bearer authorization: JWT-auth
+    accessToken: "YOUR BEARER TOKEN",
+  });
+  const api = new AdminCatalogSyncApi(config);
+
+  const body = {
+    // string | Maximum number of jobs to return (default: 10, max: 50) (optional)
+    limit: limit_example,
+  } satisfies AdminSyncControllerGetSyncHistoryRequest;
+
+  try {
+    const data = await api.adminSyncControllerGetSyncHistory(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **limit** | `string` | Maximum number of jobs to return (default: 10, max: 50) | [Optional] [Defaults to `undefined`] |
+
+### Return type
+
+[**SyncHistoryResponseDto**](SyncHistoryResponseDto.md)
+
+### Authorization
+
+[JWT-auth](../README.md#JWT-auth)
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Sync history retrieved |  -  |
 | **401** | Unauthorized |  -  |
 | **403** | Forbidden - Admin only |  -  |
 

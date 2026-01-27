@@ -27,6 +27,7 @@ import {
 
 export interface AdminKinguinControllerImportProductRequest {
     productId: string;
+    businessCategory?: AdminKinguinControllerImportProductBusinessCategoryEnum;
 }
 
 export interface AdminKinguinControllerSearchProductsRequest {
@@ -55,6 +56,10 @@ export class AdminCatalogKinguinApi extends runtime.BaseAPI {
         }
 
         const queryParameters: any = {};
+
+        if (requestParameters['businessCategory'] != null) {
+            queryParameters['businessCategory'] = requestParameters['businessCategory'];
+        }
 
         const headerParameters: runtime.HTTPHeaders = {};
 
@@ -156,3 +161,14 @@ export class AdminCatalogKinguinApi extends runtime.BaseAPI {
     }
 
 }
+
+/**
+ * @export
+ */
+export const AdminKinguinControllerImportProductBusinessCategoryEnum = {
+    Games: 'games',
+    Software: 'software',
+    GiftCards: 'gift-cards',
+    Subscriptions: 'subscriptions'
+} as const;
+export type AdminKinguinControllerImportProductBusinessCategoryEnum = typeof AdminKinguinControllerImportProductBusinessCategoryEnum[keyof typeof AdminKinguinControllerImportProductBusinessCategoryEnum];
