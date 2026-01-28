@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useQuery } from '@tanstack/react-query';
 import { CatalogApi, Configuration } from '@bitloot/sdk';
 import type { ProductListResponseDto } from '@bitloot/sdk';
+import { toast } from 'sonner';
 
 // API Configuration
 const apiConfig = new Configuration({
@@ -29,14 +30,15 @@ import type { LucideIcon } from 'lucide-react';
 // Design System Components
 import { Button } from '@/design-system/primitives/button';
 import { Badge } from '@/design-system/primitives/badge';
-import { Card, CardContent } from '@/design-system/primitives/card';
 import { Tabs, TabsList, TabsTrigger } from '@/design-system/primitives/tabs';
 import { Skeleton } from '@/design-system/primitives/skeleton';
 
 // Components
-import { ProductCard } from '@/features/catalog/components/ProductCard';
-import type { Product } from '@/features/catalog/components/ProductCard';
+import { CatalogProductCard } from '@/features/catalog/components/CatalogProductCard';
+import type { CatalogProduct } from '@/features/catalog/types';
 import { useCart } from '@/context/CartContext';
+import { useAuth } from '@/hooks/useAuth';
+import { useAddToWatchlist, useRemoveFromWatchlist } from '@/features/watchlist/hooks/useWatchlist';
 
 // ============================================================================
 // TYPE DEFINITIONS
@@ -136,17 +138,18 @@ function ProductGridSkeleton(): React.ReactElement {
     return (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {Array.from({ length: 12 }).map((_, i) => (
-                <Card key={i} className="overflow-hidden bg-bg-secondary border-border-subtle">
-                    <Skeleton className="aspect-[3/4]" />
-                    <CardContent className="p-4 space-y-3">
-                        <Skeleton className="h-5 w-3/4" />
-                        <Skeleton className="h-4 w-full" />
-                        <div className="flex justify-between items-center pt-2">
-                            <Skeleton className="h-6 w-20" />
-                            <Skeleton className="h-8 w-24" />
+                <div key={i} className="overflow-hidden rounded-xl bg-bg-secondary border border-border-subtle">
+                    <Skeleton className="aspect-[16/10]" />
+                    <div className="p-4 space-y-3">
+                        <Skeleton className="h-4 w-16" />
+                        <Skeleton className="h-5 w-full" />
+                        <Skeleton className="h-4 w-1/2" />
+                        <div className="flex gap-2 pt-2">
+                            <Skeleton className="h-8 flex-1" />
+                            <Skeleton className="h-8 flex-1" />
                         </div>
-                    </CardContent>
-                </Card>
+                    </div>
+                </div>
             ))}
         </div>
     );
@@ -203,6 +206,9 @@ export function FeaturedByTypeSection(): React.ReactElement {
     const [activeTab, setActiveTab] = useState('featured_games');
     const router = useRouter();
     const { addItem } = useCart();
+    const { isAuthenticated } = useAuth();
+    const { mutate: addToWatchlist } = useAddToWatchlist();
+    const { mutate: removeFromWatchlist } = useRemoveFromWatchlist();
 
     // Get current tab config (always defined since we have PRODUCT_TYPE_TABS[0] fallback)
     const currentTab = useMemo(() => {
@@ -224,8 +230,8 @@ export function FeaturedByTypeSection(): React.ReactElement {
         staleTime: 2 * 60 * 1000, // 2 minutes to pick up admin changes quickly
     });
 
-    // Transform API response to ProductCard format
-    const products: Product[] = useMemo(() => {
+    // Transform API response to CatalogProduct format
+    const products: CatalogProduct[] = useMemo(() => {
         if (productsData?.data == null) return [];
         return productsData.data.map((p) => ({
             id: p.id,
@@ -236,13 +242,17 @@ export function FeaturedByTypeSection(): React.ReactElement {
             currency: p.currency ?? 'EUR',
             image: p.imageUrl ?? undefined,
             platform: p.platform ?? undefined,
+            category: p.category ?? undefined,
             isAvailable: p.isPublished,
             rating: p.metacriticScore != null ? p.metacriticScore / 20 : undefined,
         }));
     }, [productsData]);
 
     // Handle Add to Cart
-    const handleAddToCart = useCallback((product: Product) => {
+    const handleAddToCart = useCallback((productId: string) => {
+        const product = products.find(p => p.id === productId);
+        if (product == null) return;
+        
         addItem({
             productId: product.id,
             title: product.name,
@@ -250,19 +260,31 @@ export function FeaturedByTypeSection(): React.ReactElement {
             quantity: 1,
             image: product.image,
         });
-    }, [addItem]);
+        toast.success(`${product.name} added to cart`);
+    }, [addItem, products]);
 
-    // Handle Buy Now
-    const handleBuyNow = useCallback((product: Product) => {
-        addItem({
-            productId: product.id,
-            title: product.name,
-            price: parseFloat(product.price),
-            quantity: 1,
-            image: product.image,
-        });
-        router.push('/checkout');
-    }, [addItem, router]);
+    // Handle View Product
+    const handleViewProduct = useCallback((productId: string) => {
+        const product = products.find(p => p.id === productId);
+        if (product == null) return;
+        router.push(`/product/${product.slug}`);
+    }, [router, products]);
+
+    // Handle Wishlist Toggle
+    const handleToggleWishlist = useCallback((productId: string) => {
+        if (!isAuthenticated) {
+            toast.error('Please login to add items to your wishlist', {
+                action: {
+                    label: 'Login',
+                    onClick: () => { window.location.href = '/auth/login'; },
+                },
+            });
+            return;
+        }
+
+        // We'll let the CatalogProductCard handle the actual toggle logic
+        // since it has access to the isInWishlist state
+    }, [isAuthenticated]);
 
     // Tab color classes
     const getTabColorClasses = (tabId: string, isActive: boolean): string => {
@@ -435,13 +457,14 @@ export function FeaturedByTypeSection(): React.ReactElement {
                                 <EmptyProductsState type={currentTab.label} />
                             ) : (
                                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                                    {products.map((product, index) => (
-                                        <ProductCard
+                                    {products.map((product) => (
+                                        <CatalogProductCard
                                             key={product.id}
                                             product={product}
                                             onAddToCart={handleAddToCart}
-                                            onBuyNow={handleBuyNow}
-                                            isAboveFold={index < 4}
+                                            onViewProduct={handleViewProduct}
+                                            onToggleWishlist={handleToggleWishlist}
+                                            showQuickActions={true}
                                         />
                                     ))}
                                 </div>

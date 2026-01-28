@@ -112,6 +112,8 @@ export class CatalogController {
   @ApiQuery({ name: 'businessCategory', required: false, description: 'Filter by BitLoot category: games, software, gift-cards, subscriptions' })
   @ApiQuery({ name: 'category', required: false, description: 'Filter by genre (legacy Kinguin genres)' })
   @ApiQuery({ name: 'featured', required: false, type: 'boolean', description: 'Show only featured products' })
+  @ApiQuery({ name: 'minPrice', required: false, type: 'number', description: 'Minimum price filter (EUR)' })
+  @ApiQuery({ name: 'maxPrice', required: false, type: 'number', description: 'Maximum price filter (EUR)' })
   @ApiQuery({ name: 'sort', required: false, enum: ['newest', 'price_asc', 'price_desc', 'rating'] })
   @ApiQuery({ name: 'limit', required: false, type: 'number', description: 'Items per page (≤ 100)' })
   @ApiQuery({ name: 'offset', required: false, type: 'number', description: 'Pagination offset' })
@@ -123,6 +125,8 @@ export class CatalogController {
     @Query('businessCategory') businessCategory?: string,
     @Query('category') category?: string,
     @Query('featured') featuredParam?: string,
+    @Query('minPrice') minPriceParam?: string,
+    @Query('maxPrice') maxPriceParam?: string,
     @Query('sort') sort?: 'newest' | 'price_asc' | 'price_desc' | 'rating',
     @Query('limit') limitParam?: string,
     @Query('offset') offsetParam?: string,
@@ -133,6 +137,8 @@ export class CatalogController {
     const safeLimit = Number.isNaN(limit) ? 24 : limit;
     const safeOffset = Number.isNaN(offset) ? 0 : offset;
     const featured = featuredParam === 'true' || featuredParam === '1';
+    const minPrice = minPriceParam !== undefined && minPriceParam !== '' ? parseFloat(minPriceParam) : undefined;
+    const maxPrice = maxPriceParam !== undefined && maxPriceParam !== '' ? parseFloat(maxPriceParam) : undefined;
     
     try {
       // Log: listProducts called with: q, platform, region, businessCategory, category, sort, limit, offset
@@ -144,6 +150,8 @@ export class CatalogController {
         businessCategory,
         category,
         featured,
+        minPrice,
+        maxPrice,
         sort,
       });
       

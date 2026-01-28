@@ -42,8 +42,18 @@ export function WatchlistButton({
       } else {
         toast.success(`Added "${productTitle}" to watchlist`);
       }
-    } catch {
-      toast.error(error?.message ?? 'Failed to update watchlist');
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to update watchlist';
+      if (errorMessage === 'LOGIN_REQUIRED') {
+        toast.error('Please login to add items to your watchlist', {
+          action: {
+            label: 'Login',
+            onClick: () => window.location.href = '/auth/login',
+          },
+        });
+      } else {
+        toast.error(error?.message ?? 'Failed to update watchlist');
+      }
     }
   };
 

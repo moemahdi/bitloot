@@ -1,4 +1,4 @@
-import type { ProductResponseDto, ProductListResponseDto } from './generated';
+import type { ProductResponseDto, ProductListResponseDto, ProductGroupResponseDto } from './generated';
 import { CatalogApi, Configuration } from './generated';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
@@ -129,6 +129,8 @@ export const catalogClient = {
         if (params?.businessCategory) queryParams.set('businessCategory', params.businessCategory);
         if (params?.category) queryParams.set('category', params.category);
         if (params?.featured) queryParams.set('featured', 'true');
+        if (params?.minPrice != null && params.minPrice > 0) queryParams.set('minPrice', String(params.minPrice));
+        if (params?.maxPrice != null && params.maxPrice < 500) queryParams.set('maxPrice', String(params.maxPrice));
         if (params?.sort) queryParams.set('sort', params.sort);
         queryParams.set('limit', String(params?.limit ?? 12));
         queryParams.set('offset', String(offset));
@@ -173,6 +175,18 @@ export const catalogClient = {
             throw new Error(`Failed to fetch filters: ${response.status}`);
         }
         return response.json() as Promise<FiltersResponseDto>;
+    },
+
+    /**
+     * Get all active product groups for the catalog
+     * Returns groups with their product count and price ranges
+     */
+    async getGroups(): Promise<ProductGroupResponseDto[]> {
+        const response = await fetch(`${API_BASE}/catalog/groups`);
+        if (!response.ok) {
+            throw new Error(`Failed to fetch product groups: ${response.status}`);
+        }
+        return response.json() as Promise<ProductGroupResponseDto[]>;
     },
 };
 

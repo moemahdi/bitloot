@@ -40,6 +40,12 @@ const nextConfig = {
         hostname: 'wallpapers.com',
         pathname: '/**',
       },
+      // Placeholder images for development
+      {
+        protocol: 'https',
+        hostname: 'placehold.co',
+        pathname: '/**',
+      },
     ],
     // Cache optimization for crypto icons
     minimumCacheTTL: 2592000, // 30 days cache for external images

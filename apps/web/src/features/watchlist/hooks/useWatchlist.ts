@@ -107,6 +107,10 @@ export function useAddToWatchlist(): UseMutationResult<WatchlistItemResponseDto,
 
   return useMutation<WatchlistItemResponseDto, Error, string>({
     mutationFn: async (productId: string) => {
+      // Check authentication before making API call
+      if (!isAuthenticated()) {
+        throw new Error('LOGIN_REQUIRED');
+      }
       const api = createWatchlistApi();
       return api.watchlistControllerAddToWatchlist({
         addToWatchlistDto: { productId },
@@ -132,6 +136,10 @@ export function useRemoveFromWatchlist(): UseMutationResult<void, Error, string>
 
   return useMutation<void, Error, string>({
     mutationFn: async (productId: string) => {
+      // Check authentication before making API call
+      if (!isAuthenticated()) {
+        throw new Error('LOGIN_REQUIRED');
+      }
       const api = createWatchlistApi();
       await api.watchlistControllerRemoveFromWatchlist({ productId });
     },

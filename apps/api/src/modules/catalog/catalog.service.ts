@@ -491,6 +491,8 @@ export class CatalogService {
       region?: string;
       category?: string; // Kinguin genre
       businessCategory?: string; // BitLoot category: games, software, gift-cards, subscriptions
+      minPrice?: number; // Minimum price in EUR
+      maxPrice?: number; // Maximum price in EUR
       sort?: 'newest' | 'price_asc' | 'price_desc' | 'rating';
       featured?: boolean;
     } = {},
@@ -499,11 +501,13 @@ export class CatalogService {
       .createQueryBuilder('product')
       .where('product.isPublished = true');
 
-    // Search by title/subtitle (full-text)
+    // Search by title/subtitle
+    // Use ILIKE for reliable search across all products (tsvector may not be populated for all)
     if (typeof filters.q === 'string' && filters.q.length > 0) {
+      const searchPattern = `%${filters.q}%`;
       query = query.andWhere(
-        `product.searchTsv @@ plainto_tsquery('simple', :q)`,
-        { q: filters.q },
+        `(product.title ILIKE :searchPattern OR product.subtitle ILIKE :searchPattern OR product.originalName ILIKE :searchPattern)`,
+        { searchPattern },
       );
     }
 
@@ -528,10 +532,30 @@ export class CatalogService {
       });
     }
 
-    // Filter by category/genre (Kinguin genres - legacy support)
+    // Filter by category/genre (checks both legacy category field AND genres array)
     if (typeof filters.category === 'string' && filters.category.length > 0) {
-      query = query.andWhere('LOWER(product.category) = LOWER(:category)', {
-        category: filters.category,
+      // Search in both the category field and the genres JSON array
+      // The genres array is stored as JSON/simple-array, so we check if it contains the genre
+      query = query.andWhere(
+        '(LOWER(product.category) = LOWER(:category) OR LOWER(product.genres) LIKE LOWER(:genrePattern))',
+        {
+          category: filters.category,
+          genrePattern: `%${filters.category}%`,
+        }
+      );
+    }
+
+    // Filter by minimum price
+    if (typeof filters.minPrice === 'number' && filters.minPrice > 0) {
+      query = query.andWhere('CAST(product.price AS DECIMAL) >= :minPrice', {
+        minPrice: filters.minPrice,
+      });
+    }
+
+    // Filter by maximum price
+    if (typeof filters.maxPrice === 'number' && filters.maxPrice < 500) {
+      query = query.andWhere('CAST(product.price AS DECIMAL) <= :maxPrice', {
+        maxPrice: filters.maxPrice,
       });
     }
 
