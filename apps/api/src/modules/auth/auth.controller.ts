@@ -564,16 +564,7 @@ export class AuthController {
 
       // Send confirmation notification to old email
       try {
-        await this.emailsService.sendEmail({
-          to: currentEmail,
-          subject: 'Your BitLoot email has been changed',
-          html: `
-            <h2>Email Changed Successfully</h2>
-            <p>Your BitLoot account email has been changed to <strong>${pendingEmail}</strong>.</p>
-            <p>If you did not make this change, please contact support immediately at support@bitloot.com</p>
-            <p>This is a security notification - no action is needed if you initiated this change.</p>
-          `,
-        });
+        await this.emailsService.sendEmailChangedOld(currentEmail, pendingEmail);
       } catch (emailError) {
         this.logger.warn(
           `Failed to send email change notification: ${emailError instanceof Error ? emailError.message : 'unknown'}`,
@@ -582,15 +573,7 @@ export class AuthController {
 
       // Send welcome notification to new email
       try {
-        await this.emailsService.sendEmail({
-          to: pendingEmail,
-          subject: 'Welcome to your updated BitLoot account',
-          html: `
-            <h2>Email Updated</h2>
-            <p>Your BitLoot account email has been successfully changed to this address.</p>
-            <p>You can now use <strong>${pendingEmail}</strong> to log in to your account.</p>
-          `,
-        });
+        await this.emailsService.sendEmailChangedNew(pendingEmail);
       } catch (emailError) {
         this.logger.warn(
           `Failed to send welcome notification to new email: ${emailError instanceof Error ? emailError.message : 'unknown'}`,
@@ -663,28 +646,10 @@ export class AuthController {
 
       // Send confirmation email with secure cancel link
       try {
-        await this.emailsService.sendEmail({
-          to: userEmail,
-          subject: 'Account Deletion Scheduled - BitLoot',
-          html: `
-            <h2>Account Deletion Scheduled</h2>
-            <p>Your BitLoot account is scheduled for deletion on <strong>${deletionDate.toLocaleDateString()}</strong>.</p>
-            <p>You have <strong>${daysRemaining} days</strong> to cancel this request if you change your mind.</p>
-            <p>Once deleted, all your data will be permanently removed and cannot be recovered.</p>
-            <hr style="margin: 20px 0; border: none; border-top: 1px solid #e0e0e0;" />
-            <p><strong>Changed your mind?</strong></p>
-            <p>
-              <a href="${cancelUrl}" 
-                 style="display: inline-block; background-color: #22c55e; color: white; padding: 12px 24px; 
-                        text-decoration: none; border-radius: 6px; font-weight: bold;">
-                Cancel Deletion
-              </a>
-            </p>
-            <p style="color: #666; font-size: 12px; margin-top: 20px;">
-              This link is secure and expires in 30 days. If you didn't request this deletion, 
-              please <a href="${process.env.FRONTEND_URL ?? 'http://localhost:3000'}/profile?tab=security">secure your account</a> immediately.
-            </p>
-          `,
+        await this.emailsService.sendDeletionScheduled(userEmail, {
+          deletionDate,
+          daysRemaining,
+          cancelUrl,
         });
       } catch (emailError) {
         this.logger.warn(
@@ -741,15 +706,7 @@ export class AuthController {
 
       // Send confirmation email
       try {
-        await this.emailsService.sendEmail({
-          to: userEmail,
-          subject: 'Account Deletion Cancelled - BitLoot',
-          html: `
-            <h2>Account Deletion Cancelled</h2>
-            <p>Your BitLoot account deletion has been cancelled. Your account is now active again.</p>
-            <p>If you did not make this request, please contact support immediately.</p>
-          `,
-        });
+        await this.emailsService.sendDeletionCancelled(userEmail);
       } catch (emailError) {
         this.logger.warn(
           `Failed to send deletion cancellation email: ${emailError instanceof Error ? emailError.message : 'unknown'}`,
@@ -959,16 +916,7 @@ export class AuthController {
 
       // Send confirmation email
       try {
-        await this.emailsService.sendEmail({
-          to: user.email,
-          subject: 'Account Deletion Cancelled - BitLoot',
-          html: `
-            <h2>Account Deletion Cancelled</h2>
-            <p>Your BitLoot account deletion has been cancelled successfully. Your account is now active again.</p>
-            <p>If you did not make this request, please contact support immediately and consider changing your password.</p>
-            <p><a href="${process.env.FRONTEND_URL ?? 'http://localhost:3000'}/dashboard/security">View Account Settings</a></p>
-          `,
-        });
+        await this.emailsService.sendDeletionCancelled(user.email);
       } catch (emailError) {
         this.logger.warn(
           `Failed to send cancellation confirmation email: ${emailError instanceof Error ? emailError.message : 'unknown'}`,

@@ -8,6 +8,24 @@ import { FeatureFlagsService } from '../admin/feature-flags.service';
 import { randomUUID } from 'crypto';
 import { firstValueFrom } from 'rxjs';
 
+// Import centralized email templates
+import {
+  EmailTemplates,
+  type OtpEmailParams,
+  type WelcomeEmailParams,
+  type OrderConfirmationParams,
+  type KeyDeliveryParams,
+  type PasswordResetParams,
+  type UnderpaymentParams,
+  type PaymentFailedParams,
+  type PaymentExpiredParams,
+  type EmailChangedOldParams,
+  type EmailChangedNewParams,
+  type DeletionScheduledParams,
+  type DeletionCancelledParams,
+  type GenericEmailParams,
+} from './templates';
+
 // ========== EMAIL DEDUPLICATION CACHE ==========
 // Prevents duplicate order confirmation emails within a short window
 const emailDeduplicationCache = new Map<string, { sentAt: number }>();
@@ -82,15 +100,6 @@ export class EmailsService {
    * @param priority 'high' | 'normal' | 'low' - Email priority level
    * @param unsubscribeUrl Optional unsubscribe URL for marketing emails
    * @returns Headers object for Resend API
-   *
-   * @example
-   * const headers = this.generateEmailHeaders('high');
-   * // {
-   * //   'Idempotency-Key': 'a1b2c3d4-e5f6-47g8-h9i0-j1k2l3m4n5o6',
-   * //   'X-Priority': '1',
-   * //   'X-MSMail-Priority': 'High',
-   * //   'List-Unsubscribe': '<https://bitloot.io/unsubscribe?token=...>'
-   * // }
    */
   private generateEmailHeaders(priority: 'high' | 'normal' | 'low' = 'high', unsubscribeUrl?: string): EmailHeaders {
     const priorityMap = {
@@ -119,41 +128,39 @@ export class EmailsService {
   }
 
   /**
-   * Send OTP verification email via Resend API
-   * Level 4: Transactional email for signup/login verification
-   *
-   * @param to Customer email address
-   * @param code 6-digit OTP code
-   * @returns Promise that resolves when email is sent
-   * @throws Error if Resend API fails in production mode
-   *
-   * @example
-   * await emailsService.sendOtpEmail('user@example.com', '123456');
+   * Core email sending method using Resend API
+   * All other send methods use this internally
    */
-  async sendOtpEmail(to: string, code: string): Promise<void> {
-    const html = `
-      <p>Hi,</p>
-      <p>Your BitLoot verification code is <strong>${code}</strong>.</p>
-      <p>This code will expire in 5 minutes. If you didn't request this, please ignore this email.</p>
-      <p>Best regards,<br/>The BitLoot Team</p>
-    `;
-
-    const headers = this.generateEmailHeaders('high');
+  private async sendViaResend(
+    to: string,
+    subject: string,
+    html: string,
+    options: {
+      priority?: 'high' | 'normal' | 'low';
+      emailType: string;
+      skipSuppressionCheck?: boolean;
+      maxRetries?: number;
+    },
+  ): Promise<void> {
+    const { priority = 'high', emailType, skipSuppressionCheck = false, maxRetries = 3 } = options;
+    const headers = this.generateEmailHeaders(priority);
     const idempotencyKey = headers['Idempotency-Key'];
 
     // In mock mode, just log
     if (this.resendApiKey.length === 0) {
-      this.logger.log(`[MOCK EMAIL] OTP email to ${to}`);
-      this.logger.debug(`[MOCK EMAIL] Code: ${code} (expires in 5 minutes)`);
+      this.logger.log(`[MOCK EMAIL] ${emailType} email to ${to}`);
+      this.logger.debug(`[MOCK EMAIL] Subject: ${subject}`);
       this.logger.debug(`[MOCK EMAIL] Idempotency-Key: ${idempotencyKey}`);
       return;
     }
 
     // Check suppression list (hard bounces)
-    const isSuppressed = await this.suppressionList.isSuppressed(to);
-    if (isSuppressed) {
-      this.logger.warn(`⏭️  Skipping OTP email to suppressed address: ${to}`);
-      return;
+    if (!skipSuppressionCheck) {
+      const isSuppressed = await this.suppressionList.isSuppressed(to);
+      if (isSuppressed) {
+        this.logger.warn(`⏭️  Skipping ${emailType} email to suppressed address: ${to}`);
+        return;
+      }
     }
 
     const startTime = Date.now();
@@ -162,7 +169,7 @@ export class EmailsService {
       const payload = {
         from: this.from,
         to: [to],
-        subject: 'Your BitLoot OTP Code',
+        subject,
         html,
       };
 
@@ -178,138 +185,65 @@ export class EmailsService {
               'X-MSMail-Priority': headers['X-MSMail-Priority'],
             },
           }),
-        5, // max 5 retry attempts
+        maxRetries,
         (attempt, error) => {
-          // Optional callback for retry tracking
-          this.logger.warn(
-            `Retrying OTP email (attempt ${attempt}) to ${to}: ${error.message}`,
-          );
+          this.logger.warn(`Retrying ${emailType} email (attempt ${attempt}) to ${to}: ${error.message}`);
         },
       );
 
       const latencyMs = Date.now() - startTime;
-      this.metricsService.recordEmailLatency('otp', latencyMs);
-      this.metricsService.incrementEmailSendSuccess('otp');
+      this.metricsService.recordEmailLatency(emailType, latencyMs);
+      this.metricsService.incrementEmailSendSuccess(emailType);
 
-      // Safe due to optional chaining and type cast
-      this.logger.log(`✅ OTP email sent to ${to} (ID: ${(response.data as { id?: string })?.id ?? 'unknown'}, latency: ${latencyMs}ms)`);
+      this.logger.log(`✅ ${emailType} email sent to ${to} (ID: ${(response.data as { id?: string })?.id ?? 'unknown'}, latency: ${latencyMs}ms)`);
     } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      this.logger.error(`❌ Failed to send OTP email to ${to}: ${errorMessage}`);
-      this.metricsService.incrementEmailSendFailed('otp');
+      this.logger.error(`❌ Failed to send ${emailType} email to ${to}: ${errorMessage}`);
+      this.metricsService.incrementEmailSendFailed(emailType);
       throw error;
     }
+  }
+
+  // ============================================================
+  // PUBLIC EMAIL METHODS - Using Centralized Templates
+  // ============================================================
+
+  /**
+   * Send OTP verification email
+   * @param to Customer email address
+   * @param code 6-digit OTP code
+   */
+  async sendOtpEmail(to: string, code: string): Promise<void> {
+    const params: OtpEmailParams = { code, email: to };
+    const { subject, html } = EmailTemplates.otpVerification(params);
+    
+    await this.sendViaResend(to, subject, html, {
+      emailType: 'otp',
+      priority: 'high',
+      maxRetries: 5,
+    });
   }
 
   /**
    * Send welcome email to new users
-   * Level 4: Transactional email for user onboarding
-   *
    * @param to Customer email address
    * @param userName User's name or display name
-   * @returns Promise that resolves when email is sent
-   * @throws Error if Resend API fails in production mode
-   *
-   * @example
-   * await emailsService.sendWelcomeEmail('user@example.com', 'John');
    */
   async sendWelcomeEmail(to: string, userName: string): Promise<void> {
     const displayName = userName.length > 0 ? userName : 'there';
+    const params: WelcomeEmailParams = { displayName, email: to };
+    const { subject, html } = EmailTemplates.welcome(params);
     
-    const html = `
-      <p>Hi ${displayName},</p>
-      
-      <p>Welcome to <strong>BitLoot</strong> — the crypto-first digital marketplace for instant key delivery!</p>
-      
-      <p><strong>What you can do on BitLoot:</strong></p>
-      <ul>
-        <li>🎮 Browse verified game keys and software licenses</li>
-        <li>💳 Checkout with 300+ cryptocurrencies (Bitcoin, Ethereum, etc.)</li>
-        <li>⚡ Receive your keys instantly — no waiting</li>
-        <li>🔒 Secure, encrypted storage with signed download links</li>
-      </ul>
-      
-      <p><strong>Getting Started:</strong></p>
-      <ol>
-        <li>Browse our catalog at <a href="https://bitloot.io">bitloot.io</a></li>
-        <li>Add items to your cart</li>
-        <li>Checkout with your preferred cryptocurrency</li>
-        <li>Receive your keys instantly in your email</li>
-      </ol>
-      
-      <p><strong>Quick Tips:</strong></p>
-      <ul>
-        <li>Your account is now active and ready to shop</li>
-        <li>All payments are processed via secure blockchain transactions</li>
-        <li>Keys are encrypted and never stored in plaintext</li>
-        <li>Need help? Visit our <a href="https://bitloot.io/support">Support Center</a></li>
-      </ul>
-      
-      <p>We're excited to have you onboard. Happy shopping!</p>
-      <p>Best regards,<br/><strong>The BitLoot Team</strong></p>
-      
-      <hr/>
-      <small>You received this email because you created a BitLoot account. <a href="https://bitloot.io/unsubscribe?email=${to}">Manage preferences</a></small>
-    `;
-
-    const headers = this.generateEmailHeaders('high');
-    const idempotencyKey = headers['Idempotency-Key'];
-
-    // In mock mode, just log
-    if (this.resendApiKey.length === 0) {
-      this.logger.log(`[MOCK EMAIL] Welcome email to ${to}`);
-      this.logger.debug(`[MOCK EMAIL] User name: ${displayName}`);
-      this.logger.debug(`[MOCK EMAIL] Idempotency-Key: ${idempotencyKey}`);
-      return;
-    }
-
-    try {
-      const payload = {
-        from: this.from,
-        to: [to],
-        subject: `Welcome to BitLoot, ${displayName}!`,
-        html,
-      };
-
-      const response = await firstValueFrom(
-        this.httpService.post('/emails', payload, {
-          baseURL: this.resendBaseUrl,
-          headers: {
-            Authorization: `Bearer ${this.resendApiKey}`,
-            'Idempotency-Key': idempotencyKey,
-            'X-Priority': headers['X-Priority'],
-            'X-MSMail-Priority': headers['X-MSMail-Priority'],
-          },
-        }),
-      );
-
-      this.metricsService.incrementEmailSendSuccess('welcome');
-      // Safe due to optional chaining and type cast
-      this.logger.log(`✅ Welcome email sent to ${to} (ID: ${(response.data as { id?: string })?.id ?? 'unknown'})`);
-    } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      this.logger.error(`❌ Failed to send welcome email to ${to}: ${errorMessage}`);
-      throw error;
-    }
+    await this.sendViaResend(to, subject, html, {
+      emailType: 'welcome',
+      priority: 'high',
+    });
   }
 
   /**
    * Send order confirmation email
-   * Level 4: Transactional email for new orders with payment details
-   *
    * @param to Customer email address
-   * @param data { orderId, total, currency, items[], paymentLink }
-   * @returns Promise that resolves when email is sent
-   * @throws Error if Resend API fails in production mode
-   *
-   * @example
-   * await emailsService.sendOrderConfirmation('user@example.com', {
-   *   orderId: 'uuid-123',
-   *   total: '0.05',
-   *   currency: 'ETH',
-   *   items: [{ name: 'Game Key', price: '0.05' }],
-   *   paymentLink: 'https://nowpayments.io/invoice/...'
-   * });
+   * @param data Order details
    */
   async sendOrderConfirmation(
     to: string,
@@ -321,143 +255,50 @@ export class EmailsService {
       paymentLink: string;
     },
   ): Promise<void> {
-    // ========== FEATURE FLAG CHECK ==========
+    // Feature flag check
     if (!this.featureFlagsService.isEnabled('email_notifications_enabled')) {
       this.logger.log(`⏭️  Email notifications disabled - skipping order confirmation email`);
       return;
     }
 
     const { orderId, total, currency, items, paymentLink } = data;
-    const shortOrderId = orderId.substring(0, 8);
     
-    // ========== EMAIL DEDUPLICATION CHECK ==========
-    // Prevent duplicate confirmation emails for the same order
+    // Email deduplication check
     const dedupeKey = `order-confirmation:${orderId}`;
     const cached = emailDeduplicationCache.get(dedupeKey);
     if (cached !== undefined) {
+      const shortOrderId = orderId.substring(0, 8);
       this.logger.log(`⏭️  Skipping duplicate order confirmation email for order ${shortOrderId} (sent ${Math.round((Date.now() - cached.sentAt) / 1000)}s ago)`);
       return;
     }
+
+    const params: OrderConfirmationParams = {
+      orderId,
+      items: items.map(item => ({
+        name: item.name,
+        quantity: 1,
+        price: item.price ?? total,
+      })),
+      total,
+      currency,
+      paymentLink,
+      email: to,
+    };
+    const { subject, html } = EmailTemplates.orderConfirmation(params);
     
-    const itemsList = items
-      .map((item) => {
-        const price = item.price ?? null;
-        const priceStr = price !== null ? ` (${price} ${currency})` : '';
-        return `<li>${item.name}${priceStr}</li>`;
-      })
-      .join('');
-
-    const html = `
-      <p>Hi,</p>
-      
-      <p>Thank you for your order! Your BitLoot purchase is ready for payment.</p>
-      
-      <p><strong>Order Details:</strong></p>
-      <ul>
-        <li><strong>Order ID:</strong> #${shortOrderId}</li>
-        <li><strong>Items:</strong>
-          <ul>
-            ${itemsList}
-          </ul>
-        </li>
-        <li><strong>Total:</strong> <strong>${total} ${currency}</strong></li>
-      </ul>
-      
-      <p style="margin: 20px 0;">
-        <a href="${paymentLink}" style="background-color: #000; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block;">
-          Pay Now with Crypto
-        </a>
-      </p>
-      
-      <p><strong>Important Information:</strong></p>
-      <ul>
-        <li>⏰ Payment link expires in 30 minutes</li>
-        <li>💰 We accept 300+ cryptocurrencies (BTC, ETH, XRP, BNB, USDT, etc.)</li>
-        <li>⚠️ <strong>Underpayments are non-refundable</strong> due to blockchain immutability</li>
-        <li>✅ Once payment is confirmed, your keys will be delivered instantly</li>
-        <li>🔒 Keys are never stored in plaintext and delivered via 15-minute secure links only</li>
-      </ul>
-      
-      <p><strong>What happens next:</strong></p>
-      <ol>
-        <li>Click the payment button above</li>
-        <li>Choose your cryptocurrency and send the exact amount</li>
-        <li>Wait for blockchain confirmation (typically 1-5 minutes)</li>
-        <li>Receive your keys instantly via secure email link</li>
-      </ol>
-      
-      <p>Questions? Visit our <a href="https://bitloot.io/faq">FAQ</a> or <a href="https://bitloot.io/support">Support Center</a>.</p>
-      <p>Best regards,<br/><strong>The BitLoot Team</strong></p>
-      
-      <hr/>
-      <small>This is an automated message. Do not reply to this email.</small>
-    `;
-
-    const headers = this.generateEmailHeaders('high');
-    const idempotencyKey = headers['Idempotency-Key'];
-
-    // In mock mode, just log
-    if (this.resendApiKey.length === 0) {
-      this.logger.log(`[MOCK EMAIL] Order confirmation email to ${to}`);
-      this.logger.debug(`[MOCK EMAIL] Order ID: ${orderId}`);
-      this.logger.debug(`[MOCK EMAIL] Total: ${total} ${currency}`);
-      this.logger.debug(`[MOCK EMAIL] Items: ${items.length}`);
-      this.logger.debug(`[MOCK EMAIL] Idempotency-Key: ${idempotencyKey}`);
-      // Cache even in mock mode to prevent duplicates
-      emailDeduplicationCache.set(dedupeKey, { sentAt: Date.now() });
-      return;
-    }
-
-    try {
-      const payload = {
-        from: this.from,
-        to: [to],
-        subject: `Order Confirmation #${shortOrderId} - BitLoot`,
-        html,
-      };
-
-      const response = await firstValueFrom(
-        this.httpService.post('/emails', payload, {
-          baseURL: this.resendBaseUrl,
-          headers: {
-            Authorization: `Bearer ${this.resendApiKey}`,
-            'Idempotency-Key': idempotencyKey,
-            'X-Priority': headers['X-Priority'],
-            'X-MSMail-Priority': headers['X-MSMail-Priority'],
-          },
-        }),
-      );
-
-      // Cache successful send to prevent duplicates
-      emailDeduplicationCache.set(dedupeKey, { sentAt: Date.now() });
-
-      this.metricsService.incrementEmailSendSuccess('payment_created');
-      // Safe due to optional chaining and type cast
-      this.logger.log(`✅ Order confirmation email sent to ${to} (ID: ${(response.data as { id?: string })?.id ?? 'unknown'})`);
-    } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      this.logger.error(`❌ Failed to send order confirmation email to ${to}: ${errorMessage}`);
-      this.metricsService.incrementEmailSendFailed('payment_created');
-      throw error;
-    }
+    // Cache before sending to prevent duplicates during send
+    emailDeduplicationCache.set(dedupeKey, { sentAt: Date.now() });
+    
+    await this.sendViaResend(to, subject, html, {
+      emailType: 'payment_created',
+      priority: 'high',
+    });
   }
 
   /**
    * Send order completion/fulfillment email with key delivery link
-   * Level 4: Transactional email for successful fulfillment with secure download
-   *
    * @param to Customer email address
-   * @param data { orderId, productName, downloadUrl, expiresIn }
-   * @returns Promise that resolves when email is sent
-   * @throws Error if Resend API fails in production mode
-   *
-   * @example
-   * await emailsService.sendOrderCompleted('user@example.com', {
-   *   orderId: 'uuid-123',
-   *   productName: 'The Witcher 3',
-   *   downloadUrl: 'https://r2.bitloot.io/signed/...',
-   *   expiresIn: '15 minutes'
-   * });
+   * @param data Order and download details
    */
   async sendOrderCompleted(
     to: string,
@@ -468,363 +309,192 @@ export class EmailsService {
       expiresIn?: string;
     },
   ): Promise<void> {
-    // ========== FEATURE FLAG CHECK ==========
+    // Feature flag check
     if (!this.featureFlagsService.isEnabled('email_notifications_enabled')) {
       this.logger.log(`⏭️  Email notifications disabled - skipping order completed email`);
       return;
     }
 
     const { orderId, productName, downloadUrl, expiresIn = '3 hours' } = data;
-    const shortOrderId = orderId.substring(0, 8);
 
-    const html = `
-      <p>Hi,</p>
-      
-      <p>🎉 <strong>Your order has been fulfilled!</strong></p>
-      
-      <p>Your purchase of <strong>${productName}</strong> is ready to download.</p>
-      
-      <p style="margin: 20px 0;">
-        <a href="${downloadUrl}" style="background-color: #28a745; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block;">
-          Download Your Key
-        </a>
-      </p>
-      
-      <p><strong>Order Details:</strong></p>
-      <ul>
-        <li>Order ID: #${shortOrderId}</li>
-        <li>Product: ${productName}</li>
-        <li>Status: ✅ Completed</li>
-      </ul>
-      
-      <p><strong>⚠️ Important Security Notice:</strong></p>
-      <ul>
-        <li>🔗 Download available for <strong>${expiresIn}</strong> — after that, sign in to get a new link</li>
-        <li>🔒 The link is encrypted and only accessible by you</li>
-        <li>📝 We never email plaintext keys — always use the secure link</li>
-        <li>🚫 Do not share this link with others</li>
-        <li>💾 Save your key immediately after downloading</li>
-      </ul>
-      
-      <p><strong>Next Steps:</strong></p>
-      <ol>
-        <li>Click the button above to download your key</li>
-        <li>Save the key file in a secure location</li>
-        <li>Activate your product using the provided instructions</li>
-        <li>If you need help, visit our <a href="https://bitloot.io/support">Support Center</a></li>
-      </ol>
-      
-      <p><strong>Link expired?</strong></p>
-      <p><a href="https://bitloot.io/auth/login">Sign in</a> and visit your <a href="https://bitloot.io/account/orders">order history</a> to get a fresh download link.</p>
-      
-      <p>Thank you for shopping with BitLoot!</p>
-      <p>Best regards,<br/><strong>The BitLoot Team</strong></p>
-      
-      <hr/>
-      <small>This is an automated message. Do not reply to this email. <a href="https://bitloot.io/unsubscribe?email=${to}">Unsubscribe</a></small>
-    `;
-
-    const headers = this.generateEmailHeaders('high');
-    const idempotencyKey = headers['Idempotency-Key'];
-
-    // In mock mode, just log
-    if (this.resendApiKey.length === 0) {
-      this.logger.log(`[MOCK EMAIL] Order completed email to ${to}`);
-      this.logger.debug(`[MOCK EMAIL] Order ID: ${orderId}`);
-      this.logger.debug(`[MOCK EMAIL] Product: ${productName}`);
-      this.logger.debug(`[MOCK EMAIL] Download URL: ${downloadUrl}`);
-      this.logger.debug(`[MOCK EMAIL] Expires in: ${expiresIn}`);
-      this.logger.debug(`[MOCK EMAIL] Idempotency-Key: ${idempotencyKey}`);
-      return;
-    }
-
-    try {
-      const payload = {
-        from: this.from,
-        to: [to],
-        subject: `Your BitLoot Key is Ready — Order #${shortOrderId}`,
-        html,
-      };
-
-      const response = await firstValueFrom(
-        this.httpService.post('/emails', payload, {
-          baseURL: this.resendBaseUrl,
-          headers: {
-            Authorization: `Bearer ${this.resendApiKey}`,
-            'Idempotency-Key': idempotencyKey,
-            'X-Priority': headers['X-Priority'],
-            'X-MSMail-Priority': headers['X-MSMail-Priority'],
-          },
-        }),
-      );
-
-      this.metricsService.incrementEmailSendSuccess('payment_completed');
-      // Safe due to optional chaining and type cast
-      this.logger.log(`✅ Order completed email sent to ${to} (ID: ${(response.data as { id?: string })?.id ?? 'unknown'})`);
-    } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      this.logger.error(`❌ Failed to send order completed email to ${to}: ${errorMessage}`);
-      this.metricsService.incrementEmailSendFailed('failed');
-      throw error;
-    }
+    const params: KeyDeliveryParams = {
+      orderId,
+      productName,
+      downloadUrl,
+      expiresIn,
+      email: to,
+    };
+    const { subject, html } = EmailTemplates.keyDelivery(params);
+    
+    await this.sendViaResend(to, subject, html, {
+      emailType: 'payment_completed',
+      priority: 'high',
+    });
   }
 
   /**
-   * Send password reset email via Resend API
-   * Level 4: Transactional email for password recovery
-   *
+   * Send password reset email
    * @param to Customer email address
-   * @param resetToken Password reset token (JWT format, 1-hour expiry)
-   * @param resetLink Full reset link URL (frontend URL + token)
-   * @returns Promise that resolves when email is sent
-   * @throws Error if Resend API fails in production mode
-   *
-   * @example
-   * await emailsService.sendPasswordResetEmail('user@example.com', 'jwt_token', 'https://bitloot.io/reset?token=...');
+   * @param resetToken Password reset token
+   * @param resetLink Full reset link URL
    */
   async sendPasswordResetEmail(to: string, resetToken: string, resetLink: string): Promise<void> {
-    const html = `
-      <p>Hi,</p>
-      <p>We received a request to reset your BitLoot password. Click the link below to proceed:</p>
-      <p style="margin: 20px 0;">
-        <a href="${resetLink}" style="background-color: #000; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; display: inline-block;">
-          Reset Password
-        </a>
-      </p>
-      <p><strong>Link expires in 1 hour.</strong> If you didn't request this, you can safely ignore this email.</p>
-      <p style="font-size: 12px; color: #666; margin-top: 30px;">
-        For security: Never share this link with anyone. We will never ask for your password via email.
-      </p>
-      <p>Best regards,<br/>The BitLoot Team</p>
-    `;
-
-    const headers = this.generateEmailHeaders('high');
-    const idempotencyKey = headers['Idempotency-Key'];
-
-    // In mock mode, just log
-    if (this.resendApiKey.length === 0) {
-      this.logger.log(`[MOCK EMAIL] Password reset email to ${to}`);
-      this.logger.debug(`[MOCK EMAIL] Reset Link: ${resetLink}`);
-      this.logger.debug(`[MOCK EMAIL] Token: ${resetToken.slice(0, 20)}...`);
-      this.logger.debug(`[MOCK EMAIL] Idempotency-Key: ${idempotencyKey}`);
-      return;
-    }
-
-    try {
-      const payload = {
-        from: this.from,
-        to: [to],
-        subject: 'Reset Your BitLoot Password',
-        html,
-      };
-
-      const response = await firstValueFrom(
-        this.httpService.post('/emails', payload, {
-          baseURL: this.resendBaseUrl,
-          headers: {
-            Authorization: `Bearer ${this.resendApiKey}`,
-            'Idempotency-Key': idempotencyKey,
-            'X-Priority': headers['X-Priority'],
-            'X-MSMail-Priority': headers['X-MSMail-Priority'],
-          },
-        }),
-      );
-
-      this.metricsService.incrementEmailSendSuccess('welcome');
-      // Safe due to optional chaining and type cast
-      this.logger.log(`✅ Password reset email sent to ${to} (ID: ${(response.data as { id?: string })?.id ?? 'unknown'})`);
-    } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      this.logger.error(`❌ Failed to send password reset email to ${to}: ${errorMessage}`);
-      this.metricsService.incrementEmailSendFailed('failed');
-      throw error;
-    }
+    const params: PasswordResetParams = { resetLink, email: to };
+    const { subject, html } = EmailTemplates.passwordReset(params);
+    
+    await this.sendViaResend(to, subject, html, {
+      emailType: 'password_reset',
+      priority: 'high',
+    });
   }
 
   /**
    * Send underpayment notice email
-   * Level 4: Notification for underpaid crypto payments
-   *
    * @param to Customer email address
-   * @param data { orderId, amountSent, amountRequired }
-   * @returns Promise that resolves when email is queued
+   * @param data Payment details
    */
-  sendUnderpaidNotice(
+  async sendUnderpaidNotice(
     to: string,
     data: { orderId: string; amountSent?: string; amountRequired?: string },
   ): Promise<void> {
     const { orderId, amountSent, amountRequired } = data;
     const frontendUrl = process.env.FRONTEND_URL ?? 'http://localhost:3000';
-    const orderStatusUrl = `${frontendUrl}/orders/${orderId}/cancel`;
+    const orderStatusUrl = `${frontendUrl}/orders/${orderId}/status`;
 
-    const html = `
-      <h2>BitLoot Payment Underpaid — Non-Refundable</h2>
-      <p>Dear Customer,</p>
-      <p>We received your payment for order <strong>#${orderId.substring(0, 8)}</strong>, but the amount was insufficient.</p>
-      
-      <p><strong>Payment Status: FAILED & NON-REFUNDABLE</strong></p>
-      
-      <p>Details:</p>
-      <ul>
-        <li>Amount Sent: <strong>${amountSent ?? 'N/A'}</strong></li>
-        <li>Amount Required: <strong>${amountRequired ?? 'N/A'}</strong></li>
-      </ul>
-      
-      <p><strong>Why is this non-refundable?</strong></p>
-      <p>Blockchain transactions are irreversible. Our payment processor (NOWPayments) cannot refund underpaid amounts due to the nature of cryptocurrency transactions.</p>
-      
-      <p><strong>Next Steps:</strong></p>
-      <ol>
-        <li>Check your wallet for the transaction confirmation</li>
-        <li>If you need assistance, please contact our support team</li>
-        <li>To place a new order, please start fresh and send the exact amount</li>
-      </ol>
-      
-      <p style="margin: 24px 0;">
-        <a href="${orderStatusUrl}" style="background-color: #dc2626; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">View Order Status</a>
-      </p>
-      
-      <p>We're sorry we couldn't complete this order. Our support team is here to help if you have questions.</p>
-      <p>Best regards,<br/>The BitLoot Team</p>
-      
-      <hr/>
-      <small>This is an automated message. Do not reply to this email. Visit our <a href="https://bitloot.io/support">Support Center</a> for help.</small>
-    `;
-
-    // Generate delivery headers (Idempotency-Key, X-Priority set to HIGH for important notice)
-    const headers = this.generateEmailHeaders('high');
-
-    this.logger.log(
-      `[MOCK EMAIL - LEVEL 4] Sending underpaid notice to ${to} for order ${orderId}`,
-    );
-    this.logger.debug(
-      `[MOCK EMAIL - LEVEL 4] Underpaid amount - sent: ${amountSent}, required: ${amountRequired}`,
-    );
-    this.logger.debug(`[MOCK EMAIL - LEVEL 4] Headers: ${JSON.stringify(headers)}`);
-    this.logger.debug(`[MOCK EMAIL - LEVEL 4] HTML: ${html}`);
-    this.metricsService.incrementEmailSendFailed('underpaid');
-
-    // Level 4: Mock sending (will integrate with Resend in production)
-    // In production, use Idempotency-Key header in headers object to prevent duplicate sends
-    return Promise.resolve();
+    const params: UnderpaymentParams = {
+      orderId,
+      amountSent: amountSent ?? 'N/A',
+      amountRequired: amountRequired ?? 'N/A',
+      orderStatusUrl,
+      email: to,
+    };
+    const { subject, html } = EmailTemplates.underpaymentNotice(params);
+    
+    await this.sendViaResend(to, subject, html, {
+      emailType: 'underpaid',
+      priority: 'high',
+    });
   }
 
   /**
    * Send failed payment notice email
-   * Level 4: Notification for failed payments (non-underpayment failures)
-   *
    * @param to Customer email address
-   * @param data { orderId, reason }
-   * @returns Promise that resolves when email is queued
+   * @param data Failure details
    */
-  sendPaymentFailedNotice(to: string, data: { orderId: string; reason?: string }): Promise<void> {
+  async sendPaymentFailedNotice(to: string, data: { orderId: string; reason?: string }): Promise<void> {
     const { orderId, reason } = data;
     const frontendUrl = process.env.FRONTEND_URL ?? 'http://localhost:3000';
-    const orderStatusUrl = `${frontendUrl}/orders/${orderId}/cancel`;
+    const orderStatusUrl = `${frontendUrl}/orders/${orderId}/status`;
 
-    const html = `
-      <h2>BitLoot Payment Failed</h2>
-      <p>Dear Customer,</p>
-      <p>Your payment for order <strong>#${orderId.substring(0, 8)}</strong> could not be processed.</p>
-      
-      <p><strong>Reason:</strong> ${reason ?? 'Payment processing error'}</p>
-      
-      <p><strong>What happens next?</strong></p>
-      <p>Your order has been cancelled and no funds have been charged. You can:</p>
-      <ul>
-        <li>Try placing a new order with a different payment method</li>
-        <li>Contact our support team for assistance</li>
-      </ul>
-      
-      <p style="margin: 24px 0;">
-        <a href="${orderStatusUrl}" style="background-color: #dc2626; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">View Order Status</a>
-      </p>
-      
-      <p>We apologize for the inconvenience. Our support team is here to help.</p>
-      <p>Best regards,<br/>The BitLoot Team</p>
-      
-      <hr/>
-      <small>This is an automated message. Do not reply to this email. Visit our <a href="https://bitloot.io/support">Support Center</a> for help.</small>
-    `;
-
-    // Generate delivery headers (Idempotency-Key, X-Priority set to HIGH for important notice)
-    const headers = this.generateEmailHeaders('high');
-
-    this.logger.log(
-      `[MOCK EMAIL - LEVEL 4] Sending payment failed notice to ${to} for order ${orderId}`,
-    );
-    this.logger.debug(`[MOCK EMAIL - LEVEL 4] Failure reason: ${reason ?? 'unknown'}`);
-    this.logger.debug(`[MOCK EMAIL - LEVEL 4] Headers: ${JSON.stringify(headers)}`);
-    this.logger.debug(`[MOCK EMAIL - LEVEL 4] HTML: ${html}`);
-    this.metricsService.incrementEmailSendFailed('failed');
-
-    // Level 4: Mock sending (will integrate with Resend in production)
-    return Promise.resolve();
+    const params: PaymentFailedParams = {
+      orderId,
+      reason: reason ?? 'Payment processing error',
+      orderStatusUrl,
+      email: to,
+    };
+    const { subject, html } = EmailTemplates.paymentFailed(params);
+    
+    await this.sendViaResend(to, subject, html, {
+      emailType: 'failed',
+      priority: 'high',
+    });
   }
 
   /**
    * Send expired payment notice email
-   * Level 4: Notification for expired payments (payment window closed without payment)
-   * 
-   * Different from failed notice - provides a friendlier message with option to retry
-   *
    * @param to Customer email address
-   * @param data { orderId, reason }
-   * @returns Promise that resolves when email is queued
+   * @param data Expiration details
    */
-  sendPaymentExpiredNotice(to: string, data: { orderId: string; reason?: string }): Promise<void> {
+  async sendPaymentExpiredNotice(to: string, data: { orderId: string; reason?: string }): Promise<void> {
     const { orderId, reason } = data;
     const frontendUrl = process.env.FRONTEND_URL ?? 'http://localhost:3000';
-    const retryUrl = `${frontendUrl}/checkout`; // Redirect to checkout to create new order
+    const retryUrl = `${frontendUrl}/checkout`;
 
-    const html = `
-      <h2>BitLoot Payment Expired</h2>
-      <p>Dear Customer,</p>
-      <p>The payment window for order <strong>#${orderId.substring(0, 8)}</strong> has expired.</p>
-      
-      <p><strong>Reason:</strong> ${reason ?? 'Payment window timed out (1 hour)'}</p>
-      
-      <p><strong>Don't worry!</strong> No funds have been charged. Our checkout has a 1-hour window to complete payment.</p>
-      
-      <p><strong>What can you do?</strong></p>
-      <ul>
-        <li>Visit our checkout page to create a new order</li>
-        <li>Ensure you have your wallet ready before starting payment</li>
-        <li>Complete the transfer promptly once you receive the payment address</li>
-      </ul>
-      
-      <p style="margin: 24px 0;">
-        <a href="${retryUrl}" style="background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">Create New Order</a>
-      </p>
-      
-      <p>We're here to help if you have any questions!</p>
-      <p>Best regards,<br/>The BitLoot Team</p>
-      
-      <hr/>
-      <small>This is an automated message. Do not reply to this email. Visit our <a href="https://bitloot.io/support">Support Center</a> for help.</small>
-    `;
+    const params: PaymentExpiredParams = {
+      orderId,
+      reason: reason ?? 'Payment window timed out (1 hour)',
+      retryUrl,
+      email: to,
+    };
+    const { subject, html } = EmailTemplates.paymentExpired(params);
+    
+    await this.sendViaResend(to, subject, html, {
+      emailType: 'expired',
+      priority: 'normal',
+    });
+  }
 
-    // Generate delivery headers (Idempotency-Key, X-Priority set to NORMAL for info notice)
-    const headers = this.generateEmailHeaders('normal');
+  /**
+   * Send email changed notification (to old email)
+   * @param oldEmail Previous email address
+   * @param newEmail New email address
+   */
+  async sendEmailChangedOld(oldEmail: string, newEmail: string): Promise<void> {
+    const params: EmailChangedOldParams = { oldEmail, newEmail };
+    const { subject, html } = EmailTemplates.emailChangedOld(params);
+    
+    await this.sendViaResend(oldEmail, subject, html, {
+      emailType: 'email_changed',
+      priority: 'high',
+    });
+  }
 
-    this.logger.log(
-      `[MOCK EMAIL - LEVEL 4] Sending payment expired notice to ${to} for order ${orderId}`,
-    );
-    this.logger.debug(`[MOCK EMAIL - LEVEL 4] Expiration reason: ${reason ?? 'payment window closed'}`);
-    this.logger.debug(`[MOCK EMAIL - LEVEL 4] Headers: ${JSON.stringify(headers)}`);
-    this.logger.debug(`[MOCK EMAIL - LEVEL 4] HTML: ${html}`);
-    this.metricsService.incrementEmailSendFailed('expired'); // Track expired separately
+  /**
+   * Send email changed welcome (to new email)
+   * @param newEmail New email address
+   */
+  async sendEmailChangedNew(newEmail: string): Promise<void> {
+    const params: EmailChangedNewParams = { newEmail };
+    const { subject, html } = EmailTemplates.emailChangedNew(params);
+    
+    await this.sendViaResend(newEmail, subject, html, {
+      emailType: 'email_changed',
+      priority: 'high',
+    });
+  }
 
-    // Level 4: Mock sending (will integrate with Resend in production)
-    return Promise.resolve();
+  /**
+   * Send account deletion scheduled notification
+   * @param to Customer email address
+   * @param data Deletion details
+   */
+  async sendDeletionScheduled(
+    to: string,
+    data: { deletionDate: Date; daysRemaining: number; cancelUrl: string },
+  ): Promise<void> {
+    const params: DeletionScheduledParams = {
+      email: to,
+      deletionDate: data.deletionDate,
+      daysRemaining: data.daysRemaining,
+      cancelUrl: data.cancelUrl,
+    };
+    const { subject, html } = EmailTemplates.deletionScheduled(params);
+    
+    await this.sendViaResend(to, subject, html, {
+      emailType: 'deletion_scheduled',
+      priority: 'high',
+    });
+  }
+
+  /**
+   * Send account deletion cancelled notification
+   * @param to Customer email address
+   */
+  async sendDeletionCancelled(to: string): Promise<void> {
+    const params: DeletionCancelledParams = { email: to };
+    const { subject, html } = EmailTemplates.deletionCancelled(params);
+    
+    await this.sendViaResend(to, subject, html, {
+      emailType: 'deletion_cancelled',
+      priority: 'high',
+    });
   }
 
   /**
    * Generic email sending method for custom emails
-   * Used by account management features (email change, deletion notifications)
+   * Used for ad-hoc emails not covered by templates
    *
    * @param options Email options
-   * @returns Promise that resolves when email is sent
    */
   async sendEmail(options: {
     to: string;
@@ -833,61 +503,26 @@ export class EmailsService {
     priority?: 'high' | 'normal' | 'low';
   }): Promise<void> {
     const { to, subject, html, priority = 'normal' } = options;
-    const headers = this.generateEmailHeaders(priority);
-    const idempotencyKey = headers['Idempotency-Key'];
+    
+    await this.sendViaResend(to, subject, html, {
+      emailType: 'generic',
+      priority,
+    });
+  }
 
-    // In mock mode, just log
-    if (this.resendApiKey.length === 0) {
-      this.logger.log(`[MOCK EMAIL] Generic email to ${to}`);
-      this.logger.debug(`[MOCK EMAIL] Subject: ${subject}`);
-      this.logger.debug(`[MOCK EMAIL] Idempotency-Key: ${idempotencyKey}`);
-      return;
-    }
-
-    // Check suppression list
-    const isSuppressed = await this.suppressionList.isSuppressed(to);
-    if (isSuppressed) {
-      this.logger.warn(`⏭️  Skipping email to suppressed address: ${to}`);
-      return;
-    }
-
-    const startTime = Date.now();
-
-    try {
-      const payload = {
-        from: this.from,
-        to: [to],
-        subject,
-        html,
-      };
-
-      const response = await this.retry.executeWithRetry(
-        () =>
-          this.httpService.post('/emails', payload, {
-            baseURL: this.resendBaseUrl,
-            headers: {
-              Authorization: `Bearer ${this.resendApiKey}`,
-              'Idempotency-Key': idempotencyKey,
-              'X-Priority': headers['X-Priority'],
-              'X-MSMail-Priority': headers['X-MSMail-Priority'],
-            },
-          }),
-        3, // max 3 retry attempts
-        (attempt, error) => {
-          this.logger.warn(`Retrying email (attempt ${attempt}) to ${to}: ${error.message}`);
-        },
-      );
-
-      const latencyMs = Date.now() - startTime;
-      this.metricsService.recordEmailLatency('otp', latencyMs);
-      this.metricsService.incrementEmailSendSuccess('otp');
-
-      this.logger.log(`✅ Email sent to ${to} (ID: ${(response.data as { id?: string })?.id ?? 'unknown'}, latency: ${latencyMs}ms)`);
-    } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      this.logger.error(`❌ Failed to send email to ${to}: ${errorMessage}`);
-      this.metricsService.incrementEmailSendFailed('otp');
-      throw error;
-    }
+  /**
+   * Send a generic templated email
+   * Use this for custom emails that should use the BitLoot styling
+   *
+   * @param to Customer email address
+   * @param params Generic email parameters
+   */
+  async sendGenericEmail(to: string, params: Omit<GenericEmailParams, 'email'>): Promise<void> {
+    const { subject, html } = EmailTemplates.generic({ ...params, email: to });
+    
+    await this.sendViaResend(to, subject, html, {
+      emailType: 'generic',
+      priority: 'normal',
+    });
   }
 }

@@ -35,9 +35,11 @@ export class OrdersController {
   @ApiOperation({ summary: 'Create a new order' })
   @ApiResponse({ status: 201, type: OrderResponseDto })
   async create(@Body() dto: CreateOrderDto, @Request() req: AuthenticatedRequest): Promise<OrderResponseDto> {
-    // Verify CAPTCHA token if feature flag is enabled
+    // Verify CAPTCHA token if feature flag is enabled AND not in development mode
     const captchaEnabled = this.featureFlagsService.isEnabled('captcha_enabled');
-    if (captchaEnabled) {
+    const isDevelopment = process.env.NODE_ENV === 'development';
+    
+    if (captchaEnabled && !isDevelopment) {
       const captchaToken = dto.captchaToken ?? '';
       if (captchaToken.length === 0) {
         throw new Error('CAPTCHA token is required');
