@@ -97,7 +97,7 @@ function ProductGroupGridCardComponent({
             alt={group.title}
             fill
             className={cn(
-              'object-cover transition-all duration-300',
+              'object-contain transition-all duration-300',
               imageLoaded ? 'opacity-100' : 'opacity-0',
               isHovered && 'scale-105'
             )}
@@ -193,7 +193,7 @@ function ProductGroupGridCardComponent({
             src={imageUrl}
             alt={group.title}
             fill
-            className="object-cover"
+            className="object-contain"
             sizes="64px"
           />
           <div className="absolute top-0.5 left-0.5">
@@ -265,7 +265,7 @@ function ProductGroupGridCardComponent({
           alt={group.title}
           fill
           className={cn(
-            'object-cover transition-all duration-300',
+            'object-contain transition-all duration-300',
             imageLoaded ? 'opacity-100' : 'opacity-0',
             isHovered && 'scale-105'
           )}

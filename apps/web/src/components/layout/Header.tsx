@@ -33,7 +33,6 @@ import {
     Users,
     // Platforms
     Play,
-    Laptop,
     Tv,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
@@ -163,9 +162,9 @@ export function Header(): React.ReactElement {
     useEffect(() => {
         const handleClickOutside = (e: MouseEvent): void => {
             if (
-                megaMenuRef.current && 
+                megaMenuRef.current !== null && 
                 !megaMenuRef.current.contains(e.target as Node) &&
-                megaMenuTriggerRef.current &&
+                megaMenuTriggerRef.current !== null &&
                 !megaMenuTriggerRef.current.contains(e.target as Node)
             ) {
                 setIsMegaMenuOpen(false);
@@ -229,7 +228,7 @@ export function Header(): React.ReactElement {
                 {/* Desktop Navigation with Mega Menu */}
                 <nav className="hidden md:flex items-center gap-1 relative">
                     {NAV_LINKS.map((link) => (
-                        link.hasMegaMenu ? (
+                        link.hasMegaMenu === true ? (
                             // Games link with mega menu
                             <div key={link.label} className="relative">
                                 <Link 
@@ -259,7 +258,7 @@ export function Header(): React.ReactElement {
                                 key={link.label}
                                 href={link.href} 
                                 className={`relative px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 group flex items-center gap-1.5 ${
-                                    link.highlight 
+                                    link.highlight === true
                                         ? 'text-orange-warning hover:text-orange-400 hover:bg-orange-warning/10' 
                                         : isActiveLink(link.href)
                                             ? 'text-cyan-glow bg-cyan-glow/10'
@@ -267,10 +266,10 @@ export function Header(): React.ReactElement {
                                 }`}
                             >
                                 <span className="relative z-10">{link.label}</span>
-                                {link.badge && (
+                                {link.badge !== undefined && link.badge !== '' && (
                                     <span className="text-xs" aria-hidden="true">{link.badge}</span>
                                 )}
-                                {isActiveLink(link.href) && !link.highlight && (
+                                {isActiveLink(link.href) && link.highlight !== true && (
                                     <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-cyan-glow rounded-full" />
                                 )}
                             </Link>
@@ -513,7 +512,7 @@ export function Header(): React.ReactElement {
                                         <Link 
                                             href={link.href} 
                                             className={`flex items-center justify-between px-4 py-3 rounded-lg transition-all duration-200 ${
-                                                link.highlight 
+                                                link.highlight === true
                                                     ? 'bg-orange-warning/10 text-orange-warning hover:bg-orange-warning/20'
                                                     : isActiveLink(link.href)
                                                         ? 'bg-cyan-glow/10 text-cyan-glow'
@@ -523,7 +522,7 @@ export function Header(): React.ReactElement {
                                             <div className="flex items-center gap-3">
                                                 <link.icon className="w-5 h-5" />
                                                 <span className="font-medium">{link.label}</span>
-                                                {link.badge && (
+                                                {link.badge !== undefined && link.badge !== '' && (
                                                     <span className="text-xs" aria-hidden="true">{link.badge}</span>
                                                 )}
                                             </div>

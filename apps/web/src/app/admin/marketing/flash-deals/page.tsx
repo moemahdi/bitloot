@@ -953,7 +953,8 @@ export default function AdminFlashDealsPage(): React.ReactElement {
                         src={selectedProduct.imageUrl} 
                         alt={selectedProduct.title}
                         fill
-                        className="object-cover"
+                        sizes="48px"
+                        className="object-contain"
                       />
                     </div>
                   )}
@@ -1015,7 +1016,8 @@ export default function AdminFlashDealsPage(): React.ReactElement {
                                   src={product.imageUrl} 
                                   alt={product.title}
                                   fill
-                                  className="object-cover"
+                                  sizes="40px"
+                                  className="object-contain"
                                 />
                               </div>
                             )}

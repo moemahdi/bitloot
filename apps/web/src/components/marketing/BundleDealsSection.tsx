@@ -97,7 +97,8 @@ function BundleCard({ bundle, onSelect }: { bundle: BundleDeal; onSelect: (bundl
                   src={bundle.heroImage}
                   alt={bundle.name}
                   fill
-                  className="object-cover transition-transform duration-500 group-hover:scale-110"
+                  sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                  className="object-contain transition-transform duration-500 group-hover:scale-110"
                 />
               ) : (
                 <div className="w-full h-full flex items-center justify-center">
@@ -158,7 +159,8 @@ function BundleCard({ bundle, onSelect }: { bundle: BundleDeal; onSelect: (bundl
                             src={imgSrc}
                             alt=""
                             fill
-                            className="object-cover"
+                            sizes="40px"
+                            className="object-contain"
                           />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center">

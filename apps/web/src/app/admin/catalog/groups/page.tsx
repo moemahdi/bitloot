@@ -648,7 +648,7 @@ export default function AdminProductGroupsPage(): React.JSX.Element {
                                   alt={group.title}
                                   width={48}
                                   height={48}
-                                  className="w-full h-full object-cover"
+                                  className="w-full h-full object-contain"
                                 />
                               ) : (
                                 <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-bg-tertiary to-bg-secondary">

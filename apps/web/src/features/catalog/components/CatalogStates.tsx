@@ -35,16 +35,16 @@ export function CatalogEmptyState({
 }: EmptyStateProps): React.ReactElement {
   // Check if any filters are active
   const hasActiveFilters = Boolean(
-    filters.search ||
-    filters.businessCategory ||
+    (filters.search !== undefined && filters.search !== '') ||
+    (filters.businessCategory ?? '') !== '' ||
     filters.platform.length > 0 ||
-    filters.region ||
+    (filters.region !== undefined && filters.region !== '') ||
     filters.minPrice > 0 ||
     filters.maxPrice < 500
   );
   
   // Search query specific empty state
-  if (filters.search) {
+  if (filters.search !== undefined && filters.search !== '') {
     return (
       <div className={cn('flex flex-col items-center justify-center py-16 px-4', className)}>
         <div className="relative mb-6">
@@ -72,7 +72,7 @@ export function CatalogEmptyState({
             <RotateCcw className="h-4 w-4 mr-2" />
             Clear Search
           </Button>
-          {hasActiveFilters && onOpenFilters && (
+          {hasActiveFilters && onOpenFilters !== undefined && (
             <Button
               variant="outline"
               onClick={onOpenFilters}
@@ -130,7 +130,7 @@ export function CatalogEmptyState({
             <RotateCcw className="h-4 w-4 mr-2" />
             Reset Filters
           </Button>
-          {onOpenFilters && (
+          {onOpenFilters !== undefined && (
             <Button
               onClick={onOpenFilters}
               className="bg-cyan-glow text-bg-primary hover:bg-cyan-glow/90"
@@ -208,7 +208,7 @@ export function CatalogErrorState({
           : 'We encountered an error while loading products. Please try again.'}
       </p>
       
-      {onRetry && (
+      {onRetry !== undefined && (
         <Button
           onClick={onRetry}
           className="bg-cyan-glow text-bg-primary hover:bg-cyan-glow/90"

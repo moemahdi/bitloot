@@ -389,7 +389,7 @@ function ProductVariantItem({
           src={imageError ? '/placeholder-game.jpg' : imageUrl}
           alt=""
           fill
-          className="object-cover transition-transform duration-200 group-hover:scale-105"
+          className="object-contain transition-transform duration-200 group-hover:scale-105"
           sizes="48px"
           onError={() => setImageError(true)}
         />

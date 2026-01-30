@@ -631,7 +631,8 @@ export default function AdminCreateProductGroupPage(): React.JSX.Element {
                                   src={field.value ?? ''}
                                   alt="Cover preview"
                                   fill
-                                  className="object-cover transition-transform group-hover:scale-105"
+                                  sizes="320px"
+                                  className="object-contain transition-transform group-hover:scale-105"
                                   onError={() => setImageError(true)}
                                 />
                                 <div className="absolute inset-0 bg-gradient-to-t from-bg-primary/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />

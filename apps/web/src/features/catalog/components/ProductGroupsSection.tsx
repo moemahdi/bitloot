@@ -50,7 +50,7 @@ export function ProductGroupsSection({
   // Check scroll state
   const checkScrollState = useCallback(() => {
     const container = scrollContainerRef.current;
-    if (!container) return;
+    if (container === null) return;
     
     setCanScrollLeft(container.scrollLeft > 0);
     setCanScrollRight(
@@ -68,7 +68,7 @@ export function ProductGroupsSection({
   // Scroll functions
   const scroll = useCallback((direction: 'left' | 'right') => {
     const container = scrollContainerRef.current;
-    if (!container) return;
+    if (container === null) return;
     
     const cardWidth = 280;
     const scrollAmount = direction === 'left' ? -cardWidth * 2 : cardWidth * 2;
@@ -162,7 +162,7 @@ export function ProductGroupsSection({
           aria-label="Product groups carousel"
         >
           {isLoading
-            ? [...Array(4)].map((_, i) => (
+            ? Array.from({ length: 4 }).map((_, i) => (
                 <div key={i} className="snap-start" role="listitem">
                   <ProductGroupCardSkeleton />
                 </div>

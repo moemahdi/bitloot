@@ -62,7 +62,7 @@ export function CatalogProductGrid({
         aria-busy="true"
       >
         {/* Show a mix of product and group skeletons */}
-        {[...Array(skeletonCount)].map((_, i) => (
+        {Array.from({ length: skeletonCount }).map((_, i) => (
           <div key={i} role="listitem">
             {i < 2 && isLoadingGroups ? (
               <ProductGroupGridCardSkeleton viewMode={viewMode} />

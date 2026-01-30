@@ -9,7 +9,6 @@ import {
   Mail,
   HelpCircle,
   MessageCircle,
-  CreditCard,
   Package,
   Shield,
   Info,

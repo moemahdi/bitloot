@@ -51,8 +51,6 @@ import {
     CheckCircle,
     HelpCircle,
     MessageCircle,
-    Clock,
-    Lock,
     RefreshCw,
     Wallet,
 } from 'lucide-react';
@@ -197,7 +195,7 @@ function BenefitsSection(): React.ReactElement {
 // SOCIAL PROOF SECTION
 // ============================================================================
 
-function SocialProofSection(): React.ReactElement {
+function _SocialProofSection(): React.ReactElement {
     return (
         <section className="py-20 bg-bg-primary relative">
             {/* Top gradient line */}
@@ -270,6 +268,7 @@ interface FAQItem {
     category: 'payment' | 'delivery' | 'security' | 'general';
 }
 
+// Essential FAQs - Full list available at /help
 const FAQ_ITEMS: FAQItem[] = [
     {
         id: 'crypto-payment',
@@ -295,44 +294,16 @@ const FAQ_ITEMS: FAQItem[] = [
     {
         id: 'refund-policy',
         question: 'What is your refund policy?',
-        answer: "Due to the digital nature of our products, we cannot offer refunds once a key has been revealed. However, if you receive an invalid or already-used key, we'll replace it immediately or provide a full refund. Our support team is available 24/7 to assist with any issues.",
+        answer: "Due to the digital nature of our products, all sales are final once a key has been revealed. However, if you receive an invalid or already-used key, we'll replace it or provide a full refund. See our full Refund Policy for details.",
         icon: RefreshCw,
         category: 'general',
     },
     {
-        id: 'payment-confirmation',
-        question: 'How long do crypto payments take to confirm?',
-        answer: 'Confirmation times vary by cryptocurrency. Bitcoin typically requires 1-3 confirmations (10-30 minutes), while faster networks like Litecoin or stablecoins (USDT, USDC) confirm in under 5 minutes. Our system automatically detects payments and processes your order instantly upon confirmation.',
-        icon: Clock,
-        category: 'payment',
-    },
-    {
-        id: 'account-security',
-        question: 'How do you protect my account and purchases?',
-        answer: 'Your security is our priority. We use industry-standard encryption for all transactions, secure OTP authentication for account access, and encrypted key storage. Purchase history and keys are safely stored in your account and can be accessed anytime.',
-        icon: Lock,
-        category: 'security',
-    },
-    {
         id: 'guest-checkout',
         question: 'Can I buy without creating an account?',
-        answer: 'Yes! We offer guest checkout for quick purchases. Simply enter your email, complete payment, and receive your key directly. However, creating a free account gives you benefits like purchase history, faster checkouts, wishlists, and easy key retrieval anytime.',
+        answer: 'Yes! We offer guest checkout for quick purchases. Simply enter your email, complete payment, and receive your key directly. However, creating a free account gives you benefits like purchase history, wishlists, and easy key retrieval anytime.',
         icon: Wallet,
         category: 'general',
-    },
-    {
-        id: 'support',
-        question: 'How can I contact customer support?',
-        answer: 'Our support team is available 24/7 via live chat on the website or email at support@bitloot.com. For order-related issues, please have your order ID ready. Most inquiries are resolved within a few hours.',
-        icon: MessageCircle,
-        category: 'general',
-    },
-    {
-        id: 'account-products',
-        question: 'What are account products and how do they work?',
-        answer: 'Some products are sold as full game accounts rather than activation keys. With account products, we create a new account for you with the purchased game already activated. You\'ll receive login credentials in your inventory. Important: Do not add payment methods, change the region, or make purchases on the account—doing so may result in a ban with no refund. Use the account only for the purchased game.',
-        icon: Shield,
-        category: 'security',
     },
 ];
 
@@ -481,19 +452,31 @@ function FAQSection(): React.ReactElement {
                                 <MessageCircle className="w-6 h-6 text-purple-neon" />
                             </div>
                             <div className="text-left">
-                                <p className="text-text-primary font-medium">Still have questions?</p>
-                                <p className="text-text-secondary text-sm">Our team is here to help 24/7</p>
+                                <p className="text-text-primary font-medium">Need more answers?</p>
+                                <p className="text-text-secondary text-sm">Visit our Help Center or contact support 24/7</p>
                             </div>
                         </div>
-                        <Button
-                            asChild
-                            className="bg-purple-neon hover:bg-purple-neon/90 text-white shadow-glow-purple-sm hover:shadow-glow-purple transition-all"
-                        >
-                            <Link href="/support">
-                                <MessageCircle className="w-4 h-4 mr-2" />
-                                Contact Support
-                            </Link>
-                        </Button>
+                        <div className="flex flex-col sm:flex-row gap-3">
+                            <Button
+                                asChild
+                                variant="outline"
+                                className="border-cyan-glow/30 text-cyan-glow hover:bg-cyan-glow/10 hover:border-cyan-glow/50"
+                            >
+                                <Link href="/help">
+                                    <HelpCircle className="w-4 h-4 mr-2" />
+                                    Help Center
+                                </Link>
+                            </Button>
+                            <Button
+                                asChild
+                                className="bg-purple-neon hover:bg-purple-neon/90 text-white shadow-glow-purple-sm hover:shadow-glow-purple transition-all"
+                            >
+                                <Link href="/help#support">
+                                    <MessageCircle className="w-4 h-4 mr-2" />
+                                    Contact Support
+                                </Link>
+                            </Button>
+                        </div>
                     </div>
                 </motion.div>
             </div>
@@ -634,7 +617,7 @@ export default function HomePage(): React.ReactElement {
             <BenefitsSection />
             
             {/* Social Proof - Trust badges + live purchases (HIDDEN - component kept for future use) */}
-            {/* <SocialProofSection /> */}
+            {/* <_SocialProofSection /> */}
             
             {/* FAQ - Common questions */}
             <FAQSection />

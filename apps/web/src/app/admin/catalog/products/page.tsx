@@ -1295,7 +1295,8 @@ export default function AdminCatalogProductsPage(): React.JSX.Element {
                           src={selectedProduct.coverImageUrl}
                           alt={selectedProduct.title ?? 'Product image'}
                           fill
-                          className="object-cover"
+                          sizes="500px"
+                          className="object-contain"
                           unoptimized
                         />
                       </div>
@@ -1632,7 +1633,7 @@ export default function AdminCatalogProductsPage(): React.JSX.Element {
                           <div className="space-y-1">
                             <span className="text-xs text-text-secondary">Full Cover</span>
                             <div className="relative h-32 rounded-lg overflow-hidden bg-bg-primary border border-cyan-glow/10">
-                              <Image src={selectedProduct.coverImageUrl} alt="Cover" fill className="object-cover" unoptimized />
+                              <Image src={selectedProduct.coverImageUrl} alt="Cover" fill sizes="200px" className="object-contain" unoptimized />
                             </div>
                           </div>
                         )}
@@ -1640,7 +1641,7 @@ export default function AdminCatalogProductsPage(): React.JSX.Element {
                           <div className="space-y-1">
                             <span className="text-xs text-text-secondary">Thumbnail</span>
                             <div className="relative h-32 rounded-lg overflow-hidden bg-bg-primary border border-cyan-glow/10">
-                              <Image src={selectedProduct.coverThumbnailUrl} alt="Thumbnail" fill className="object-cover" unoptimized />
+                              <Image src={selectedProduct.coverThumbnailUrl} alt="Thumbnail" fill sizes="200px" className="object-contain" unoptimized />
                             </div>
                           </div>
                         )}
@@ -1656,7 +1657,7 @@ export default function AdminCatalogProductsPage(): React.JSX.Element {
                         <div className="grid grid-cols-3 gap-2">
                           {selectedProduct.screenshots.slice(0, 6).map((screenshot, i) => (
                             <a key={i} href={screenshot.url} target="_blank" rel="noopener noreferrer" className="relative h-20 rounded overflow-hidden bg-bg-primary border border-cyan-glow/10 hover:border-cyan-glow/50 transition-colors">
-                              <Image src={screenshot.thumbnail ?? screenshot.url} alt={`Screenshot ${i + 1}`} fill className="object-cover" unoptimized />
+                              <Image src={screenshot.thumbnail ?? screenshot.url} alt={`Screenshot ${i + 1}`} fill sizes="150px" className="object-contain" unoptimized />
                             </a>
                           ))}
                         </div>

@@ -9,6 +9,22 @@ import { firstValueFrom } from 'rxjs';
  * Simple integration with Resend Audiences for newsletter subscriptions.
  * Handles adding contacts to an audience for marketing emails.
  */
+
+// Type definitions for Resend API responses
+interface ResendContact {
+  id: string;
+  email: string;
+  unsubscribed: boolean;
+}
+
+interface ResendContactsListResponse {
+  data: ResendContact[];
+}
+
+interface ResendContactResponse {
+  id: string;
+}
+
 @Injectable()
 export class NewsletterService {
   private readonly logger = new Logger(NewsletterService.name);
@@ -23,7 +39,7 @@ export class NewsletterService {
     this.resendApiKey = this.configService.get<string>('RESEND_API_KEY') ?? '';
     this.audienceId = this.configService.get<string>('RESEND_AUDIENCE_ID') ?? '';
 
-    if (this.resendApiKey && this.audienceId) {
+    if (this.resendApiKey !== '' && this.audienceId !== '') {
       this.logger.log('✅ NewsletterService initialized with Resend Audiences');
     } else {
       this.logger.warn('⚠️  NewsletterService: Missing RESEND_API_KEY or RESEND_AUDIENCE_ID');
@@ -44,7 +60,7 @@ export class NewsletterService {
     }
 
     // Mock mode if not configured
-    if (!this.resendApiKey || !this.audienceId) {
+    if (this.resendApiKey === '' || this.audienceId === '') {
       this.logger.log(`📧 [MOCK] Newsletter subscription: ${email}`);
       return {
         success: true,
@@ -55,7 +71,7 @@ export class NewsletterService {
     try {
       // Add contact to Resend Audience
       const response = await firstValueFrom(
-        this.httpService.post(
+        this.httpService.post<ResendContactResponse>(
           `${this.resendBaseUrl}/audiences/${this.audienceId}/contacts`,
           {
             email,
@@ -70,7 +86,7 @@ export class NewsletterService {
         ),
       );
 
-      this.logger.log(`✅ Newsletter subscription successful: ${email}, contact ID: ${response.data?.id}`);
+      this.logger.log(`✅ Newsletter subscription successful: ${email}, contact ID: ${response.data.id}`);
 
       return {
         success: true,
@@ -99,7 +115,7 @@ export class NewsletterService {
    * @param email - Email address to unsubscribe
    */
   async unsubscribe(email: string): Promise<{ success: boolean; message: string }> {
-    if (!this.resendApiKey || !this.audienceId) {
+    if (this.resendApiKey === '' || this.audienceId === '') {
       this.logger.log(`📧 [MOCK] Newsletter unsubscribe: ${email}`);
       return { success: true, message: 'Unsubscribed (mock mode)' };
     }
@@ -107,7 +123,7 @@ export class NewsletterService {
     try {
       // First, find the contact by email
       const listResponse = await firstValueFrom(
-        this.httpService.get(
+        this.httpService.get<ResendContactsListResponse>(
           `${this.resendBaseUrl}/audiences/${this.audienceId}/contacts`,
           {
             headers: {
@@ -117,10 +133,10 @@ export class NewsletterService {
         ),
       );
 
-      const contacts = listResponse.data?.data ?? [];
-      const contact = contacts.find((c: { email: string }) => c.email === email);
+      const contacts: ResendContact[] = listResponse.data.data ?? [];
+      const contact = contacts.find((c) => c.email === email);
 
-      if (!contact) {
+      if (contact === undefined) {
         return { success: true, message: 'Email not found in newsletter' };
       }
 

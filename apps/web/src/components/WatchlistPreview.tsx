@@ -137,7 +137,8 @@ export function WatchlistPreview() {
                 src={item.product.coverImageUrl}
                 alt={item.product.title}
                 fill
-                className="object-cover group-hover:scale-105 transition-transform"
+                sizes="48px"
+                className="object-contain group-hover:scale-105 transition-transform"
               />
             ) : (
               <div className="w-full h-full flex items-center justify-center">

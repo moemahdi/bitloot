@@ -6,7 +6,7 @@ import { SuppressionListService } from './suppression-list.service';
 import { RetryService } from './retry.service';
 import { FeatureFlagsService } from '../admin/feature-flags.service';
 import { randomUUID } from 'crypto';
-import { firstValueFrom } from 'rxjs';
+
 
 // Import centralized email templates
 import {

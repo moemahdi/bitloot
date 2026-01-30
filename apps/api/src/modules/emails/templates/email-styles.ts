@@ -245,7 +245,7 @@ export function wrapEmailTemplate(content: string, options: WrapperOptions = {})
   
   // Generate unsubscribe URL from email if not provided directly
   const frontendUrl = process.env.FRONTEND_URL ?? 'https://bitloot.io';
-  const finalUnsubscribeUrl = unsubscribeUrl || (unsubscribeEmail ? `${frontendUrl}/unsubscribe?email=${encodeURIComponent(unsubscribeEmail)}` : '');
+  const finalUnsubscribeUrl = unsubscribeUrl !== '' ? unsubscribeUrl : (unsubscribeEmail !== '' ? `${frontendUrl}/unsubscribe?email=${encodeURIComponent(unsubscribeEmail)}` : '');
 
   const header = `
     <div style="text-align: center; padding: 32px 0; border-bottom: 1px solid ${EmailColors.borderSubtle};">
@@ -272,7 +272,7 @@ export function wrapEmailTemplate(content: string, options: WrapperOptions = {})
         © ${new Date().getFullYear()} BitLoot. All rights reserved.
       </p>
       ${
-        showUnsubscribe && finalUnsubscribeUrl
+        showUnsubscribe && finalUnsubscribeUrl !== ''
           ? `
         <p style="margin-top: 16px;">
           <a href="${finalUnsubscribeUrl}" style="color: ${EmailColors.textMuted}; font-size: 12px; text-decoration: underline;">

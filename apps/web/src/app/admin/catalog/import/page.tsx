@@ -781,7 +781,8 @@ export default function AdminImportPage(): React.JSX.Element {
                                 src={product.coverImageUrl}
                                 alt={product.name}
                                 fill
-                                className="object-cover transition-transform duration-300 group-hover:scale-110"
+                                sizes="56px"
+                                className="object-contain transition-transform duration-300 group-hover:scale-110"
                                 onError={() => handleImageError(product.productId)}
                                 unoptimized
                               />

@@ -17,11 +17,10 @@ import {
   Cpu, HardDrive, AlertTriangle, Key, Clock, 
   RefreshCw, FileText, Wallet, Lock, BadgeCheck,
   Volume2, Wifi, Settings, Gamepad2, Shield, Star,
-  Flame
+  Flame, Minus, Plus, ShoppingCart
 } from 'lucide-react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
-import { AddToCartButton } from '@/features/product/components/AddToCartButton';
 import { ProductReviews } from '@/features/reviews';
 import { WatchlistButton } from '@/features/watchlist';
 import { useAuth } from '@/hooks/useAuth';
@@ -193,6 +192,109 @@ function AccountProductWarning(): React.ReactElement {
   );
 }
 
+// ========== Component: Quantity Selector (Enhanced) ==========
+
+interface QuantitySelectorProps {
+  quantity: number;
+  onQuantityChange: (quantity: number) => void;
+  min?: number;
+  disabled?: boolean;
+  unitPrice: number;
+  currencySymbol: string;
+}
+
+function QuantitySelector({ 
+  quantity, 
+  onQuantityChange, 
+  min = 1,
+  disabled = false,
+  unitPrice,
+  currencySymbol,
+}: QuantitySelectorProps): React.ReactElement {
+  const decrease = (): void => {
+    if (quantity > min) {
+      onQuantityChange(quantity - 1);
+    }
+  };
+
+  const increase = (): void => {
+    onQuantityChange(quantity + 1);
+  };
+
+  const totalPrice = unitPrice * quantity;
+
+  return (
+    <div className="p-4 rounded-xl bg-bg-tertiary/30 border border-border-subtle space-y-3">
+      {/* Header Row */}
+      <div className="flex items-center justify-between">
+        <span className="text-sm font-medium text-text-secondary">Select Quantity</span>
+      </div>
+      
+      {/* Quantity Controls Row */}
+      <div className="flex items-center justify-between gap-4">
+        {/* Stepper */}
+        <div className="flex items-center bg-bg-primary/60 rounded-xl p-1 border border-border-subtle">
+          <button
+            type="button"
+            onClick={decrease}
+            disabled={disabled || quantity <= min}
+            className="h-10 w-10 flex items-center justify-center rounded-lg text-text-secondary hover:bg-purple-neon/20 hover:text-purple-neon transition-all duration-200 disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-text-secondary"
+            aria-label="Decrease quantity"
+          >
+            <Minus className="h-4 w-4" />
+          </button>
+          <div className="h-10 w-16 flex items-center justify-center text-text-primary font-bold text-xl tabular-nums select-none">
+            {quantity}
+          </div>
+          <button
+            type="button"
+            onClick={increase}
+            disabled={disabled}
+            className="h-10 w-10 flex items-center justify-center rounded-lg text-text-secondary hover:bg-purple-neon/20 hover:text-purple-neon transition-all duration-200 disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-text-secondary"
+            aria-label="Increase quantity"
+          >
+            <Plus className="h-4 w-4" />
+          </button>
+        </div>
+
+        {/* Price Display */}
+        <div className="flex-1 text-right">
+          <div className="text-2xl font-bold text-text-primary tabular-nums">
+            {currencySymbol}{totalPrice.toFixed(2)}
+          </div>
+          {quantity > 1 && (
+            <div className="text-xs text-text-muted">
+              {currencySymbol}{unitPrice.toFixed(2)} each
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Quick Select Buttons */}
+      <div className="flex gap-2">
+        {[1, 2, 3, 5, 10].map((num) => (
+          <button
+            key={num}
+            type="button"
+            onClick={() => onQuantityChange(num)}
+            disabled={disabled}
+            className={`
+              flex-1 py-1.5 text-sm font-medium rounded-lg transition-all duration-200
+              ${quantity === num 
+                ? 'bg-purple-neon/20 text-purple-neon border border-purple-neon/40' 
+                : 'bg-bg-primary/40 text-text-muted border border-transparent hover:bg-bg-primary/60 hover:text-text-secondary'
+              }
+              disabled:opacity-30 disabled:cursor-not-allowed
+            `}
+          >
+            {num}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ========== Component: Metacritic Badge ==========
 
 function MetacriticBadge({ score }: { score: number }): React.ReactElement {
@@ -352,7 +454,7 @@ function MediaGallery({
                 src={currentItem?.type === 'image' ? currentItem.url : '/placeholder.jpg'}
                 alt={`${productTitle} - Media ${selectedIndex + 1}`}
                 fill
-                className="object-cover"
+                className="object-contain"
                 sizes="(max-width: 768px) 100vw, 800px"
                 priority={selectedIndex === 0}
               />
@@ -417,7 +519,8 @@ function MediaGallery({
                       src={`https://img.youtube.com/vi/${item.videoId}/mqdefault.jpg`}
                       alt={item.title ?? 'Video thumbnail'}
                       fill
-                      className="object-cover"
+                      sizes="112px"
+                      className="object-contain"
                     />
                     <div className="absolute inset-0 flex items-center justify-center bg-bg-primary/40">
                       <div className="h-8 w-8 rounded-full bg-pink-featured flex items-center justify-center shadow-glow-pink">
@@ -431,7 +534,8 @@ function MediaGallery({
                       src={item.url}
                       alt={`Thumbnail ${index + 1}`}
                       fill
-                      className="object-cover"
+                      sizes="112px"
+                      className="object-contain"
                     />
                     {item.iscover === true && (
                       <div className="absolute bottom-1 left-1 bg-cyan-glow/90 text-bg-primary px-1.5 py-0.5 rounded text-[10px] font-bold">
@@ -833,8 +937,11 @@ export default function ProductPage(): React.ReactElement {
   const slug = params.id as string;
   const catalogClient = new CatalogApi(apiConfig);
   const [copied, setCopied] = useState(false);
+  const [quantity, setQuantity] = useState(1);
+  const [isAddingToCart, setIsAddingToCart] = useState(false);
+  const [justAdded, setJustAdded] = useState(false);
   const { user: _user, isAuthenticated: _isAuthenticated } = useAuth();
-  const { buyNow } = useCart();
+  const { buyNow, addItem, items } = useCart();
 
   const { data: product, isLoading, isError, refetch } = useQuery<ProductResponseDto>({
     queryKey: ['product', slug],
@@ -1003,83 +1110,169 @@ export default function ProductPage(): React.ReactElement {
                 <div className="absolute inset-0 border border-border-subtle rounded-xl" />
                 <div className="absolute -inset-1 bg-linear-to-br from-cyan-glow/20 via-purple-neon/20 to-transparent blur-xl opacity-50 group-hover:opacity-75 transition-opacity duration-700" />
                 
-                <CardContent className="relative p-6 space-y-6">
+                <CardContent className="relative p-6 space-y-5">
                   {/* Flash Sale Banner */}
                   {isInFlashDeal && (
-                    <div className="flex items-center gap-2 px-3 py-2 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
-                      <Flame className="h-5 w-5 text-yellow-400" />
+                    <div className="flex items-center gap-2 px-4 py-2.5 bg-linear-to-r from-yellow-500/20 to-orange-500/20 border border-yellow-500/40 rounded-xl">
+                      <Flame className="h-5 w-5 text-yellow-400 animate-pulse" />
                       <span className="text-sm font-bold text-yellow-400">
                         Flash Sale: {discountPercent}% OFF
                       </span>
+                      {isInFlashDeal && (
+                        <Badge className="ml-auto bg-yellow-500 text-black font-bold text-xs px-2">
+                          LIMITED
+                        </Badge>
+                      )}
                     </div>
                   )}
                   
-                  {/* Price Section */}
-                  <div className="flex items-end justify-between">
-                    <div>
-                      <p className="text-sm text-text-muted mb-1 font-medium">
-                        {isInFlashDeal ? 'Flash Sale Price' : 'Total Price'}
-                      </p>
-                      <div className="flex items-baseline gap-3">
-                        <span className={`text-4xl font-bold tracking-tight ${isInFlashDeal ? 'text-yellow-400' : 'text-text-primary'}`}>
-                          {currencySymbol}{displayPrice.toFixed(2)}
-                        </span>
-                        {isInFlashDeal && (
-                          <span className="text-xl text-text-muted line-through">
-                            {currencySymbol}{originalPrice.toFixed(2)}
-                          </span>
-                        )}
-                      </div>
+                  {/* Price Display - Only show when not in flash deal (quantity selector shows price) */}
+                  {!isInFlashDeal && (
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-sm text-text-muted">Price per unit:</span>
+                      <span className="text-lg font-semibold text-text-primary">
+                        {currencySymbol}{displayPrice.toFixed(2)}
+                      </span>
                     </div>
-                    {isInFlashDeal && (
-                      <Badge className="bg-yellow-500 text-black font-bold gap-1">
-                        <Flame className="h-3 w-3" />
-                        Save {discountPercent}%
-                      </Badge>
-                    )}
-                  </div>
+                  )}
 
-                  {/* Actions */}
-                  <div className="space-y-3">
+                  {/* Flash Deal Original Price */}
+                  {isInFlashDeal && (
+                    <div className="flex items-center gap-3">
+                      <span className="text-sm text-text-muted">Was:</span>
+                      <span className="text-lg text-text-muted line-through">
+                        {currencySymbol}{originalPrice.toFixed(2)}
+                      </span>
+                      <span className="text-sm text-text-muted">Now:</span>
+                      <span className="text-lg font-bold text-yellow-400">
+                        {currencySymbol}{displayPrice.toFixed(2)}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Enhanced Quantity Selector */}
+                  <QuantitySelector
+                    quantity={quantity}
+                    onQuantityChange={setQuantity}
+                    min={1}
+                    unitPrice={displayPrice}
+                    currencySymbol={currencySymbol}
+                  />
+
+                  {/* Cart Status - Shows if item is already in cart */}
+                  {(() => {
+                    const cartItem = items.find(item => item.productId === product.id);
+                    if (cartItem !== undefined && cartItem !== null && !justAdded) {
+                      return (
+                        <div className="flex items-center justify-between px-4 py-3 rounded-xl bg-cyan-glow/10 border border-cyan-glow/30">
+                          <span className="text-sm text-cyan-glow flex items-center gap-2 font-medium">
+                            <Check className="h-4 w-4" />
+                            {cartItem.quantity} already in cart
+                          </span>
+                          <Link 
+                            href="/cart" 
+                            className="text-sm font-semibold text-cyan-glow hover:text-white transition-colors flex items-center gap-1"
+                          >
+                            View Cart
+                            <ChevronLeft className="h-4 w-4 rotate-180" />
+                          </Link>
+                        </div>
+                      );
+                    }
+                    return null;
+                  })()}
+
+                  {/* Action Buttons */}
+                  <div className="space-y-3 pt-2">
+                    {/* Buy Now Button - Primary CTA */}
                     <Button 
                       size="lg" 
-                      className={`w-full h-12 text-base font-bold shadow-lg border-0 transition-all hover:scale-[1.02] active:scale-[0.98] ${
+                      className={`w-full h-14 text-lg font-bold shadow-lg border-0 transition-all hover:scale-[1.02] active:scale-[0.98] ${
                         isInFlashDeal 
-                          ? 'bg-yellow-500 hover:bg-yellow-600 text-black shadow-yellow-500/25' 
-                          : 'bg-linear-to-r from-cyan-glow to-purple-neon hover:from-cyan-glow/90 hover:to-purple-neon/90 text-white shadow-cyan-glow/25'
+                          ? 'bg-linear-to-r from-yellow-500 to-orange-500 hover:from-yellow-400 hover:to-orange-400 text-black shadow-yellow-500/30' 
+                          : 'bg-linear-to-r from-cyan-glow to-purple-neon hover:from-cyan-glow/90 hover:to-purple-neon/90 text-white shadow-cyan-glow/30'
                       }`}
                       onClick={() => {
                         buyNow({
                           productId: product.id ?? '',
                           title: product.title ?? 'Product',
-                          price: displayPrice, // Use discounted price if in flash deal
-                          quantity: 1,
+                          price: displayPrice,
+                          quantity: quantity,
                           image: product.imageUrl,
                         });
                         router.push('/checkout');
                       }}
                     >
                       {isInFlashDeal ? <Flame className="h-5 w-5 mr-2" /> : <Bitcoin className="h-5 w-5 mr-2" />}
-                      Buy Now
+                      Buy Now • {currencySymbol}{(displayPrice * quantity).toFixed(2)}
                     </Button>
-                    <div className="grid grid-cols-5 gap-2">
-                      <div className="col-span-4">
-                        <AddToCartButton
-                          id={product.id ?? ''}
-                          title={product.title ?? 'Product'}
-                          price={displayPrice} // Use discounted price if in flash deal
-                          image={product.imageUrl}
-                        />
-                      </div>
-                      <div className="col-span-1">
-                        <WatchlistButton
-                          productId={product.id ?? ''}
-                          productTitle={product.title ?? 'Product'}
-                          variant="icon"
-                          size="md"
-                          className="h-11 w-full border border-border-subtle hover:bg-pink-featured/10 hover:text-pink-featured hover:border-pink-featured/30"
-                        />
-                      </div>
+
+                    {/* Add to Cart + Watchlist Row */}
+                    <div className="flex gap-2">
+                      {/* Add to Cart Button */}
+                      <Button
+                        size="lg"
+                        variant="outline"
+                        disabled={isAddingToCart}
+                        onClick={async () => {
+                          if (isAddingToCart || justAdded) return;
+                          setIsAddingToCart(true);
+                          
+                          // Brief delay for feedback
+                          await new Promise(resolve => setTimeout(resolve, 200));
+                          
+                          addItem({
+                            productId: product.id ?? '',
+                            title: product.title ?? 'Product',
+                            price: displayPrice,
+                            quantity: quantity,
+                            image: product.imageUrl,
+                          });
+                          
+                          setIsAddingToCart(false);
+                          setJustAdded(true);
+                          
+                          // Reset after 3 seconds
+                          setTimeout(() => {
+                            setJustAdded(false);
+                            setQuantity(1); // Reset quantity after adding
+                          }, 3000);
+                        }}
+                        className={`
+                          flex-1 h-12 text-base font-semibold transition-all duration-200 rounded-xl
+                          ${justAdded 
+                            ? 'border-green-success bg-green-success/20 text-green-success shadow-glow-success' 
+                            : 'border-purple-neon/60 bg-purple-neon/10 text-purple-neon hover:bg-purple-neon/20 hover:border-purple-neon hover:shadow-glow-purple-sm'
+                          }
+                          active:scale-[0.98]
+                        `}
+                      >
+                        {isAddingToCart ? (
+                          <>
+                            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                            Adding...
+                          </>
+                        ) : justAdded ? (
+                          <>
+                            <Check className="mr-2 h-5 w-5" />
+                            Added to Cart!
+                          </>
+                        ) : (
+                          <>
+                            <ShoppingCart className="mr-2 h-5 w-5" />
+                            Add to Cart
+                          </>
+                        )}
+                      </Button>
+                      
+                      {/* Watchlist Button */}
+                      <WatchlistButton
+                        productId={product.id ?? ''}
+                        productTitle={product.title ?? 'Product'}
+                        variant="icon"
+                        size="md"
+                        className="h-12 w-12 shrink-0 rounded-xl border border-border-subtle bg-bg-tertiary/30 hover:bg-pink-featured/10 hover:text-pink-featured hover:border-pink-featured/50 transition-all duration-200"
+                      />
                     </div>
                   </div>
 

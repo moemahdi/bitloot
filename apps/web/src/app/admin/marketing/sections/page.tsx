@@ -352,7 +352,8 @@ function ProductSearch({
                       src={product.coverImageUrl}
                       alt={product.title}
                       fill
-                      className="object-cover"
+                      sizes="48px"
+                      className="object-contain"
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center">
@@ -455,7 +456,8 @@ function SectionProductList({
                   src={product.coverImageUrl}
                   alt={product.title}
                   fill
-                  className="object-cover"
+                  sizes="40px"
+                  className="object-contain"
                 />
               ) : (
                 <div className="w-full h-full flex items-center justify-center">
@@ -574,7 +576,8 @@ function SectionCard({ config, products, onManage }: SectionCardProps): React.Re
                     src={product.coverImageUrl}
                     alt={product.title}
                     fill
-                    className="object-cover"
+                    sizes="32px"
+                    className="object-contain"
                   />
                 ) : (
                   <div className="w-full h-full bg-bg-tertiary flex items-center justify-center">

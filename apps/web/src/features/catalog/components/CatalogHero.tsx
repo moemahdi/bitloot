@@ -55,7 +55,7 @@ export function CatalogHero({
   }, [handleKeyDown]);
 
   const handleSearchSubmit = () => {
-    if (onSearch) {
+    if (onSearch !== undefined) {
       onSearch();
     }
   };

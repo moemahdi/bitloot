@@ -54,6 +54,11 @@ const legalLinks = [
 ];
 
 // Newsletter form component
+interface NewsletterResponse {
+    success: boolean;
+    message?: string;
+}
+
 function NewsletterForm({ onSubscribed }: { onSubscribed?: () => void }): React.ReactElement | null {
     const [email, setEmail] = useState('');
     const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
@@ -71,7 +76,7 @@ function NewsletterForm({ onSubscribed }: { onSubscribed?: () => void }): React.
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         
-        if (!email || status === 'loading') return;
+        if (email === '' || status === 'loading') return;
 
         // Basic email validation
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -91,7 +96,7 @@ function NewsletterForm({ onSubscribed }: { onSubscribed?: () => void }): React.
                 body: JSON.stringify({ email: email.toLowerCase().trim() }),
             });
 
-            const data = await response.json();
+            const data: NewsletterResponse = await response.json() as NewsletterResponse;
 
             if (response.ok && data.success) {
                 setStatus('success');
@@ -132,7 +137,7 @@ function NewsletterForm({ onSubscribed }: { onSubscribed?: () => void }): React.
     return (
         <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto">
             <div className="relative w-full sm:w-72">
-                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-text-muted" />
+                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-text-muted z-10 pointer-events-none" />
                 <input
                     type="email"
                     value={email}
@@ -151,7 +156,7 @@ function NewsletterForm({ onSubscribed }: { onSubscribed?: () => void }): React.
             </div>
             <button 
                 type="submit"
-                disabled={status === 'loading' || !email}
+                disabled={status === 'loading' || email === ''}
                 className="group flex items-center justify-center gap-2 w-full sm:w-auto px-6 py-3.5 rounded-xl bg-cyan-glow text-bg-primary font-semibold text-sm hover:shadow-glow-cyan hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:hover:shadow-none"
             >
                 {status === 'loading' ? (
@@ -167,10 +172,8 @@ function NewsletterForm({ onSubscribed }: { onSubscribed?: () => void }): React.
                 )}
             </button>
             {/* Error/Success message */}
-            {message && status !== 'success' && (
-                <p className={`text-xs mt-1 w-full text-center sm:hidden ${
-                    status === 'error' ? 'text-orange-warning' : 'text-green-success'
-                }`}>
+            {message !== '' && status === 'error' && (
+                <p className="text-xs mt-1 w-full text-center sm:hidden text-orange-warning">
                     {message}
                 </p>
             )}

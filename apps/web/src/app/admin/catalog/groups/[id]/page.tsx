@@ -756,7 +756,8 @@ export default function AdminProductGroupDetailPage(): React.JSX.Element {
                         src={coverImageUrl}
                         alt="Cover preview"
                         fill
-                        className="object-cover"
+                        sizes="320px"
+                        className="object-contain"
                         onError={() => setImageError(true)}
                       />
                     ) : (
@@ -959,7 +960,7 @@ export default function AdminProductGroupDetailPage(): React.JSX.Element {
                                 alt={product.title}
                                 width={44}
                                 height={44}
-                                className="w-full h-full object-cover"
+                                className="w-full h-full object-contain"
                               />
                             ) : (
                               <div className="w-full h-full flex items-center justify-center">
@@ -1125,7 +1126,7 @@ export default function AdminProductGroupDetailPage(): React.JSX.Element {
                               alt={product.title}
                               width={44}
                               height={44}
-                              className="w-full h-full object-cover"
+                              className="w-full h-full object-contain"
                             />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center">
@@ -1228,7 +1229,7 @@ export default function AdminProductGroupDetailPage(): React.JSX.Element {
                         alt={productToRemove.title}
                         width={48}
                         height={48}
-                        className="w-full h-full object-cover"
+                        className="w-full h-full object-contain"
                       />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center">

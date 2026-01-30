@@ -446,7 +446,7 @@ export function paymentFailedEmail(params: PaymentFailedParams): EmailTemplate {
     </div>
 
     <div style="${EmailStyles.infoBox}">
-      <p style="margin: 0;"><strong>Reason:</strong> ${reason || 'Payment processing error'}</p>
+      <p style="margin: 0;"><strong>Reason:</strong> ${reason ?? 'Payment processing error'}</p>
     </div>
 
     <h3 style="${EmailStyles.heading2}">What Happens Next?</h3>
@@ -505,7 +505,7 @@ export function paymentExpiredEmail(params: PaymentExpiredParams): EmailTemplate
     </div>
 
     <div style="${EmailStyles.infoBox}">
-      <p style="margin: 0;"><strong>Reason:</strong> ${reason || 'Payment window timed out (1 hour)'}</p>
+      <p style="margin: 0;"><strong>Reason:</strong> ${reason ?? 'Payment window timed out (1 hour)'}</p>
     </div>
 
     <p style="${EmailStyles.paragraph}">
@@ -550,7 +550,7 @@ export interface EmailChangedOldParams {
 
 export function emailChangedOldEmail(params: EmailChangedOldParams): EmailTemplate {
   const { newEmail } = params;
-  const frontendUrl = process.env.FRONTEND_URL ?? 'https://bitloot.io';
+  const _frontendUrl = process.env.FRONTEND_URL ?? 'https://bitloot.io';
 
   const content = `
     <h2 style="${EmailStyles.heading2}">📧 Email Changed Successfully</h2>
@@ -690,7 +690,7 @@ export interface DeletionCancelledParams {
   email: string;
 }
 
-export function deletionCancelledEmail(params: DeletionCancelledParams): EmailTemplate {
+export function deletionCancelledEmail(_params: DeletionCancelledParams): EmailTemplate {
   const frontendUrl = process.env.FRONTEND_URL ?? 'https://bitloot.io';
 
   const content = `
@@ -744,7 +744,7 @@ export interface GenericEmailParams {
 export function genericEmail(params: GenericEmailParams): EmailTemplate {
   const { subject, heading, content: messageContent, ctaText, ctaUrl, email } = params;
 
-  const ctaButton = ctaText && ctaUrl ? `
+  const ctaButton = ctaText !== undefined && ctaText !== '' && ctaUrl !== undefined && ctaUrl !== '' ? `
     <div style="text-align: center; margin: 32px 0;">
       <a href="${ctaUrl}" style="${EmailStyles.buttonPrimary}">
         ${ctaText}
@@ -760,7 +760,7 @@ export function genericEmail(params: GenericEmailParams): EmailTemplate {
 
   return {
     subject,
-    html: wrapEmailTemplate(htmlContent, { showUnsubscribe: !!email, unsubscribeEmail: email }),
+    html: wrapEmailTemplate(htmlContent, { showUnsubscribe: email !== undefined && email !== '', unsubscribeEmail: email }),
   };
 }
 

@@ -14,10 +14,10 @@ import { KeyReveal, type OrderItem } from '@/features/orders';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/design-system/primitives/card';
 import { Button } from '@/design-system/primitives/button';
 import { Input } from '@/design-system/primitives/input';
-import { Separator } from '@/design-system/primitives/separator';
+
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/design-system/primitives/tabs';
 import { Badge } from '@/design-system/primitives/badge';
-import { Loader2, User, Shield, Key, Package, DollarSign, Check, Copy, ShoppingBag, LogOut, LayoutDashboard, Eye, HelpCircle, Mail, Hash, Crown, ShieldCheck, AlertCircle, Fingerprint, Info, Heart, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, RefreshCw, Smartphone, Monitor, Trash2, X, AlertTriangle, MessageSquare, Book, LifeBuoy, Clock, Globe, Activity, Search, Bell, ShoppingCart, LayoutGrid, List, RotateCcw, XCircle } from 'lucide-react';
+import { Loader2, User, Shield, Key, Package, DollarSign, Check, Copy, ShoppingBag, LogOut, LayoutDashboard, Eye, HelpCircle, Mail, Hash, Crown, ShieldCheck, AlertCircle, Fingerprint, Info, Heart, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, RefreshCw, Smartphone, Monitor, Trash2, X, AlertTriangle, MessageSquare, Book, LifeBuoy, Clock, Globe, Activity, Search, Bell, ShoppingCart, LayoutGrid, List, RotateCcw, XCircle, ExternalLink } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import { DashboardStatCard } from '@/components/dashboard/DashboardStatCard';
@@ -509,7 +509,7 @@ function WatchlistTabContent(): React.ReactElement {
                               alt={item.product.title}
                               width={80}
                               height={80}
-                              className={`w-full h-full object-cover group-hover:scale-110 transition-transform duration-300 ${isUnavailable ? 'grayscale' : ''}`}
+                              className={`w-full h-full object-contain group-hover:scale-110 transition-transform duration-300 ${isUnavailable ? 'grayscale' : ''}`}
                             />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center">
@@ -1643,7 +1643,7 @@ export default function ProfilePage(): React.ReactElement {
                         className="h-auto flex-col gap-1.5 py-3 border-orange-warning/20 hover:border-orange-warning/50 hover:bg-orange-warning/5 group"
                         asChild
                       >
-                        <Link href="/bundles">
+                        <Link href="/deals">
                           <DollarSign className="h-5 w-5 text-orange-warning group-hover:scale-110 transition-transform" />
                           <span className="text-xs font-medium">Deals</span>
                         </Link>
@@ -1654,7 +1654,7 @@ export default function ProfilePage(): React.ReactElement {
                         className="h-auto flex-col gap-1.5 py-3 border-green-success/20 hover:border-green-success/50 hover:bg-green-success/5 group"
                         asChild
                       >
-                        <Link href="/?sort=trending">
+                        <Link href="/catalog?sort=trending">
                           <Activity className="h-5 w-5 text-green-success group-hover:scale-110 transition-transform" />
                           <span className="text-xs font-medium">Trending</span>
                         </Link>
@@ -1665,7 +1665,7 @@ export default function ProfilePage(): React.ReactElement {
                         className="h-auto flex-col gap-1.5 py-3 border-purple-neon/20 hover:border-purple-neon/50 hover:bg-purple-neon/5 group"
                         asChild
                       >
-                        <Link href="/?sort=new">
+                        <Link href="/catalog?sort=newest">
                           <Globe className="h-5 w-5 text-purple-neon group-hover:scale-110 transition-transform" />
                           <span className="text-xs font-medium">New</span>
                         </Link>
@@ -1756,7 +1756,7 @@ export default function ProfilePage(): React.ReactElement {
                         
                         {/* Browse Trending */}
                         <Link 
-                          href="/?sort=trending"
+                          href="/catalog?sort=trending"
                           className="rounded-lg border border-green-success/20 bg-green-success/5 p-3 hover:bg-green-success/10 hover:border-green-success/40 transition-all group"
                         >
                           <div className="flex items-center gap-2 mb-1.5">
@@ -1773,7 +1773,7 @@ export default function ProfilePage(): React.ReactElement {
                         
                         {/* Browse Deals */}
                         <Link 
-                          href="/bundles"
+                          href="/deals"
                           className="rounded-lg border border-orange-warning/20 bg-gradient-to-br from-orange-warning/10 to-orange-warning/5 p-3 hover:from-orange-warning/15 hover:border-orange-warning/40 transition-all group"
                         >
                           <div className="flex items-center justify-between mb-1.5">
@@ -3254,153 +3254,69 @@ export default function ProfilePage(): React.ReactElement {
             </Card>
           </div>
 
-          {/* FAQs Section */}
+          {/* FAQs Section - Simplified, links to Help Center */}
           <Card className="glass border-border/50 bg-bg-secondary/50 backdrop-blur-sm">
             <CardHeader>
-              <div className="flex items-center gap-2">
-                <HelpCircle className="h-5 w-5 text-cyan-glow" />
-                <CardTitle className="text-text-primary">Frequently Asked Questions</CardTitle>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <HelpCircle className="h-5 w-5 text-cyan-glow" />
+                  <CardTitle className="text-text-primary">Quick Answers</CardTitle>
+                </div>
+                <Button variant="ghost" size="sm" className="text-cyan-glow hover:bg-cyan-glow/10" asChild>
+                  <Link href="/help">
+                    View All
+                    <ExternalLink className="h-3.5 w-3.5 ml-1.5" />
+                  </Link>
+                </Button>
               </div>
-              <CardDescription className="text-text-secondary">Common questions and answers about BitLoot</CardDescription>
+              <CardDescription className="text-text-secondary">Common account questions — visit our Help Center for more</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-6">
-              {/* Account & Orders */}
+            <CardContent className="space-y-4">
+              {/* Most Essential FAQs Only */}
               <div className="space-y-4">
-                <h3 className="font-semibold text-text-primary flex items-center gap-2">
-                  <Package className="h-4 w-4 text-cyan-glow" />
-                  Account & Orders
-                </h3>
-                <div className="space-y-4 pl-6 border-l-2 border-cyan-glow/20">
-                  <div>
-                    <h4 className="font-medium mb-1 text-text-primary">How do I download my purchased keys?</h4>
-                    <p className="text-sm text-text-secondary">
-                      After successful payment, your keys are instantly available in the <span className="text-cyan-glow font-medium">Purchases</span> tab. 
-                      Click on any order to expand it and reveal your product keys. You can copy them individually or download all keys as a secure JSON file.
-                    </p>
-                  </div>
-                  
-                  <div>
-                    <h4 className="font-medium mb-1 text-text-primary">What if my payment was successful but I can&apos;t see my keys?</h4>
-                    <p className="text-sm text-text-secondary">
-                      If your order shows as &quot;paid&quot; but keys are not visible, use the <span className="text-orange-warning font-medium">Recover Keys</span> button 
-                      on the order. This will re-trigger the key delivery process. If the issue persists, contact support with your order ID.
-                    </p>
-                  </div>
-                  
-                  <div>
-                    <h4 className="font-medium mb-1 text-text-primary">Can I see my order history?</h4>
-                    <p className="text-sm text-text-secondary">
-                      Yes! All your past orders are visible in the <span className="text-cyan-glow font-medium">Purchases</span> tab. 
-                      You can view order details, payment status, and re-download keys for fulfilled orders anytime.
-                    </p>
-                  </div>
+                <div className="p-4 rounded-lg bg-bg-secondary/30 border border-border/30">
+                  <h4 className="font-medium mb-1 text-text-primary flex items-center gap-2">
+                    <Package className="h-4 w-4 text-cyan-glow" />
+                    How do I access my purchased keys?
+                  </h4>
+                  <p className="text-sm text-text-secondary pl-6">
+                    Your keys are in the <span className="text-cyan-glow font-medium">Purchases</span> tab. Click any order to reveal keys.
+                    Use <span className="text-orange-warning font-medium">Recover Keys</span> if they&apos;re not visible after payment.
+                  </p>
+                </div>
+                
+                <div className="p-4 rounded-lg bg-bg-secondary/30 border border-border/30">
+                  <h4 className="font-medium mb-1 text-text-primary flex items-center gap-2">
+                    <ShieldCheck className="h-4 w-4 text-purple-neon" />
+                    How do I change my email or manage security?
+                  </h4>
+                  <p className="text-sm text-text-secondary pl-6">
+                    Go to the <span className="text-purple-neon font-medium">Security</span> tab to change your email (requires dual-OTP verification),
+                    manage active sessions, or request account deletion.
+                  </p>
+                </div>
+                
+                <div className="p-4 rounded-lg bg-bg-secondary/30 border border-border/30">
+                  <h4 className="font-medium mb-1 text-text-primary flex items-center gap-2">
+                    <DollarSign className="h-4 w-4 text-orange-warning" />
+                    What if I underpay or overpay?
+                  </h4>
+                  <p className="text-sm text-text-secondary pl-6">
+                    Underpayments are <span className="text-orange-warning font-medium">non-refundable</span> and will not fulfill the order.
+                    Overpayments cannot be refunded. Always verify the exact amount before sending.
+                  </p>
                 </div>
               </div>
-
-              <Separator className="bg-border/50" />
-
-              {/* Security & Privacy */}
-              <div className="space-y-4">
-                <h3 className="font-semibold text-text-primary flex items-center gap-2">
-                  <ShieldCheck className="h-4 w-4 text-purple-neon" />
-                  Security & Privacy
-                </h3>
-                <div className="space-y-4 pl-6 border-l-2 border-purple-neon/20">
-                  <div>
-                    <h4 className="font-medium mb-1 text-text-primary">How do I change my email address?</h4>
-                    <p className="text-sm text-text-secondary">
-                      Go to the <span className="text-purple-neon font-medium">Security</span> tab, enter your new email address, and click 
-                      <span className="text-purple-neon font-medium"> Request Change</span>. You&apos;ll receive verification codes on both your 
-                      old and new email addresses (dual-OTP) for maximum security.
-                    </p>
-                  </div>
-                  
-                  <div>
-                    <h4 className="font-medium mb-1 text-text-primary">How do I manage my active sessions?</h4>
-                    <p className="text-sm text-text-secondary">
-                      In the <span className="text-purple-neon font-medium">Security</span> tab, you can view all devices currently logged into your account. 
-                      Each session shows the device type, IP address, and last activity time. You can revoke any session individually or sign out all devices at once.
-                    </p>
-                  </div>
-                  
-                  <div>
-                    <h4 className="font-medium mb-1 text-text-primary">What happens when I request account deletion?</h4>
-                    <p className="text-sm text-text-secondary">
-                      When you request deletion in the <span className="text-purple-neon font-medium">Account</span> tab, your account enters a 30-day grace period. 
-                      During this time, you can still log in and cancel the deletion. After 30 days, all your data is permanently deleted and cannot be recovered.
-                    </p>
-                  </div>
-                  
-                  <div>
-                    <h4 className="font-medium mb-1 text-text-primary">Is my payment information secure?</h4>
-                    <p className="text-sm text-text-secondary">
-                      BitLoot uses crypto-only payments via NOWPayments. We never store or process traditional payment card details. 
-                      All transactions are secured with industry-standard encryption and HMAC verification.
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <Separator className="bg-border/50" />
-
-              {/* Payments & Pricing */}
-              <div className="space-y-4">
-                <h3 className="font-semibold text-text-primary flex items-center gap-2">
-                  <DollarSign className="h-4 w-4 text-orange-warning" />
-                  Payments & Pricing
-                </h3>
-                <div className="space-y-4 pl-6 border-l-2 border-orange-warning/20">
-                  <div>
-                    <h4 className="font-medium mb-1 text-text-primary">What payment methods do you accept?</h4>
-                    <p className="text-sm text-text-secondary">
-                      BitLoot accepts cryptocurrency payments only via NOWPayments. We support 300+ cryptocurrencies including Bitcoin (BTC), 
-                      Ethereum (ETH), USDT, Litecoin (LTC), and many more.
-                    </p>
-                  </div>
-                  
-                  <div>
-                    <h4 className="font-medium mb-1 text-text-primary">How long does it take to receive my keys?</h4>
-                    <p className="text-sm text-text-secondary">
-                      Keys are delivered instantly after payment confirmation. For most cryptocurrencies, this happens within minutes. 
-                      Bitcoin confirmations may take 10-30 minutes depending on network congestion.
-                    </p>
-                  </div>
-                  
-                  <div>
-                    <h4 className="font-medium mb-1 text-text-primary">What if I underpay or overpay?</h4>
-                    <p className="text-sm text-text-secondary">
-                      Underpayments are <span className="text-orange-warning font-medium">non-refundable</span> and will not fulfill the order. 
-                      Overpayments cannot be refunded due to the nature of cryptocurrency transactions. Always double-check the exact amount before sending payment.
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <Separator className="bg-border/50" />
-
-              {/* Watchlist & Wishlist */}
-              <div className="space-y-4">
-                <h3 className="font-semibold text-text-primary flex items-center gap-2">
-                  <Heart className="h-4 w-4 text-pink-500" />
-                  Watchlist
-                </h3>
-                <div className="space-y-4 pl-6 border-l-2 border-pink-500/20">
-                  <div>
-                    <h4 className="font-medium mb-1 text-text-primary">How do I add products to my watchlist?</h4>
-                    <p className="text-sm text-text-secondary">
-                      While browsing products, click the heart icon on any product card to add it to your watchlist. 
-                      View all your saved products in the <span className="text-pink-500 font-medium">Watchlist</span> tab.
-                    </p>
-                  </div>
-                  
-                  <div>
-                    <h4 className="font-medium mb-1 text-text-primary">Will I be notified about price changes?</h4>
-                    <p className="text-sm text-text-secondary">
-                      Price drop notifications for watchlist items are coming soon! You&apos;ll receive email alerts when products 
-                      on your watchlist go on sale or drop below your target price.
-                    </p>
-                  </div>
-                </div>
+              
+              {/* Link to Help Center */}
+              <div className="flex items-center justify-center pt-2">
+                <Button variant="outline" className="border-cyan-glow/30 text-cyan-glow hover:bg-cyan-glow/10" asChild>
+                  <Link href="/help">
+                    <Book className="h-4 w-4 mr-2" />
+                    Visit Help Center for All FAQs
+                    <ChevronRight className="h-4 w-4 ml-1" />
+                  </Link>
+                </Button>
               </div>
             </CardContent>
           </Card>
@@ -3454,19 +3370,23 @@ export default function ProfilePage(): React.ReactElement {
                   variant="outline" 
                   size="sm"
                   className="border-border/50 text-text-secondary hover:text-text-primary"
-                  onClick={() => window.open('/help/tutorials', '_blank')}
+                  asChild
                 >
-                  <Book className="h-4 w-4 mr-2" />
-                  View Tutorials
+                  <Link href="/help">
+                    <Book className="h-4 w-4 mr-2" />
+                    Help Center
+                  </Link>
                 </Button>
                 <Button 
                   variant="outline" 
                   size="sm"
                   className="border-border/50 text-text-secondary hover:text-text-primary"
-                  onClick={() => window.open('/status', '_blank')}
+                  asChild
                 >
-                  <Activity className="h-4 w-4 mr-2" />
-                  System Status
+                  <Link href="/refund">
+                    <RotateCcw className="h-4 w-4 mr-2" />
+                    Refund Policy
+                  </Link>
                 </Button>
               </div>
             </CardContent>

@@ -208,7 +208,8 @@ function FlashDealProductCard({ product, onAddToCart, index }: { product: FlashD
                   src={product.product.coverImageUrl}
                   alt={product.product.title ?? 'Product'}
                   fill
-                  className="object-cover transition-transform duration-700 group-hover:scale-110"
+                  sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+                  className="object-contain transition-transform duration-700 group-hover:scale-110"
                 />
               ) : (
                 <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-yellow-500/10 to-orange-500/10">

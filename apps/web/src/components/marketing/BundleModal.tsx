@@ -156,7 +156,8 @@ export function BundleModal({ bundle, isOpen, onClose }: BundleModalProps): Reac
                 src={bundle.heroImage}
                 alt={bundle.name}
                 fill
-                className="object-cover"
+                sizes="(max-width: 640px) 100vw, 600px"
+                className="object-contain"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-bg-primary via-bg-primary/60 to-transparent" />
             </div>
@@ -234,7 +235,8 @@ export function BundleModal({ bundle, isOpen, onClose }: BundleModalProps): Reac
                               src={imgSrc}
                               alt={bp.product?.title ?? ''}
                               fill
-                              className="object-cover"
+                              sizes="64px"
+                              className="object-contain"
                             />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center">
@@ -314,7 +316,8 @@ export function BundleModal({ bundle, isOpen, onClose }: BundleModalProps): Reac
                                 src={bonusImgSrc}
                                 alt={bp.product?.title ?? ''}
                                 fill
-                                className="object-cover"
+                                sizes="64px"
+                                className="object-contain"
                               />
                             ) : (
                               <div className="w-full h-full flex items-center justify-center">

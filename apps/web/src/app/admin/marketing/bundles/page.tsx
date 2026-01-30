@@ -556,7 +556,7 @@ export default function AdminBundlesPage(): React.ReactElement {
                       <div className="flex items-center gap-3">
                         {bundle.heroImage !== null && bundle.heroImage !== '' ? (
                           <div className="relative w-10 h-10 rounded overflow-hidden">
-                            <NextImage src={bundle.heroImage} alt="" fill className="object-cover" />
+                            <NextImage src={bundle.heroImage} alt="" fill sizes="40px" className="object-contain" />
                           </div>
                         ) : (
                           <div className="w-10 h-10 rounded bg-muted flex items-center justify-center">
@@ -736,7 +736,7 @@ export default function AdminBundlesPage(): React.ReactElement {
                 />
                 {formHeroImage !== null && formHeroImage !== '' && (
                   <div className="relative w-10 h-10 rounded overflow-hidden">
-                    <NextImage src={formHeroImage} alt="" fill className="object-cover" />
+                    <NextImage src={formHeroImage} alt="" fill sizes="40px" className="object-contain" />
                   </div>
                 )}
               </div>
@@ -813,7 +813,7 @@ export default function AdminBundlesPage(): React.ReactElement {
                 />
                 {formHeroImage !== null && formHeroImage !== '' && (
                   <div className="relative w-10 h-10 rounded overflow-hidden">
-                    <NextImage src={formHeroImage} alt="" fill className="object-cover" />
+                    <NextImage src={formHeroImage} alt="" fill sizes="40px" className="object-contain" />
                   </div>
                 )}
               </div>
@@ -902,7 +902,7 @@ export default function AdminBundlesPage(): React.ReactElement {
                           >
                             {product.coverImageUrl !== null && product.coverImageUrl !== undefined && product.coverImageUrl !== '' ? (
                               <div className="relative w-8 h-8 rounded overflow-hidden">
-                                <NextImage src={product.coverImageUrl} alt="" fill className="object-cover" />
+                                <NextImage src={product.coverImageUrl} alt="" fill sizes="32px" className="object-contain" />
                               </div>
                             ) : (
                               <div className="w-8 h-8 rounded bg-muted flex items-center justify-center">
@@ -1021,7 +1021,8 @@ export default function AdminBundlesPage(): React.ReactElement {
                                 src={bp.product?.coverImageUrl ?? ''}
                                 alt=""
                                 fill
-                                className="object-cover"
+                                sizes="48px"
+                                className="object-contain"
                               />
                             </div>
                           ) : (

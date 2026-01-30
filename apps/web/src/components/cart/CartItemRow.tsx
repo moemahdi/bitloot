@@ -61,7 +61,7 @@ export function CartItemRow({
             alt={title}
             width={80}
             height={80}
-            className="w-full h-full object-cover"
+            className="w-full h-full object-contain"
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-muted-foreground text-xs">

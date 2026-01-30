@@ -39,7 +39,7 @@ export function FeaturedProducts({
   // Check scroll state
   const checkScrollState = useCallback(() => {
     const container = scrollContainerRef.current;
-    if (!container) return;
+    if (container === null) return;
     
     setCanScrollLeft(container.scrollLeft > 0);
     setCanScrollRight(
@@ -57,7 +57,7 @@ export function FeaturedProducts({
   // Scroll functions
   const scroll = useCallback((direction: 'left' | 'right') => {
     const container = scrollContainerRef.current;
-    if (!container) return;
+    if (container === null) return;
     
     const cardWidth = 320; // Approximate card width + gap
     const scrollAmount = direction === 'left' ? -cardWidth * 2 : cardWidth * 2;
@@ -143,7 +143,7 @@ export function FeaturedProducts({
           aria-label="Featured products carousel"
         >
           {isLoading
-            ? [...Array(4)].map((_, i) => (
+            ? Array.from({ length: 4 }).map((_, i) => (
                 <div key={i} className="w-72 shrink-0 snap-start" role="listitem">
                   <CatalogProductCardSkeleton viewMode="grid" />
                 </div>

@@ -181,10 +181,10 @@ function TrendingProductCard({ product, rank, onAddToCart, onToggleWishlist }: T
                     
                     {/* Product image */}
                     <Image
-                        src={product.image && product.image.length > 0 ? product.image : '/placeholder-product.jpg'}
+                        src={product.image !== undefined && product.image !== '' && product.image.length > 0 ? product.image : '/placeholder-product.jpg'}
                         alt={product.name}
                         fill
-                        className={`object-cover transition-all duration-500 ${imageLoaded ? 'opacity-100' : 'opacity-0'} ${isHovered ? 'scale-110' : ''}`}
+                        className={`object-contain transition-all duration-500 ${imageLoaded ? 'opacity-100' : 'opacity-0'} ${isHovered ? 'scale-110' : ''}`}
                         onLoad={() => setImageLoaded(true)}
                         sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
                     />

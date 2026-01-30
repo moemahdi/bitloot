@@ -38,7 +38,7 @@ export function TrendingSection({
   // Check scroll state
   const checkScrollState = useCallback(() => {
     const container = scrollContainerRef.current;
-    if (!container) return;
+    if (container === null) return;
     
     setCanScrollLeft(container.scrollLeft > 0);
     setCanScrollRight(
@@ -56,7 +56,7 @@ export function TrendingSection({
   // Scroll functions
   const scroll = useCallback((direction: 'left' | 'right') => {
     const container = scrollContainerRef.current;
-    if (!container) return;
+    if (container === null) return;
     
     const cardWidth = 280;
     const scrollAmount = direction === 'left' ? -cardWidth * 2 : cardWidth * 2;
@@ -151,7 +151,7 @@ export function TrendingSection({
           aria-label="Trending products carousel"
         >
           {isLoading
-            ? [...Array(5)].map((_, i) => (
+            ? Array.from({ length: 5 }).map((_, i) => (
                 <div key={i} className="w-64 shrink-0 snap-start" role="listitem">
                   <CatalogProductCardSkeleton viewMode="grid" />
                 </div>

@@ -189,8 +189,9 @@ function CatalogProductCardComponent({
   }, [product.id, onViewProduct]);
   
   // Calculate discount percentage from originalPrice if available
-  const priceNum = parseFloat(product.price) || 0;
-  const originalPriceNum = product.originalPrice ? parseFloat(product.originalPrice) : undefined;
+  const parsedPrice = parseFloat(product.price);
+  const priceNum = Number.isNaN(parsedPrice) ? 0 : parsedPrice;
+  const originalPriceNum = product.originalPrice !== undefined && product.originalPrice !== '' ? parseFloat(product.originalPrice) : undefined;
   const discountPercentage = originalPriceNum !== undefined && originalPriceNum > priceNum
     ? Math.round((1 - priceNum / originalPriceNum) * 100)
     : (product.discount ?? 0);
@@ -227,11 +228,11 @@ function CatalogProductCardComponent({
             <div className="absolute inset-0 animate-pulse bg-bg-tertiary" />
           )}
           <Image
-            src={product.image && product.image.length > 0 ? product.image : '/placeholder-product.jpg'}
+            src={product.image !== undefined && product.image !== '' && product.image.length > 0 ? product.image : '/placeholder-product.jpg'}
             alt={product.name}
             fill
             className={cn(
-              'object-cover transition-all duration-300',
+              'object-contain transition-all duration-300',
               imageLoaded ? 'opacity-100' : 'opacity-0',
               isHovered && 'scale-105'
             )}
@@ -255,7 +256,7 @@ function CatalogProductCardComponent({
             <h3 className="text-sm font-medium text-white line-clamp-1 group-hover:text-cyan-glow transition-colors">
               {product.name}
             </h3>
-            {product.description && (
+            {product.description !== undefined && product.description !== '' && (
               <p className="text-sm text-text-muted line-clamp-1">{product.description}</p>
             )}
             {/* Rating for list view */}
@@ -279,7 +280,7 @@ function CatalogProductCardComponent({
               <span className="text-lg font-bold text-white">
                 {formatPrice(product.price)}
               </span>
-              {isOnSale && product.originalPrice && (
+              {isOnSale && product.originalPrice !== undefined && product.originalPrice !== '' && (
                 <span className="text-sm text-text-muted line-through">
                   {formatPrice(product.originalPrice)}
                 </span>
@@ -309,12 +310,12 @@ function CatalogProductCardComponent({
                   </Tooltip>
                 </TooltipProvider>
                 
-                {onAddToCart && (
+                {onAddToCart !== undefined && (
                   <Button
                     size="sm"
                     variant="outline"
                     onClick={handleAddToCart}
-                    disabled={isAddingToCart || !product.isAvailable}
+                    disabled={isAddingToCart || product.isAvailable !== true}
                     className="h-8 text-xs font-medium border-border-accent bg-bg-tertiary/50 text-text-secondary hover:text-cyan-glow hover:border-cyan-glow/60"
                   >
                     {isAddingToCart ? (
@@ -328,7 +329,7 @@ function CatalogProductCardComponent({
                   </Button>
                 )}
                 
-                {onViewProduct && product.isAvailable && (
+                {onViewProduct !== undefined && product.isAvailable === true && (
                   <Button
                     size="sm"
                     onClick={handleViewProduct}
@@ -360,10 +361,10 @@ function CatalogProductCardComponent({
         {/* Small image */}
         <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-md bg-bg-tertiary">
           <Image
-            src={product.image && product.image.length > 0 ? product.image : '/placeholder-product.jpg'}
+            src={product.image !== undefined && product.image !== '' && product.image.length > 0 ? product.image : '/placeholder-product.jpg'}
             alt={product.name}
             fill
-            className="object-cover"
+            className="object-contain"
             sizes="48px"
           />
         </div>
@@ -392,7 +393,7 @@ function CatalogProductCardComponent({
         {/* Price */}
         <div className="shrink-0 text-right">
           <span className="font-semibold text-white">{formatPrice(product.price)}</span>
-          {isOnSale && product.originalPrice && (
+          {isOnSale && product.originalPrice !== undefined && product.originalPrice !== '' && (
             <span className="block text-xs text-text-muted line-through">
               {formatPrice(product.originalPrice)}
             </span>
@@ -424,11 +425,11 @@ function CatalogProductCardComponent({
         
         {/* Product image */}
         <Image
-          src={product.image && product.image.length > 0 ? product.image : '/placeholder-product.jpg'}
+          src={product.image !== undefined && product.image !== '' && product.image.length > 0 ? product.image : '/placeholder-product.jpg'}
           alt={product.name}
           fill
           className={cn(
-            'object-cover transition-all duration-500',
+            'object-contain transition-all duration-500',
             imageLoaded ? 'opacity-100' : 'opacity-0',
             isHovered && 'scale-110'
           )}
@@ -451,11 +452,11 @@ function CatalogProductCardComponent({
               <DiscountBadge percentage={discountPercentage} />
             )}
             {variant !== 'default' && <ProductTypeBadge type={variant} />}
-            {product.isNew && variant === 'default' && <ProductTypeBadge type="new" />}
+            {product.isNew === true && variant === 'default' && <ProductTypeBadge type="new" />}
           </div>
           
           {/* Wishlist button */}
-          {showQuickActions && onToggleWishlist && (
+          {showQuickActions && onToggleWishlist !== undefined && (
             <button
               onClick={handleToggleWishlist}
               className={cn(
@@ -524,7 +525,7 @@ function CatalogProductCardComponent({
             <span className="text-lg font-bold text-white">
               {formatPrice(product.price)}
             </span>
-            {isOnSale && product.originalPrice && (
+            {isOnSale && product.originalPrice !== undefined && product.originalPrice !== '' && (
               <span className="text-xs text-text-muted line-through">
                 {formatPrice(product.originalPrice)}
               </span>
@@ -532,9 +533,9 @@ function CatalogProductCardComponent({
           </div>
           
           {/* Action Buttons */}
-          {showQuickActions && product.isAvailable ? (
+          {showQuickActions && product.isAvailable === true ? (
             <div className="flex gap-2 w-full">
-              {onAddToCart && (
+              {onAddToCart !== undefined && (
                 <Button
                   size="sm"
                   variant="outline"
@@ -553,7 +554,7 @@ function CatalogProductCardComponent({
                   )}
                 </Button>
               )}
-              {onViewProduct && (
+              {onViewProduct !== undefined && (
                 <Button
                   size="sm"
                   onClick={handleViewProduct}
@@ -565,7 +566,7 @@ function CatalogProductCardComponent({
                 </Button>
               )}
             </div>
-          ) : !product.isAvailable ? (
+          ) : product.isAvailable !== true ? (
             <Button
               size="sm"
               variant="outline"
@@ -578,7 +579,7 @@ function CatalogProductCardComponent({
         </div>
         
         {/* Out of stock overlay */}
-        {!product.isAvailable && (
+        {product.isAvailable !== true && (
           <div className="absolute inset-0 flex items-center justify-center bg-bg-primary/60 backdrop-blur-sm">
             <Badge variant="secondary" className="bg-bg-tertiary text-text-muted">
               <Clock className="h-3.5 w-3.5 mr-1" />

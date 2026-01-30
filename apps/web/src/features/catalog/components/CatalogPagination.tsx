@@ -123,7 +123,7 @@ export function CatalogPagination({
           {' products'}
         </span>
         
-        {showItemsPerPage && onItemsPerPageChange && (
+        {showItemsPerPage && onItemsPerPageChange !== undefined && (
           <div className="flex items-center gap-2">
             <span className="hidden sm:inline">Show:</span>
             <Select

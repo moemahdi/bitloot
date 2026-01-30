@@ -114,7 +114,7 @@ function AnimatedTabIcon({ Icon, isActive, color }: { Icon: LucideIcon; isActive
     const getColorClass = (c: string, active: boolean): string => {
         if (!active) return 'text-current';
         switch (c) {
-            case 'cyan': return 'text-bg-primary';
+            case 'cyan': return 'text-white';
             case 'purple': return 'text-white';
             case 'green': return 'text-white';
             case 'pink': return 'text-white';
@@ -214,8 +214,8 @@ export function FeaturedByTypeSection(): React.ReactElement {
     const router = useRouter();
     const { addItem } = useCart();
     const { isAuthenticated } = useAuth();
-    const { mutate: addToWatchlist } = useAddToWatchlist();
-    const { mutate: removeFromWatchlist } = useRemoveFromWatchlist();
+    const { mutate: _addToWatchlist } = useAddToWatchlist();
+    const { mutate: _removeFromWatchlist } = useRemoveFromWatchlist();
 
     // Reset page when tab changes
     const handleTabChange = useCallback((tabId: string) => {
@@ -303,7 +303,7 @@ export function FeaturedByTypeSection(): React.ReactElement {
     }, [router, products]);
 
     // Handle Wishlist Toggle
-    const handleToggleWishlist = useCallback((productId: string) => {
+    const handleToggleWishlist = useCallback((_productId: string) => {
         if (!isAuthenticated) {
             toast.error('Please login to add items to your wishlist', {
                 action: {
