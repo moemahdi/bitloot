@@ -24,6 +24,7 @@ export * from './FulfillmentApi';
 export * from './HealthApi';
 export * from './KinguinApi';
 export * from './MetricsApi';
+export * from './NewsletterApi';
 export * from './OrdersApi';
 export * from './PaymentsApi';
 export * from './PromosApi';

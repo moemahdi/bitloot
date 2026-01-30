@@ -24,6 +24,8 @@ import {
     Package,
     Shield,
     TrendingUp,
+    ChevronLeft,
+    ChevronRight,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
@@ -99,6 +101,10 @@ const CATEGORY_BACKGROUNDS: Record<string, string> = {
     'green': 'from-green-success/5 via-green-success/2 to-transparent',
     'pink': 'from-pink-featured/5 via-pink-featured/2 to-transparent',
 };
+
+// Pagination constants
+const PRODUCTS_PER_PAGE = 12;
+const TOTAL_PRODUCTS = 48;
 
 // ============================================================================
 // ANIMATED TAB ICON - Icon with animation on tab switch
@@ -204,11 +210,18 @@ function ErrorState({ message }: { message: string }): React.ReactElement {
 
 export function FeaturedByTypeSection(): React.ReactElement {
     const [activeTab, setActiveTab] = useState('featured_games');
+    const [currentPage, setCurrentPage] = useState(0);
     const router = useRouter();
     const { addItem } = useCart();
     const { isAuthenticated } = useAuth();
     const { mutate: addToWatchlist } = useAddToWatchlist();
     const { mutate: removeFromWatchlist } = useRemoveFromWatchlist();
+
+    // Reset page when tab changes
+    const handleTabChange = useCallback((tabId: string) => {
+        setActiveTab(tabId);
+        setCurrentPage(0);
+    }, []);
 
     // Get current tab config (always defined since we have PRODUCT_TYPE_TABS[0] fallback)
     const currentTab = useMemo(() => {
@@ -225,7 +238,7 @@ export function FeaturedByTypeSection(): React.ReactElement {
         queryKey: ['homepage', 'section', activeTab],
         queryFn: () => catalogApi.catalogControllerGetProductsBySection({ 
             sectionKey: activeTab, 
-            limit: 12 
+            limit: TOTAL_PRODUCTS 
         }),
         staleTime: 2 * 60 * 1000, // 2 minutes to pick up admin changes quickly
     });
@@ -247,6 +260,25 @@ export function FeaturedByTypeSection(): React.ReactElement {
             rating: p.metacriticScore != null ? p.metacriticScore / 20 : undefined,
         }));
     }, [productsData]);
+
+    // Pagination logic
+    const totalPages = Math.ceil(products.length / PRODUCTS_PER_PAGE);
+    const paginatedProducts = useMemo(() => {
+        const start = currentPage * PRODUCTS_PER_PAGE;
+        return products.slice(start, start + PRODUCTS_PER_PAGE);
+    }, [products, currentPage]);
+
+    const handlePrevPage = useCallback(() => {
+        setCurrentPage((prev) => Math.max(0, prev - 1));
+    }, []);
+
+    const handleNextPage = useCallback(() => {
+        setCurrentPage((prev) => Math.min(totalPages - 1, prev + 1));
+    }, [totalPages]);
+
+    const handlePageClick = useCallback((pageIndex: number) => {
+        setCurrentPage(pageIndex);
+    }, []);
 
     // Handle Add to Cart
     const handleAddToCart = useCallback((productId: string) => {
@@ -370,7 +402,7 @@ export function FeaturedByTypeSection(): React.ReactElement {
                 {/* Enhanced Product Type Tabs */}
                 <Tabs
                     value={activeTab}
-                    onValueChange={setActiveTab}
+                    onValueChange={handleTabChange}
                     className="w-full"
                 >
                     <div className="flex justify-center mb-10">
@@ -412,8 +444,8 @@ export function FeaturedByTypeSection(): React.ReactElement {
                         className="flex justify-center gap-4 md:gap-8 mb-8"
                     >
                         <div className="flex items-center gap-2 text-sm text-text-secondary">
-                            <span className="font-semibold text-text-primary">{products.length}</span>
-                            <span>products shown</span>
+                            <span className="font-semibold text-text-primary">{paginatedProducts.length}</span>
+                            <span>of {products.length} products</span>
                         </div>
                         <div className="w-px h-4 bg-border-subtle" />
                         <div className="flex items-center gap-2 text-sm">
@@ -456,17 +488,85 @@ export function FeaturedByTypeSection(): React.ReactElement {
                             ) : products.length === 0 ? (
                                 <EmptyProductsState type={currentTab.label} />
                             ) : (
-                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                                    {products.map((product) => (
-                                        <CatalogProductCard
-                                            key={product.id}
-                                            product={product}
-                                            onAddToCart={handleAddToCart}
-                                            onViewProduct={handleViewProduct}
-                                            onToggleWishlist={handleToggleWishlist}
-                                            showQuickActions={true}
-                                        />
-                                    ))}
+                                <div className="relative group">
+                                    {/* Left Arrow */}
+                                    {totalPages > 1 && currentPage > 0 && (
+                                        <button
+                                            onClick={handlePrevPage}
+                                            className={`absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 z-20 w-12 h-12 rounded-full bg-bg-secondary/90 backdrop-blur-sm border border-border-accent shadow-lg flex items-center justify-center text-text-primary transition-all duration-300 opacity-0 group-hover:opacity-100 group-hover:-translate-x-6 ${
+                                                currentTab.color === 'cyan' ? 'hover:bg-cyan-glow hover:text-bg-primary hover:border-cyan-glow hover:shadow-glow-cyan'
+                                                : currentTab.color === 'purple' ? 'hover:bg-purple-neon hover:text-white hover:border-purple-neon hover:shadow-glow-purple'
+                                                : currentTab.color === 'green' ? 'hover:bg-green-success hover:text-white hover:border-green-success hover:shadow-glow-success'
+                                                : 'hover:bg-pink-featured hover:text-white hover:border-pink-featured hover:shadow-glow-pink'
+                                            }`}
+                                            aria-label="Previous products"
+                                        >
+                                            <ChevronLeft className="w-6 h-6" />
+                                        </button>
+                                    )}
+
+                                    {/* Right Arrow */}
+                                    {totalPages > 1 && currentPage < totalPages - 1 && (
+                                        <button
+                                            onClick={handleNextPage}
+                                            className={`absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 z-20 w-12 h-12 rounded-full bg-bg-secondary/90 backdrop-blur-sm border border-border-accent shadow-lg flex items-center justify-center text-text-primary transition-all duration-300 opacity-0 group-hover:opacity-100 group-hover:translate-x-6 ${
+                                                currentTab.color === 'cyan' ? 'hover:bg-cyan-glow hover:text-bg-primary hover:border-cyan-glow hover:shadow-glow-cyan'
+                                                : currentTab.color === 'purple' ? 'hover:bg-purple-neon hover:text-white hover:border-purple-neon hover:shadow-glow-purple'
+                                                : currentTab.color === 'green' ? 'hover:bg-green-success hover:text-white hover:border-green-success hover:shadow-glow-success'
+                                                : 'hover:bg-pink-featured hover:text-white hover:border-pink-featured hover:shadow-glow-pink'
+                                            }`}
+                                            aria-label="Next products"
+                                        >
+                                            <ChevronRight className="w-6 h-6" />
+                                        </button>
+                                    )}
+
+                                    {/* Products Grid with Animation */}
+                                    <AnimatePresence mode="wait">
+                                        <motion.div
+                                            key={`${activeTab}-${currentPage}`}
+                                            initial={{ opacity: 0, x: 50 }}
+                                            animate={{ opacity: 1, x: 0 }}
+                                            exit={{ opacity: 0, x: -50 }}
+                                            transition={{ duration: 0.3, ease: 'easeInOut' }}
+                                            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
+                                        >
+                                            {paginatedProducts.map((product) => (
+                                                <CatalogProductCard
+                                                    key={product.id}
+                                                    product={product}
+                                                    onAddToCart={handleAddToCart}
+                                                    onViewProduct={handleViewProduct}
+                                                    onToggleWishlist={handleToggleWishlist}
+                                                    showQuickActions={true}
+                                                />
+                                            ))}
+                                        </motion.div>
+                                    </AnimatePresence>
+
+                                    {/* Page Indicators (dots) */}
+                                    {totalPages > 1 && (
+                                        <div className="flex items-center justify-center gap-2 mt-8">
+                                            {Array.from({ length: totalPages }).map((_, idx) => (
+                                                <button
+                                                    key={idx}
+                                                    onClick={() => handlePageClick(idx)}
+                                                    className={`transition-all duration-300 rounded-full ${
+                                                        currentPage === idx
+                                                            ? `w-8 h-2 ${
+                                                                currentTab.color === 'cyan' ? 'bg-cyan-glow shadow-glow-cyan-sm'
+                                                                : currentTab.color === 'purple' ? 'bg-purple-neon shadow-glow-purple-sm'
+                                                                : currentTab.color === 'green' ? 'bg-green-success shadow-glow-success'
+                                                                : 'bg-pink-featured shadow-glow-pink'
+                                                            }`
+                                                            : 'w-2 h-2 bg-bg-tertiary hover:bg-text-muted'
+                                                    }`}
+                                                    aria-label={`Go to page ${idx + 1}`}
+                                                    aria-current={currentPage === idx ? 'page' : undefined}
+                                                />
+                                            ))}
+                                        </div>
+                                    )}
                                 </div>
                             )}
                         </motion.div>

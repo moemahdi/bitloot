@@ -3,7 +3,9 @@ import { HttpModule } from '@nestjs/axios';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { EmailsService } from './emails.service';
 import { EmailUnsubscribeService } from './services/email-unsubscribe.service';
+import { NewsletterService } from './services/newsletter.service';
 import { EmailUnsubscribeController } from './controllers/email-unsubscribe.controller';
+import { NewsletterController } from './controllers/newsletter.controller';
 import { MetricsModule } from '../metrics/metrics.module';
 import { RetryService } from './retry.service';
 import { SuppressionListService } from './suppression-list.service';
@@ -21,6 +23,7 @@ import { AdminOpsModule } from '../admin/admin-ops.module';
  * - Email unsubscribe management (Level 4, RFC 8058)
  * - Email retry with exponential backoff (Level 4)
  * - Bounce handling & suppression list (Level 4)
+ * - Newsletter subscriptions via Resend Audiences
  *
  * Level 1: Mock implementation
  * Level 4+:
@@ -43,8 +46,8 @@ import { AdminOpsModule } from '../admin/admin-ops.module';
     TypeOrmModule.forFeature([EmailBounce]),
     forwardRef(() => AdminOpsModule),
   ],
-  providers: [EmailsService, EmailUnsubscribeService, RetryService, SuppressionListService],
-  exports: [EmailsService, EmailUnsubscribeService, SuppressionListService],
-  controllers: [EmailUnsubscribeController],
+  providers: [EmailsService, EmailUnsubscribeService, NewsletterService, RetryService, SuppressionListService],
+  exports: [EmailsService, EmailUnsubscribeService, NewsletterService, SuppressionListService],
+  controllers: [EmailUnsubscribeController, NewsletterController],
 })
 export class EmailsModule {}

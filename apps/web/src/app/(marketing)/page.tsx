@@ -274,21 +274,21 @@ const FAQ_ITEMS: FAQItem[] = [
     {
         id: 'crypto-payment',
         question: 'What cryptocurrencies do you accept?',
-        answer: 'We accept over 300+ cryptocurrencies including Bitcoin (BTC), Ethereum (ETH), USDT, USDC, Litecoin, Dogecoin, and many more. Our payment processor NOWPayments ensures secure and fast transactions with competitive exchange rates.',
+        answer: 'We accept over 300+ cryptocurrencies including Bitcoin (BTC), Ethereum (ETH), USDT, USDC, Litecoin, Dogecoin, Solana, and many more. All payments are processed securely with competitive real-time exchange rates.',
         icon: Bitcoin,
         category: 'payment',
     },
     {
         id: 'delivery-time',
         question: 'How fast will I receive my game key?',
-        answer: 'Most orders are delivered instantly within 1-5 minutes after payment confirmation. Our automated system ensures lightning-fast delivery directly to your email and account dashboard. For crypto payments, delivery begins once the transaction receives sufficient confirmations.',
+        answer: 'Most orders are delivered instantly within 1-5 minutes after payment confirmation. Our fully automated system ensures lightning-fast delivery directly to your email and account dashboard. For crypto payments, delivery begins once the transaction receives sufficient network confirmations.',
         icon: Zap,
         category: 'delivery',
     },
     {
         id: 'key-security',
         question: 'Are the game keys legitimate and secure?',
-        answer: 'Absolutely! All our keys are sourced from authorized distributors and verified before delivery. Each key is encrypted and delivered through secure Cloudflare R2 signed URLs. We guarantee 100% authentic, region-appropriate keys with full activation support.',
+        answer: 'Absolutely! All our keys are sourced from authorized distributors and verified before delivery. Each key is encrypted and securely stored until you reveal it. We guarantee 100% authentic, region-appropriate keys with full activation support.',
         icon: Shield,
         category: 'security',
     },
@@ -302,28 +302,28 @@ const FAQ_ITEMS: FAQItem[] = [
     {
         id: 'payment-confirmation',
         question: 'How long do crypto payments take to confirm?',
-        answer: 'Confirmation times vary by cryptocurrency. Bitcoin typically requires 1-3 confirmations (10-30 minutes), while faster networks like Litecoin or stablecoins (USDT, USDC) confirm in under 5 minutes. We monitor all transactions and begin processing immediately upon confirmation.',
+        answer: 'Confirmation times vary by cryptocurrency. Bitcoin typically requires 1-3 confirmations (10-30 minutes), while faster networks like Litecoin or stablecoins (USDT, USDC) confirm in under 5 minutes. Our system automatically detects payments and processes your order instantly upon confirmation.',
         icon: Clock,
         category: 'payment',
     },
     {
         id: 'account-security',
         question: 'How do you protect my account and purchases?',
-        answer: 'Your security is our priority. We use bank-grade encryption for all transactions, secure OTP authentication for account access, and encrypted key storage. Purchase history and keys are safely stored in your account and can be accessed anytime.',
+        answer: 'Your security is our priority. We use industry-standard encryption for all transactions, secure OTP authentication for account access, and encrypted key storage. Purchase history and keys are safely stored in your account and can be accessed anytime.',
         icon: Lock,
         category: 'security',
     },
     {
-        id: 'payment-methods',
-        question: 'Do you accept credit cards or PayPal?',
-        answer: "BitLoot is a crypto-only marketplace, which allows us to offer better prices, instant global access, and enhanced privacy. We don't currently accept traditional payment methods, but converting fiat to crypto is easy through exchanges like Coinbase, Binance, or Kraken.",
+        id: 'guest-checkout',
+        question: 'Can I buy without creating an account?',
+        answer: 'Yes! We offer guest checkout for quick purchases. Simply enter your email, complete payment, and receive your key directly. However, creating a free account gives you benefits like purchase history, faster checkouts, wishlists, and easy key retrieval anytime.',
         icon: Wallet,
-        category: 'payment',
+        category: 'general',
     },
     {
         id: 'support',
         question: 'How can I contact customer support?',
-        answer: 'Our support team is available 24/7 via live chat on the website, email at support@bitloot.com, or through our Discord community. For order-related issues, please have your order ID ready. Average response time is under 2 hours.',
+        answer: 'Our support team is available 24/7 via live chat on the website or email at support@bitloot.com. For order-related issues, please have your order ID ready. Most inquiries are resolved within a few hours.',
         icon: MessageCircle,
         category: 'general',
     },
@@ -340,7 +340,7 @@ function FAQSection(): React.ReactElement {
     };
 
     return (
-        <section className="relative py-20 sm:py-28 overflow-hidden">
+        <section id="faq" className="relative py-20 sm:py-28 overflow-hidden scroll-mt-20">
             {/* Background Effects */}
             <div className="absolute inset-0 bg-bg-primary" />
             <div className="absolute inset-0 bg-linear-to-b from-purple-neon/5 via-transparent to-cyan-glow/5" />
@@ -626,8 +626,8 @@ export default function HomePage(): React.ReactElement {
             {/* Benefits - Why choose BitLoot */}
             <BenefitsSection />
             
-            {/* Social Proof - Trust badges + live purchases */}
-            <SocialProofSection />
+            {/* Social Proof - Trust badges + live purchases (HIDDEN - component kept for future use) */}
+            {/* <SocialProofSection /> */}
             
             {/* FAQ - Common questions */}
             <FAQSection />

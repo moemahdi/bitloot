@@ -51,6 +51,8 @@ export interface CatalogControllerListProductsRequest {
     businessCategory?: string;
     category?: string;
     featured?: boolean;
+    minPrice?: number;
+    maxPrice?: number;
     sort?: CatalogControllerListProductsSortEnum;
     limit?: number;
     offset?: number;
@@ -266,6 +268,14 @@ export class CatalogApi extends runtime.BaseAPI {
 
         if (requestParameters['featured'] != null) {
             queryParameters['featured'] = requestParameters['featured'];
+        }
+
+        if (requestParameters['minPrice'] != null) {
+            queryParameters['minPrice'] = requestParameters['minPrice'];
+        }
+
+        if (requestParameters['maxPrice'] != null) {
+            queryParameters['maxPrice'] = requestParameters['maxPrice'];
         }
 
         if (requestParameters['sort'] != null) {

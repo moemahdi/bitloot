@@ -336,7 +336,7 @@ No authorization required
 
 ## catalogControllerListProducts
 
-> ProductListResponseDto catalogControllerListProducts(q, platform, region, businessCategory, category, featured, sort, limit, offset)
+> ProductListResponseDto catalogControllerListProducts(q, platform, region, businessCategory, category, featured, minPrice, maxPrice, sort, limit, offset)
 
 List products with filtering and pagination
 
@@ -366,6 +366,10 @@ async function example() {
     category: category_example,
     // boolean | Show only featured products (optional)
     featured: true,
+    // number | Minimum price filter (EUR) (optional)
+    minPrice: 8.14,
+    // number | Maximum price filter (EUR) (optional)
+    maxPrice: 8.14,
     // 'newest' | 'price_asc' | 'price_desc' | 'rating' (optional)
     sort: sort_example,
     // number | Items per page (≤ 100) (optional)
@@ -397,6 +401,8 @@ example().catch(console.error);
 | **businessCategory** | `string` | Filter by BitLoot category: games, software, gift-cards, subscriptions | [Optional] [Defaults to `undefined`] |
 | **category** | `string` | Filter by genre (legacy Kinguin genres) | [Optional] [Defaults to `undefined`] |
 | **featured** | `boolean` | Show only featured products | [Optional] [Defaults to `undefined`] |
+| **minPrice** | `number` | Minimum price filter (EUR) | [Optional] [Defaults to `undefined`] |
+| **maxPrice** | `number` | Maximum price filter (EUR) | [Optional] [Defaults to `undefined`] |
 | **sort** | `newest`, `price_asc`, `price_desc`, `rating` |  | [Optional] [Defaults to `undefined`] [Enum: newest, price_asc, price_desc, rating] |
 | **limit** | `number` | Items per page (≤ 100) | [Optional] [Defaults to `undefined`] |
 | **offset** | `number` | Pagination offset | [Optional] [Defaults to `undefined`] |

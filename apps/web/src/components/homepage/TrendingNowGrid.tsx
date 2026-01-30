@@ -3,7 +3,7 @@
 import { useMemo, useCallback, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useQuery } from '@tanstack/react-query';
 import { CatalogApi, Configuration } from '@bitloot/sdk';
 import type { ProductListResponseDto } from '@bitloot/sdk';
@@ -22,6 +22,8 @@ import {
     ArrowRight,
     Heart,
     Eye,
+    ChevronLeft,
+    ChevronRight,
 } from 'lucide-react';
 
 // Design System Components
@@ -296,16 +298,20 @@ function TrendingProductCard({ product, rank, onAddToCart, onToggleWishlist }: T
 // MAIN COMPONENT
 // ============================================================================
 
+const PRODUCTS_PER_PAGE = 12;
+const TOTAL_PRODUCTS = 48;
+
 export function TrendingNowGrid(): React.ReactElement {
     const { addItem } = useCart();
     const { isAuthenticated } = useAuth();
     const { mutate: addToWatchlist } = useAddToWatchlist();
     const { mutate: removeFromWatchlist } = useRemoveFromWatchlist();
+    const [currentPage, setCurrentPage] = useState(0);
 
     // Fetch trending products from admin-configured 'trending' section
     const { data: trendingData, isLoading, error } = useQuery<ProductListResponseDto>({
         queryKey: ['homepage', 'section', 'trending'],
-        queryFn: () => catalogApi.catalogControllerGetProductsBySection({ sectionKey: 'trending', limit: 12 }),
+        queryFn: () => catalogApi.catalogControllerGetProductsBySection({ sectionKey: 'trending', limit: TOTAL_PRODUCTS }),
         staleTime: 2 * 60 * 1000, // 2 minutes to pick up admin changes quickly
     });
 
@@ -360,6 +366,25 @@ export function TrendingNowGrid(): React.ReactElement {
         }
     }, [isAuthenticated, addToWatchlist, removeFromWatchlist]);
 
+    // Pagination logic
+    const totalPages = Math.ceil(trendingProducts.length / PRODUCTS_PER_PAGE);
+    const paginatedProducts = useMemo(() => {
+        const start = currentPage * PRODUCTS_PER_PAGE;
+        return trendingProducts.slice(start, start + PRODUCTS_PER_PAGE);
+    }, [trendingProducts, currentPage]);
+
+    const handlePrevPage = useCallback(() => {
+        setCurrentPage((prev) => Math.max(0, prev - 1));
+    }, []);
+
+    const handleNextPage = useCallback(() => {
+        setCurrentPage((prev) => Math.min(totalPages - 1, prev + 1));
+    }, [totalPages]);
+
+    const handlePageClick = useCallback((pageIndex: number) => {
+        setCurrentPage(pageIndex);
+    }, []);
+
     // Don't render if error or no products
     if (error !== null && error !== undefined) {
         return <></>;
@@ -407,20 +432,73 @@ export function TrendingNowGrid(): React.ReactElement {
                     </Button>
                 </motion.div>
 
-                {/* Products Grid */}
+                {/* Products Carousel */}
                 {isLoading ? (
                     <TrendingGridSkeleton />
-                ) : trendingProducts.length > 0 ? (
-                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
-                        {trendingProducts.map((product, index) => (
-                            <TrendingProductCard
-                                key={product.id}
-                                product={product}
-                                rank={index + 1}
-                                onAddToCart={handleAddToCart}
-                                onToggleWishlist={handleToggleWishlist}
-                            />
-                        ))}
+                ) : paginatedProducts.length > 0 ? (
+                    <div className="relative group">
+                        {/* Left Arrow */}
+                        {totalPages > 1 && currentPage > 0 && (
+                            <button
+                                onClick={handlePrevPage}
+                                className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 z-20 w-12 h-12 rounded-full bg-bg-secondary/90 backdrop-blur-sm border border-border-accent shadow-lg flex items-center justify-center text-text-primary hover:bg-orange-warning hover:text-bg-primary hover:border-orange-warning hover:shadow-glow-cyan transition-all duration-300 opacity-0 group-hover:opacity-100 group-hover:-translate-x-6"
+                                aria-label="Previous products"
+                            >
+                                <ChevronLeft className="w-6 h-6" />
+                            </button>
+                        )}
+
+                        {/* Right Arrow */}
+                        {totalPages > 1 && currentPage < totalPages - 1 && (
+                            <button
+                                onClick={handleNextPage}
+                                className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 z-20 w-12 h-12 rounded-full bg-bg-secondary/90 backdrop-blur-sm border border-border-accent shadow-lg flex items-center justify-center text-text-primary hover:bg-orange-warning hover:text-bg-primary hover:border-orange-warning hover:shadow-glow-cyan transition-all duration-300 opacity-0 group-hover:opacity-100 group-hover:translate-x-6"
+                                aria-label="Next products"
+                            >
+                                <ChevronRight className="w-6 h-6" />
+                            </button>
+                        )}
+
+                        {/* Products Grid with Animation */}
+                        <AnimatePresence mode="wait">
+                            <motion.div
+                                key={currentPage}
+                                initial={{ opacity: 0, x: 50 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                exit={{ opacity: 0, x: -50 }}
+                                transition={{ duration: 0.3, ease: 'easeInOut' }}
+                                className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6"
+                            >
+                                {paginatedProducts.map((product, index) => (
+                                    <TrendingProductCard
+                                        key={product.id}
+                                        product={product}
+                                        rank={currentPage * PRODUCTS_PER_PAGE + index + 1}
+                                        onAddToCart={handleAddToCart}
+                                        onToggleWishlist={handleToggleWishlist}
+                                    />
+                                ))}
+                            </motion.div>
+                        </AnimatePresence>
+
+                        {/* Page Indicators (dots) */}
+                        {totalPages > 1 && (
+                            <div className="flex items-center justify-center gap-2 mt-8">
+                                {Array.from({ length: totalPages }).map((_, idx) => (
+                                    <button
+                                        key={idx}
+                                        onClick={() => handlePageClick(idx)}
+                                        className={`transition-all duration-300 rounded-full ${
+                                            currentPage === idx
+                                                ? 'w-8 h-2 bg-orange-warning shadow-glow-cyan-sm'
+                                                : 'w-2 h-2 bg-bg-tertiary hover:bg-text-muted'
+                                        }`}
+                                        aria-label={`Go to page ${idx + 1}`}
+                                        aria-current={currentPage === idx ? 'page' : undefined}
+                                    />
+                                ))}
+                            </div>
+                        )}
                     </div>
                 ) : (
                     <div className="text-center py-12">

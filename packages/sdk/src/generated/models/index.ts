@@ -132,6 +132,8 @@ export * from './ListSystemConfigsResponseDto';
 export * from './MarginDistributionBucketDto';
 export * from './MarginDistributionDto';
 export * from './ModerateReviewDto';
+export * from './NewsletterResponseDto';
+export * from './NewsletterSubscribeDto';
 export * from './NowPaymentsFeeDto';
 export * from './NowpaymentsIpnRequestDto';
 export * from './NowpaymentsIpnRequestDtoInvoiceId';

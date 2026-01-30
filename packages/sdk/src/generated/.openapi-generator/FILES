@@ -22,6 +22,7 @@ apis/FulfillmentApi.ts
 apis/HealthApi.ts
 apis/KinguinApi.ts
 apis/MetricsApi.ts
+apis/NewsletterApi.ts
 apis/OrdersApi.ts
 apis/PaymentsApi.ts
 apis/PromosApi.ts
@@ -189,6 +190,9 @@ docs/MarginDistributionBucketDto.md
 docs/MarginDistributionDto.md
 docs/MetricsApi.md
 docs/ModerateReviewDto.md
+docs/NewsletterApi.md
+docs/NewsletterResponseDto.md
+docs/NewsletterSubscribeDto.md
 docs/NowPaymentsFeeDto.md
 docs/NowpaymentsIpnRequestDto.md
 docs/NowpaymentsIpnRequestDtoInvoiceId.md
@@ -436,6 +440,8 @@ models/ListSystemConfigsResponseDto.ts
 models/MarginDistributionBucketDto.ts
 models/MarginDistributionDto.ts
 models/ModerateReviewDto.ts
+models/NewsletterResponseDto.ts
+models/NewsletterSubscribeDto.ts
 models/NowPaymentsFeeDto.ts
 models/NowpaymentsIpnRequestDto.ts
 models/NowpaymentsIpnRequestDtoInvoiceId.ts

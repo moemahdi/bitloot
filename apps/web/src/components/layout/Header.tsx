@@ -21,6 +21,7 @@ import {
     Monitor,
     Gift,
     Flame,
+    RefreshCw,
     // Game Genres
     Swords,
     Crosshair,
@@ -103,6 +104,11 @@ const NAV_LINKS: NavLink[] = [
         href: '/catalog?category=software', 
         label: 'Software', 
         icon: Monitor,
+    },
+    { 
+        href: '/catalog?category=subscriptions', 
+        label: 'Subscriptions', 
+        icon: RefreshCw,
     },
     { 
         href: '/catalog?category=gift-cards', 

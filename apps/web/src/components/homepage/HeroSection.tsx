@@ -391,10 +391,10 @@ export function HeroSection(): React.ReactElement {
                         size="lg"
                         className="btn-outline min-w-[200px] group"
                     >
-                        <Link href="/how-it-works">
+                        <a href="#faq">
                             <Play className="mr-2 h-5 w-5" aria-hidden="true" />
                             How It Works
-                        </Link>
+                        </a>
                     </Button>
                 </motion.div>
 

@@ -1,14 +1,16 @@
 'use client';
 
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useQuery } from '@tanstack/react-query';
 import {
     ShoppingCart,
     Zap,
     AlertCircle,
+    ChevronLeft,
+    ChevronRight,
 } from 'lucide-react';
 
 // Design System Components
@@ -22,6 +24,13 @@ import type { ProductResponseDto } from '@bitloot/sdk';
 // Use the same ProductCard as catalog for consistency
 import { ProductCard } from '@/features/catalog/components/ProductCard';
 import type { Product } from '@/features/catalog/components/ProductCard';
+
+// ============================================================================
+// CONSTANTS
+// ============================================================================
+
+const PRODUCTS_PER_PAGE = 12;
+const TOTAL_PRODUCTS = 48;
 
 // ============================================================================
 // API CONFIGURATION
@@ -40,7 +49,7 @@ const catalogApi = new CatalogApi(apiConfig);
 function GiftCardSkeleton(): React.ReactElement {
     return (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {Array.from({ length: 8 }).map((_, i) => (
+            {Array.from({ length: 12 }).map((_, i) => (
                 <Card key={i} className="h-full bg-bg-secondary border-border-subtle animate-pulse overflow-hidden">
                     <div className="aspect-4/3 bg-bg-tertiary" />
                     <CardContent className="p-4">
@@ -63,13 +72,14 @@ function GiftCardSkeleton(): React.ReactElement {
 export function GiftCardQuickBuy(): React.ReactElement {
     const { addItem } = useCart();
     const router = useRouter();
+    const [currentPage, setCurrentPage] = useState(0);
 
     // Fetch gift card products from quick_buy_gift_cards section
     const { data: productsData, isLoading, error } = useQuery({
         queryKey: ['homepage-quick-buy-gift-cards'],
         queryFn: () => catalogApi.catalogControllerGetProductsBySection({
             sectionKey: 'quick_buy_gift_cards',
-            limit: 8,
+            limit: TOTAL_PRODUCTS,
         }),
         staleTime: 2 * 60 * 1000, // 2 minutes - pick up admin changes quickly
     });
@@ -90,6 +100,25 @@ export function GiftCardQuickBuy(): React.ReactElement {
             rating: p.metacriticScore != null ? p.metacriticScore / 20 : undefined,
         }));
     }, [productsData]);
+
+    // Pagination logic
+    const totalPages = Math.ceil(products.length / PRODUCTS_PER_PAGE);
+    const paginatedProducts = useMemo(() => {
+        const start = currentPage * PRODUCTS_PER_PAGE;
+        return products.slice(start, start + PRODUCTS_PER_PAGE);
+    }, [products, currentPage]);
+
+    const handlePrevPage = useCallback(() => {
+        setCurrentPage((prev) => Math.max(0, prev - 1));
+    }, []);
+
+    const handleNextPage = useCallback(() => {
+        setCurrentPage((prev) => Math.min(totalPages - 1, prev + 1));
+    }, [totalPages]);
+
+    const handlePageClick = useCallback((pageIndex: number) => {
+        setCurrentPage(pageIndex);
+    }, []);
 
     // Handle Add to Cart
     const handleAddToCart = useCallback((product: Product) => {
@@ -169,16 +198,69 @@ export function GiftCardQuickBuy(): React.ReactElement {
                         <p className="text-text-secondary">Unable to load gift cards</p>
                     </div>
                 ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                        {products.map((product, index) => (
-                            <ProductCard
-                                key={product.id}
-                                product={product}
-                                onAddToCart={handleAddToCart}
-                                onBuyNow={handleBuyNow}
-                                isAboveFold={index < 4}
-                            />
-                        ))}
+                    <div className="relative group">
+                        {/* Left Arrow */}
+                        {totalPages > 1 && currentPage > 0 && (
+                            <button
+                                onClick={handlePrevPage}
+                                className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 z-20 w-12 h-12 rounded-full bg-bg-secondary/90 backdrop-blur-sm border border-border-accent shadow-lg flex items-center justify-center text-text-primary hover:bg-green-success hover:text-white hover:border-green-success hover:shadow-glow-success transition-all duration-300 opacity-0 group-hover:opacity-100 group-hover:-translate-x-6"
+                                aria-label="Previous products"
+                            >
+                                <ChevronLeft className="w-6 h-6" />
+                            </button>
+                        )}
+
+                        {/* Right Arrow */}
+                        {totalPages > 1 && currentPage < totalPages - 1 && (
+                            <button
+                                onClick={handleNextPage}
+                                className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 z-20 w-12 h-12 rounded-full bg-bg-secondary/90 backdrop-blur-sm border border-border-accent shadow-lg flex items-center justify-center text-text-primary hover:bg-green-success hover:text-white hover:border-green-success hover:shadow-glow-success transition-all duration-300 opacity-0 group-hover:opacity-100 group-hover:translate-x-6"
+                                aria-label="Next products"
+                            >
+                                <ChevronRight className="w-6 h-6" />
+                            </button>
+                        )}
+
+                        {/* Products Grid with Animation */}
+                        <AnimatePresence mode="wait">
+                            <motion.div
+                                key={currentPage}
+                                initial={{ opacity: 0, x: 50 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                exit={{ opacity: 0, x: -50 }}
+                                transition={{ duration: 0.3, ease: 'easeInOut' }}
+                                className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
+                            >
+                                {paginatedProducts.map((product, index) => (
+                                    <ProductCard
+                                        key={product.id}
+                                        product={product}
+                                        onAddToCart={handleAddToCart}
+                                        onBuyNow={handleBuyNow}
+                                        isAboveFold={index < 4}
+                                    />
+                                ))}
+                            </motion.div>
+                        </AnimatePresence>
+
+                        {/* Page Indicators (dots) */}
+                        {totalPages > 1 && (
+                            <div className="flex items-center justify-center gap-2 mt-8">
+                                {Array.from({ length: totalPages }).map((_, idx) => (
+                                    <button
+                                        key={idx}
+                                        onClick={() => handlePageClick(idx)}
+                                        className={`transition-all duration-300 rounded-full ${
+                                            currentPage === idx
+                                                ? 'w-8 h-2 bg-green-success shadow-glow-success'
+                                                : 'w-2 h-2 bg-bg-tertiary hover:bg-text-muted'
+                                        }`}
+                                        aria-label={`Go to page ${idx + 1}`}
+                                        aria-current={currentPage === idx ? 'page' : undefined}
+                                    />
+                                ))}
+                            </div>
+                        )}
                     </div>
                 )}
 
