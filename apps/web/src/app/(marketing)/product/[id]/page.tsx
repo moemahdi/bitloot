@@ -149,6 +149,50 @@ function CryptoPaymentBanner(): React.ReactElement {
   );
 }
 
+// ========== Component: Account Product Warning ==========
+
+function AccountProductWarning(): React.ReactElement {
+  return (
+    <div className="bg-orange-warning/10 border border-orange-warning/30 rounded-xl p-4 space-y-3">
+      <div className="flex items-start gap-3">
+        <AlertTriangle className="h-5 w-5 text-orange-warning shrink-0 mt-0.5" />
+        <div className="space-y-2">
+          <p className="text-sm font-semibold text-orange-warning">
+            Account Product – Not a Key
+          </p>
+          <p className="text-xs text-text-secondary leading-relaxed">
+            This is <strong className="text-text-primary">not a product key</strong>. A <strong className="text-text-primary">new account</strong> will be created for you with the purchased content already activated. Log in using the credentials provided in your Inventory after purchase.
+          </p>
+        </div>
+      </div>
+      
+      <div className="border-t border-orange-warning/20 pt-3 space-y-2">
+        <p className="text-xs font-medium text-text-primary flex items-center gap-2">
+          <AlertTriangle className="h-3.5 w-3.5 text-orange-warning" />
+          Important – Do NOT:
+        </p>
+        <ul className="text-xs text-text-secondary space-y-1.5 ml-5">
+          <li className="flex items-start gap-2">
+            <span className="text-orange-warning">•</span>
+            <span>Add payment methods to the account</span>
+          </li>
+          <li className="flex items-start gap-2">
+            <span className="text-orange-warning">•</span>
+            <span>Change the account region</span>
+          </li>
+          <li className="flex items-start gap-2">
+            <span className="text-orange-warning">•</span>
+            <span>Make additional purchases on the account</span>
+          </li>
+        </ul>
+        <p className="text-xs text-orange-warning/80 italic mt-2">
+          Violating these rules may result in the account being banned. No refunds apply in such cases.
+        </p>
+      </div>
+    </div>
+  );
+}
+
 // ========== Component: Metacritic Badge ==========
 
 function MetacriticBadge({ score }: { score: number }): React.ReactElement {
@@ -1060,6 +1104,12 @@ export default function ProductPage(): React.ReactElement {
                       variant="default"
                     />
                   </div>
+
+                  {/* Account Product Warning - Show if game with "account" in title */}
+                  {product.title?.toLowerCase().includes('account') && 
+                   product.businessCategory?.toLowerCase() === 'games' && (
+                    <AccountProductWarning />
+                  )}
 
                   {/* Crypto Payment Banner - PRD Requirement */}
                   <CryptoPaymentBanner />

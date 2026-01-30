@@ -199,6 +199,10 @@ const faqs = [
     question: 'The game was cheaper elsewhere. Can I get a price match refund?',
     answer: 'We do not offer price matching or partial refunds based on price differences. Prices on BitLoot may change due to sales, promotions, or market conditions. The price at checkout is the final price.',
   },
+  {
+    question: 'What is the refund policy for account products?',
+    answer: 'Account products (full game accounts rather than keys) follow stricter refund policies. Once account credentials are delivered, the product is considered used and non-refundable. Additionally, if you modify the account by adding payment methods, changing the region, or making purchases, the account may be banned by the platform—this is not covered by our refund policy. Please use account products only for the purchased game.',
+  },
 ];
 
 export default function RefundPolicyPage(): React.ReactElement {

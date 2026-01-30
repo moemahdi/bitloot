@@ -327,6 +327,13 @@ const FAQ_ITEMS: FAQItem[] = [
         icon: MessageCircle,
         category: 'general',
     },
+    {
+        id: 'account-products',
+        question: 'What are account products and how do they work?',
+        answer: 'Some products are sold as full game accounts rather than activation keys. With account products, we create a new account for you with the purchased game already activated. You\'ll receive login credentials in your inventory. Important: Do not add payment methods, change the region, or make purchases on the account—doing so may result in a ban with no refund. Use the account only for the purchased game.',
+        icon: Shield,
+        category: 'security',
+    },
 ];
 
 function FAQSection(): React.ReactElement {
