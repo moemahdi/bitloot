@@ -249,7 +249,7 @@ export default function AdminLayout({ children }: { children: ReactNode }): Reac
 
       {/* Admin Tabs Navigation */}
       <div className="sticky top-0 z-50 border-b border-border-subtle glass-strong shadow-card-md">
-        <div className="container mx-auto px-4">
+        <div className="mx-auto max-w-[1920px] px-4 lg:px-6">
           <nav
             className="flex gap-1 overflow-x-auto py-2 scrollbar-thin scrollbar-thumb-cyan-glow/30 scrollbar-track-transparent hover:scrollbar-thumb-cyan-glow/50"
             role="navigation"
@@ -553,7 +553,7 @@ export default function AdminLayout({ children }: { children: ReactNode }): Reac
         role="main"
         aria-label="Admin page content"
       >
-        <div className="container mx-auto px-4 py-6 lg:py-8 animate-fade-in">{children}</div>
+        <div className="mx-auto max-w-[1920px] px-4 lg:px-6 py-6 lg:py-8 animate-fade-in">{children}</div>
       </main>
 
       <Footer />

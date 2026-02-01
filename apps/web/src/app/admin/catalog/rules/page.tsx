@@ -85,6 +85,8 @@ interface CreateRuleFormData {
   fixedMarkupMinor: string;
   floorMinor: string;
   capMinor: string;
+  minCostMinor: string;
+  maxCostMinor: string;
   priority: string;
   isActive: boolean;
 }
@@ -96,6 +98,8 @@ const initialFormData: CreateRuleFormData = {
   fixedMarkupMinor: '',
   floorMinor: '',
   capMinor: '',
+  minCostMinor: '',
+  maxCostMinor: '',
   priority: '0',
   isActive: true,
 };
@@ -108,6 +112,8 @@ interface PricingRuleDto {
   fixedMarkupMinor?: number | null;
   floorMinor?: number | null;
   capMinor?: number | null;
+  minCostMinor?: number | null;
+  maxCostMinor?: number | null;
   isActive: boolean;
   priority: number;
   createdAt: string;
@@ -232,6 +238,8 @@ export default function AdminPricingRulesPage(): React.ReactNode {
           fixedMarkupMinor: data.fixedMarkupMinor !== '' ? parseInt(data.fixedMarkupMinor, 10) : undefined,
           floorMinor: data.floorMinor !== '' ? parseInt(data.floorMinor, 10) : undefined,
           capMinor: data.capMinor !== '' ? parseInt(data.capMinor, 10) : undefined,
+          minCostMinor: data.minCostMinor !== '' ? parseInt(data.minCostMinor, 10) : undefined,
+          maxCostMinor: data.maxCostMinor !== '' ? parseInt(data.maxCostMinor, 10) : undefined,
           priority: data.priority !== '' ? parseInt(data.priority, 10) : 0,
           isActive: data.isActive,
         },
@@ -259,6 +267,8 @@ export default function AdminPricingRulesPage(): React.ReactNode {
           fixedMarkupMinor: data.fixedMarkupMinor !== '' ? parseInt(data.fixedMarkupMinor, 10) : undefined,
           floorMinor: data.floorMinor !== '' ? parseInt(data.floorMinor, 10) : undefined,
           capMinor: data.capMinor !== '' ? parseInt(data.capMinor, 10) : undefined,
+          minCostMinor: data.minCostMinor !== '' ? parseInt(data.minCostMinor, 10) : undefined,
+          maxCostMinor: data.maxCostMinor !== '' ? parseInt(data.maxCostMinor, 10) : undefined,
           priority: data.priority !== '' ? parseInt(data.priority, 10) : 0,
           isActive: data.isActive,
         },
@@ -306,6 +316,8 @@ export default function AdminPricingRulesPage(): React.ReactNode {
       fixedMarkupMinor: rule.fixedMarkupMinor != null ? String(rule.fixedMarkupMinor) : '',
       floorMinor: rule.floorMinor != null ? String(rule.floorMinor) : '',
       capMinor: rule.capMinor != null ? String(rule.capMinor) : '',
+      minCostMinor: rule.minCostMinor != null ? String(rule.minCostMinor) : '',
+      maxCostMinor: rule.maxCostMinor != null ? String(rule.maxCostMinor) : '',
       priority: String(rule.priority ?? 0),
       isActive: rule.isActive,
     });
@@ -429,6 +441,7 @@ export default function AdminPricingRulesPage(): React.ReactNode {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Scope</TableHead>
+                    <TableHead>Cost Range</TableHead>
                     <TableHead>Rule Type</TableHead>
                     <TableHead>Margin</TableHead>
                     <TableHead>Fixed Markup</TableHead>
@@ -486,6 +499,17 @@ export default function AdminPricingRulesPage(): React.ReactNode {
                                 {rule.product?.title ?? (rule.productId != null && rule.productId !== '' ? rule.productId.slice(0, 8) + '...' : '-')}
                               </span>
                             </div>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {isGlobal && (rule.minCostMinor != null || rule.maxCostMinor != null) ? (
+                            <span className="font-mono text-sm">
+                              {formatCurrency(rule.minCostMinor) ?? '€0'} - {formatCurrency(rule.maxCostMinor) ?? '∞'}
+                            </span>
+                          ) : isGlobal ? (
+                            <span className="text-xs text-muted-foreground">Any cost</span>
+                          ) : (
+                            <span className="text-muted-foreground">-</span>
                           )}
                         </TableCell>
                         <TableCell>
@@ -618,6 +642,54 @@ export default function AdminPricingRulesPage(): React.ReactNode {
                 Empty = applies to all products. Enter UUID to target a specific product.
               </p>
             </div>
+
+            {/* Cost Range - only for global rules (no productId) */}
+            {formData.productId.trim() === '' && (
+              <div className="grid grid-cols-2 gap-3">
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="minCostMinor">Min Cost (€)</Label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">€</span>
+                    <Input
+                      id="minCostMinor"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      placeholder="e.g., 0"
+                      value={formatCentsAsDollars(formData.minCostMinor)}
+                      onChange={(e) => {
+                        const dollars = parseMoneyInput(e.target.value);
+                        handleFormChange('minCostMinor', String(Math.round(dollars * 100)));
+                      }}
+                      className="pl-7"
+                    />
+                  </div>
+                </div>
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="maxCostMinor">Max Cost (€)</Label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">€</span>
+                    <Input
+                      id="maxCostMinor"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      placeholder="e.g., 50"
+                      value={formatCentsAsDollars(formData.maxCostMinor)}
+                      onChange={(e) => {
+                        const dollars = parseMoneyInput(e.target.value);
+                        handleFormChange('maxCostMinor', String(Math.round(dollars * 100)));
+                      }}
+                      className="pl-7"
+                    />
+                  </div>
+                </div>
+                <p className="col-span-2 text-xs text-muted-foreground">
+                  Cost range for tiered pricing. Rule applies when product cost falls within this range.
+                  Leave both empty for a generic fallback rule.
+                </p>
+              </div>
+            )}
 
             {/* Rule Type */}
             <div className="flex flex-col gap-2">
@@ -825,6 +897,53 @@ export default function AdminPricingRulesPage(): React.ReactNode {
                 Scope cannot be changed after creation.
               </p>
             </div>
+
+            {/* Cost Range - only for global rules (no productId) */}
+            {formData.productId === '' && (
+              <div className="grid grid-cols-2 gap-3">
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="editMinCostMinor">Min Cost (€)</Label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">€</span>
+                    <Input
+                      id="editMinCostMinor"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      placeholder="e.g., 0"
+                      value={formatCentsAsDollars(formData.minCostMinor)}
+                      onChange={(e) => {
+                        const dollars = parseMoneyInput(e.target.value);
+                        handleFormChange('minCostMinor', String(Math.round(dollars * 100)));
+                      }}
+                      className="pl-7"
+                    />
+                  </div>
+                </div>
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="editMaxCostMinor">Max Cost (€)</Label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">€</span>
+                    <Input
+                      id="editMaxCostMinor"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      placeholder="e.g., 50"
+                      value={formatCentsAsDollars(formData.maxCostMinor)}
+                      onChange={(e) => {
+                        const dollars = parseMoneyInput(e.target.value);
+                        handleFormChange('maxCostMinor', String(Math.round(dollars * 100)));
+                      }}
+                      className="pl-7"
+                    />
+                  </div>
+                </div>
+                <p className="col-span-2 text-xs text-muted-foreground">
+                  Cost range for tiered pricing. Rule applies when product cost falls within this range.
+                </p>
+              </div>
+            )}
 
             {/* Rule Type */}
             <div className="flex flex-col gap-2">

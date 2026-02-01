@@ -106,6 +106,8 @@ export interface AdminProductsControllerListAllRequest {
     featured?: string;
     page?: string;
     limit?: string;
+    sortBy?: AdminProductsControllerListAllSortByEnum;
+    sortOrder?: AdminProductsControllerListAllSortOrderEnum;
 }
 
 export interface AdminProductsControllerPublishRequest {
@@ -680,6 +682,14 @@ export class AdminCatalogProductsApi extends runtime.BaseAPI {
             queryParameters['limit'] = requestParameters['limit'];
         }
 
+        if (requestParameters['sortBy'] != null) {
+            queryParameters['sortBy'] = requestParameters['sortBy'];
+        }
+
+        if (requestParameters['sortOrder'] != null) {
+            queryParameters['sortOrder'] = requestParameters['sortOrder'];
+        }
+
         const headerParameters: runtime.HTTPHeaders = {};
 
         if (this.configuration && this.configuration.accessToken) {
@@ -947,3 +957,22 @@ export class AdminCatalogProductsApi extends runtime.BaseAPI {
     }
 
 }
+
+/**
+ * @export
+ */
+export const AdminProductsControllerListAllSortByEnum = {
+    CreatedAt: 'createdAt',
+    Title: 'title',
+    Cost: 'cost',
+    Price: 'price'
+} as const;
+export type AdminProductsControllerListAllSortByEnum = typeof AdminProductsControllerListAllSortByEnum[keyof typeof AdminProductsControllerListAllSortByEnum];
+/**
+ * @export
+ */
+export const AdminProductsControllerListAllSortOrderEnum = {
+    Asc: 'asc',
+    Desc: 'desc'
+} as const;
+export type AdminProductsControllerListAllSortOrderEnum = typeof AdminProductsControllerListAllSortOrderEnum[keyof typeof AdminProductsControllerListAllSortOrderEnum];

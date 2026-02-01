@@ -192,7 +192,6 @@ function StatsCard({
 const CATEGORY_CONFIG = {
   games: { label: 'Games', icon: Gamepad2, color: 'text-cyan-glow', description: 'Video games and gaming content' },
   software: { label: 'Software', icon: Monitor, color: 'text-purple-neon', description: 'Applications and tools' },
-  'gift-cards': { label: 'Gift Cards', icon: Gift, color: 'text-pink-featured', description: 'Prepaid gift cards' },
   subscriptions: { label: 'Subscriptions', icon: Clock, color: 'text-green-success', description: 'Recurring services' },
 } as const;
 
@@ -841,7 +840,7 @@ export default function AdminImportPage(): React.JSX.Element {
                         </TableCell>
                         <TableCell className="text-right">
                           <span className="crypto-amount text-cyan-glow font-medium">
-                            ${product.price.toFixed(2)}
+                            €{product.price.toFixed(2)}
                           </span>
                         </TableCell>
                         <TableCell className="text-right">
@@ -925,10 +924,6 @@ export default function AdminImportPage(): React.JSX.Element {
                     <Badge className="bg-purple-neon/10 text-purple-neon border border-purple-neon/30">
                       <Monitor className="h-3 w-3 mr-1" />
                       Software
-                    </Badge>
-                    <Badge className="badge-featured">
-                      <Gift className="h-3 w-3 mr-1" />
-                      Gift Cards
                     </Badge>
                     <Badge className="bg-green-success/10 text-green-success border border-green-success/30">
                       <Clock className="h-3 w-3 mr-1" />

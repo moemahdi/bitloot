@@ -77,14 +77,6 @@ const PRODUCT_TYPE_TABS: ProductTypeTab[] = [
         description: 'Productivity, security & creative tools'
     },
     { 
-        id: 'featured_gift_cards', 
-        label: 'Gift Cards', 
-        icon: CreditCard, 
-        category: 'gift-cards',
-        color: 'green',
-        description: 'Steam, PSN, Xbox, Nintendo & more'
-    },
-    { 
         id: 'featured_subscriptions', 
         label: 'Subscriptions', 
         icon: Repeat, 

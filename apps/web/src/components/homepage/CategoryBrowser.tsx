@@ -29,10 +29,6 @@ import {
     Lock,
     PenTool,
     Wrench,
-    // Gift Cards
-    ShoppingBag,
-    Music,
-    Utensils,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
@@ -110,18 +106,6 @@ const CATEGORY_GROUPS: CategoryGroup[] = [
             { id: 'security', label: 'Security', icon: Lock, href: '/catalog?category=software&type=security' },
             { id: 'creative', label: 'Creative', icon: PenTool, href: '/catalog?category=software&type=creative' },
             { id: 'utilities', label: 'Utilities', icon: Wrench, href: '/catalog?category=software&type=utilities' },
-        ],
-    },
-    {
-        id: 'gift-cards',
-        label: 'Gift Cards',
-        icon: CreditCard,
-        color: 'pink',
-        categories: [
-            { id: 'gaming-cards', label: 'Gaming', icon: Gamepad2, href: '/catalog?category=gift-cards&type=gaming' },
-            { id: 'entertainment', label: 'Entertainment', icon: Music, href: '/catalog?category=gift-cards&type=entertainment' },
-            { id: 'shopping', label: 'Shopping', icon: ShoppingBag, href: '/catalog?category=gift-cards&type=shopping' },
-            { id: 'food', label: 'Food & Dining', icon: Utensils, href: '/catalog?category=gift-cards&type=food' },
         ],
     },
 ];

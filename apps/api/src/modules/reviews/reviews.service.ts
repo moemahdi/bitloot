@@ -714,7 +714,7 @@ export class ReviewsService {
         const product = productMap.get(item.productId);
         orderItems.push({
           productId: item.productId,
-          productTitle: product?.title ?? item.productId,
+          productTitle: product?.title ?? 'Digital Product',
           productSlug: product?.slug ?? null,
           quantity: item.quantity ?? 1,
         });
@@ -786,7 +786,7 @@ export class ReviewsService {
         const product = productMap.get(item.productId);
         orderItems.push({
           productId: item.productId,
-          productTitle: product?.title ?? item.productId,
+          productTitle: product?.title ?? 'Digital Product',
           productSlug: product?.slug ?? null,
           quantity: item.quantity ?? 1,
         });

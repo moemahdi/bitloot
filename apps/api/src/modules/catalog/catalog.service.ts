@@ -15,6 +15,8 @@ interface PricingRuleData {
   fixedMarkupMinor?: number;
   floorMinor?: number;
   capMinor?: number;
+  minCostMinor?: number;
+  maxCostMinor?: number;
 }
 
 /**
@@ -24,23 +26,6 @@ interface PricingRuleData {
 function detectBusinessCategory(kinguinProduct: KinguinProductRaw): BusinessCategory {
   const name = kinguinProduct.name.toLowerCase();
   const genres = kinguinProduct.genres?.map(g => g.toLowerCase()) ?? [];
-
-  // Gift Cards detection
-  if (
-    name.includes('gift card') ||
-    name.includes('wallet code') ||
-    name.includes('wallet card') ||
-    name.includes('psn card') ||
-    name.includes('nintendo eshop') ||
-    name.includes('steam wallet') ||
-    name.includes('google play') ||
-    name.includes('itunes') ||
-    name.includes('spotify') ||
-    name.includes('netflix') ||
-    (name.includes('xbox live gold') && !name.includes('game pass'))
-  ) {
-    return 'gift-cards';
-  }
 
   // Subscriptions detection
   if (
@@ -106,7 +91,7 @@ export class CatalogService {
    */
   async upsertProduct(
     kinguinProduct: KinguinProductRaw,
-    businessCategoryOverride?: 'games' | 'software' | 'gift-cards' | 'subscriptions',
+    businessCategoryOverride?: 'games' | 'software' | 'subscriptions',
   ): Promise<Product> {
     // Use productId as the unique external identifier
     const externalId = kinguinProduct.productId;
@@ -295,9 +280,12 @@ export class CatalogService {
       if (kinguinProduct.systemRequirements !== undefined) product.systemRequirements = kinguinProduct.systemRequirements;
       if (kinguinProduct.steam !== undefined) product.steam = kinguinProduct.steam;
 
-      // Update businessCategory only if not manually set (still 'games' default)
-      // This allows admins to set categories manually while auto-detecting new imports
-      if (product.businessCategory === 'games' || product.businessCategory === undefined) {
+      // Update businessCategory:
+      // 1. If override is provided (admin import), always use it
+      // 2. Otherwise, only auto-detect if category is still default 'games'
+      if (businessCategoryOverride !== undefined) {
+        product.businessCategory = businessCategoryOverride;
+      } else if (product.businessCategory === 'games' || product.businessCategory === undefined) {
         const detectedCategory = detectBusinessCategory(kinguinProduct);
         if (detectedCategory !== 'games') {
           product.businessCategory = detectedCategory;
@@ -341,13 +329,18 @@ export class CatalogService {
 
   /**
    * Calculate selling price based on cost and pricing rules
+   * Rule selection priority:
+   * 1. Product-specific rule (by productId)
+   * 2. Cost-range global rule (matches minCostMinor/maxCostMinor)
+   * 3. Generic global rule (no cost range, productId IS NULL)
+   * 4. Hardcoded default (8% margin)
    */
   async calculatePrice(product: Product, cost: string): Promise<string> {
     const costNum = parseFloat(cost);
     let priceNum = costNum;
 
-    // Get applicable pricing rule (product-specific or default)
-    const rule = await this.getPricingRule(product.id);
+    // Get applicable pricing rule (product-specific, cost-range, or default)
+    const rule = await this.getPricingRule(product.id, costNum);
 
     switch (rule.rule_type) {
       case 'margin_percent': {
@@ -399,10 +392,20 @@ export class CatalogService {
   }
 
   /**
-   * Get pricing rule for product (product-specific or global default)
-   * Implements hierarchy: Product Rule → Global Rule → Hardcoded Default
+   * Get pricing rule for product based on cost
+   * Implements hierarchy:
+   * 1. Product-specific rule (by productId)
+   * 2. Cost-range global rule (matches minCostMinor <= cost < maxCostMinor)
+   * 3. Generic global rule (no cost range, productId IS NULL)
+   * 4. Hardcoded default (8% margin)
+   * 
+   * @param productId - The product ID to find rules for
+   * @param costEur - The product cost in EUR (used for cost-range matching)
    */
-  private async getPricingRule(productId: string): Promise<PricingRuleData> {
+  private async getPricingRule(productId: string, costEur: number): Promise<PricingRuleData> {
+    // Convert EUR to cents for database comparison
+    const costMinor = Math.round(costEur * 100);
+
     // Step 1: Try to find product-specific rule (highest priority)
     const productRule = await this.pricingRuleRepo.findOne({
       where: { productId, isActive: true },
@@ -416,14 +419,41 @@ export class CatalogService {
         fixedMarkupMinor: productRule.fixedMarkupMinor,
         floorMinor: productRule.floorMinor,
         capMinor: productRule.capMinor,
+        minCostMinor: productRule.minCostMinor,
+        maxCostMinor: productRule.maxCostMinor,
       };
     }
 
-    // Step 2: Try to find global rule (productId IS NULL)
+    // Step 2: Try to find cost-range global rule (minCostMinor <= cost < maxCostMinor)
+    const costRangeRule = await this.pricingRuleRepo
+      .createQueryBuilder('rule')
+      .where('rule.productId IS NULL')
+      .andWhere('rule.isActive = :isActive', { isActive: true })
+      .andWhere('rule.minCostMinor IS NOT NULL')
+      .andWhere('rule.maxCostMinor IS NOT NULL')
+      .andWhere('rule.minCostMinor <= :cost', { cost: costMinor })
+      .andWhere('rule.maxCostMinor > :cost', { cost: costMinor })
+      .orderBy('rule.priority', 'DESC')
+      .getOne();
+
+    if (costRangeRule !== null) {
+      return {
+        rule_type: costRangeRule.rule_type,
+        marginPercent: costRangeRule.marginPercent,
+        fixedMarkupMinor: costRangeRule.fixedMarkupMinor,
+        floorMinor: costRangeRule.floorMinor,
+        capMinor: costRangeRule.capMinor,
+        minCostMinor: costRangeRule.minCostMinor,
+        maxCostMinor: costRangeRule.maxCostMinor,
+      };
+    }
+
+    // Step 3: Try to find generic global rule (no cost range, productId IS NULL)
     const globalRule = await this.pricingRuleRepo
       .createQueryBuilder('rule')
       .where('rule.productId IS NULL')
       .andWhere('rule.isActive = :isActive', { isActive: true })
+      .andWhere('(rule.minCostMinor IS NULL OR rule.maxCostMinor IS NULL)')
       .orderBy('rule.priority', 'DESC')
       .getOne();
 
@@ -434,16 +464,20 @@ export class CatalogService {
         fixedMarkupMinor: globalRule.fixedMarkupMinor,
         floorMinor: globalRule.floorMinor,
         capMinor: globalRule.capMinor,
+        minCostMinor: globalRule.minCostMinor,
+        maxCostMinor: globalRule.maxCostMinor,
       };
     }
 
-    // Step 3: Fallback to hardcoded default (8% margin)
+    // Step 4: Fallback to hardcoded default (8% margin)
     return {
       rule_type: 'margin_percent',
       marginPercent: '8',
       fixedMarkupMinor: undefined,
       floorMinor: undefined,
       capMinor: undefined,
+      minCostMinor: undefined,
+      maxCostMinor: undefined,
     };
   }
 
@@ -490,7 +524,7 @@ export class CatalogService {
       platform?: string;
       region?: string;
       category?: string; // Kinguin genre
-      businessCategory?: string; // BitLoot category: games, software, gift-cards, subscriptions
+      businessCategory?: string; // BitLoot category: games, software, subscriptions
       minPrice?: number; // Minimum price in EUR
       maxPrice?: number; // Maximum price in EUR
       sort?: 'newest' | 'price_asc' | 'price_desc' | 'rating';
@@ -623,7 +657,7 @@ export class CatalogService {
    * Get multiple products by their IDs
    * Returns a Map for O(1) lookup of product titles
    */
-  async getProductsBySlugs(productIds: string[]): Promise<Map<string, Product>> {
+  async getProductsByIds(productIds: string[]): Promise<Map<string, Product>> {
     if (productIds.length === 0) {
       return new Map();
     }
@@ -745,6 +779,11 @@ export class CatalogService {
   /**
    * Create new pricing rule (admin only)
    * If productId is undefined, creates a global rule that applies to all products
+   * 
+   * For tiered pricing by cost range:
+   * - Set minCostMinor (e.g., 0 for €0)
+   * - Set maxCostMinor (e.g., 800 for €8)
+   * - Leave productId undefined for global application
    */
   async createPricingRule(data: {
     productId?: string;
@@ -753,6 +792,8 @@ export class CatalogService {
     fixedMarkupMinor?: number;
     floorMinor?: number;
     capMinor?: number;
+    minCostMinor?: number;
+    maxCostMinor?: number;
     priority?: number;
     isActive?: boolean;
   }): Promise<DynamicPricingRule> {
@@ -774,6 +815,8 @@ export class CatalogService {
       fixedMarkupMinor: data.fixedMarkupMinor,
       floorMinor: data.floorMinor,
       capMinor: data.capMinor,
+      minCostMinor: data.minCostMinor,
+      maxCostMinor: data.maxCostMinor,
       priority: data.priority ?? 0,
       isActive: data.isActive ?? true,
     });
@@ -792,6 +835,8 @@ export class CatalogService {
       fixedMarkupMinor?: number;
       floorMinor?: number;
       capMinor?: number;
+      minCostMinor?: number;
+      maxCostMinor?: number;
       priority?: number;
       isActive?: boolean;
     }>,
@@ -803,6 +848,8 @@ export class CatalogService {
     if (typeof data.fixedMarkupMinor === 'number') rule.fixedMarkupMinor = data.fixedMarkupMinor;
     if (typeof data.floorMinor === 'number') rule.floorMinor = data.floorMinor;
     if (typeof data.capMinor === 'number') rule.capMinor = data.capMinor;
+    if (typeof data.minCostMinor === 'number') rule.minCostMinor = data.minCostMinor;
+    if (typeof data.maxCostMinor === 'number') rule.maxCostMinor = data.maxCostMinor;
     if (typeof data.priority === 'number') rule.priority = data.priority;
     if (typeof data.isActive === 'boolean') rule.isActive = data.isActive;
 
@@ -893,6 +940,7 @@ export class CatalogService {
       drm: string;
       ageRating: string;
       category: string;
+      businessCategory: 'games' | 'software' | 'subscriptions';
       cost: string;
       price: string;
       currency: string;
@@ -916,6 +964,7 @@ export class CatalogService {
     if (typeof data.drm === 'string') product.drm = data.drm;
     if (typeof data.ageRating === 'string') product.ageRating = data.ageRating;
     if (typeof data.category === 'string') product.category = data.category;
+    if (typeof data.businessCategory === 'string') product.businessCategory = data.businessCategory;
     if (typeof data.cost === 'string') product.cost = data.cost;
     if (typeof data.price === 'string') product.price = data.price;
     if (typeof data.currency === 'string') product.currency = data.currency;
@@ -1086,6 +1135,8 @@ export class CatalogService {
     businessCategory?: string,
     featured?: boolean,
     genre?: string,
+    sortBy: 'createdAt' | 'title' | 'cost' | 'price' = 'createdAt',
+    sortOrder: 'asc' | 'desc' = 'desc',
   ): Promise<{ products: Product[]; total: number; page: number; limit: number; totalPages: number }> {
     let query = this.productRepo.createQueryBuilder('product');
 
@@ -1139,8 +1190,15 @@ export class CatalogService {
     const offset = (validPage - 1) * validLimit;
 
     // Get total count and paginated results
+    // Apply sorting based on sortBy and sortOrder
+    const sortColumn = sortBy === 'cost' ? 'product.cost' : 
+                       sortBy === 'price' ? 'product.price' :
+                       sortBy === 'title' ? 'product.title' :
+                       'product.createdAt';
+    const order = sortOrder.toUpperCase() as 'ASC' | 'DESC';
+    
     const [products, total] = await query
-      .orderBy('product.createdAt', 'DESC')
+      .orderBy(sortColumn, order)
       .skip(offset)
       .take(validLimit)
       .getManyAndCount();
@@ -1294,7 +1352,7 @@ export class CatalogService {
 
   /**
    * Get BitLoot business categories with product counts
-   * Returns the 4 main store categories: Games, Software, Gift Cards, Subscriptions
+   * Returns the 3 main store categories: Games, Software, Subscriptions
    */
   async getCategories(): Promise<{
     categories: Array<{

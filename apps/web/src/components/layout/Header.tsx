@@ -110,11 +110,6 @@ const NAV_LINKS: NavLink[] = [
         icon: RefreshCw,
     },
     { 
-        href: '/catalog?category=gift-cards', 
-        label: 'Gift Cards', 
-        icon: Gift,
-    },
-    { 
         href: '/deals', 
         label: 'Deals', 
         icon: Flame,
@@ -133,8 +128,14 @@ export function Header(): React.ReactElement {
     const [isSearchOpen, setIsSearchOpen] = useState(false);
     const [isMegaMenuOpen, setIsMegaMenuOpen] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
+    const [isMounted, setIsMounted] = useState(false);
     const megaMenuRef = useRef<HTMLDivElement>(null);
     const megaMenuTriggerRef = useRef<HTMLAnchorElement>(null);
+
+    // Mark as mounted for hydration-safe active link detection
+    useEffect(() => {
+        setIsMounted(true);
+    }, []);
 
     // Keyboard shortcut: ⌘K or Ctrl+K to focus search
     useEffect(() => {
@@ -185,12 +186,15 @@ export function Header(): React.ReactElement {
     };
 
     // Check if link is active (handles query params)
+    // Uses isMounted to prevent hydration mismatch since window.location is client-only
     const isActiveLink = (href: string): boolean => {
+        // Always return false during SSR to prevent hydration mismatch
+        if (!isMounted) return false;
+        
         const [linkPath, linkQuery] = href.split('?');
         if (pathname !== linkPath) return false;
         if (linkQuery === undefined) return true;
         // For category links, check if current URL has matching category
-        if (typeof window === 'undefined') return false;
         const urlParams = new URLSearchParams(window.location.search);
         const linkParams = new URLSearchParams(linkQuery);
         const linkCategory = linkParams.get('category');

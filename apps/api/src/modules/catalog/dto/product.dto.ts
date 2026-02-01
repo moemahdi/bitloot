@@ -103,9 +103,9 @@ export class ProductResponseDto {
   category?: string;
 
   @ApiProperty({
-    description: 'BitLoot business category: games, software, gift-cards, subscriptions',
+    description: 'BitLoot business category: games, software, subscriptions',
     example: 'games',
-    enum: ['games', 'software', 'gift-cards', 'subscriptions'],
+    enum: ['games', 'software', 'subscriptions'],
     required: false,
   })
   businessCategory?: string;

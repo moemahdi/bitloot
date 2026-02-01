@@ -20,7 +20,7 @@ export type SortOption =
 
 export type ViewMode = 'grid' | 'list' | 'compact';
 
-export type BusinessCategory = 'games' | 'software' | 'gift-cards' | 'subscriptions';
+export type BusinessCategory = 'games' | 'software' | 'subscriptions';
 
 export interface FilterState {
   search: string;
@@ -290,12 +290,6 @@ export const BUSINESS_CATEGORIES: CategoryOption[] = [
     label: 'Software', 
     description: 'Windows, Office & more',
     color: 'text-purple-neon',
-  },
-  { 
-    id: 'gift-cards', 
-    label: 'Gift Cards', 
-    description: 'Steam, PSN, Xbox & more',
-    color: 'text-pink-featured',
   },
   { 
     id: 'subscriptions', 

@@ -134,22 +134,6 @@ const HOMEPAGE_SECTIONS: SectionConfig[] = [
     maxProducts: 48,
   },
   {
-    key: 'featured_gift_cards',
-    name: 'Featured Gift Cards',
-    description: 'Gift cards shown in the Gift Cards tab. Shows up to 48 products with pagination.',
-    icon: CreditCard,
-    color: 'text-green-success',
-    maxProducts: 48,
-  },
-  {
-    key: 'quick_buy_gift_cards',
-    name: 'Quick Buy Gift Cards',
-    description: 'Gift cards shown in the Quick Buy section with instant add-to-cart. Shows up to 48 products with pagination.',
-    icon: Zap,
-    color: 'text-green-success',
-    maxProducts: 48,
-  },
-  {
     key: 'featured_subscriptions',
     name: 'Featured Subscriptions',
     description: 'Subscription services in the Subscriptions tab. Shows up to 48 products with pagination.',

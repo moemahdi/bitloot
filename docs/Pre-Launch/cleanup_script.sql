@@ -58,8 +58,8 @@ DO $$ BEGIN RAISE NOTICE '  ✓ Marketing data cleared'; END $$;
 -- ============================================
 TRUNCATE TABLE reviews CASCADE;
 TRUNCATE TABLE watchlist_items CASCADE;
-TRUNCATE TABLE promo_redemptions CASCADE;
-TRUNCATE TABLE sessions CASCADE;
+TRUNCATE TABLE promoredemptions CASCADE;
+TRUNCATE TABLE user_sessions CASCADE;
 
 DO $$ BEGIN RAISE NOTICE '  ✓ User activity data cleared'; END $$;
 
@@ -67,10 +67,9 @@ DO $$ BEGIN RAISE NOTICE '  ✓ User activity data cleared'; END $$;
 -- STEP 6: Clear test products
 -- (Starting fresh with real products)
 -- ============================================
-TRUNCATE TABLE product_group_members CASCADE;
 TRUNCATE TABLE product_groups CASCADE;
 TRUNCATE TABLE product_offers CASCADE;
-TRUNCATE TABLE pricing_rules CASCADE;
+TRUNCATE TABLE dynamic_pricing_rules CASCADE;
 TRUNCATE TABLE products CASCADE;
 
 DO $$ BEGIN RAISE NOTICE '  ✓ Products and pricing rules cleared'; END $$;
@@ -78,7 +77,7 @@ DO $$ BEGIN RAISE NOTICE '  ✓ Products and pricing rules cleared'; END $$;
 -- ============================================
 -- STEP 7: Clear promo codes (optional - uncomment if needed)
 -- ============================================
--- TRUNCATE TABLE promo_codes CASCADE;
+-- TRUNCATE TABLE promocodes CASCADE;
 -- DO $$ BEGIN RAISE NOTICE '  ✓ Promo codes cleared'; END $$;
 
 -- ============================================

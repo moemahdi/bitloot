@@ -50,17 +50,29 @@ export interface AdminPricingRuleResponseDto {
      */
     fixedMarkupMinor: number | null;
     /**
-     * 
+     * Floor price in cents - minimum selling price
      * @type {number}
      * @memberof AdminPricingRuleResponseDto
      */
     floorMinor: number | null;
     /**
-     * 
+     * Cap price in cents - maximum selling price
      * @type {number}
      * @memberof AdminPricingRuleResponseDto
      */
     capMinor: number | null;
+    /**
+     * Minimum cost in cents for rule to apply (inclusive)
+     * @type {number}
+     * @memberof AdminPricingRuleResponseDto
+     */
+    minCostMinor: number | null;
+    /**
+     * Maximum cost in cents for rule to apply (exclusive)
+     * @type {number}
+     * @memberof AdminPricingRuleResponseDto
+     */
+    maxCostMinor: number | null;
     /**
      * 
      * @type {number}
@@ -98,6 +110,8 @@ export function instanceOfAdminPricingRuleResponseDto(value: object): value is A
     if (!('fixedMarkupMinor' in value) || value['fixedMarkupMinor'] === undefined) return false;
     if (!('floorMinor' in value) || value['floorMinor'] === undefined) return false;
     if (!('capMinor' in value) || value['capMinor'] === undefined) return false;
+    if (!('minCostMinor' in value) || value['minCostMinor'] === undefined) return false;
+    if (!('maxCostMinor' in value) || value['maxCostMinor'] === undefined) return false;
     if (!('priority' in value) || value['priority'] === undefined) return false;
     if (!('isActive' in value) || value['isActive'] === undefined) return false;
     if (!('createdAt' in value) || value['createdAt'] === undefined) return false;
@@ -122,6 +136,8 @@ export function AdminPricingRuleResponseDtoFromJSONTyped(json: any, ignoreDiscri
         'fixedMarkupMinor': json['fixedMarkupMinor'],
         'floorMinor': json['floorMinor'],
         'capMinor': json['capMinor'],
+        'minCostMinor': json['minCostMinor'],
+        'maxCostMinor': json['maxCostMinor'],
         'priority': json['priority'],
         'isActive': json['isActive'],
         'createdAt': (new Date(json['createdAt'])),
@@ -147,6 +163,8 @@ export function AdminPricingRuleResponseDtoToJSONTyped(value?: AdminPricingRuleR
         'fixedMarkupMinor': value['fixedMarkupMinor'],
         'floorMinor': value['floorMinor'],
         'capMinor': value['capMinor'],
+        'minCostMinor': value['minCostMinor'],
+        'maxCostMinor': value['maxCostMinor'],
         'priority': value['priority'],
         'isActive': value['isActive'],
         'createdAt': value['createdAt'].toISOString(),

@@ -51,7 +51,7 @@ docker exec -i bitloot-db psql -U bitloot bitloot < docs/cleanup_script.sql
 - [ ] Create pricing rules (global 15% margin)
 - [ ] Add 10-15 AAA games
 - [ ] Add 5-10 indie games
-- [ ] Add 6-10 gift cards
+- [ ] Add 3-5 software products
 - [ ] Set competitive prices
 - [ ] Publish all products
 - [ ] Verify products appear on frontend

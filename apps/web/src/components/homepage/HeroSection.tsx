@@ -29,7 +29,7 @@ import { Badge } from '@/design-system/primitives/badge';
 const DYNAMIC_TAGLINES = [
     { text: 'Save Up to 80% on Top Titles', icon: TrendingUp, color: 'text-green-success' },
     { text: 'Keys & Accounts Delivered Instantly', icon: Zap, color: 'text-cyan-glow' },
-    { text: 'Games • Software • Gift Cards', icon: Sparkles, color: 'text-purple-neon' },
+    { text: 'Games • Software • Subscriptions', icon: Sparkles, color: 'text-purple-neon' },
     { text: 'Verified & Guaranteed Products', icon: ShieldCheck, color: 'text-orange-warning' },
 ];
 
@@ -72,7 +72,6 @@ function DynamicTagline(): React.ReactElement {
 const HEADLINE_PRODUCTS = [
     { text: 'Game Keys', color: 'text-cyan-glow' },
     { text: 'Software Licenses', color: 'text-purple-neon' },
-    { text: 'Gift Cards', color: 'text-pink-featured' },
     { text: 'Game Accounts', color: 'text-green-success' },
     { text: 'Subscriptions', color: 'text-orange-warning' },
 ];
@@ -322,7 +321,7 @@ export function HeroSection(): React.ReactElement {
                     className="text-lg md:text-xl text-text-secondary max-w-2xl mx-auto mb-10"
                 >
                     Discover thousands of digital products at unbeatable prices.
-                    Game keys, software licenses, gift cards & premium accounts — delivered instantly.
+                    Game keys, software licenses & premium accounts — delivered instantly.
                 </motion.p>
 
                 {/* Search Bar */}
@@ -348,7 +347,7 @@ export function HeroSection(): React.ReactElement {
                         />
                         <Input
                             type="search"
-                            placeholder="Search games, software, gift cards..."
+                            placeholder="Search games, software, subscriptions..."
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                             onFocus={() => setIsSearchFocused(true)}

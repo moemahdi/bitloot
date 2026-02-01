@@ -351,7 +351,7 @@ Keep in perpetuity:
 
 **If Platform Saturates (Too Much Competition):**
 - Niche down: MENA-only, Arabic-first games
-- Move to horizontal (add Steam gift cards, software)
+- Move to horizontal (add more software, subscriptions)
 - Invest in white-label "BitLoot Games" platform
 
 ---

@@ -52,7 +52,9 @@
 
 ---
 
-## Phase 1: Database Cleanup & Reset
+## Phase 1: Database Cleanup & Reset ✅ COMPLETED
+
+> **📝 Completed:** January 30, 2026 — All sandbox data cleared, admin user retained (`bitloot.biz@gmail.com`).
 
 > **📝 Note:** This cleanup removes **data only**, not tables. Your schema, columns, indexes, and relationships remain intact — just emptied of test data.
 
@@ -371,8 +373,8 @@ STRUCTURED_LOG_FORMAT=json
 |----------|----------|---------------|
 | AAA Games (Steam) | 🔴 High | 10-15 |
 | Indie Games (Steam) | 🟡 Medium | 5-10 |
-| PlayStation Gift Cards | 🔴 High | 3-5 |
-| Xbox Gift Cards | 🔴 High | 3-5 |
+| PlayStation Games | 🔴 High | 5-10 |
+| Xbox Games | 🟡 Medium | 3-5 |
 | Nintendo eShop | 🟡 Medium | 2-3 |
 | Software (Windows) | 🟢 Low | 2-3 |
 
@@ -401,22 +403,48 @@ STRUCTURED_LOG_FORMAT=json
 
 ### 3.5 Pricing Strategy
 
-**Recommended Pricing Rules:**
+#### Operational Costs (Per Transaction)
 
-| Product Type | Cost | Markup | Retail Price |
-|--------------|------|--------|--------------|
-| AAA Games | €40 | 15-20% | €46-48 |
-| Indie Games | €15 | 20-25% | €18-19 |
-| Gift Cards | €25 | 5-8% | €26-27 |
-| Software | €50 | 10-15% | €55-58 |
+| Cost Component | Amount | Notes |
+|----------------|--------|-------|
+| NOWPayments Fee | ~1% | Crypto payment processing |
+| Cloudflare R2 | ~€0.01 | Key storage & delivery |
+| Resend Emails | ~€0.01 | 2-3 emails per order |
+| Infrastructure | ~€0.05 | Server, Redis, DB share |
+| **Total Fixed** | **~€0.07 + 1%** | Per transaction |
+
+#### Recommended Tiered Markup Strategy
+
+| Cost Range | Markup | Example (Cost → Sell) | Net Profit |
+|------------|--------|----------------------|------------|
+| Budget (<€8) | 35% | €5 → €6.75 | ~€1.63 |
+| Standard (€8-€25) | 25% | €10 → €12.49 | ~€2.24 |
+| Mid-Tier (€25-€45) | 20% | €30 → €36.00 | ~€5.57 |
+| Premium (€45-€70) | 15% | €50 → €57.50 | ~€6.85 |
+| AAA/Deluxe (>€70) | 12% | €80 → €89.60 | ~€8.64 |
+
+**Minimum Price Floor:** €5 (NOWPayments may fail on micro-payments)
+
+#### Product Type Margins
+
+| Product Type | Cost Range | Recommended Markup |
+|--------------|------------|-------------------|
+| AAA Games | €40-80 | 12-15% |
+| Standard Games | €15-40 | 20-25% |
+| Indie Games | €5-15 | 30-35% |
+| Software | €30-150 | 15-20% |
+| Subscriptions | €10-100 | 15-20% |
+| DLC/Add-ons | €5-25 | 25-30% |
 
 **Create Pricing Rules in Admin:**
 1. Navigate to `/admin/catalog/rules`
-2. Create global rule: 15% margin default
-3. Create category-specific rules:
-   - Games: 18% margin
-   - Gift Cards: 6% margin
-   - Software: 12% margin
+2. Create tiered rules by cost range:
+   - Budget (<€8): 35% margin
+   - Standard (€8-€25): 25% margin
+   - Mid-Tier (€25-€45): 20% margin
+   - Premium (€45-€70): 15% margin
+   - AAA/Deluxe (>€70): 12% margin
+3. Set minimum price floor: €5
 
 ### 3.6 Product Checklist
 

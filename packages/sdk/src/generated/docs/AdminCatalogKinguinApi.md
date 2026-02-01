@@ -37,7 +37,7 @@ async function example() {
   const body = {
     // string | Kinguin product ID to import
     productId: 5c9b5b4b4f4c4c4c4c4c4c4c,
-    // 'games' | 'software' | 'gift-cards' | 'subscriptions' | Business category for the imported product (optional)
+    // 'games' | 'software' | 'subscriptions' | Business category for the imported product (optional)
     businessCategory: businessCategory_example,
   } satisfies AdminKinguinControllerImportProductRequest;
 
@@ -59,7 +59,7 @@ example().catch(console.error);
 | Name | Type | Description  | Notes |
 |------------- | ------------- | ------------- | -------------|
 | **productId** | `string` | Kinguin product ID to import | [Defaults to `undefined`] |
-| **businessCategory** | `games`, `software`, `gift-cards`, `subscriptions` | Business category for the imported product | [Optional] [Defaults to `undefined`] [Enum: games, software, gift-cards, subscriptions] |
+| **businessCategory** | `games`, `software`, `subscriptions` | Business category for the imported product | [Optional] [Defaults to `undefined`] [Enum: games, software, subscriptions] |
 
 ### Return type
 

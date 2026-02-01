@@ -161,11 +161,13 @@ export class AdminProductsController {
   @ApiQuery({ name: 'region', required: false, description: 'Filter by region' })
   @ApiQuery({ name: 'published', required: false, description: 'Filter by published status (true/false)' })
   @ApiQuery({ name: 'source', required: false, description: 'Filter by source (kinguin/custom)' })
-  @ApiQuery({ name: 'businessCategory', required: false, description: 'Filter by business category (games/software/gift-cards/subscriptions)' })
+  @ApiQuery({ name: 'businessCategory', required: false, description: 'Filter by business category (games/software/subscriptions)' })
   @ApiQuery({ name: 'genre', required: false, description: 'Filter by genre (e.g., Action, RPG, Strategy)' })
   @ApiQuery({ name: 'featured', required: false, description: 'Filter by featured status (true/false)' })
   @ApiQuery({ name: 'page', required: false, description: 'Page number (1-based)', example: 1 })
   @ApiQuery({ name: 'limit', required: false, description: 'Items per page (max 100)', example: 25 })
+  @ApiQuery({ name: 'sortBy', required: false, description: 'Sort field', enum: ['createdAt', 'title', 'cost', 'price'] })
+  @ApiQuery({ name: 'sortOrder', required: false, description: 'Sort order', enum: ['asc', 'desc'] })
   @ApiResponse({
     status: 200,
     type: AdminProductsListResponseDto,
@@ -182,6 +184,8 @@ export class AdminProductsController {
     @Query('featured') featured?: string,
     @Query('page') pageStr?: string,
     @Query('limit') limitStr?: string,
+    @Query('sortBy') sortBy?: 'createdAt' | 'title' | 'cost' | 'price',
+    @Query('sortOrder') sortOrder?: 'asc' | 'desc',
   ): Promise<AdminProductsListResponseDto> {
     try {
       const publishedBool =
@@ -206,6 +210,8 @@ export class AdminProductsController {
         businessCategory,
         featuredBool,
         genre,
+        sortBy,
+        sortOrder,
       );
 
       return {
@@ -315,6 +321,7 @@ export class AdminProductsController {
         drm: dto.drm,
         ageRating: dto.ageRating,
         category: dto.category,
+        businessCategory: dto.businessCategory,
         cost: dto.cost,
         price: dto.price,
         currency: dto.currency,

@@ -63,7 +63,6 @@ import {
 const CATEGORY_ICONS: Record<BusinessCategory, LucideIcon> = {
   'games': Gamepad2,
   'software': Monitor,
-  'gift-cards': Gift,
   'subscriptions': Clock,
 };
 

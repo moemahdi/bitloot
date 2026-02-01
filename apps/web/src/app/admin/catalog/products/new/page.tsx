@@ -88,7 +88,6 @@ const CATEGORIES = [
     { value: 'software', label: 'Software' },
     { value: 'subscriptions', label: 'Subscriptions' },
     { value: 'dlc', label: 'DLC' },
-    { value: 'gift-cards', label: 'Gift Cards' },
     { value: 'other', label: 'Other' },
 ] as const;
 
@@ -110,7 +109,7 @@ interface FormData {
     drm: string;
     ageRating: string;
     category: string;
-    businessCategory: 'games' | 'software' | 'gift-cards' | 'subscriptions';
+    businessCategory: 'games' | 'software' | 'subscriptions';
     cost: string;
     price: string;
     currency: string;
@@ -513,7 +512,6 @@ export default function AdminCreateProductPage(): React.JSX.Element {
                                         <SelectContent className="border-border-subtle bg-bg-secondary/95 backdrop-blur-xl">
                                             <SelectItem value="games">Games</SelectItem>
                                             <SelectItem value="software">Software</SelectItem>
-                                            <SelectItem value="gift-cards">Gift Cards</SelectItem>
                                             <SelectItem value="subscriptions">Subscriptions</SelectItem>
                                         </SelectContent>
                                     </Select>

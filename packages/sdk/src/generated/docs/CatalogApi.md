@@ -360,7 +360,7 @@ async function example() {
     platform: platform_example,
     // string | Filter by region (US, EU, etc) (optional)
     region: region_example,
-    // string | Filter by BitLoot category: games, software, gift-cards, subscriptions (optional)
+    // string | Filter by BitLoot category: games, software, subscriptions (optional)
     businessCategory: businessCategory_example,
     // string | Filter by genre (legacy Kinguin genres) (optional)
     category: category_example,
@@ -398,7 +398,7 @@ example().catch(console.error);
 | **q** | `string` | Search query (full-text) | [Optional] [Defaults to `undefined`] |
 | **platform** | `string` | Filter by platform (Steam, Epic, etc) | [Optional] [Defaults to `undefined`] |
 | **region** | `string` | Filter by region (US, EU, etc) | [Optional] [Defaults to `undefined`] |
-| **businessCategory** | `string` | Filter by BitLoot category: games, software, gift-cards, subscriptions | [Optional] [Defaults to `undefined`] |
+| **businessCategory** | `string` | Filter by BitLoot category: games, software, subscriptions | [Optional] [Defaults to `undefined`] |
 | **category** | `string` | Filter by genre (legacy Kinguin genres) | [Optional] [Defaults to `undefined`] |
 | **featured** | `boolean` | Show only featured products | [Optional] [Defaults to `undefined`] |
 | **minPrice** | `number` | Minimum price filter (EUR) | [Optional] [Defaults to `undefined`] |

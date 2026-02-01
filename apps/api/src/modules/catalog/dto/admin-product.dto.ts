@@ -25,7 +25,7 @@ export type ProductSourceType = 'custom' | 'kinguin';
 /**
  * Business category for BitLoot store organization
  */
-export type BusinessCategory = 'games' | 'software' | 'gift-cards' | 'subscriptions';
+export type BusinessCategory = 'games' | 'software' | 'subscriptions';
 
 /**
  * Canonical business categories for BitLoot
@@ -33,7 +33,6 @@ export type BusinessCategory = 'games' | 'software' | 'gift-cards' | 'subscripti
 export const BITLOOT_CATEGORIES = [
   { id: 'games' as const, label: 'Games', icon: 'Gamepad2', description: 'PC & Console game keys and accounts' },
   { id: 'software' as const, label: 'Software', icon: 'Monitor', description: 'Windows, Office, antivirus & more' },
-  { id: 'gift-cards' as const, label: 'Gift Cards', icon: 'Gift', description: 'Steam, PlayStation, Xbox & more' },
   { id: 'subscriptions' as const, label: 'Subscriptions', icon: 'Clock', description: 'Game Pass, PS Plus, EA Play' },
 ] as const;
 
@@ -114,12 +113,12 @@ export class CreateProductDto {
 
   @ApiProperty({
     description: 'Business category for store organization',
-    enum: ['games', 'software', 'gift-cards', 'subscriptions'],
+    enum: ['games', 'software', 'subscriptions'],
     default: 'games',
     example: 'games',
   })
   @IsOptional()
-  @IsIn(['games', 'software', 'gift-cards', 'subscriptions'])
+  @IsIn(['games', 'software', 'subscriptions'])
   businessCategory?: BusinessCategory;
 
   @ApiProperty({
@@ -224,12 +223,12 @@ export class UpdateProductDto {
 
   @ApiProperty({
     description: 'Business category for store organization',
-    enum: ['games', 'software', 'gift-cards', 'subscriptions'],
+    enum: ['games', 'software', 'subscriptions'],
     required: false,
     example: 'games',
   })
   @IsOptional()
-  @IsIn(['games', 'software', 'gift-cards', 'subscriptions'])
+  @IsIn(['games', 'software', 'subscriptions'])
   businessCategory?: BusinessCategory;
 
   @ApiProperty({
@@ -396,10 +395,10 @@ export class AdminProductResponseDto {
 
   @ApiProperty({
     description: 'Business category for store organization',
-    enum: ['games', 'software', 'gift-cards', 'subscriptions'],
+    enum: ['games', 'software', 'subscriptions'],
     example: 'games',
   })
-  businessCategory!: 'games' | 'software' | 'gift-cards' | 'subscriptions';
+  businessCategory!: 'games' | 'software' | 'subscriptions';
 
   @ApiProperty({
     description: 'Whether this product is featured on the homepage',

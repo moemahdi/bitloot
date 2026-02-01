@@ -14,7 +14,7 @@ import { BundleProduct } from './bundle-product.entity';
 
 /**
  * Represents a Bundle Deal - a curated package of products at a discounted price
- * Bundles can mix different product types (games, software, gift cards, subscriptions)
+ * Bundles can mix different product types (games, software, subscriptions)
  */
 @Entity('bundle_deals')
 @Index(['isActive', 'isFeatured', 'displayOrder'])

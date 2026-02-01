@@ -170,7 +170,7 @@ export function CatalogHero({
               <Input
                 ref={searchInputRef}
                 type="text"
-                placeholder="Search games, software, gift cards..."
+                placeholder="Search games, software, subscriptions..."
                 value={searchValue}
                 onChange={(e) => onSearchChange(e.target.value)}
                 onKeyDown={handleKeyPress}

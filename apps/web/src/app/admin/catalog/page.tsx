@@ -37,17 +37,6 @@ const CATEGORY_CONFIG = {
         gradientFrom: 'from-purple-neon/20',
         gradientTo: 'to-transparent'
     },
-    'gift-cards': { 
-        label: 'Gift Cards', 
-        icon: Gift, 
-        color: 'text-pink-featured', 
-        bgColor: 'bg-pink-featured/10', 
-        borderColor: 'border-pink-featured/30',
-        hoverBorder: 'hover:border-pink-featured',
-        glowClass: 'hover:shadow-glow-pink',
-        gradientFrom: 'from-pink-featured/20',
-        gradientTo: 'to-transparent'
-    },
     subscriptions: { 
         label: 'Subscriptions', 
         icon: Clock, 
@@ -67,7 +56,7 @@ const productsApi = new AdminCatalogProductsApi(apiConfig);
 const STATS_STALE_TIME = 120_000; // 2 minutes
 const STATS_GC_TIME = 300_000; // 5 minutes
 
-type BusinessCategory = 'games' | 'software' | 'gift-cards' | 'subscriptions';
+type BusinessCategory = 'games' | 'software' | 'subscriptions';
 
 interface CategoryStats {
     category: BusinessCategory;
@@ -161,7 +150,7 @@ export default function AdminCatalogPage(): React.ReactElement | null {
         queryKey: ['admin-category-stats'],
         queryFn: async () => {
             // Fetch counts for each category
-            const categories: BusinessCategory[] = ['games', 'software', 'gift-cards', 'subscriptions'];
+            const categories: BusinessCategory[] = ['games', 'software', 'subscriptions'];
             const stats = await Promise.all(
                 categories.map(async (cat) => {
                     const total = await productsApi.adminProductsControllerListAll({

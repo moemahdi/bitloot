@@ -2,7 +2,7 @@
  * CategoryTabs Component
  * 
  * Horizontal scrollable category navigation tabs.
- * Shows All, Games, Software, Gift Cards, Subscriptions.
+ * Shows All, Games, Software, Subscriptions.
  */
 'use client';
 
@@ -48,13 +48,6 @@ const CATEGORY_TABS: CategoryTab[] = [
     icon: Monitor, 
     color: 'text-purple-neon',
     hoverColor: 'hover:text-purple-neon',
-  },
-  { 
-    id: 'gift-cards', 
-    label: 'Gift Cards', 
-    icon: Gift, 
-    color: 'text-pink-featured',
-    hoverColor: 'hover:text-pink-featured',
   },
   { 
     id: 'subscriptions', 

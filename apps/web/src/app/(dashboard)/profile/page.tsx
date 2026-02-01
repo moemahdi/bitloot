@@ -1895,7 +1895,7 @@ export default function ProfilePage(): React.ReactElement {
                               {/* Product Title(s) */}
                               {firstItem !== null && firstItem !== undefined && (
                                 <p className="text-sm text-text-primary mb-1 truncate">
-                                  {firstItem.productTitle}
+                                  {firstItem.productTitle ?? 'Digital Product'}
                                   {hasMultipleItems && (
                                     <span className="text-text-muted ml-1">
                                       + {items.length - 1} more {items.length - 1 === 1 ? 'item' : 'items'}
@@ -2352,7 +2352,7 @@ export default function ProfilePage(): React.ReactElement {
                                       {order.items.map((item: OrderItemResponseDto, idx) => (
                                         <div key={item.id} className="flex items-center gap-2 text-sm">
                                           <div className="h-6 w-6 rounded bg-blue-500/20 flex items-center justify-center text-xs text-blue-400 font-bold">{idx + 1}</div>
-                                          <span className="text-text-primary">{item.productTitle}</span>
+                                          <span className="text-text-primary">{item.productTitle ?? 'Digital Product'}</span>
                                         </div>
                                       ))}
                                     </div>
@@ -2379,10 +2379,7 @@ export default function ProfilePage(): React.ReactElement {
                                           </div>
                                           <div>
                                             <p className="text-sm font-medium text-text-primary">
-                                              {item.productTitle}
-                                            </p>
-                                            <p className="text-xs text-text-muted">
-                                              Source: {item.sourceType ?? 'custom'}
+                                              {item.productTitle ?? 'Digital Product'}
                                             </p>
                                           </div>
                                         </div>

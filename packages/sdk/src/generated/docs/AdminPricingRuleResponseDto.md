@@ -13,6 +13,8 @@ Name | Type
 `fixedMarkupMinor` | number
 `floorMinor` | number
 `capMinor` | number
+`minCostMinor` | number
+`maxCostMinor` | number
 `priority` | number
 `isActive` | boolean
 `createdAt` | Date
@@ -32,6 +34,8 @@ const example = {
   "fixedMarkupMinor": null,
   "floorMinor": null,
   "capMinor": null,
+  "minCostMinor": null,
+  "maxCostMinor": null,
   "priority": null,
   "isActive": null,
   "createdAt": null,

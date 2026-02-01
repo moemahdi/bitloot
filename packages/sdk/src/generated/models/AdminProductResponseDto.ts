@@ -383,7 +383,6 @@ export type AdminProductResponseDtoSourceTypeEnum = typeof AdminProductResponseD
 export const AdminProductResponseDtoBusinessCategoryEnum = {
     Games: 'games',
     Software: 'software',
-    GiftCards: 'gift-cards',
     Subscriptions: 'subscriptions'
 } as const;
 export type AdminProductResponseDtoBusinessCategoryEnum = typeof AdminProductResponseDtoBusinessCategoryEnum[keyof typeof AdminProductResponseDtoBusinessCategoryEnum];

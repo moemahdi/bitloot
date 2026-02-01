@@ -36,7 +36,6 @@ const shopLinks = [
     { href: '/catalog', label: 'All Products', icon: Package },
     { href: '/catalog?category=games', label: 'Games', icon: Gamepad2 },
     { href: '/catalog?category=software', label: 'Software', icon: Globe },
-    { href: '/catalog?category=gift-cards', label: 'Gift Cards', icon: Gift },
     { href: '/catalog?category=subscriptions', label: 'Subscriptions', icon: RefreshCw },
 ];
 
@@ -245,7 +244,7 @@ export function Footer(): React.ReactElement {
                         </Link>
                         
                         <p className="text-sm text-text-secondary leading-relaxed max-w-sm">
-                            Your trusted crypto gaming marketplace. Get instant access to game keys, software licenses, gift cards, and subscriptions. 
+                            Your trusted crypto gaming marketplace. Get instant access to game keys, software licenses, and subscriptions. 
                             Pay with 300+ cryptocurrencies and receive your products in minutes, not days.
                         </p>
                         

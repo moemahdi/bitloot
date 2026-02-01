@@ -32,13 +32,6 @@ const BITLOOT_CATEGORIES = [
     color: 'text-purple-neon',
   },
   { 
-    id: 'gift-cards', 
-    label: 'Gift Cards', 
-    icon: Gift,
-    description: 'Steam, PSN, Xbox & more',
-    color: 'text-pink-featured',
-  },
-  { 
     id: 'subscriptions', 
     label: 'Subscriptions', 
     icon: Clock,

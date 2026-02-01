@@ -102,7 +102,7 @@ export interface ProductResponseDto {
      */
     category?: string;
     /**
-     * BitLoot business category: games, software, gift-cards, subscriptions
+     * BitLoot business category: games, software, subscriptions
      * @type {string}
      * @memberof ProductResponseDto
      */
@@ -248,7 +248,6 @@ export interface ProductResponseDto {
 export const ProductResponseDtoBusinessCategoryEnum = {
     Games: 'games',
     Software: 'software',
-    GiftCards: 'gift-cards',
     Subscriptions: 'subscriptions'
 } as const;
 export type ProductResponseDtoBusinessCategoryEnum = typeof ProductResponseDtoBusinessCategoryEnum[keyof typeof ProductResponseDtoBusinessCategoryEnum];

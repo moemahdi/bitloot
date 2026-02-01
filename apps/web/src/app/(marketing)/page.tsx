@@ -3,7 +3,7 @@
 /**
  * BitLoot Homepage - 6-Section Architecture + Supporting Sections
  * 
- * Optimized for showcasing 4 product types (Games, Software, Gift Cards, Subscriptions)
+ * Optimized for showcasing 3 product types (Games, Software, Subscriptions)
  * without overwhelming users. Each section serves a specific user intent.
  * 
  * Core Product Sections (6-Section Architecture):
@@ -11,16 +11,15 @@
  * 2. HeroSection - Value prop + search + trust bar
  * 3. FlashDealSection - Urgency (8-12 products with countdown)
  * 4. TrendingNowGrid - Social proof (top 12 by sales)
- * 5. FeaturedByTypeSection - Equality (4 tabs for product types)
+ * 5. FeaturedByTypeSection - Equality (tabs for product types)
  * 6. BundleDealsSection - Upsell (existing)
  * 7. CategoryBrowser - Discovery (grouped category tiles)
- * 8. GiftCardQuickBuy - Impulse (2-click purchase)
  * 
  * Supporting Sections:
- * 9. BenefitsSection - Why choose us
- * 10. SocialProofSection - Trust + live purchases
- * 11. FAQSection - Common questions
- * 12. CTASection - Final call to action
+ * 8. BenefitsSection - Why choose us
+ * 9. SocialProofSection - Trust + live purchases
+ * 10. FAQSection - Common questions
+ * 11. CTASection - Final call to action
  */
 
 import { useState } from 'react';
@@ -67,7 +66,6 @@ import {
     TrendingNowGrid,
     FeaturedByTypeSection,
     CategoryBrowser,
-    GiftCardQuickBuy,
 } from '@/components/homepage';
 
 // ============================================================================
@@ -607,9 +605,6 @@ export default function HomePage(): React.ReactElement {
             
             {/* Section 6: Shop by Category - Discovery with grouped tiles */}
             <CategoryBrowser />
-            
-            {/* Section 7: Gift Cards Quick-Buy - Impulse 2-click purchase */}
-            <GiftCardQuickBuy />
             
             {/* ===== SUPPORTING SECTIONS ===== */}
             

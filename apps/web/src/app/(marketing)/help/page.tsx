@@ -182,7 +182,7 @@ const ALL_FAQS: FAQItemData[] = [
   {
     id: 'what-is-bitloot',
     question: 'What is BitLoot?',
-    answer: 'BitLoot is a cryptocurrency-only digital marketplace for game keys, software licenses, gift cards, and subscriptions. We offer instant delivery, secure encrypted key storage, and support for 300+ cryptocurrencies. All transactions are secure, and keys are delivered within minutes of payment confirmation.',
+    answer: 'BitLoot is a cryptocurrency-only digital marketplace for game keys, software licenses, and subscriptions. We offer instant delivery, secure encrypted key storage, and support for 300+ cryptocurrencies. All transactions are secure, and keys are delivered within minutes of payment confirmation.',
     category: 'getting-started',
   },
   {

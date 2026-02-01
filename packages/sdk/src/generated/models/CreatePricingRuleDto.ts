@@ -44,17 +44,29 @@ export interface CreatePricingRuleDto {
      */
     fixedMarkupMinor?: number;
     /**
-     * Floor price in minor units (cents)
+     * Floor price in minor units (cents) - minimum selling price
      * @type {number}
      * @memberof CreatePricingRuleDto
      */
     floorMinor?: number;
     /**
-     * Cap price in minor units (cents)
+     * Cap price in minor units (cents) - maximum selling price
      * @type {number}
      * @memberof CreatePricingRuleDto
      */
     capMinor?: number;
+    /**
+     * Minimum cost in minor units (cents) for rule to apply (inclusive). Use for tiered pricing by cost range.
+     * @type {number}
+     * @memberof CreatePricingRuleDto
+     */
+    minCostMinor?: number;
+    /**
+     * Maximum cost in minor units (cents) for rule to apply (exclusive). Use for tiered pricing by cost range.
+     * @type {number}
+     * @memberof CreatePricingRuleDto
+     */
+    maxCostMinor?: number;
     /**
      * Rule priority (0 = highest)
      * @type {number}
@@ -108,6 +120,8 @@ export function CreatePricingRuleDtoFromJSONTyped(json: any, ignoreDiscriminator
         'fixedMarkupMinor': json['fixedMarkupMinor'] == null ? undefined : json['fixedMarkupMinor'],
         'floorMinor': json['floorMinor'] == null ? undefined : json['floorMinor'],
         'capMinor': json['capMinor'] == null ? undefined : json['capMinor'],
+        'minCostMinor': json['minCostMinor'] == null ? undefined : json['minCostMinor'],
+        'maxCostMinor': json['maxCostMinor'] == null ? undefined : json['maxCostMinor'],
         'priority': json['priority'],
         'isActive': json['isActive'],
     };
@@ -130,6 +144,8 @@ export function CreatePricingRuleDtoToJSONTyped(value?: CreatePricingRuleDto | n
         'fixedMarkupMinor': value['fixedMarkupMinor'],
         'floorMinor': value['floorMinor'],
         'capMinor': value['capMinor'],
+        'minCostMinor': value['minCostMinor'],
+        'maxCostMinor': value['maxCostMinor'],
         'priority': value['priority'],
         'isActive': value['isActive'],
     };

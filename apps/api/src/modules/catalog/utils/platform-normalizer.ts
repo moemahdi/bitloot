@@ -80,7 +80,7 @@ const PLATFORM_NORMALIZATION: Record<string, string> = {
   'other': 'Other',
   'global': 'Global',
   
-  // Gift cards / Non-game platforms
+  // Subscription / streaming platforms
   'amazon': 'Amazon',
   'google play': 'Google Play',
   'apple': 'Apple',

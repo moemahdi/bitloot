@@ -188,7 +188,7 @@ export default function TermsOfServicePage(): React.ReactElement {
               <p className="text-lg text-text-secondary leading-relaxed">
                 Welcome to BitLoot! These Terms of Service (&quot;Terms&quot;) govern your access to and use of the BitLoot 
                 website, services, and applications (collectively, the &quot;Platform&quot;). BitLoot is a cryptocurrency-only 
-                digital marketplace that provides instant delivery of game keys, software licenses, gift cards, and 
+                digital marketplace that provides instant delivery of game keys, software licenses, and 
                 digital subscriptions.
               </p>
             </motion.div>
@@ -273,7 +273,7 @@ export default function TermsOfServicePage(): React.ReactElement {
               <h3 className="text-lg font-semibold text-text-primary mt-6 mb-3">4.1 Product Descriptions</h3>
               <p>
                 BitLoot offers digital products including but not limited to game keys, software licenses, 
-                gift cards, and subscription codes. All products are sourced from authorized distributors 
+                and subscription codes. All products are sourced from authorized distributors 
                 and verified suppliers. We strive to provide accurate product descriptions, but we do not 
                 warrant that descriptions are error-free.
               </p>

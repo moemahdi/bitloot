@@ -92,7 +92,6 @@ const CATEGORIES = [
     { value: 'software', label: 'Software' },
     { value: 'subscriptions', label: 'Subscriptions' },
     { value: 'dlc', label: 'DLC' },
-    { value: 'gift-cards', label: 'Gift Cards' },
     { value: 'other', label: 'Other' },
 ] as const;
 

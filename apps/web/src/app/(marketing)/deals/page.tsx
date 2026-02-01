@@ -91,7 +91,7 @@ export default function DealsPage(): React.ReactElement {
                         </h2>
                         <p className="text-text-secondary mb-8 max-w-xl mx-auto">
                             Browse our full catalog with thousands of games, software,
-                            gift cards, and subscriptions.
+                            and subscriptions.
                         </p>
                         <Button asChild size="lg" className="btn-primary">
                             <Link href="/catalog">

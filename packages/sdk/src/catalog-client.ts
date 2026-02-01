@@ -11,9 +11,9 @@ const config = new Configuration({
 const catalogApiInstance = new CatalogApi(config);
 
 /**
- * BitLoot Business Category - The 4 main store sections
+ * BitLoot Business Category - The 3 main store sections
  */
-export type BusinessCategory = 'games' | 'software' | 'gift-cards' | 'subscriptions';
+export type BusinessCategory = 'games' | 'software' | 'subscriptions';
 
 /**
  * Category item returned from dynamic aggregation
@@ -107,7 +107,7 @@ export const catalogClient = {
         q?: string;
         platform?: string;
         region?: string;
-        businessCategory?: string; // 'games' | 'software' | 'gift-cards' | 'subscriptions'
+        businessCategory?: string; // 'games' | 'software' | 'subscriptions'
         category?: string; // Legacy genre filter
         sort?: 'newest' | 'price_asc' | 'price_desc' | 'rating';
         limit?: number;

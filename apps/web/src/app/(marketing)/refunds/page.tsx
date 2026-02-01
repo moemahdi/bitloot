@@ -285,7 +285,7 @@ export default function RefundPolicyPage(): React.ReactElement {
           >
             <CriticalWarning title="Important: Please Read Before Purchasing">
               <p className="mb-3">
-                BitLoot sells <strong>digital products</strong> (game keys, software licenses, gift cards, 
+                BitLoot sells <strong>digital products</strong> (game keys, software licenses, 
                 subscriptions) that are delivered <strong>instantly</strong> upon payment confirmation. Due to the 
                 nature of digital goods:
               </p>

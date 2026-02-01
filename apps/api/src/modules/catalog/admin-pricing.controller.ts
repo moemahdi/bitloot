@@ -48,6 +48,8 @@ export class AdminPricingController {
       fixedMarkupMinor: rule.fixedMarkupMinor ?? undefined,
       floorMinor: rule.floorMinor ?? undefined,
       capMinor: rule.capMinor ?? undefined,
+      minCostMinor: rule.minCostMinor ?? undefined,
+      maxCostMinor: rule.maxCostMinor ?? undefined,
       priority: rule.priority,
       isActive: rule.isActive,
       createdAt: rule.createdAt,
@@ -163,6 +165,8 @@ export class AdminPricingController {
         fixedMarkupMinor: dto.fixedMarkupMinor,
         floorMinor: dto.floorMinor,
         capMinor: dto.capMinor,
+        minCostMinor: dto.minCostMinor,
+        maxCostMinor: dto.maxCostMinor,
         priority: dto.priority,
         isActive: dto.isActive,
       });
@@ -193,6 +197,8 @@ export class AdminPricingController {
         fixedMarkupMinor: dto.fixedMarkupMinor,
         floorMinor: dto.floorMinor,
         capMinor: dto.capMinor,
+        minCostMinor: dto.minCostMinor,
+        maxCostMinor: dto.maxCostMinor,
         priority: dto.priority,
         isActive: dto.isActive,
       });

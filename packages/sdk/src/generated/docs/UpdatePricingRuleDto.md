@@ -11,6 +11,8 @@ Name | Type
 `fixedMarkupMinor` | number
 `floorMinor` | number
 `capMinor` | number
+`minCostMinor` | number
+`maxCostMinor` | number
 `priority` | number
 `isActive` | boolean
 
@@ -26,6 +28,8 @@ const example = {
   "fixedMarkupMinor": null,
   "floorMinor": null,
   "capMinor": null,
+  "minCostMinor": null,
+  "maxCostMinor": null,
   "priority": null,
   "isActive": null,
 } satisfies UpdatePricingRuleDto

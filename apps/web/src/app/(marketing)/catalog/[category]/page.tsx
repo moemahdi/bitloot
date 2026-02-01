@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 
 // Valid business categories for BitLoot
-const VALID_CATEGORIES = ['games', 'software', 'gift-cards', 'subscriptions'] as const;
+const VALID_CATEGORIES = ['games', 'software', 'subscriptions'] as const;
 type ValidCategory = (typeof VALID_CATEGORIES)[number];
 
 // Category metadata for SEO and UI
@@ -17,10 +17,6 @@ const CATEGORY_META: Record<ValidCategory, { title: string; description: string 
   software: {
     title: 'Software Licenses',
     description: 'Get Windows, Office, antivirus, and other software licenses at great prices.',
-  },
-  'gift-cards': {
-    title: 'Gift Cards',
-    description: 'Purchase Steam Wallet, PlayStation, Xbox, and other digital gift cards.',
   },
   subscriptions: {
     title: 'Gaming Subscriptions',
@@ -35,7 +31,7 @@ interface CategoryPageProps {
 /**
  * Category Landing Page
  * 
- * Routes like /catalog/games, /catalog/software, /catalog/gift-cards, /catalog/subscriptions
+ * Routes like /catalog/games, /catalog/software, /catalog/subscriptions
  * redirect to the main catalog page with the category filter pre-applied.
  * 
  * This provides clean URLs for marketing and SEO while reusing the main catalog component.

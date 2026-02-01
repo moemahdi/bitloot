@@ -151,7 +151,7 @@ export class OrdersService {
 
     // Fetch all products
     const productIds = itemsToCreate.map((item) => item.productId);
-    const productsMap = await this.catalogService.getProductsBySlugs(productIds);
+    const productsMap = await this.catalogService.getProductsByIds(productIds);
 
     // Validate all products exist
     const notFound: string[] = [];
@@ -736,7 +736,7 @@ export class OrdersService {
   private async mapToResponse(order: Order, items: OrderItem[]): Promise<OrderResponseDto> {
     // Batch fetch product titles for all items
     const productIds = items.map((item) => item.productId);
-    const productMap = await this.catalogService.getProductsBySlugs(productIds);
+    const productMap = await this.catalogService.getProductsByIds(productIds);
 
     // Fetch the most recent payment for this order to get payCurrency
     const payment = await this.paymentsRepo.findOne({
@@ -757,7 +757,7 @@ export class OrdersService {
         (item): OrderItemResponseDto => ({
           id: item.id,
           productId: item.productId,
-          productTitle: productMap.get(item.productId)?.title ?? item.productId,
+          productTitle: productMap.get(item.productId)?.title ?? 'Digital Product',
           productSlug: productMap.get(item.productId)?.slug ?? null,
           quantity: item.quantity ?? 1,
           unitPrice: item.unitPrice ?? '0.00',

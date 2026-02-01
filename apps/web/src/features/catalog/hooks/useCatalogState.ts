@@ -43,7 +43,7 @@ function parseFiltersFromURL(searchParams: URLSearchParams): Partial<FilterState
   if (search !== null && search !== '') filters.search = search;
   
   const category = searchParams.get('category') ?? searchParams.get('businessCategory');
-  if (category !== null && category !== '' && ['games', 'software', 'gift-cards', 'subscriptions'].includes(category)) {
+  if (category !== null && category !== '' && ['games', 'software', 'subscriptions'].includes(category)) {
     filters.businessCategory = category as BusinessCategory;
   }
   

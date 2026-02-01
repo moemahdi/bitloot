@@ -107,6 +107,9 @@ import {
   ChevronRight,
   ChevronsLeft,
   ChevronsRight,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
 } from 'lucide-react';
 
 // Platform options for filter - values that exist in database from Kinguin
@@ -136,7 +139,6 @@ const REGIONS = [
 const BUSINESS_CATEGORIES = [
   { value: 'games', label: 'Games' },
   { value: 'software', label: 'Software' },
-  { value: 'gift-cards', label: 'Gift Cards' },
   { value: 'subscriptions', label: 'Subscriptions' },
 ] as const;
 
@@ -164,6 +166,10 @@ export default function AdminCatalogProductsPage(): React.JSX.Element {
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
+  
+  // Sorting state
+  const [sortBy, setSortBy] = useState<'createdAt' | 'title' | 'cost' | 'price'>('createdAt');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
   // Error handling
   const { handleError, clearError } = useErrorHandler({
@@ -206,7 +212,7 @@ export default function AdminCatalogProductsPage(): React.JSX.Element {
 
   // Fetch products with filters and pagination
   const productsQuery = useQuery({
-    queryKey: ['admin', 'catalog', 'products', searchQuery, platformFilter, regionFilter, publishedFilter, sourceFilter, businessCategoryFilter, genreFilter, currentPage, pageSize],
+    queryKey: ['admin', 'catalog', 'products', searchQuery, platformFilter, regionFilter, publishedFilter, sourceFilter, businessCategoryFilter, genreFilter, currentPage, pageSize, sortBy, sortOrder],
     queryFn: async (): Promise<AdminProductsListResponseDto> => {
       if (!isOnline) {
         throw new Error('No internet connection. Please check your network.');
@@ -226,6 +232,8 @@ export default function AdminCatalogProductsPage(): React.JSX.Element {
           genre: genreFilter === 'all' ? undefined : genreFilter,
           page: String(currentPage),
           limit: String(pageSize),
+          sortBy: sortBy,
+          sortOrder: sortOrder,
         });
 
         clearError();
@@ -426,6 +434,25 @@ export default function AdminCatalogProductsPage(): React.JSX.Element {
     },
   });
 
+  // Bulk reprice mutation
+  const bulkRepriceMutation = useMutation({
+    mutationFn: async (productIds: string[]) => {
+      if (!isOnline) {
+        throw new Error('No internet connection');
+      }
+      const api = new AdminCatalogProductsApi(apiConfig);
+      return await api.adminProductsControllerBulkReprice({ bulkRepriceProductsDto: { ids: productIds } });
+    },
+    onSuccess: (result): void => {
+      void queryClient.invalidateQueries({ queryKey: ['admin', 'catalog', 'products'] });
+      setSelectedProductIds(new Set());
+      console.info(`Bulk reprice complete: ${result.success} succeeded, ${result.failed} failed`);
+    },
+    onError: (error: unknown): void => {
+      handleError(error instanceof Error ? error : new Error(String(error)), 'bulk-reprice-products');
+    },
+  });
+
   // Single product reprice mutation
   const repriceMutation = useMutation({
     mutationFn: async (productId: string) => {
@@ -503,6 +530,19 @@ export default function AdminCatalogProductsPage(): React.JSX.Element {
     setCurrentPage(1);
   }, [searchQuery, platformFilter, regionFilter, publishedFilter, sourceFilter]);
 
+  // Handle column sort toggle
+  const handleSort = (column: 'createdAt' | 'title' | 'cost' | 'price'): void => {
+    if (sortBy === column) {
+      // Toggle order if same column
+      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    } else {
+      // New column, default to desc for cost/price, asc for title
+      setSortBy(column);
+      setSortOrder(column === 'title' ? 'asc' : 'desc');
+    }
+    setCurrentPage(1); // Reset to first page when sorting changes
+  };
+
   // Handle manual refresh
   const handleRefresh = (): void => {
     clearError();
@@ -564,88 +604,129 @@ export default function AdminCatalogProductsPage(): React.JSX.Element {
             <RefreshCw className={`mr-2 h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
             Refresh
           </GlowButton>
-          {selectedProductIds.size > 0 && (
-            <div className="flex flex-wrap items-center gap-2 p-2 rounded-lg bg-bg-tertiary/50 border border-border-subtle">
-              <span className="text-sm text-text-secondary px-2">
-                {selectedProductIds.size} selected
-              </span>
-              <div className="w-px h-6 bg-border-subtle" />
-              <GlowButton
-                onClick={() => bulkPublishMutation.mutate(Array.from(selectedProductIds))}
-                disabled={bulkPublishMutation.isPending}
-                variant="secondary"
-                size="sm"
-                glowColor="green"
-                className="border-green-success/50 text-green-success hover:bg-green-success/10 hover:shadow-glow-success transition-all duration-250"
-              >
-                {bulkPublishMutation.isPending ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                  <Eye className="mr-2 h-4 w-4" />
-                )}
-                Publish
-              </GlowButton>
-              <GlowButton
-                onClick={() => bulkUnpublishMutation.mutate(Array.from(selectedProductIds))}
-                disabled={bulkUnpublishMutation.isPending}
-                variant="secondary"
-                size="sm"
-                glowColor="orange"
-                className="border-orange-warning/50 text-orange-warning hover:bg-orange-warning/10 transition-all duration-250"
-              >
-                {bulkUnpublishMutation.isPending ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                  <XCircle className="mr-2 h-4 w-4" />
-                )}
-                Unpublish
-              </GlowButton>
-              <GlowButton
-                onClick={() => bulkFeatureMutation.mutate(Array.from(selectedProductIds))}
-                disabled={bulkFeatureMutation.isPending}
-                variant="secondary"
-                size="sm"
-                glowColor="yellow"
-                className="border-pink-featured/50 text-pink-featured hover:bg-pink-featured/10 hover:shadow-glow-pink transition-all duration-250"
-              >
-                {bulkFeatureMutation.isPending ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                  <Star className="mr-2 h-4 w-4" />
-                )}
-                Feature
-              </GlowButton>
-              <GlowButton
-                onClick={() => bulkUnfeatureMutation.mutate(Array.from(selectedProductIds))}
-                disabled={bulkUnfeatureMutation.isPending}
-                variant="secondary"
-                size="sm"
-                glowColor="gray"
-                className="border-border-accent text-text-muted hover:bg-bg-tertiary transition-all duration-250"
-              >
-                {bulkUnfeatureMutation.isPending ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                  <Star className="mr-2 h-4 w-4" />
-                )}
-                Unfeature
-              </GlowButton>
-              <GlowButton
-                onClick={handleBulkDeleteClick}
-                disabled={bulkDeleteMutation.isPending}
-                variant="secondary"
-                size="sm"
-                glowColor="red"
-                className="border-destructive/50 text-destructive hover:bg-destructive/10 transition-all duration-250"
-              >
-                <Trash2 className="mr-2 h-4 w-4" />
-                Delete
-              </GlowButton>
-            </div>
-          )}
         </div>
       </div>
       </div>
+
+      {/* Bulk Operations Bar - Full Width */}
+      <AnimatePresence>
+        {selectedProductIds.size > 0 && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.2 }}
+            className="overflow-hidden"
+          >
+            <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-bg-tertiary border border-purple-neon/20 shadow-card-md">
+              {/* Selection Counter */}
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-purple-neon/10 border border-purple-neon/30">
+                <CheckCircle className="h-4 w-4 text-purple-neon" />
+                <span className="text-sm font-semibold text-purple-neon">
+                  {selectedProductIds.size} selected
+                </span>
+              </div>
+              
+              <div className="w-px h-6 bg-border-subtle" />
+              
+              {/* Reprice */}
+              <GlowButton
+                onClick={() => bulkRepriceMutation.mutate(Array.from(selectedProductIds))}
+                disabled={bulkRepriceMutation.isPending || !isOnline}
+                variant="secondary"
+                size="sm"
+                glowColor="cyan"
+                className="border-cyan-glow/40 text-cyan-glow hover:bg-cyan-glow/10"
+              >
+                {bulkRepriceMutation.isPending ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <DollarSign className="mr-1.5 h-4 w-4" />}
+                Reprice
+              </GlowButton>
+              
+              <div className="w-px h-6 bg-border-subtle" />
+              
+              {/* Publish */}
+              <GlowButton
+                onClick={() => bulkPublishMutation.mutate(Array.from(selectedProductIds))}
+                disabled={bulkPublishMutation.isPending || !isOnline}
+                variant="secondary"
+                size="sm"
+                glowColor="green"
+                className="border-green-success/40 text-green-success hover:bg-green-success/10"
+              >
+                {bulkPublishMutation.isPending ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Eye className="mr-1.5 h-4 w-4" />}
+                Publish
+              </GlowButton>
+              
+              {/* Unpublish */}
+              <GlowButton
+                onClick={() => bulkUnpublishMutation.mutate(Array.from(selectedProductIds))}
+                disabled={bulkUnpublishMutation.isPending || !isOnline}
+                variant="secondary"
+                size="sm"
+                glowColor="gray"
+                className="border-border-accent text-text-secondary hover:bg-bg-secondary"
+              >
+                {bulkUnpublishMutation.isPending ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <XCircle className="mr-1.5 h-4 w-4" />}
+                Unpublish
+              </GlowButton>
+              
+              <div className="w-px h-6 bg-border-subtle" />
+              
+              {/* Feature */}
+              <GlowButton
+                onClick={() => bulkFeatureMutation.mutate(Array.from(selectedProductIds))}
+                disabled={bulkFeatureMutation.isPending || !isOnline}
+                variant="secondary"
+                size="sm"
+                glowColor="pink"
+                className="border-pink-featured/40 text-pink-featured hover:bg-pink-featured/10"
+              >
+                {bulkFeatureMutation.isPending ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Star className="mr-1.5 h-4 w-4" />}
+                Feature
+              </GlowButton>
+              
+              {/* Unfeature */}
+              <GlowButton
+                onClick={() => bulkUnfeatureMutation.mutate(Array.from(selectedProductIds))}
+                disabled={bulkUnfeatureMutation.isPending || !isOnline}
+                variant="secondary"
+                size="sm"
+                glowColor="gray"
+                className="border-border-accent text-text-muted hover:bg-bg-secondary"
+              >
+                {bulkUnfeatureMutation.isPending ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Star className="mr-1.5 h-4 w-4" />}
+                Unfeature
+              </GlowButton>
+              
+              <div className="w-px h-6 bg-border-subtle" />
+              
+              {/* Delete */}
+              <GlowButton
+                onClick={handleBulkDeleteClick}
+                disabled={bulkDeleteMutation.isPending || !isOnline}
+                variant="secondary"
+                size="sm"
+                glowColor="orange"
+                className="border-orange-warning/40 text-orange-warning hover:bg-orange-warning/10"
+              >
+                {bulkDeleteMutation.isPending ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Trash2 className="mr-1.5 h-4 w-4" />}
+                Delete
+              </GlowButton>
+              
+              {/* Clear */}
+              <Button
+                onClick={() => setSelectedProductIds(new Set())}
+                variant="ghost"
+                size="sm"
+                className="text-text-muted hover:text-text-primary hover:bg-bg-secondary ml-auto"
+              >
+                <XCircle className="mr-1.5 h-4 w-4" />
+                Clear
+              </Button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Network Status Alert */}
       {!isOnline && (
@@ -922,8 +1003,34 @@ export default function AdminCatalogProductsPage(): React.JSX.Element {
                     <TableHead className="text-text-secondary uppercase tracking-wider text-xs">Category</TableHead>
                     <TableHead className="text-text-secondary uppercase tracking-wider text-xs">Platform</TableHead>
                     <TableHead className="text-text-secondary uppercase tracking-wider text-xs">Region</TableHead>
-                    <TableHead className="text-right text-text-secondary uppercase tracking-wider text-xs">Cost</TableHead>
-                    <TableHead className="text-right text-text-secondary uppercase tracking-wider text-xs">Price</TableHead>
+                    <TableHead className="text-right text-text-secondary uppercase tracking-wider text-xs">
+                      <button
+                        type="button"
+                        onClick={() => handleSort('cost')}
+                        className="inline-flex items-center gap-1 hover:text-cyan-glow transition-colors cursor-pointer"
+                      >
+                        Cost
+                        {sortBy === 'cost' ? (
+                          sortOrder === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />
+                        ) : (
+                          <ArrowUpDown className="h-3 w-3 opacity-40" />
+                        )}
+                      </button>
+                    </TableHead>
+                    <TableHead className="text-right text-text-secondary uppercase tracking-wider text-xs">
+                      <button
+                        type="button"
+                        onClick={() => handleSort('price')}
+                        className="inline-flex items-center gap-1 hover:text-cyan-glow transition-colors cursor-pointer"
+                      >
+                        Price
+                        {sortBy === 'price' ? (
+                          sortOrder === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />
+                        ) : (
+                          <ArrowUpDown className="h-3 w-3 opacity-40" />
+                        )}
+                      </button>
+                    </TableHead>
                     <TableHead className="text-text-secondary uppercase tracking-wider text-xs">Status</TableHead>
                     <TableHead className="text-text-secondary uppercase tracking-wider text-xs">Featured</TableHead>
                     <TableHead className="text-right text-text-secondary uppercase tracking-wider text-xs">Actions</TableHead>

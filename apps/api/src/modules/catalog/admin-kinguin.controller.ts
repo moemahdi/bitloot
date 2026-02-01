@@ -304,7 +304,7 @@ export class AdminKinguinController {
     name: 'businessCategory',
     required: false,
     description: 'Business category for the imported product',
-    enum: ['games', 'software', 'gift-cards', 'subscriptions'],
+    enum: ['games', 'software', 'subscriptions'],
   })
   @ApiResponse({
     status: 200,
@@ -316,7 +316,7 @@ export class AdminKinguinController {
   @ApiResponse({ status: 403, description: 'Forbidden - Admin only' })
   async importProduct(
     @Param('productId') productId: string,
-    @Query('businessCategory') businessCategory?: 'games' | 'software' | 'gift-cards' | 'subscriptions',
+    @Query('businessCategory') businessCategory?: 'games' | 'software' | 'subscriptions',
   ): Promise<KinguinImportResponseDto> {
     // Validate productId
     if (productId === undefined || productId.trim().length === 0) {

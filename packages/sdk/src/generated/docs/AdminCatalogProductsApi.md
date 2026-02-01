@@ -781,7 +781,7 @@ This endpoint does not need any parameter.
 
 ## adminProductsControllerListAll
 
-> AdminProductsListResponseDto adminProductsControllerListAll(search, platform, region, published, source, businessCategory, genre, featured, page, limit)
+> AdminProductsListResponseDto adminProductsControllerListAll(search, platform, region, published, source, businessCategory, genre, featured, page, limit, sortBy, sortOrder)
 
 List products with pagination (admin)
 
@@ -813,7 +813,7 @@ async function example() {
     published: published_example,
     // string | Filter by source (kinguin/custom) (optional)
     source: source_example,
-    // string | Filter by business category (games/software/gift-cards/subscriptions) (optional)
+    // string | Filter by business category (games/software/subscriptions) (optional)
     businessCategory: businessCategory_example,
     // string | Filter by genre (e.g., Action, RPG, Strategy) (optional)
     genre: genre_example,
@@ -823,6 +823,10 @@ async function example() {
     page: 1,
     // string | Items per page (max 100) (optional)
     limit: 25,
+    // 'createdAt' | 'title' | 'cost' | 'price' | Sort field (optional)
+    sortBy: sortBy_example,
+    // 'asc' | 'desc' | Sort order (optional)
+    sortOrder: sortOrder_example,
   } satisfies AdminProductsControllerListAllRequest;
 
   try {
@@ -847,11 +851,13 @@ example().catch(console.error);
 | **region** | `string` | Filter by region | [Optional] [Defaults to `undefined`] |
 | **published** | `string` | Filter by published status (true/false) | [Optional] [Defaults to `undefined`] |
 | **source** | `string` | Filter by source (kinguin/custom) | [Optional] [Defaults to `undefined`] |
-| **businessCategory** | `string` | Filter by business category (games/software/gift-cards/subscriptions) | [Optional] [Defaults to `undefined`] |
+| **businessCategory** | `string` | Filter by business category (games/software/subscriptions) | [Optional] [Defaults to `undefined`] |
 | **genre** | `string` | Filter by genre (e.g., Action, RPG, Strategy) | [Optional] [Defaults to `undefined`] |
 | **featured** | `string` | Filter by featured status (true/false) | [Optional] [Defaults to `undefined`] |
 | **page** | `string` | Page number (1-based) | [Optional] [Defaults to `undefined`] |
 | **limit** | `string` | Items per page (max 100) | [Optional] [Defaults to `undefined`] |
+| **sortBy** | `createdAt`, `title`, `cost`, `price` | Sort field | [Optional] [Defaults to `undefined`] [Enum: createdAt, title, cost, price] |
+| **sortOrder** | `asc`, `desc` | Sort order | [Optional] [Defaults to `undefined`] [Enum: asc, desc] |
 
 ### Return type
 

@@ -139,7 +139,6 @@ export type UpdateProductDtoSourceTypeEnum = typeof UpdateProductDtoSourceTypeEn
 export const UpdateProductDtoBusinessCategoryEnum = {
     Games: 'games',
     Software: 'software',
-    GiftCards: 'gift-cards',
     Subscriptions: 'subscriptions'
 } as const;
 export type UpdateProductDtoBusinessCategoryEnum = typeof UpdateProductDtoBusinessCategoryEnum[keyof typeof UpdateProductDtoBusinessCategoryEnum];

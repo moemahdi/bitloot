@@ -168,7 +168,6 @@ export class AdminCatalogKinguinApi extends runtime.BaseAPI {
 export const AdminKinguinControllerImportProductBusinessCategoryEnum = {
     Games: 'games',
     Software: 'software',
-    GiftCards: 'gift-cards',
     Subscriptions: 'subscriptions'
 } as const;
 export type AdminKinguinControllerImportProductBusinessCategoryEnum = typeof AdminKinguinControllerImportProductBusinessCategoryEnum[keyof typeof AdminKinguinControllerImportProductBusinessCategoryEnum];

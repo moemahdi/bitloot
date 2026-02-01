@@ -109,7 +109,7 @@ export class CatalogController {
   @ApiQuery({ name: 'q', required: false, description: 'Search query (full-text)' })
   @ApiQuery({ name: 'platform', required: false, description: 'Filter by platform (Steam, Epic, etc)' })
   @ApiQuery({ name: 'region', required: false, description: 'Filter by region (US, EU, etc)' })
-  @ApiQuery({ name: 'businessCategory', required: false, description: 'Filter by BitLoot category: games, software, gift-cards, subscriptions' })
+  @ApiQuery({ name: 'businessCategory', required: false, description: 'Filter by BitLoot category: games, software, subscriptions' })
   @ApiQuery({ name: 'category', required: false, description: 'Filter by genre (legacy Kinguin genres)' })
   @ApiQuery({ name: 'featured', required: false, type: 'boolean', description: 'Show only featured products' })
   @ApiQuery({ name: 'minPrice', required: false, type: 'number', description: 'Minimum price filter (EUR)' })

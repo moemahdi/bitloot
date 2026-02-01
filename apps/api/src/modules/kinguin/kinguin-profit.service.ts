@@ -284,7 +284,7 @@ export class KinguinProfitService {
         const itemCost = cost * itemCostRatio; // Proportional cost
 
         // Get product name from cache (preloaded above)
-        const productName = this.productNameCache.get(item.productId) ?? item.productId;
+        const productName = this.productNameCache.get(item.productId) ?? 'Unknown Product';
 
         result.push({
           orderId: order.id,

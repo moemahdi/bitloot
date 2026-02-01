@@ -101,7 +101,6 @@ export class Product {
    * Business category for BitLoot store organization
    * - 'games': Game keys and accounts
    * - 'software': Windows, Office, antivirus, etc.
-   * - 'gift-cards': Steam Wallet, PlayStation, Xbox, etc.
    * - 'subscriptions': Game Pass, PS Plus, EA Play, etc.
    */
   @Column({
@@ -109,7 +108,7 @@ export class Product {
     length: 50,
     default: 'games',
   })
-  businessCategory!: 'games' | 'software' | 'gift-cards' | 'subscriptions';
+  businessCategory!: 'games' | 'software' | 'subscriptions';
 
   /**
    * Whether this product is featured on the homepage
@@ -273,7 +272,7 @@ export class Product {
   /**
    * Homepage sections this product appears in.
    * Possible values: 'trending', 'featured_games', 'featured_software', 
-   * 'featured_gift_cards', 'featured_subscriptions'
+   * 'featured_subscriptions'
    */
   @Column('simple-array', { nullable: true })
   featuredSections?: string[];

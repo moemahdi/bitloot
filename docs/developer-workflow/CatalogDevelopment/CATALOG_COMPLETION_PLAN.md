@@ -11,11 +11,10 @@
 
 BitLoot's catalog system is **100% complete**. All phases have been implemented including category system simplification, admin UX improvements, customer catalog enhancements, and data cleanup. The full flow from **Kinguin Import → Admin Management → Customer Catalog** is now fully operational.
 
-### Your 4 Product Categories
+### Your 3 Product Categories
 1. **Games** – Keys/Accounts (Steam, Epic, GOG, etc.)
 2. **Software** – Windows, Office, Antivirus, etc.
-3. **Gift Cards** – Steam Wallet, PlayStation, Xbox, etc.
-4. **Subscriptions** – Game Pass, PS Plus, EA Play, etc.
+3. **Subscriptions** – Game Pass, PS Plus, EA Play, etc.
 
 ---
 
@@ -60,11 +59,10 @@ BitLoot's catalog system is **100% complete**. All phases have been implemented 
 export const BITLOOT_CATEGORIES = [
   { id: 'games', label: 'Games', icon: 'Gamepad2', description: 'PC & Console game keys and accounts' },
   { id: 'software', label: 'Software', icon: 'Monitor', description: 'Windows, Office, antivirus & more' },
-  { id: 'gift-cards', label: 'Gift Cards', icon: 'Gift', description: 'Steam, PlayStation, Xbox & more' },
   { id: 'subscriptions', label: 'Subscriptions', icon: 'Clock', description: 'Game Pass, PS Plus, EA Play' },
 ] as const;
 
-export type BitLootCategory = 'games' | 'software' | 'gift-cards' | 'subscriptions';
+export type BitLootCategory = 'games' | 'software' | 'subscriptions';
 ```
 
 ### 1.2 Backend Changes
@@ -81,7 +79,7 @@ export type BitLootCategory = 'games' | 'software' | 'gift-cards' | 'subscriptio
   nullable: false,
   default: 'games' 
 })
-businessCategory!: 'games' | 'software' | 'gift-cards' | 'subscriptions';
+businessCategory!: 'games' | 'software' | 'subscriptions';
 ```
 
 **Migration:** Create migration to add `businessCategory` column with default 'games'.
@@ -95,16 +93,6 @@ businessCategory!: 'games' | 'software' | 'gift-cards' | 'subscriptions';
 function detectBusinessCategory(kinguinProduct: KinguinProductRaw): BitLootCategory {
   const name = kinguinProduct.name.toLowerCase();
   const genres = kinguinProduct.genres?.map(g => g.toLowerCase()) ?? [];
-  
-  // Gift Cards detection
-  if (
-    name.includes('gift card') ||
-    name.includes('wallet') ||
-    name.includes('psn') ||
-    name.includes('xbox live gold') && !name.includes('game pass')
-  ) {
-    return 'gift-cards';
-  }
   
   // Subscriptions detection
   if (
@@ -138,7 +126,7 @@ function detectBusinessCategory(kinguinProduct: KinguinProductRaw): BitLootCateg
 
 **File:** `apps/api/src/modules/catalog/catalog.service.ts`
 
-Replace dynamic genre aggregation with your 4 business categories:
+Replace dynamic genre aggregation with your 3 business categories:
 
 ```typescript
 async getCategories(): Promise<CategoriesResponseDto> {

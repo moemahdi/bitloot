@@ -52,7 +52,7 @@ export class CreatePricingRuleDto {
   fixedMarkupMinor?: number;
 
   @ApiProperty({
-    description: 'Floor price in minor units (cents)',
+    description: 'Floor price in minor units (cents) - minimum selling price',
     required: false,
     minimum: 0,
   })
@@ -62,7 +62,7 @@ export class CreatePricingRuleDto {
   floorMinor?: number;
 
   @ApiProperty({
-    description: 'Cap price in minor units (cents)',
+    description: 'Cap price in minor units (cents) - maximum selling price',
     required: false,
     minimum: 0,
   })
@@ -70,6 +70,28 @@ export class CreatePricingRuleDto {
   @IsInt()
   @Min(0)
   capMinor?: number;
+
+  @ApiProperty({
+    description: 'Minimum cost in minor units (cents) for rule to apply (inclusive). Use for tiered pricing by cost range.',
+    required: false,
+    minimum: 0,
+    example: 0,
+  })
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  minCostMinor?: number;
+
+  @ApiProperty({
+    description: 'Maximum cost in minor units (cents) for rule to apply (exclusive). Use for tiered pricing by cost range.',
+    required: false,
+    minimum: 0,
+    example: 800,
+  })
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  maxCostMinor?: number;
 
   @ApiProperty({
     description: 'Rule priority (0 = highest)',
@@ -116,7 +138,7 @@ export class UpdatePricingRuleDto {
   fixedMarkupMinor?: number;
 
   @ApiProperty({
-    description: 'Floor price in minor units (cents)',
+    description: 'Floor price in minor units (cents) - minimum selling price',
     required: false,
     minimum: 0,
   })
@@ -126,7 +148,7 @@ export class UpdatePricingRuleDto {
   floorMinor?: number;
 
   @ApiProperty({
-    description: 'Cap price in minor units (cents)',
+    description: 'Cap price in minor units (cents) - maximum selling price',
     required: false,
     minimum: 0,
   })
@@ -134,6 +156,26 @@ export class UpdatePricingRuleDto {
   @IsInt()
   @Min(0)
   capMinor?: number;
+
+  @ApiProperty({
+    description: 'Minimum cost in minor units (cents) for rule to apply (inclusive). Use for tiered pricing by cost range.',
+    required: false,
+    minimum: 0,
+  })
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  minCostMinor?: number;
+
+  @ApiProperty({
+    description: 'Maximum cost in minor units (cents) for rule to apply (exclusive). Use for tiered pricing by cost range.',
+    required: false,
+    minimum: 0,
+  })
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  maxCostMinor?: number;
 
   @ApiProperty({
     description: 'Rule priority (0 = highest)',
@@ -167,11 +209,17 @@ export class AdminPricingRuleResponseDto {
   @ApiProperty({ nullable: true })
   fixedMarkupMinor?: number;
 
-  @ApiProperty({ nullable: true })
+  @ApiProperty({ nullable: true, description: 'Floor price in cents - minimum selling price' })
   floorMinor?: number;
 
-  @ApiProperty({ nullable: true })
+  @ApiProperty({ nullable: true, description: 'Cap price in cents - maximum selling price' })
   capMinor?: number;
+
+  @ApiProperty({ nullable: true, description: 'Minimum cost in cents for rule to apply (inclusive)' })
+  minCostMinor?: number;
+
+  @ApiProperty({ nullable: true, description: 'Maximum cost in cents for rule to apply (exclusive)' })
+  maxCostMinor?: number;
 
   @ApiProperty()
   priority!: number;

@@ -13,6 +13,7 @@ import { Product } from './product.entity';
 @Entity('dynamic_pricing_rules')
 @Index(['productId', 'priority', 'isActive'])
 @Index(['rule_type', 'createdAt'])
+@Index(['minCostMinor', 'maxCostMinor', 'isActive']) // Cost range lookup index
 export class DynamicPricingRule {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
@@ -37,6 +38,12 @@ export class DynamicPricingRule {
 
   @Column({ type: 'bigint', nullable: true })
   capMinor?: number; // maximum selling price in cents
+
+  @Column({ type: 'bigint', nullable: true })
+  minCostMinor?: number; // minimum cost in cents for rule to apply (inclusive)
+
+  @Column({ type: 'bigint', nullable: true })
+  maxCostMinor?: number; // maximum cost in cents for rule to apply (exclusive)
 
   @Column({ type: 'int', default: 0 })
   priority!: number; // 0 = highest

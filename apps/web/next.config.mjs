@@ -40,6 +40,11 @@ const nextConfig = {
         hostname: 'wallpapers.com',
         pathname: '/**',
       },
+      {
+        protocol: 'https',
+        hostname: 'www.tim.pl',
+        pathname: '/**',
+      },
       // Placeholder images for development
       {
         protocol: 'https',
