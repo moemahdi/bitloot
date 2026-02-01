@@ -13,7 +13,6 @@ import {
   Crown,
   Gamepad2,
   Monitor,
-  Gift,
   Clock,
   CheckCircle2,
   X,

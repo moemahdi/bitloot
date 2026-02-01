@@ -13,7 +13,6 @@ import {
   LayoutGrid, 
   Gamepad2, 
   Monitor, 
-  Gift, 
   Clock,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';

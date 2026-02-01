@@ -11,7 +11,6 @@ import {
     Bitcoin,
     Gamepad2,
     Package,
-    Gift,
     RefreshCw,
     HelpCircle,
     FileText,

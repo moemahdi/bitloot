@@ -12,7 +12,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from '@/design-system/primitives/accordion';
-import { Gamepad2, Monitor, Gift, Clock, DollarSign, Star, RotateCcw, Tag } from 'lucide-react';
+import { Gamepad2, Monitor, Clock, DollarSign, Star, RotateCcw, Tag } from 'lucide-react';
 import { cn } from '@/design-system/utils/utils';
 
 // BitLoot Business Categories - The 4 main store sections

@@ -17,7 +17,6 @@ const catalogApi = new CatalogApi(apiConfig);
 import {
     Gamepad2,
     Monitor,
-    CreditCard,
     Repeat,
     Sparkles,
     ArrowRight,

@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/design-system/primit
 import { Button } from '@/design-system/primitives/button';
 import { 
     Loader2, RefreshCw, Crown, DollarSign, ArrowRight,
-    Gamepad2, Monitor, Gift, Clock, Package, Eye, EyeOff, TrendingUp,
+    Gamepad2, Monitor, Clock, Package, Eye, EyeOff, TrendingUp,
     Sparkles, AlertCircle, Plus
 } from 'lucide-react';
 import { useAdminGuard } from '@/features/admin/hooks/useAdminGuard';

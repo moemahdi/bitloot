@@ -40,7 +40,6 @@ import {
   Plus,
   Trash2,
   Gamepad2,
-  Gift,
   Clock,
   X,
 } from 'lucide-react';

@@ -48,7 +48,6 @@ import {
   TrendingUp,
   Gamepad2,
   Monitor,
-  CreditCard,
   Repeat,
   Zap,
   X,

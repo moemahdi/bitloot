@@ -6,7 +6,6 @@ import {
     LayoutGrid,
     Gamepad2,
     Monitor,
-    CreditCard,
     ArrowRight,
     // Game Genres
     Swords,
