@@ -636,3 +636,56 @@ The Webhook Admin Dashboard provides complete visibility and control over BitLoo
 - ✅ Identify and respond to security issues
 
 For questions or issues, contact the engineering team.
+
+
+## Configuration
+
+Based on the webhook controller I set up, here's what you need to fill in on the Kinguin dashboard:
+
+---
+
+## Kinguin Webhook Configuration
+
+### 1. **product.update**
+| Field | Value |
+|-------|-------|
+| **Webhook URL** | `https://YOUR_DOMAIN/webhooks/kinguin/product-update` |
+| **Secret** | `64c91b5857d******************************850` |
+| **Active** | ✅ Enabled |
+
+---
+
+### 2. **order.complete**
+| Field | Value |
+|-------|-------|
+| **Webhook URL** | `https://YOUR_DOMAIN/webhooks/kinguin/order-status` |
+| **Secret** | `64c91b5857d*****************************850` |
+| **Active** | ✅ Enabled |
+
+---
+
+### 3. **order.status**
+| Field | Value |
+|-------|-------|
+| **Webhook URL** | `https://YOUR_DOMAIN/webhooks/kinguin/order-status` |
+| **Secret** | `64c91b5857d*************************850` |
+| **Active** | ✅ Enabled |
+
+---
+
+## Important Notes:
+
+1. **Replace `YOUR_DOMAIN`** with your actual API domain, for example:
+   - **Production**: `https://api.bitloot.io`
+   - **Staging**: `https://staging-api.bitloot.io`
+   - **Local testing with ngrok**: `https://abc123.ngrok.io`
+
+2. **The secret** (`64c91b5857d***************850`) matches what's in your .env file as `KINGUIN_WEBHOOK_SECRET`
+
+3. **Both order.complete and order.status** use the same endpoint (`/webhooks/kinguin/order-status`) because the controller handles all order status changes in one place
+
+4. **For local development**, you'll need to use a tunneling service like **ngrok**:
+   ```bash
+   ngrok http 4000
+   ```
+   Then use the ngrok URL (e.g., `https://abc123.ngrok.io/webhooks/kinguin/product-update`)
