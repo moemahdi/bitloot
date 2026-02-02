@@ -24,6 +24,11 @@ import { useMutation } from '@tanstack/react-query';
 import { OrdersApi } from '@bitloot/sdk';
 import { apiConfig } from '@/lib/api-config';
 import type { OrderResponseDto } from '@bitloot/sdk';
+import { OfflineBanner } from '@/components/OfflineBanner';
+import { parseCheckoutError } from '@/lib/checkout-errors';
+
+// Storage key for guest email persistence
+const GUEST_EMAIL_STORAGE_KEY = 'bitloot_checkout_guest_email';
 
 // ========== SDK Clients ==========
 const ordersClient = new OrdersApi(apiConfig);
@@ -112,7 +117,7 @@ function EmptyCartState(): React.ReactElement {
 
         <h2 className="text-2xl font-bold text-text-primary mb-3">Your Cart is Empty</h2>
         <p className="text-text-muted mb-6">
-          Discover amazing game keys and start filling your cart with instant digital delivery.
+          Discover amazing digital products and start filling your cart with instant delivery.
         </p>
 
         <Link href="/catalog">
@@ -179,6 +184,18 @@ export default function CheckoutPage(): React.ReactElement {
   
   // Use ref to track if order creation is in progress (survives re-renders and strict mode)
   const isCreatingOrderRef = useRef(false);
+
+  // Load saved guest email from localStorage on mount
+  useEffect(() => {
+    try {
+      const savedEmail = localStorage.getItem(GUEST_EMAIL_STORAGE_KEY);
+      if (savedEmail !== null && savedEmail !== '') {
+        setGuestEmail(savedEmail);
+      }
+    } catch {
+      // localStorage may not be available in some contexts
+    }
+  }, []);
 
   // Email validation
   const validateEmail = (email: string): boolean => {
@@ -258,10 +275,22 @@ export default function CheckoutPage(): React.ReactElement {
       clearCart();
       setAppliedPromo(null);
       
+      // Save guest email to localStorage for future checkouts
+      if (guestEmail !== '' && validateEmail(guestEmail)) {
+        try {
+          localStorage.setItem(GUEST_EMAIL_STORAGE_KEY, guestEmail);
+        } catch {
+          // Ignore storage errors
+        }
+      }
+      
       // Store order session token for immediate guest access to keys
       if (order.orderSessionToken !== null && order.orderSessionToken !== undefined && order.orderSessionToken !== '') {
         localStorage.setItem(`order_session_${order.id}`, order.orderSessionToken);
       }
+      
+      // Prefetch the checkout page for faster navigation
+      router.prefetch(`/checkout/${order.id}`);
       
       toast.success('Order created! Proceeding to payment...');
       // Redirect to unified checkout page
@@ -269,8 +298,9 @@ export default function CheckoutPage(): React.ReactElement {
     },
     onError: (error: Error) => {
       console.error('Failed to create order:', error);
-      const errorMessage = error.message !== undefined && error.message !== null && error.message !== '' ? error.message : 'Failed to create order. Please try again.';
-      toast.error(errorMessage);
+      // Use the error parser for user-friendly messages
+      const parsedError = parseCheckoutError(error);
+      toast.error(parsedError.message);
       // Reset the ref so user can retry
       isCreatingOrderRef.current = false;
     },
@@ -338,6 +368,9 @@ export default function CheckoutPage(): React.ReactElement {
   if (user?.email === undefined || user?.email === null || user.email === '') {
     return (
       <div className="min-h-screen bg-bg-primary flex items-center justify-center p-4 relative overflow-hidden">
+        {/* Offline Banner */}
+        <OfflineBanner message="You're offline. Please reconnect to complete checkout." />
+        
         {/* Background Effects */}
         <div className="fixed inset-0 pointer-events-none">
           <motion.div
@@ -371,7 +404,7 @@ export default function CheckoutPage(): React.ReactElement {
             </motion.div>
             <h2 className="text-2xl font-bold text-text-primary mb-2">Enter Your Email</h2>
             <p className="text-text-muted text-sm">
-              We&apos;ll send your game keys to this email address after payment
+              We&apos;ll send your digital products to this email address after payment
             </p>
           </div>
 
@@ -435,7 +468,7 @@ export default function CheckoutPage(): React.ReactElement {
           <div className="mt-6 text-center">
             <p className="text-text-muted text-sm">
               Already have an account?{' '}
-              <Link href="/login" className="text-cyan-glow hover:underline">
+              <Link href="/login?returnUrl=/checkout" className="text-cyan-glow hover:underline">
                 Log in
               </Link>
             </p>

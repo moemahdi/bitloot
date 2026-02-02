@@ -21,6 +21,7 @@ import {
   Zap,
   Download,
   HelpCircle,
+  ZoomIn,
 } from 'lucide-react';
 import { OrdersApi, PaymentsApi } from '@bitloot/sdk';
 import type { OrderResponseDto } from '@bitloot/sdk';
@@ -36,6 +37,7 @@ import {
 import { toast } from 'sonner';
 import { apiConfig } from '@/lib/api-config';
 import { CryptoIcon } from '@/components/crypto-icons';
+import { FullScreenQR } from '@/components/FullScreenQR';
 
 const ordersClient = new OrdersApi(apiConfig);
 const paymentsClient = new PaymentsApi(apiConfig);
@@ -225,6 +227,7 @@ export function EmbeddedPaymentUI({
   const networkFee = 0.50; // Mock network fee - should come from backend
   const [amountReceived, _setAmountReceived] = useState<number>(0);
   const [amountNeeded, _setAmountNeeded] = useState<number>(0);
+  const [showFullScreenQR, setShowFullScreenQR] = useState(false);
 
   // Poll order status every 5 seconds
   const { data: order, refetch } = useQuery<OrderResponseDto>({
@@ -567,9 +570,10 @@ export function EmbeddedPaymentUI({
         {/* QR Code Section */}
         <div className="flex flex-col items-center gap-4">
           <motion.div 
-            className="relative group"
+            className="relative group cursor-pointer"
             whileHover={{ scale: 1.02 }}
             transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+            onClick={() => setShowFullScreenQR(true)}
           >
             {/* Animated glow ring */}
             <motion.div 
@@ -587,6 +591,16 @@ export function EmbeddedPaymentUI({
                 className="qr-code-svg"
                 style={{ display: 'block' }}
               />
+              {/* Expand overlay hint */}
+              <div className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/20 rounded-2xl transition-colors">
+                <motion.div 
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  whileHover={{ opacity: 1, scale: 1 }}
+                  className="p-2 rounded-full bg-black/60 text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                >
+                  <ZoomIn className="h-6 w-6" />
+                </motion.div>
+              </div>
             </div>
           </motion.div>
           <motion.p 
@@ -596,23 +610,41 @@ export function EmbeddedPaymentUI({
             className="text-xs text-text-muted flex items-center gap-1.5"
           >
             <Sparkles className="h-3.5 w-3.5 text-cyan-glow animate-pulse" />
-            Scan with your wallet app
+            Scan with your wallet app • Click to expand
           </motion.p>
           <motion.div
             initial={{ opacity: 0, y: 5 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.25 }}
+            className="flex items-center gap-2"
           >
+            <Button 
+              variant="outline" 
+              onClick={() => setShowFullScreenQR(true)} 
+              className="gap-2 border-cyan-glow/20 hover:border-cyan-glow/50 hover:bg-cyan-glow/5"
+            >
+              <ZoomIn className="h-4 w-4" />
+              Expand QR
+            </Button>
             <Button 
               variant="outline" 
               onClick={downloadQR} 
               className="gap-2 border-cyan-glow/20 hover:border-cyan-glow/50 hover:bg-cyan-glow/5"
             >
               <Download className="h-4 w-4" />
-              Download QR Code
+              Download
             </Button>
           </motion.div>
         </div>
+
+        {/* Full Screen QR Modal */}
+        <FullScreenQR
+          qrData={qrCodeData}
+          currency={payCurrency}
+          amount={payAmount}
+          isOpen={showFullScreenQR}
+          onClose={() => setShowFullScreenQR(false)}
+        />
 
         {/* Payment Instructions Accordion */}
         <motion.div
@@ -738,36 +770,41 @@ export function EmbeddedPaymentUI({
                 To this address
               </span>
             </div>
-            <div className="flex items-center gap-3">
-              <code className="flex-1 text-sm font-mono text-text-secondary break-all bg-bg-primary/80 p-4 rounded-xl border border-border-subtle">
-                {payAddress}
-              </code>
-              <motion.div
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                transition={{ type: 'spring', stiffness: 400, damping: 17 }}
-                className="shrink-0"
+            <code className="text-sm font-mono text-text-secondary break-all bg-bg-primary/80 p-4 rounded-xl border border-border-subtle block mb-4">
+              {payAddress}
+            </code>
+            {/* Prominent Copy Address Button */}
+            <motion.div
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              transition={{ type: 'spring', stiffness: 400, damping: 17 }}
+            >
+              <Button
+                onClick={() => void copyToClipboard(payAddress, 'address')}
+                className={`w-full h-14 text-base font-bold rounded-xl transition-all duration-200 ${
+                  copied === 'address' 
+                    ? 'bg-green-success/20 border-2 border-green-success text-green-success shadow-glow-success' 
+                    : 'bg-gradient-to-r from-purple-neon/20 to-cyan-glow/20 border-2 border-purple-neon/50 text-text-primary hover:border-purple-neon hover:shadow-glow-purple'
+                }`}
               >
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => void copyToClipboard(payAddress, 'address')}
-                  className={`h-11 w-11 rounded-xl border-border-subtle hover:border-purple-neon hover:text-purple-neon hover:shadow-glow-purple-sm transition-all duration-200 ${copied === 'address' ? 'border-green-success shadow-glow-success' : ''}`}
-                >
-                  {copied === 'address' ? (
-                    <motion.div
-                      initial={{ scale: 0, rotate: -180 }}
-                      animate={{ scale: 1, rotate: 0 }}
-                      transition={{ type: 'spring', stiffness: 200, damping: 15 }}
-                    >
-                      <CheckCircle2 className="h-5 w-5 text-green-success" />
-                    </motion.div>
-                  ) : (
+                {copied === 'address' ? (
+                  <motion.div
+                    initial={{ scale: 0, rotate: -180 }}
+                    animate={{ scale: 1, rotate: 0 }}
+                    transition={{ type: 'spring', stiffness: 200, damping: 15 }}
+                    className="flex items-center gap-2"
+                  >
+                    <CheckCircle2 className="h-5 w-5" />
+                    Address Copied!
+                  </motion.div>
+                ) : (
+                  <span className="flex items-center gap-2">
                     <Copy className="h-5 w-5" />
-                  )}
-                </Button>
-              </motion.div>
-            </div>
+                    Copy Payment Address
+                  </span>
+                )}
+              </Button>
+            </motion.div>
           </div>
         </div>
 

@@ -34,6 +34,9 @@ import { Button } from '@/design-system/primitives/button';
 import Link from 'next/link';
 import { EmbeddedPaymentUI } from '@/features/checkout/EmbeddedPaymentUI';
 import { PaymentMethodForm, type PaymentMethodFormData } from '@/features/checkout/PaymentMethodForm';
+import { OfflineBanner } from '@/components/OfflineBanner';
+import { StickyMobileSummary } from '@/components/StickyMobileSummary';
+import { parseCheckoutError } from '@/lib/checkout-errors';
 
 // Initialize SDK clients
 const ordersClient = new OrdersApi(apiConfig);
@@ -224,6 +227,26 @@ function OrderStatusCard({
           subtitle: 'Insufficient payment received',
           message: 'Please contact support for assistance with this order.',
         };
+      case 'refunded':
+        return {
+          icon: CheckCircle2,
+          iconClass: 'text-cyan-glow',
+          bgClass: 'from-cyan-glow/20 to-cyan-glow/10',
+          borderClass: 'border-cyan-glow/30',
+          title: 'Order Refunded',
+          subtitle: 'Your payment has been refunded',
+          message: 'The refund has been processed. Please allow 3-5 business days for it to appear.',
+        };
+      case 'cancelled':
+        return {
+          icon: XCircle,
+          iconClass: 'text-text-muted',
+          bgClass: 'from-text-muted/20 to-text-muted/10',
+          borderClass: 'border-text-muted/30',
+          title: 'Order Cancelled',
+          subtitle: 'This order has been cancelled',
+          message: 'No payment was processed. You can create a new order anytime.',
+        };
       default:
         return null;
     }
@@ -328,8 +351,8 @@ export default function CheckoutPage(): React.ReactElement {
       }
       // Use email from order (collected before order creation)
       const orderEmail = order.email ?? '';
-      if (orderEmail === '' || orderEmail.includes('pending@checkout')) {
-        throw new Error('Valid email is required. Please go back and enter your email.');
+      if (orderEmail === '') {
+        throw new Error('Valid email is required. Please create a new order with your email address.');
       }
       const response = await paymentsClient.paymentsControllerCreateEmbedded({
         createPaymentDto: {
@@ -350,8 +373,9 @@ export default function CheckoutPage(): React.ReactElement {
     },
     onError: (error: unknown) => {
       setIsProcessing(false);
-      const errorMessage = error instanceof Error ? error.message : 'Failed to create payment';
-      toast.error(errorMessage);
+      // Use the error parser for user-friendly messages
+      const parsedError = parseCheckoutError(error);
+      toast.error(parsedError.message);
     },
   });
 
@@ -371,7 +395,7 @@ export default function CheckoutPage(): React.ReactElement {
   }
 
   // Error state
-  if (orderError !== null && orderError !== undefined || order === null || order === undefined) {
+  if (orderError != null || order == null) {
     return (
       <div className="min-h-screen bg-bg-primary flex items-center justify-center p-4 relative overflow-hidden">
         <div className="fixed inset-0 pointer-events-none">
@@ -403,7 +427,7 @@ export default function CheckoutPage(): React.ReactElement {
   const orderStatus = order.status as OrderStatus;
 
   // Handle non-payable statuses
-  if (['confirming', 'paid', 'failed', 'expired', 'underpaid'].includes(orderStatus)) {
+  if (['confirming', 'paid', 'failed', 'expired', 'underpaid', 'refunded', 'cancelled'].includes(orderStatus)) {
     return (
       <div className="min-h-screen bg-bg-primary relative overflow-hidden">
         <div className="fixed inset-0 pointer-events-none">
@@ -428,6 +452,16 @@ export default function CheckoutPage(): React.ReactElement {
   // Main checkout flow for pending orders
   return (
     <div className="min-h-screen bg-bg-primary relative overflow-hidden">
+      {/* Offline Banner */}
+      <OfflineBanner message="You're offline. Payment updates may be delayed." />
+      
+      {/* Sticky Mobile Order Summary */}
+      <StickyMobileSummary
+        total={Number(order.total)}
+        itemCount={order.items?.length ?? 0}
+        currentStep={currentStep === 'payment' ? 'Select Crypto' : 'Complete Payment'}
+      />
+
       {/* Enhanced Background Effects */}
       <div className="fixed inset-0 pointer-events-none">
         <motion.div
@@ -440,7 +474,7 @@ export default function CheckoutPage(): React.ReactElement {
           animate={{ opacity: [0.3, 0.5, 0.3], scale: [1, 1.05, 1] }}
           transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut', delay: 2 }}
         />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,_hsl(var(--bg-primary))_100%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,hsl(var(--bg-primary))_100%)]" />
       </div>
 
       <div className="relative z-10 container mx-auto max-w-5xl py-8 md:py-12 px-4">
@@ -601,7 +635,7 @@ export default function CheckoutPage(): React.ReactElement {
                               <div className="flex justify-between items-start gap-3">
                                 <div className="flex-1 min-w-0">
                                   <p className="text-sm font-medium text-text-primary leading-relaxed">
-                                    {item.productTitle !== '' ? item.productTitle : `Product #${(currentPage - 1) * ITEMS_PER_PAGE + index + 1}`}
+                                    {item.productTitle !== '' && item.productTitle !== undefined ? item.productTitle : `Product #${(currentPage - 1) * ITEMS_PER_PAGE + index + 1}`}
                                   </p>
                                   <div className="flex items-center gap-2 mt-1.5">
                                     <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-cyan-glow/10 text-xs font-medium text-cyan-glow">
@@ -610,7 +644,7 @@ export default function CheckoutPage(): React.ReactElement {
                                     <span className="text-xs text-text-muted">Digital Product</span>
                                   </div>
                                 </div>
-                                <div className="text-right flex-shrink-0">
+                                <div className="text-right shrink-0">
                                   <p className="text-sm font-semibold text-text-primary">
                                     €{item.totalPrice.toFixed(2)}
                                   </p>
@@ -730,7 +764,7 @@ export default function CheckoutPage(): React.ReactElement {
                 transition={{ delay: 0.5 }}
               >
                 <motion.div
-                  className="flex-shrink-0 w-12 h-12 rounded-xl bg-linear-to-br from-cyan-glow/20 to-cyan-glow/10 flex items-center justify-center border border-cyan-glow/30"
+                  className="shrink-0 w-12 h-12 rounded-xl bg-linear-to-br from-cyan-glow/20 to-cyan-glow/10 flex items-center justify-center border border-cyan-glow/30"
                   whileHover={{ scale: 1.05 }}
                   transition={{ type: 'spring', stiffness: 300 }}
                 >
@@ -749,7 +783,7 @@ export default function CheckoutPage(): React.ReactElement {
                 transition={{ delay: 0.6 }}
               >
                 <motion.div
-                  className="flex-shrink-0 w-12 h-12 rounded-xl bg-linear-to-br from-purple-neon/20 to-purple-neon/10 flex items-center justify-center border border-purple-neon/30"
+                  className="shrink-0 w-12 h-12 rounded-xl bg-linear-to-br from-purple-neon/20 to-purple-neon/10 flex items-center justify-center border border-purple-neon/30"
                   whileHover={{ scale: 1.05 }}
                   transition={{ type: 'spring', stiffness: 300 }}
                 >
@@ -768,7 +802,7 @@ export default function CheckoutPage(): React.ReactElement {
                 transition={{ delay: 0.7 }}
               >
                 <motion.div
-                  className="flex-shrink-0 w-12 h-12 rounded-xl bg-linear-to-br from-cyan-glow/20 to-purple-neon/10 flex items-center justify-center border border-cyan-glow/30"
+                  className="shrink-0 w-12 h-12 rounded-xl bg-linear-to-br from-cyan-glow/20 to-purple-neon/10 flex items-center justify-center border border-cyan-glow/30"
                   whileHover={{ scale: 1.05 }}
                   transition={{ type: 'spring', stiffness: 300 }}
                 >

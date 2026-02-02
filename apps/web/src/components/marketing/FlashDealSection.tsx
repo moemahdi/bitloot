@@ -396,9 +396,10 @@ export function FlashDealSection(): React.ReactElement | null {
   // Check if countdown is urgent (less than 1 hour)
   const isUrgent = countdown.hours === 0 && countdown.expired !== true;
 
-  // Don't render if no active deal or loading
+  // Don't render anything if loading, error, or no active deal
+  // This prevents skeleton from showing when there are no flash deals
   if (isLoading === true) {
-    return <FlashDealSkeleton />;
+    return null;
   }
 
   if (error !== null && error !== undefined) {
@@ -406,6 +407,11 @@ export function FlashDealSection(): React.ReactElement | null {
   }
 
   if (flashDeal === null || flashDeal === undefined || countdown.expired === true) {
+    return null;
+  }
+  
+  // Also don't render if no products in the deal
+  if (flashDeal.products.length === 0) {
     return null;
   }
 
