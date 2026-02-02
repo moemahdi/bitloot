@@ -781,7 +781,7 @@ This endpoint does not need any parameter.
 
 ## adminProductsControllerListAll
 
-> AdminProductsListResponseDto adminProductsControllerListAll(search, platform, region, published, source, businessCategory, genre, featured, page, limit, sortBy, sortOrder)
+> AdminProductsListResponseDto adminProductsControllerListAll(search, platform, region, published, source, businessCategory, genre, featured, section, page, limit, sortBy, sortOrder)
 
 List products with pagination (admin)
 
@@ -819,9 +819,11 @@ async function example() {
     genre: genre_example,
     // string | Filter by featured status (true/false) (optional)
     featured: featured_example,
+    // string | Filter by featured section key (e.g., trending, featured_games) (optional)
+    section: section_example,
     // string | Page number (1-based) (optional)
     page: 1,
-    // string | Items per page (max 100) (optional)
+    // string | Items per page (max 500) (optional)
     limit: 25,
     // 'createdAt' | 'title' | 'cost' | 'price' | Sort field (optional)
     sortBy: sortBy_example,
@@ -854,8 +856,9 @@ example().catch(console.error);
 | **businessCategory** | `string` | Filter by business category (games/software/subscriptions) | [Optional] [Defaults to `undefined`] |
 | **genre** | `string` | Filter by genre (e.g., Action, RPG, Strategy) | [Optional] [Defaults to `undefined`] |
 | **featured** | `string` | Filter by featured status (true/false) | [Optional] [Defaults to `undefined`] |
+| **section** | `string` | Filter by featured section key (e.g., trending, featured_games) | [Optional] [Defaults to `undefined`] |
 | **page** | `string` | Page number (1-based) | [Optional] [Defaults to `undefined`] |
-| **limit** | `string` | Items per page (max 100) | [Optional] [Defaults to `undefined`] |
+| **limit** | `string` | Items per page (max 500) | [Optional] [Defaults to `undefined`] |
 | **sortBy** | `createdAt`, `title`, `cost`, `price` | Sort field | [Optional] [Defaults to `undefined`] [Enum: createdAt, title, cost, price] |
 | **sortOrder** | `asc`, `desc` | Sort order | [Optional] [Defaults to `undefined`] [Enum: asc, desc] |
 

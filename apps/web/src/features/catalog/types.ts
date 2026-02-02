@@ -268,14 +268,14 @@ export const DEFAULT_FILTERS: FilterState = {
   page: 1,
 };
 
-export const SORT_OPTIONS: { value: SortOption; label: string }[] = [
-  { value: 'newest', label: 'Newest' },
+export const SORT_OPTIONS: { value: SortOption; label: string; description?: string }[] = [
+  { value: 'newest', label: 'New Arrivals', description: 'Latest products first' },
+  { value: 'trending', label: 'Trending', description: 'Hot right now' },
+  { value: 'popular', label: 'Most Popular', description: 'Top rated & reviewed' },
+  { value: 'best_deals', label: 'Best Deals', description: 'Biggest savings' },
   { value: 'price_asc', label: 'Price: Low to High' },
   { value: 'price_desc', label: 'Price: High to Low' },
-  { value: 'popular', label: 'Most Popular' },
-  { value: 'trending', label: 'Trending' },
   { value: 'rating', label: 'Highest Rated' },
-  { value: 'best_deals', label: 'Best Deals' },
 ];
 
 export const ITEMS_PER_PAGE_OPTIONS: (24 | 48 | 96)[] = [24, 48, 96];

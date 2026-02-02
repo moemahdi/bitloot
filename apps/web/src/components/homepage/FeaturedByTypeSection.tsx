@@ -432,6 +432,7 @@ function ProductCarousel({ config }: ProductCarouselProps): React.ReactElement {
             price: parseFloat(product.price),
             quantity: 1,
             image: product.image,
+            platform: product.platform,
         });
         toast.success(`${product.name} added to cart`);
     }, [addItem, products]);

@@ -148,7 +148,7 @@ export function CatalogHero({
           transition={{ delay: 0.2, ease: GAMING_EASING }}
           className="text-text-secondary text-center max-w-2xl mx-auto mb-8"
         >
-          Discover thousands of digital products with instant delivery and secure crypto payments
+          Discover hundreds of digital products with instant delivery and secure crypto payments
         </motion.p>
 
         {/* Search Bar */}
@@ -216,7 +216,7 @@ export function CatalogHero({
           </div>
           <div className="flex items-center gap-2 text-text-secondary">
             <Package className="w-4 h-4 text-purple-neon" aria-hidden="true" />
-            <span>300+ Crypto Accepted</span>
+            <span>100+ Crypto Accepted</span>
           </div>
           <div className="flex items-center gap-2 text-text-secondary">
             <Star className="w-4 h-4 text-pink-featured" aria-hidden="true" />

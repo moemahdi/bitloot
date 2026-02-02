@@ -11,7 +11,6 @@ import { RecommendedSection } from '@/components/layout/RecommendedSection';
  * - Deep space dark theme (bg-bg-primary)
  * - Mesh gradient overlays for gaming aesthetic
  * - PWA safe area support for notched devices
- * - Skip-to-content accessibility link
  */
 export default function MarketingLayout({
   children,

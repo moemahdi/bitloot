@@ -104,6 +104,7 @@ export interface AdminProductsControllerListAllRequest {
     businessCategory?: string;
     genre?: string;
     featured?: string;
+    section?: string;
     page?: string;
     limit?: string;
     sortBy?: AdminProductsControllerListAllSortByEnum;
@@ -672,6 +673,10 @@ export class AdminCatalogProductsApi extends runtime.BaseAPI {
 
         if (requestParameters['featured'] != null) {
             queryParameters['featured'] = requestParameters['featured'];
+        }
+
+        if (requestParameters['section'] != null) {
+            queryParameters['section'] = requestParameters['section'];
         }
 
         if (requestParameters['page'] != null) {

@@ -73,6 +73,7 @@ export function WatchlistPreview() {
       price: item.product.price,
       quantity: 1,
       image: item.product.coverImageUrl ?? undefined,
+      platform: item.product.platform ?? undefined,
     });
     toast.success(`${item.product.title} added to cart`);
   };

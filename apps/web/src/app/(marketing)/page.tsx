@@ -87,13 +87,13 @@ const BENEFITS: BenefitCard[] = [
     {
         icon: Bitcoin,
         title: 'Crypto Payments',
-        description: 'Pay with 300+ cryptocurrencies including BTC, ETH, USDT, and more. Fast, secure, and private.',
+        description: 'Pay with +100 cryptocurrencies including BTC, ETH, USDT, and more. Fast, secure, and private.',
         gradient: 'from-cyan-glow/20 to-purple-neon/20',
     },
     {
         icon: Zap,
         title: 'Instant Delivery',
-        description: 'Receive your game keys within seconds. Our automated system ensures lightning-fast delivery.',
+        description: 'Receive your keys and accounts within seconds. Our automated system ensures lightning-fast delivery.',
         gradient: 'from-green-success/20 to-cyan-glow/20',
     },
     {
@@ -271,7 +271,7 @@ const FAQ_ITEMS: FAQItem[] = [
     {
         id: 'crypto-payment',
         question: 'What cryptocurrencies do you accept?',
-        answer: 'We accept over 300+ cryptocurrencies including Bitcoin (BTC), Ethereum (ETH), USDT, USDC, Litecoin, Dogecoin, Solana, and many more. All payments are processed securely with competitive real-time exchange rates.',
+        answer: 'We accept +100 cryptocurrencies including Bitcoin (BTC), Ethereum (ETH), USDT, USDC, Litecoin, Dogecoin, Solana, and many more. All payments are processed securely with competitive real-time exchange rates.',
         icon: Bitcoin,
         category: 'payment',
     },
@@ -564,7 +564,7 @@ function CTASection(): React.ReactElement {
                                 size="lg"
                                 className="text-text-secondary hover:text-cyan-glow"
                             >
-                                <Link href="/support">
+                                <Link href="/help">
                                     Have Questions? Contact Us
                                 </Link>
                             </Button>

@@ -198,7 +198,7 @@ function FloatingGameCovers(): React.ReactElement {
 // ============================================================================
 
 const TRUST_ITEMS = [
-    { icon: Bitcoin, text: '300+ Cryptos', color: 'text-orange-warning', bgColor: 'bg-orange-warning/10 hover:bg-orange-warning/20' },
+    { icon: Bitcoin, text: '100+ Cryptos', color: 'text-orange-warning', bgColor: 'bg-orange-warning/10 hover:bg-orange-warning/20' },
     { icon: Clock, text: 'Instant Delivery', color: 'text-cyan-glow', bgColor: 'bg-cyan-glow/10 hover:bg-cyan-glow/20' },
     { icon: ShieldCheck, text: '100% Secure', color: 'text-green-success', bgColor: 'bg-green-success/10 hover:bg-green-success/20' },
     { icon: CreditCard, text: 'No Account Needed', color: 'text-purple-neon', bgColor: 'bg-purple-neon/10 hover:bg-purple-neon/20' },
@@ -349,8 +349,8 @@ export function HeroSection(): React.ReactElement {
                     transition={{ duration: 0.6, delay: 0.2 }}
                     className="text-lg md:text-xl text-text-secondary max-w-2xl mx-auto mb-10"
                 >
-                    Discover thousands of digital products at unbeatable prices.
-                    Game keys, software licenses & premium accounts — delivered instantly.
+                    Discover hundreds of digital products at unbeatable prices.
+                    Keys, accounts, software licenses & subscriptions — delivered instantly.
                 </motion.p>
 
                 {/* Search Bar */}

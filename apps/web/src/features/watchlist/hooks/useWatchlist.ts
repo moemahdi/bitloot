@@ -55,8 +55,13 @@ function createWatchlistApi(): WatchlistApi {
 
 /**
  * Hook to fetch the user's watchlist with pagination
+ * @param page - Page number (default 1)
+ * @param limit - Items per page (default 20)
  */
-export function useWatchlist(page = 1, limit = 20): UseQueryResult<PaginatedWatchlistResponseDto> {
+export function useWatchlist(
+  page = 1,
+  limit = 20
+): UseQueryResult<PaginatedWatchlistResponseDto> {
   return useQuery<PaginatedWatchlistResponseDto>({
     queryKey: watchlistKeys.list(page, limit),
     queryFn: async () => {
@@ -64,6 +69,7 @@ export function useWatchlist(page = 1, limit = 20): UseQueryResult<PaginatedWatc
       return api.watchlistControllerGetWatchlist({ page, limit });
     },
     staleTime: 30_000, // 30 seconds
+    // Check authentication on each render - this ensures it works after hydration
     enabled: isAuthenticated(),
   });
 }

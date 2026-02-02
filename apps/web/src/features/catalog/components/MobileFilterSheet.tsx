@@ -17,7 +17,6 @@ import {
   SheetFooter,
   SheetHeader,
   SheetTitle,
-  SheetTrigger,
 } from '@/design-system/primitives/sheet';
 import { ScrollArea } from '@/design-system/primitives/scroll-area';
 import { SlidersHorizontal, RotateCcw, Check } from 'lucide-react';
@@ -100,29 +99,6 @@ export function MobileFilterSheet({
   
   return (
     <Sheet open={isOpen} onOpenChange={onOpenChange}>
-      <SheetTrigger asChild>
-        <Button
-          variant="outline"
-          size="sm"
-          className={cn(
-            'relative lg:hidden border-border-subtle',
-            hasActiveFilters && 'border-cyan-glow/30 text-cyan-glow',
-            className
-          )}
-        >
-          <SlidersHorizontal className="h-4 w-4 mr-2" />
-          Filters
-          {hasActiveFilters && (
-            <Badge
-              variant="secondary"
-              className="absolute -top-2 -right-2 h-5 w-5 p-0 text-xs bg-cyan-glow text-bg-primary flex items-center justify-center"
-            >
-              {activeFilterCount}
-            </Badge>
-          )}
-        </Button>
-      </SheetTrigger>
-      
       <SheetContent
         side="bottom"
         className={cn(

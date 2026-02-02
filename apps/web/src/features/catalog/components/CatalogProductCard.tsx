@@ -14,6 +14,7 @@ import Link from 'next/link';
 import { cn } from '@/design-system/utils/utils';
 import { Button } from '@/design-system/primitives/button';
 import { Badge } from '@/design-system/primitives/badge';
+import { useCheckWatchlist } from '@/features/watchlist/hooks/useWatchlist';
 import {
   Tooltip,
   TooltipContent,
@@ -151,7 +152,7 @@ function CatalogProductCardComponent({
   product,
   variant = 'default',
   viewMode = 'grid',
-  isInWishlist = false,
+  isInWishlist: isInWishlistProp = false,
   onAddToCart,
   onToggleWishlist,
   onViewProduct,
@@ -161,6 +162,11 @@ function CatalogProductCardComponent({
   const [isHovered, setIsHovered] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
   const [isAddingToCart, setIsAddingToCart] = useState(false);
+  
+  // Fetch watchlist status from API (same pattern as WatchlistButton)
+  const { data: watchlistData } = useCheckWatchlist(product.id);
+  // Use API value if available, fall back to prop
+  const isInWishlist = watchlistData?.isInWatchlist ?? isInWishlistProp;
   
   // Handle add to cart
   const handleAddToCart = useCallback((e: React.MouseEvent) => {
@@ -479,22 +485,28 @@ function CatalogProductCardComponent({
             {product.isNew === true && variant === 'default' && <ProductTypeBadge type="new" />}
           </div>
           
-          {/* Wishlist button */}
-          {showQuickActions && onToggleWishlist !== undefined && (
-            <button
-              onClick={handleToggleWishlist}
-              className={cn(
-                'rounded-full bg-bg-primary/80 p-2 backdrop-blur-sm transition-all',
-                'hover:bg-bg-primary hover:scale-110',
-                isInWishlist ? 'text-pink-featured' : 'text-white',
-                isHovered ? 'opacity-100' : 'opacity-0'
-              )}
-              aria-label={isInWishlist ? 'Remove from wishlist' : 'Add to wishlist'}
-            >
-              <Heart className={cn('h-4 w-4', isInWishlist && 'fill-current')} />
-            </button>
-          )}
+          {/* Instant Delivery Badge */}
+          <Badge variant="secondary" className="glass text-[10px] px-1.5 py-0.5">
+            <Zap className="h-2.5 w-2.5 mr-0.5 text-green-success" aria-hidden="true" />
+            Instant
+          </Badge>
         </div>
+        
+        {/* Wishlist button - positioned separately */}
+        {showQuickActions && onToggleWishlist !== undefined && (
+          <button
+            onClick={handleToggleWishlist}
+            className={cn(
+              'absolute top-3 right-3 rounded-full bg-bg-primary/80 p-2 backdrop-blur-sm transition-all',
+              'hover:bg-bg-primary hover:scale-110',
+              isInWishlist ? 'text-pink-featured' : 'text-white',
+              isHovered ? 'opacity-100' : 'opacity-0'
+            )}
+            aria-label={isInWishlist ? 'Remove from wishlist' : 'Add to wishlist'}
+          >
+            <Heart className={cn('h-4 w-4', isInWishlist && 'fill-current')} />
+          </button>
+        )}
         
         {/* Flash deal timer */}
         {variant === 'flash-deal' && product.flashDealEndsAt !== undefined && (

@@ -33,6 +33,8 @@ import {
   Eye,
   Check,
 } from 'lucide-react';
+import { toast } from 'sonner';
+import { useCart } from '@/context/CartContext';
 import { CatalogApi, Configuration } from '@bitloot/sdk';
 import type { ProductResponseDto, ProductListResponseDto } from '@bitloot/sdk';
 
@@ -108,6 +110,7 @@ interface CompactProductCardProps {
 function CompactProductCard({ product, className }: CompactProductCardProps): React.ReactElement {
   const [imageError, setImageError] = useState(false);
   const [isAddingToCart, setIsAddingToCart] = useState(false);
+  const { addItem } = useCart();
   
   // Price handling
   const priceValue = product.price;
@@ -142,17 +145,30 @@ function CompactProductCard({ product, className }: CompactProductCardProps): Re
   const reviewCountValue = (product as { reviewCount?: number }).reviewCount;
   const hasReviewCount = typeof reviewCountValue === 'number' && reviewCountValue > 0;
   
-  // Handle add to cart
+  // Handle add to cart - integrated with CartContext
   const handleAddToCart = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
     if (isAddingToCart) return;
     
     setIsAddingToCart(true);
-    // TODO: Integrate with cart context/API
-    // For now, simulate adding to cart
+    
+    // Add to cart via CartContext
+    addItem({
+      productId: product.id,
+      title: product.title,
+      price: displayPrice,
+      quantity: 1,
+      image: imageUrl,
+      platform: hasPlatform ? platformValue : undefined,
+      category: hasCategory ? categoryValue : undefined,
+    });
+    
+    toast.success(`${product.title} added to cart`);
+    
+    // Reset button state after animation
     setTimeout(() => setIsAddingToCart(false), 1500);
-  }, [isAddingToCart]);
+  }, [isAddingToCart, addItem, product.id, product.title, displayPrice, imageUrl, hasPlatform, platformValue, hasCategory, categoryValue]);
   
   return (
     <div

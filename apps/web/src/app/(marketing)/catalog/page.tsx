@@ -15,6 +15,7 @@ import { useAuth } from '@/hooks/useAuth';
 import {
   useAddToWatchlist,
   useRemoveFromWatchlist,
+  useWatchlist,
 } from '@/features/watchlist/hooks/useWatchlist';
 import {
   CatalogHero,
@@ -22,6 +23,7 @@ import {
   Toolbar,
   FilterPanel,
   MobileFilterSheet,
+  MobileFilterTrigger,
   CatalogProductGrid,
   GroupVariantsModal,
   CatalogEmptyState,
@@ -44,6 +46,9 @@ export default function CatalogPage(): React.ReactElement {
   // Watchlist mutations for API persistence
   const addToWatchlist = useAddToWatchlist();
   const removeFromWatchlist = useRemoveFromWatchlist();
+  
+  // Fetch user's watchlist to populate wishlist IDs (limit 100 for heart icons)
+  const { data: watchlistData } = useWatchlist(1, 100);
   
   // Initialize catalog state from hook
   const {
@@ -75,8 +80,16 @@ export default function CatalogPage(): React.ReactElement {
   // Mobile filter sheet state
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
   
-  // Wishlist state (would be from a global store in production)
+  // Wishlist state - populated from API for authenticated users
   const [wishlistIds, setWishlistIds] = useState<Set<string>>(new Set());
+  
+  // Populate wishlistIds from API when watchlist data loads
+  useEffect(() => {
+    if (watchlistData?.data !== undefined) {
+      const ids = new Set(watchlistData.data.map((item) => item.product.id));
+      setWishlistIds(ids);
+    }
+  }, [watchlistData]);
   
   // Selected group for modal
   const [selectedGroup, setSelectedGroup] = useState<ProductGroupResponseDto | null>(null);
@@ -282,8 +295,16 @@ export default function CatalogPage(): React.ReactElement {
         <CategoryTabs
           activeCategory={filters.businessCategory}
           onCategoryChange={(category) => setFilters({ businessCategory: category })}
-          className="mb-6"
+          className="mb-4"
         />
+        
+        {/* Mobile Filter Trigger - visible only on mobile */}
+        <div className="lg:hidden mb-4">
+          <MobileFilterTrigger
+            activeFilterCount={activeFilters.length}
+            onClick={() => setIsMobileFilterOpen(true)}
+          />
+        </div>
         
         {/* Main Layout with Sidebar */}
         <div className="flex gap-8">

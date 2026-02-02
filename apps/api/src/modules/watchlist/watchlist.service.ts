@@ -27,7 +27,7 @@ export class WatchlistService {
   ) {}
 
   /**
-   * Add a product to user's watchlist
+   * Add a product to user's watchlist (idempotent - returns existing if already added)
    */
   async addToWatchlist(
     userId: string,
@@ -42,27 +42,43 @@ export class WatchlistService {
       throw new NotFoundException(`Product with ID ${productId} not found`);
     }
 
-    // Check if already in watchlist
+    // Check if already in watchlist - return existing item (idempotent)
     const existing = await this.watchlistRepo.findOne({
       where: { userId, productId },
     });
 
     if (existing !== null) {
-      throw new ConflictException('Product already in watchlist');
+      this.logger.log(
+        `Product ${productId} already in watchlist for user ${userId}`,
+      );
+      return this.toResponseDto(existing, product);
     }
 
-    // Create watchlist item
-    const watchlistItem = this.watchlistRepo.create({
-      userId,
-      productId,
-    });
+    // Create watchlist item with conflict handling
+    try {
+      const watchlistItem = this.watchlistRepo.create({
+        userId,
+        productId,
+      });
 
-    const saved = await this.watchlistRepo.save(watchlistItem);
-    this.logger.log(
-      `User ${userId} added product ${productId} to watchlist`,
-    );
+      const saved = await this.watchlistRepo.save(watchlistItem);
+      this.logger.log(
+        `User ${userId} added product ${productId} to watchlist`,
+      );
 
-    return this.toResponseDto(saved, product);
+      return this.toResponseDto(saved, product);
+    } catch (error: unknown) {
+      // Handle race condition - if another request inserted first, return existing
+      if (error instanceof Error && error.message.includes('duplicate key')) {
+        const existingItem = await this.watchlistRepo.findOne({
+          where: { userId, productId },
+        });
+        if (existingItem !== null) {
+          return this.toResponseDto(existingItem, product);
+        }
+      }
+      throw error;
+    }
   }
 
   /**

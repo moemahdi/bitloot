@@ -528,7 +528,7 @@ export class CatalogService {
       businessCategory?: string; // BitLoot category: games, software, subscriptions
       minPrice?: number; // Minimum price in EUR
       maxPrice?: number; // Maximum price in EUR
-      sort?: 'newest' | 'price_asc' | 'price_desc' | 'rating';
+      sort?: 'newest' | 'price_asc' | 'price_desc' | 'rating' | 'popular' | 'trending' | 'best_deals';
       featured?: boolean;
     } = {},
   ): Promise<{ data: Product[]; total: number; limit: number; offset: number; pages: number }> {
@@ -747,13 +747,44 @@ export class CatalogService {
     // Sorting
     switch (filters.sort) {
       case 'price_asc':
-        query = query.orderBy('product.price', 'ASC');
+        query = query.orderBy('CAST(product.price AS DECIMAL)', 'ASC');
         break;
       case 'price_desc':
-        query = query.orderBy('product.price', 'DESC');
+        query = query.orderBy('CAST(product.price AS DECIMAL)', 'DESC');
         break;
       case 'rating':
-        query = query.orderBy('product.rating', 'DESC');
+        query = query.orderBy('product.rating', 'DESC', 'NULLS LAST');
+        break;
+      case 'popular':
+        // Sort by rating weighted by review count (popularity score)
+        // Higher rating with more reviews = more popular
+        query = query.orderBy('COALESCE(product.rating, 0) * LOG(GREATEST(product.reviewCount, 1) + 1)', 'DESC');
+        break;
+      case 'trending':
+        // Products marked as trending first, then by rating
+        // Note: "featuredSections" must be double-quoted for PostgreSQL case-sensitivity
+        query = query
+          .orderBy(`CASE WHEN product."featuredSections"::text LIKE '%trending%' THEN 0 ELSE 1 END`, 'ASC')
+          .addOrderBy('product.rating', 'DESC', 'NULLS LAST')
+          .addOrderBy('product.createdAt', 'DESC');
+        break;
+      case 'best_deals':
+        // Products in active flash deals first, then by price (lowest first)
+        // Use subquery to check if product is in an active flash deal
+        query = query
+          .addSelect(
+            `(SELECT CASE WHEN EXISTS (
+              SELECT 1 FROM flash_deal_products fdp
+              JOIN flash_deals fd ON fd.id = fdp.flash_deal_id
+              WHERE fdp.product_id = product.id
+              AND fd.is_active = true
+              AND fd.starts_at <= NOW()
+              AND fd.ends_at >= NOW()
+            ) THEN 0 ELSE 1 END)`,
+            'in_flash_deal'
+          )
+          .orderBy('in_flash_deal', 'ASC')
+          .addOrderBy('product.price', 'ASC', 'NULLS LAST');
         break;
       case 'newest':
       default:

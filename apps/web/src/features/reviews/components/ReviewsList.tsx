@@ -224,31 +224,29 @@ export function ProductReviews({ productId, pageSize = 5 }: ProductReviewsProps)
 
   if (isLoading) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Customer Reviews</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {Array.from({ length: 3 }).map((_, i) => (
-              <ReviewCardSkeleton key={i} />
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+      <div className="bg-bg-secondary/60 rounded-xl border border-border-subtle p-5 space-y-4">
+        <h3 className="text-lg font-semibold text-text-primary flex items-center gap-2">
+          <Star className="h-5 w-5 text-orange-warning" />
+          Customer Reviews
+        </h3>
+        <div className="space-y-4">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <ReviewCardSkeleton key={i} />
+          ))}
+        </div>
+      </div>
     );
   }
 
   if (error != null) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Customer Reviews</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-muted-foreground">Unable to load reviews at this time.</p>
-        </CardContent>
-      </Card>
+      <div className="bg-bg-secondary/60 rounded-xl border border-border-subtle p-5 space-y-4">
+        <h3 className="text-lg font-semibold text-text-primary flex items-center gap-2">
+          <Star className="h-5 w-5 text-orange-warning" />
+          Customer Reviews
+        </h3>
+        <p className="text-sm text-text-muted">Unable to load reviews at this time.</p>
+      </div>
     );
   }
 
@@ -256,94 +254,90 @@ export function ProductReviews({ productId, pageSize = 5 }: ProductReviewsProps)
 
   if (reviews.length === 0) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Customer Reviews</CardTitle>
-          <CardDescription>No reviews yet for this product</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm text-muted-foreground">
-            Be the first to review this product after your purchase!
-          </p>
-        </CardContent>
-      </Card>
+      <div className="bg-bg-secondary/60 rounded-xl border border-border-subtle p-5 space-y-4">
+        <h3 className="text-lg font-semibold text-text-primary flex items-center gap-2">
+          <Star className="h-5 w-5 text-orange-warning" />
+          Customer Reviews
+        </h3>
+        <p className="text-sm text-text-muted">
+          No reviews yet. Be the first to review this product after your purchase!
+        </p>
+      </div>
     );
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle>Customer Reviews</CardTitle>
-            <CardDescription>
-              {data?.total ?? 0} review{(data?.total ?? 0) !== 1 ? 's' : ''}
-            </CardDescription>
-          </div>
-        </div>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-4">
-          {reviews.map((review) => (
-            <div key={review.id} className="border-b last:border-0 pb-4 last:pb-0">
-              <div className="space-y-2">
-                <div className="flex items-center justify-between gap-2">
-                  <StarRating rating={review.rating} size="sm" />
-                  {review.isVerifiedPurchase && (
-                    <Badge variant="secondary" className="gap-1 text-xs">
-                      <CheckCircle className="h-3 w-3" />
-                      Verified
-                    </Badge>
-                  )}
-                </div>
-                {review.title != null && String(review.title).length > 0 && (
-                  <h4 className="font-medium">{String(review.title)}</h4>
+    <div className="bg-bg-secondary/60 rounded-xl border border-border-subtle p-5 space-y-4">
+      <div className="flex items-center justify-between">
+        <h3 className="text-lg font-semibold text-text-primary flex items-center gap-2">
+          <Star className="h-5 w-5 text-orange-warning" />
+          Customer Reviews
+        </h3>
+        <span className="text-sm text-text-muted">
+          {data?.total ?? 0} review{(data?.total ?? 0) !== 1 ? 's' : ''}
+        </span>
+      </div>
+      
+      <div className="space-y-4">
+        {reviews.map((review) => (
+          <div key={review.id} className="border-b border-border-subtle last:border-0 pb-4 last:pb-0">
+            <div className="space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <StarRating rating={review.rating} size="sm" />
+                {review.isVerifiedPurchase && (
+                  <Badge variant="secondary" className="gap-1 text-xs">
+                    <CheckCircle className="h-3 w-3" />
+                    Verified
+                  </Badge>
                 )}
-                <p className="text-sm text-muted-foreground">{review.content}</p>
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <span className="font-medium">{review.authorName}</span>
-                  <span>•</span>
-                  <span>
-                    {new Date(review.createdAt).toLocaleDateString('en-US', {
-                      year: 'numeric',
-                      month: 'short',
-                      day: 'numeric',
-                    })}
-                  </span>
-                </div>
+              </div>
+              {review.title != null && String(review.title).length > 0 && (
+                <h4 className="text-sm font-medium text-text-primary">{String(review.title)}</h4>
+              )}
+              <p className="text-sm text-text-secondary">{review.content}</p>
+              <div className="flex items-center gap-2 text-xs text-text-muted">
+                <span className="font-medium">{review.authorName}</span>
+                <span>•</span>
+                <span>
+                  {new Date(review.createdAt).toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric',
+                  })}
+                </span>
               </div>
             </div>
-          ))}
-        </div>
-
-        {/* Pagination */}
-        {totalPages > 1 && (
-          <div className="flex items-center justify-center gap-2 mt-6 pt-4 border-t">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setPage(page - 1)}
-              disabled={!hasPrevPage}
-            >
-              <ChevronLeft className="h-4 w-4" />
-              Previous
-            </Button>
-            <span className="text-sm text-muted-foreground px-2">
-              Page {page} of {totalPages}
-            </span>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setPage(page + 1)}
-              disabled={!hasNextPage}
-            >
-              Next
-              <ChevronRight className="h-4 w-4" />
-            </Button>
           </div>
-        )}
-      </CardContent>
-    </Card>
+        ))}
+      </div>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-center gap-2 pt-4 border-t border-border-subtle">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setPage(page - 1)}
+            disabled={!hasPrevPage}
+          >
+            <ChevronLeft className="h-4 w-4" />
+            Previous
+          </Button>
+          <span className="text-sm text-text-muted px-2">
+            Page {page} of {totalPages}
+          </span>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setPage(page + 1)}
+            disabled={!hasNextPage}
+          >
+            Next
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
+      )}
+    </div>
   );
 }
 

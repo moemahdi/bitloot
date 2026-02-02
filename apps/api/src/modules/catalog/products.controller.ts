@@ -115,7 +115,7 @@ export class CatalogController {
   @ApiQuery({ name: 'featured', required: false, type: 'boolean', description: 'Show only featured products' })
   @ApiQuery({ name: 'minPrice', required: false, type: 'number', description: 'Minimum price filter (EUR)' })
   @ApiQuery({ name: 'maxPrice', required: false, type: 'number', description: 'Maximum price filter (EUR)' })
-  @ApiQuery({ name: 'sort', required: false, enum: ['newest', 'price_asc', 'price_desc', 'rating'] })
+  @ApiQuery({ name: 'sort', required: false, enum: ['newest', 'price_asc', 'price_desc', 'rating', 'popular', 'trending', 'best_deals'] })
   @ApiQuery({ name: 'limit', required: false, type: 'number', description: 'Items per page (≤ 100)' })
   @ApiQuery({ name: 'offset', required: false, type: 'number', description: 'Pagination offset' })
   @ApiResponse({ status: 200, type: ProductListResponseDto, description: 'Paginated product list' })
@@ -129,7 +129,7 @@ export class CatalogController {
     @Query('featured') featuredParam?: string,
     @Query('minPrice') minPriceParam?: string,
     @Query('maxPrice') maxPriceParam?: string,
-    @Query('sort') sort?: 'newest' | 'price_asc' | 'price_desc' | 'rating',
+    @Query('sort') sort?: 'newest' | 'price_asc' | 'price_desc' | 'rating' | 'popular' | 'trending' | 'best_deals',
     @Query('limit') limitParam?: string,
     @Query('offset') offsetParam?: string,
   ): Promise<ProductListResponseDto> {

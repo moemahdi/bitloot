@@ -50,6 +50,7 @@ export interface CatalogControllerListProductsRequest {
     region?: string;
     businessCategory?: string;
     category?: string;
+    genre?: string;
     featured?: boolean;
     minPrice?: number;
     maxPrice?: number;
@@ -266,6 +267,10 @@ export class CatalogApi extends runtime.BaseAPI {
             queryParameters['category'] = requestParameters['category'];
         }
 
+        if (requestParameters['genre'] != null) {
+            queryParameters['genre'] = requestParameters['genre'];
+        }
+
         if (requestParameters['featured'] != null) {
             queryParameters['featured'] = requestParameters['featured'];
         }
@@ -322,6 +327,9 @@ export const CatalogControllerListProductsSortEnum = {
     Newest: 'newest',
     PriceAsc: 'price_asc',
     PriceDesc: 'price_desc',
-    Rating: 'rating'
+    Rating: 'rating',
+    Popular: 'popular',
+    Trending: 'trending',
+    BestDeals: 'best_deals'
 } as const;
 export type CatalogControllerListProductsSortEnum = typeof CatalogControllerListProductsSortEnum[keyof typeof CatalogControllerListProductsSortEnum];

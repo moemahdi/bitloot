@@ -41,6 +41,7 @@ const shopLinks = [
 const supportLinks = [
     { href: '/help', label: 'Help Center', icon: HelpCircle },
     { href: '/#faq', label: 'FAQs', icon: MessageCircle },
+    { href: '/reviews', label: 'Reviews', icon: Sparkles },
     { href: '/contact', label: 'Contact Us', icon: Mail },
     { href: '/order-lookup', label: 'Track Order', icon: Search },
 ];
@@ -243,8 +244,8 @@ export function Footer(): React.ReactElement {
                         </Link>
                         
                         <p className="text-sm text-text-secondary leading-relaxed max-w-sm">
-                            Your trusted crypto gaming marketplace. Get instant access to game keys, software licenses, and subscriptions. 
-                            Pay with 300+ cryptocurrencies and receive your products in minutes, not days.
+                            Your trusted crypto marketplace. Get instant access to keys, accounts, software licenses, and subscriptions. 
+                            Pay with +100 cryptocurrencies and receive your products in minutes, not days.
                         </p>
                         
                         {/* Social Links */}

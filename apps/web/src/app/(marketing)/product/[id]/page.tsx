@@ -14,15 +14,15 @@ import { Skeleton } from '@/design-system/primitives/skeleton';
 import { 
   Bitcoin, Zap, Loader2, Globe, Monitor, ChevronLeft, 
   Share2, Check, Package, Play, Image as ImageIcon, 
-  Cpu, HardDrive, AlertTriangle, Key, Clock, 
-  RefreshCw, FileText, Wallet, Lock, BadgeCheck,
-  Volume2, Wifi, Settings, Gamepad2, Shield, Star,
+  HardDrive, AlertTriangle, Key, Clock, 
+  RefreshCw, FileText, Wallet, Lock, BadgeCheck, Star,
   Flame, Minus, Plus, ShoppingCart
 } from 'lucide-react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ProductReviews } from '@/features/reviews';
 import { WatchlistButton } from '@/features/watchlist';
+import { FormattedDescription } from '@/features/product/components/FormattedDescription';
 import { useAuth } from '@/hooks/useAuth';
 import { useCart } from '@/context/CartContext';
 import { useState, useCallback, useEffect } from 'react';
@@ -142,7 +142,7 @@ function CryptoPaymentBanner(): React.ReactElement {
             <span className="text-xs font-medium text-text-secondary">{crypto.name}</span>
           </div>
         ))}
-        <span className="text-xs text-text-muted">+300 more</span>
+        <span className="text-xs text-text-muted">+100 more</span>
       </div>
     </div>
   );
@@ -555,233 +555,119 @@ function MediaGallery({
 
 // VideoSection has been merged into MediaGallery component above
 
-// ========== Component: System Requirements (Redesigned) ==========
+// ========== Component: System Requirements (Simplified Card) ==========
 
-function parseSystemRequirements(text: string): { label: string; value: string; icon: string }[] {
-  const specConfig: Record<string, { icon: string; priority: number }> = {
-    'os': { icon: 'os', priority: 1 },
-    'processor': { icon: 'cpu', priority: 2 },
-    'cpu': { icon: 'cpu', priority: 2 },
-    'memory': { icon: 'ram', priority: 3 },
-    'ram': { icon: 'ram', priority: 3 },
-    'graphics': { icon: 'gpu', priority: 4 },
-    'gpu': { icon: 'gpu', priority: 4 },
-    'video card': { icon: 'gpu', priority: 4 },
-    'storage': { icon: 'storage', priority: 5 },
-    'hard drive': { icon: 'storage', priority: 5 },
-    'directx': { icon: 'directx', priority: 6 },
-    'sound': { icon: 'sound', priority: 7 },
-    'network': { icon: 'network', priority: 8 },
+function parseSystemRequirements(text: string): { label: string; value: string }[] {
+  // Remove "Minimum:" or "Recommended:" prefix if present
+  const cleanText = text.replace(/^(minimum|recommended)\s*:\s*/i, '').trim();
+  
+  // Define spec labels to look for
+  const specLabels = ['os', 'processor', 'cpu', 'memory', 'ram', 'graphics', 'gpu', 'video card', 'storage', 'hard drive', 'directx', 'sound', 'network', 'additional notes'];
+  const pattern = new RegExp(`(${specLabels.join('|')})\\s*:`, 'gi');
+  
+  const specs: { label: string; value: string }[] = [];
+  let lastIndex = 0;
+  let lastLabel = '';
+  
+  let match;
+  while ((match = pattern.exec(cleanText)) !== null) {
+    if (lastLabel !== '') {
+      const value = cleanText.slice(lastIndex, match.index).trim();
+      if (value !== '') specs.push({ label: lastLabel, value });
+    }
+    lastLabel = match[1] ?? '';
+    lastIndex = match.index + match[0].length;
+  }
+  
+  if (lastLabel !== '') {
+    const value = cleanText.slice(lastIndex).trim();
+    if (value !== '') specs.push({ label: lastLabel, value });
+  }
+  
+  // Normalize labels
+  const labelMap: Record<string, string> = {
+    'os': 'OS', 'processor': 'CPU', 'cpu': 'CPU', 'memory': 'RAM', 'ram': 'RAM',
+    'graphics': 'GPU', 'gpu': 'GPU', 'video card': 'GPU', 'storage': 'Storage',
+    'hard drive': 'Storage', 'directx': 'DirectX', 'sound': 'Sound', 'network': 'Network',
   };
   
-  const specLabels = Object.keys(specConfig);
-  const pattern = new RegExp(`(${specLabels.join('|')})\\s*:`, 'gi');
-  const specs: { label: string; value: string; icon: string }[] = [];
-  const parts = text.split(pattern).filter(part => part.trim() !== '');
-  
-  for (let i = 0; i < parts.length - 1; i += 2) {
-    const label = parts[i]?.trim().toLowerCase();
-    const value = parts[i + 1]?.trim();
-    if (label !== undefined && value !== undefined) {
-      const config = specConfig[label] ?? { icon: 'default', priority: 99 };
-      specs.push({ 
-        label: label.charAt(0).toUpperCase() + label.slice(1), 
-        value,
-        icon: config.icon
-      });
-    }
-  }
-  
-  // Sort by priority
-  specs.sort((a, b) => {
-    const priorityA = specConfig[a.label.toLowerCase()]?.priority ?? 99;
-    const priorityB = specConfig[b.label.toLowerCase()]?.priority ?? 99;
-    return priorityA - priorityB;
-  });
-  
-  return specs.length > 0 ? specs : [{ label: 'Requirements', value: text.trim(), icon: 'default' }];
-}
-
-function SpecIcon({ type, className = "h-4 w-4" }: { type: string; className?: string }): React.ReactElement {
-  switch (type) {
-    case 'os':
-      return <Monitor className={className} />;
-    case 'cpu':
-      return <Cpu className={className} />;
-    case 'ram':
-      return <HardDrive className={className} />;
-    case 'gpu':
-      return <Gamepad2 className={className} />;
-    case 'storage':
-      return <HardDrive className={className} />;
-    case 'directx':
-      return <Zap className={className} />;
-    case 'sound':
-      return <Volume2 className={className} />;
-    case 'network':
-      return <Wifi className={className} />;
-    default:
-      return <Settings className={className} />;
-  }
+  return specs.map(s => ({ label: labelMap[s.label.toLowerCase()] ?? s.label, value: s.value }));
 }
 
 function SystemRequirementsSection({ requirements }: { requirements: SystemRequirementDto[] }): React.ReactElement {
   const [activeOS, setActiveOS] = useState(requirements[0]?.system ?? 'windows');
-  const [showOptimal, setShowOptimal] = useState(false);
 
   if (requirements.length === 0) return <></>;
 
   const currentReq = requirements.find(r => r.system === activeOS);
-  
-  // Debug logging - remove in production
-  console.info('SystemRequirements DEBUG:', {
-    currentReq,
-    requirement0: currentReq?.requirement?.[0],
-    requirement1: currentReq?.requirement?.[1],
-    requirementLength: currentReq?.requirement?.length,
-    fullRequirement: currentReq?.requirement
-  });
-  
-  const minSpecs = currentReq?.requirement?.[0] !== undefined && currentReq.requirement[0].trim() !== '' 
-    ? parseSystemRequirements(currentReq.requirement[0]) 
-    : [];
-  const recSpecs = currentReq?.requirement?.[1] !== undefined && currentReq.requirement[1].trim() !== '' 
-    ? parseSystemRequirements(currentReq.requirement[1]) 
-    : [];
-  const hasOptimal = recSpecs.length > 0 && recSpecs.some(s => s.value.trim() !== '');
-  const displaySpecs = showOptimal && hasOptimal ? recSpecs : minSpecs;
-  
-  console.info('Parsed specs DEBUG:', { minSpecs, recSpecs, hasOptimal, showOptimal, displaySpecs });
+  const minSpecs = currentReq?.requirement?.[0] ? parseSystemRequirements(currentReq.requirement[0]) : [];
+  const recSpecs = currentReq?.requirement?.[1] ? parseSystemRequirements(currentReq.requirement[1]) : [];
+  const hasRecommended = recSpecs.length > 0;
 
   return (
-    <div className={`rounded-2xl overflow-hidden ${GLASS_PANEL}`}>
-      {/* Header with OS Selector */}
-      <div className="p-5 border-b border-border-subtle bg-linear-to-r from-purple-neon/5 via-transparent to-cyan-glow/5">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-xl bg-linear-to-br from-purple-neon/20 to-cyan-glow/20 border border-purple-neon/20">
-              <Cpu className="h-5 w-5 text-purple-neon" />
-            </div>
-            <div>
-              <h3 className="text-lg font-bold text-text-primary">System Requirements</h3>
-              <p className="text-xs text-text-muted">Hardware specifications</p>
-            </div>
-          </div>
-          
-          {/* OS Pills */}
-          <div className="flex gap-2">
+    <div className="bg-bg-secondary/60 rounded-xl border border-border-subtle p-5 space-y-4">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <h3 className="text-lg font-semibold text-text-primary flex items-center gap-2">
+          <Monitor className="h-5 w-5 text-purple-neon" />
+          System Requirements
+        </h3>
+        {requirements.length > 1 && (
+          <div className="flex gap-1">
             {requirements.map((req) => (
               <button
                 key={req.system}
                 onClick={() => setActiveOS(req.system ?? 'windows')}
-                className={`
-                  flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all duration-300
-                  ${activeOS === req.system 
-                    ? 'bg-linear-to-r from-purple-neon to-cyan-glow text-white shadow-lg shadow-purple-neon/25' 
-                    : 'bg-bg-tertiary/80 text-text-secondary hover:bg-bg-tertiary hover:text-text-primary border border-border-subtle'
-                  }
-                `}
+                className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors capitalize ${
+                  activeOS === req.system 
+                    ? 'bg-purple-neon/20 text-purple-neon' 
+                    : 'text-text-muted hover:text-text-secondary'
+                }`}
               >
-                {req.system === 'windows' && <Monitor className="h-4 w-4" />}
-                {req.system === 'mac' && <Monitor className="h-4 w-4" />}
-                {req.system === 'linux' && <Monitor className="h-4 w-4" />}
-                <span className="capitalize">{req.system}</span>
+                {req.system}
               </button>
             ))}
           </div>
-        </div>
+        )}
       </div>
-      
-      {/* Toggle: Required vs Optimal */}
-      {hasOptimal && (
-        <div className="px-5 py-3 border-b border-border-subtle bg-bg-primary/20">
-          <div className="flex items-center justify-center gap-1 p-1 bg-bg-primary/40 rounded-full max-w-xs mx-auto border border-border-subtle">
-            <button
-              onClick={() => setShowOptimal(false)}
-              className={`
-                flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all duration-300
-                ${!showOptimal 
-                  ? 'bg-orange-warning/20 text-orange-warning shadow-inner' 
-                  : 'text-text-muted hover:text-text-secondary'
-                }
-              `}
-            >
-              <Shield className="h-4 w-4" />
-              <span>Required</span>
-            </button>
-            <button
-              onClick={() => setShowOptimal(true)}
-              className={`
-                flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all duration-300
-                ${showOptimal 
-                  ? 'bg-cyan-glow/20 text-cyan-glow shadow-inner' 
-                  : 'text-text-muted hover:text-text-secondary'
-                }
-              `}
-            >
-              <Zap className="h-4 w-4" />
-              <span>Optimal</span>
-            </button>
+
+      {/* Two Column Layout */}
+      <div className={`grid gap-6 ${hasRecommended ? 'sm:grid-cols-2' : 'grid-cols-1'}`}>
+        {/* Minimum */}
+        <div className="space-y-3">
+          <div className="flex items-center gap-2 text-sm font-medium text-orange-warning">
+            <div className="w-2 h-2 rounded-full bg-orange-warning" />
+            Minimum
           </div>
-        </div>
-      )}
-      
-      {/* Specs Grid - Modern Card Layout */}
-      <div className="p-5">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          {displaySpecs.map((spec, i) => (
-            <div 
-              key={i}
-              className={`
-                group relative p-4 rounded-xl border transition-all duration-300
-                ${showOptimal 
-                  ? 'bg-linear-to-br from-cyan-glow/5 to-transparent border-cyan-glow/10 hover:border-cyan-glow/30' 
-                  : 'bg-linear-to-br from-orange-warning/5 to-transparent border-orange-warning/10 hover:border-orange-warning/30'
-                }
-              `}
-            >
-              {/* Icon Badge */}
-              <div className={`
-                absolute -top-2 -left-2 p-2 rounded-lg shadow-lg
-                ${showOptimal 
-                  ? 'bg-linear-to-br from-cyan-glow to-cyan-glow/80' 
-                  : 'bg-linear-to-br from-orange-warning to-orange-warning/80'
-                }
-              `}>
-                <SpecIcon type={spec.icon} className="h-3.5 w-3.5 text-white" />
+          <div className="space-y-2">
+            {minSpecs.length > 0 ? minSpecs.map((spec, i) => (
+              <div key={i} className="flex text-sm">
+                <span className="text-text-muted w-20 shrink-0">{spec.label}</span>
+                <span className="text-text-secondary">{spec.value}</span>
               </div>
-              
-              {/* Spec Content */}
-              <div className="ml-4">
-                <span className={`
-                  text-[10px] uppercase tracking-widest font-bold
-                  ${showOptimal ? 'text-cyan-glow/70' : 'text-orange-warning/70'}
-                `}>
-                  {spec.label}
-                </span>
-                <p className="text-sm text-text-secondary mt-1 leading-relaxed">
-                  {spec.value}
-                </p>
-              </div>
-            </div>
-          ))}
-        </div>
-        
-        {/* Info Footer */}
-        <div className="mt-5 pt-4 border-t border-border-subtle">
-          <div className="flex items-center justify-center gap-6 text-xs text-text-muted">
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-orange-warning" />
-              <span>Required = Minimum to run</span>
-            </div>
-            {hasOptimal && (
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-cyan-glow" />
-                <span>Optimal = Best experience</span>
-              </div>
+            )) : (
+              <p className="text-sm text-text-muted italic">Not specified</p>
             )}
           </div>
         </div>
+
+        {/* Recommended */}
+        {hasRecommended && (
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 text-sm font-medium text-cyan-glow">
+              <div className="w-2 h-2 rounded-full bg-cyan-glow" />
+              Recommended
+            </div>
+            <div className="space-y-2">
+              {recSpecs.map((spec, i) => (
+                <div key={i} className="flex text-sm">
+                  <span className="text-text-muted w-20 shrink-0">{spec.label}</span>
+                  <span className="text-text-secondary">{spec.value}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -964,6 +850,50 @@ export default function ProductPage(): React.ReactElement {
     } catch { console.warn('Clipboard API failed'); }
   };
 
+  // Save to recently viewed when product loads
+  useEffect(() => {
+    if (product === null || product === undefined) return;
+    
+    try {
+      const RECENTLY_VIEWED_KEY = 'bitloot_recently_viewed';
+      const MAX_RECENTLY_VIEWED = 10;
+      
+      const stored = localStorage.getItem(RECENTLY_VIEWED_KEY);
+      const existing = stored !== null ? (JSON.parse(stored) as unknown[]) : [];
+      
+      // Get cover image with screenshot as fallback
+      const firstScreenshot = Array.isArray(product.screenshots) && product.screenshots.length > 0 
+        ? product.screenshots[0]?.url 
+        : undefined;
+      const coverImage = product.imageUrl ?? firstScreenshot;
+      
+      // Create product entry matching CatalogProduct structure
+      const entry = {
+        id: product.id,
+        slug: product.slug ?? product.id,
+        name: product.title ?? '',
+        price: product.price ?? '0',
+        image: coverImage,
+        platform: product.platform ?? '',
+        genre: product.category ?? '',
+      };
+      
+      // Filter out duplicates and add to front
+      const filtered = Array.isArray(existing) 
+        ? existing.filter((p): p is Record<string, unknown> => {
+            if (typeof p !== 'object' || p === null) return false;
+            const obj = p as Record<string, unknown>;
+            return obj.id !== product.id;
+          })
+        : [];
+      
+      const updated = [entry, ...filtered].slice(0, MAX_RECENTLY_VIEWED);
+      localStorage.setItem(RECENTLY_VIEWED_KEY, JSON.stringify(updated));
+    } catch {
+      // Ignore localStorage errors
+    }
+  }, [product]);
+
   if (isLoading) return <ProductPageSkeleton />;
   if (isError || product === null || product === undefined) return <ProductErrorState onRetry={refetch} />;
 
@@ -1019,41 +949,34 @@ export default function ProductPage(): React.ReactElement {
             />
 
             {/* About This Game */}
-            <section className="space-y-4">
+            <div className="bg-bg-secondary/60 rounded-xl border border-border-subtle p-5 space-y-4">
               <div className="flex items-center justify-between">
-                 <h2 className="text-2xl font-bold text-text-primary tracking-tight flex items-center gap-2">
-                  <FileText className="h-6 w-6 text-text-muted" />
-                  About the Game
-                </h2>
+                <h3 className="text-lg font-semibold text-text-primary flex items-center gap-2">
+                  <FileText className="h-5 w-5 text-cyan-glow" />
+                  About the Product
+                </h3>
                 {product.metacriticScore !== null && product.metacriticScore !== undefined && product.metacriticScore > 0 && (
                    <MetacriticBadge score={product.metacriticScore} />
                 )}
               </div>
               
-              <div className={`p-6 lg:p-8 rounded-2xl ${GLASS_PANEL}`}>
+              <div className="text-sm text-text-secondary leading-relaxed">
                 {product.description !== null && product.description !== undefined && product.description !== '' ? (
-                  <div 
-                    className="prose prose-invert max-w-none 
-                      prose-headings:text-text-primary prose-headings:font-bold 
-                      prose-a:text-cyan-glow prose-a:no-underline hover:prose-a:underline
-                      prose-strong:text-text-primary prose-strong:font-semibold
-                      leading-relaxed text-text-secondary"
-                    dangerouslySetInnerHTML={{ __html: product.description }}
-                  />
+                  <FormattedDescription text={product.description} />
                 ) : (
                   <p className="text-text-muted italic">No description available.</p>
                 )}
               </div>
-            </section>
+            </div>
 
             {/* Activation Details (if available) */}
             {product.activationDetails !== null && product.activationDetails !== undefined && product.activationDetails !== '' && (
-              <div className={`p-6 rounded-xl space-y-3 ${GLASS_PANEL}`}>
-                <h3 className="text-lg font-medium text-text-primary flex items-center gap-2">
+              <div className="bg-bg-secondary/60 rounded-xl border border-border-subtle p-5 space-y-4">
+                <h3 className="text-lg font-semibold text-text-primary flex items-center gap-2">
                   <Key className="h-5 w-5 text-orange-warning" /> Activation
                 </h3>
-                <div className="text-sm text-text-secondary leading-relaxed whitespace-pre-wrap">
-                  {product.activationDetails}
+                <div className="text-sm text-text-secondary leading-relaxed">
+                  <FormattedDescription text={product.activationDetails} />
                 </div>
               </div>
             )}
@@ -1064,15 +987,7 @@ export default function ProductPage(): React.ReactElement {
             )}
 
             {/* Customer Reviews Section */}
-            <section className="space-y-4">
-              <h2 className="text-2xl font-bold text-text-primary tracking-tight flex items-center gap-2">
-                <Star className="h-6 w-6 text-orange-warning" />
-                Customer Reviews
-              </h2>
-              <div className={`rounded-2xl ${GLASS_PANEL} p-6 lg:p-8`}>
-                <ProductReviews productId={product.id ?? ''} pageSize={5} />
-              </div>
-            </section>
+            <ProductReviews productId={product.id ?? ''} pageSize={5} />
 
             {/* Videos are now integrated into MediaGallery at the top */}
           </div>
@@ -1281,7 +1196,7 @@ export default function ProductPage(): React.ReactElement {
                     <TrustBadge
                       icon={<Zap className="h-4 w-4" />}
                       title="Instant Delivery"
-                      description="Key delivered in seconds"
+                      description="Products delivered in seconds"
                       variant="success"
                     />
                     <TrustBadge
@@ -1293,7 +1208,7 @@ export default function ProductPage(): React.ReactElement {
                     <TrustBadge
                       icon={<BadgeCheck className="h-4 w-4" />}
                       title="Official Distributor"
-                      description="100% authentic keys"
+                      description="100% authentic products"
                       variant="default"
                     />
                   </div>

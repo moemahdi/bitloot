@@ -7,7 +7,6 @@ import { Input } from '@/design-system/primitives/input';
 import { Badge } from '@/design-system/primitives/badge';
 import { 
     Search, 
-    ShoppingCart, 
     User, 
     Menu, 
     X, 
@@ -35,10 +34,10 @@ import {
     Tv,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import { Sheet, SheetContent, SheetTrigger, SheetClose } from '@/design-system/primitives/sheet';
+import { Sheet, SheetContent, SheetTrigger, SheetClose, SheetTitle } from '@/design-system/primitives/sheet';
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { useCart } from '@/context/CartContext';
+import { CartDropdown } from '@/components/cart/CartDropdown';
 
 // ============================================================================
 // TYPES & CONSTANTS
@@ -134,7 +133,6 @@ export function Header(): React.ReactElement {
     const pathname = usePathname();
     const router = useRouter();
     const { isAuthenticated, user, logout } = useAuth();
-    const { itemCount } = useCart();
     const [isSearchOpen, setIsSearchOpen] = useState(false);
     const [isMegaMenuOpen, setIsMegaMenuOpen] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
@@ -424,22 +422,8 @@ export function Header(): React.ReactElement {
                         <span className="sr-only">Search</span>
                     </Button>
 
-                    {/* Cart */}
-                    <Link href="/cart">
-                        <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            className="relative text-text-muted hover:text-cyan-glow hover:bg-cyan-glow/10 hover:shadow-glow-cyan-sm transition-all duration-200"
-                        >
-                            <ShoppingCart className="h-5 w-5" />
-                            {itemCount > 0 && (
-                                <span className="absolute -top-0.5 -right-0.5 flex items-center justify-center min-w-[18px] h-[18px] px-1 text-[10px] font-bold rounded-full bg-purple-neon text-white shadow-glow-purple-sm animate-scale-in">
-                                    {itemCount > 99 ? '99+' : itemCount}
-                                </span>
-                            )}
-                            <span className="sr-only">Cart{itemCount > 0 ? ` (${itemCount} items)` : ''}</span>
-                        </Button>
-                    </Link>
+                    {/* Cart Dropdown */}
+                    <CartDropdown />
 
                     {/* User / Sign In / Dashboard */}
                     {isAuthenticated ? (
@@ -508,6 +492,9 @@ export function Header(): React.ReactElement {
                             side="right" 
                             className="w-[300px] bg-bg-primary border-l border-border-subtle p-0"
                         >
+                            {/* Accessible title - visually hidden but available for screen readers */}
+                            <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
+                            
                             {/* Mobile Menu Header */}
                             <div className="flex items-center gap-2 p-4 border-b border-border-subtle">
                                 <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-cyan-glow/10 border border-cyan-glow/30">
@@ -567,7 +554,7 @@ export function Header(): React.ReactElement {
                                         </div>
 
                                         <SheetClose asChild>
-                                            <Link href="/dashboard">
+                                            <Link href="/profile">
                                                 <Button 
                                                     variant="outline" 
                                                     className="w-full gap-2 border-cyan-glow/30 text-cyan-glow hover:bg-cyan-glow/10 hover:border-cyan-glow/60"

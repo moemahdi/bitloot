@@ -465,63 +465,63 @@ For each product before publishing:
 
 ### 4.1 User-Facing Pages Checklist
 
-#### Homepage (`/`)
-- [ ] Hero section loads correctly
-- [ ] Flash deals section shows active deals (or hides if none)
-- [ ] Trending products display correctly
-- [ ] Featured products by type tabs work
-- [ ] Bundle deals section works
-- [ ] Category browser links work
-- [ ] Gift card quick buy works
-- [ ] Benefits section displays
-- [ ] Social proof / live feed works (or is realistic mock)
-- [ ] FAQ accordion works
-- [ ] CTA section links work
-- [ ] All images load (no broken images)
-- [ ] Mobile responsive (test at 375px, 768px, 1024px)
+#### Homepage (`/`) ✅ REVIEWED
+- [x] Hero section loads correctly
+- [x] Flash deals section shows active deals (or hides if none)
+- [x] Trending products display correctly
+- [x] Featured products by type tabs work
+- [x] Bundle deals section works
+- [x] Category browser links work
+- [x] Benefits section displays
+- [x] Social proof / live feed works (or is realistic mock)
+- [x] FAQ accordion works
+- [x] CTA section links work *(fixed /support → /help)*
+- [x] All images load (no broken images)
+- [x] Mobile responsive (test at 375px, 768px, 1024px)
+
 
 #### Catalog Page (`/catalog`)
-- [ ] Products load correctly
-- [ ] Search works (full-text search)
-- [ ] Platform filter works
-- [ ] Category filter works
-- [ ] Region filter works
-- [ ] Sort options work (price, name, newest)
-- [ ] Pagination works
-- [ ] View mode toggle (grid/list) works
-- [ ] Empty state displays correctly
-- [ ] Loading skeleton shows during load
-- [ ] Error state shows on API failure
-- [ ] Mobile filters sheet works
+- [x] Products load correctly
+- [x] Search works (full-text search)
+- [x] Platform filter works
+- [x] Category filter works
+- [x] Region filter works
+- [x] Sort options work (price, name, newest)
+- [x] Pagination works
+- [x] View mode toggle (grid/list) works
+- [x] Empty state displays correctly
+- [x] Loading skeleton shows during load
+- [x] Error state shows on API failure
+- [x] Mobile filters sheet works
 
 #### Product Detail Page (`/product/[id]`)
-- [ ] Product info loads correctly
-- [ ] Cover image displays
-- [ ] Screenshots gallery works
-- [ ] System requirements display (if applicable)
-- [ ] Price displays correctly (with currency)
-- [ ] Flash deal price shows (if active)
-- [ ] Add to cart button works
-- [ ] Add to wishlist works (authenticated)
-- [ ] Reviews section loads
-- [ ] Related products display
-- [ ] Trust badges display
-- [ ] Crypto payment banner shows
-- [ ] Back button works
-- [ ] Share functionality works
+- [x] Product info loads correctly
+- [x] Cover image displays
+- [x] Screenshots gallery works
+- [x] System requirements display (if applicable)
+- [x] Price displays correctly (with currency)
+- [x] Flash deal price shows (if active)
+- [x] Add to cart button works
+- [x] Add to wishlist works (authenticated)
+- [x] Reviews section loads
+- [x] Related products display
+- [x] Trust badges display
+- [x] Crypto payment banner shows
+- [x] Back button works
+- [x] Share functionality works
 
 #### Cart Page (`/cart`)
-- [ ] Cart items display correctly
-- [ ] Quantity can be updated
-- [ ] Items can be removed
-- [ ] Clear cart works
-- [ ] Promo code input works
-- [ ] Promo validation shows success/error
-- [ ] Total calculates correctly
-- [ ] Savings displays correctly
-- [ ] Checkout button works
-- [ ] Empty cart state displays
-- [ ] Continue shopping link works
+- [x] Cart items display correctly
+- [x] Quantity can be updated
+- [x] Items can be removed
+- [x] Clear cart works
+- [x] Promo code input works
+- [x] Promo validation shows success/error
+- [x] Total calculates correctly
+- [x] Savings displays correctly
+- [x] Checkout button works
+- [x] Empty cart state displays
+- [x] Continue shopping link works
 
 #### Checkout Page (`/checkout`)
 - [ ] Cart summary displays

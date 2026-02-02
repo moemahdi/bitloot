@@ -381,6 +381,7 @@ export function FlashDealSection(): React.ReactElement | null {
       price: discountedPrice,
       quantity: 1,
       image: coverImageUrl,
+      platform: product.product?.platform ?? undefined,
     });
   }, [addItem]);
 
