@@ -7,9 +7,6 @@ import { Button } from '@/design-system/primitives/button';
 import {
   Card,
   CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
 } from '@/design-system/primitives/card';
 import { Skeleton } from '@/design-system/primitives/skeleton';
 import { useHomepageReviews, usePublicReviews, useMyReviews } from '../hooks/useReviews';

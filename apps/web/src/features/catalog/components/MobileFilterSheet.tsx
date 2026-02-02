@@ -70,7 +70,7 @@ export function MobileFilterSheet({
   onSearchSubmit,
   showSearch = true,
   totalResults = 0,
-  className,
+  className: _className,
 }: MobileFilterSheetProps): React.ReactElement {
   // Calculate active filter count
   const activeFilterCount = useMemo(() => {

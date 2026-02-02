@@ -36,6 +36,7 @@ export function useNetworkStatus(options?: { detailed?: boolean }): boolean | Ne
 
   const updateNetworkStatus = useCallback(() => {
     // Get Network Information API if available
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const connection = 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       (navigator as any).connection ?? 
@@ -74,6 +75,7 @@ export function useNetworkStatus(options?: { detailed?: boolean }): boolean | Ne
     window.addEventListener('offline', handleOffline);
 
     // Listen for connection changes if Network Information API is available
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const connection = 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
       (navigator as any).connection ?? 

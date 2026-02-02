@@ -143,9 +143,11 @@ interface CompactProductCardProps {
     product: CatalogProduct;
     color: 'cyan' | 'purple' | 'pink';
     onAddToCart: (productId: string) => void;
+    /** Set to true for above-the-fold images (LCP optimization) */
+    isPriority?: boolean;
 }
 
-function CompactProductCard({ product, color, onAddToCart }: CompactProductCardProps): React.ReactElement {
+function CompactProductCard({ product, color, onAddToCart, isPriority = false }: CompactProductCardProps): React.ReactElement {
     const colors = colorClasses[color];
 
     return (
@@ -163,6 +165,7 @@ function CompactProductCard({ product, color, onAddToCart }: CompactProductCardP
                             src={product.image}
                             alt={product.name}
                             fill
+                            priority={isPriority}
                             className="object-cover transition-transform duration-300 group-hover:scale-105"
                             sizes="288px"
                         />
@@ -317,7 +320,7 @@ function ProductCarousel({ config }: ProductCarouselProps): React.ReactElement {
     const [isAutoScrollPaused, setIsAutoScrollPaused] = useState(false);
     
     const { addItem } = useCart();
-    const { isAuthenticated } = useAuth();
+    const { isAuthenticated: _isAuthenticated } = useAuth();
     const colors = colorClasses[config.color];
     const Icon = config.icon;
 
@@ -518,12 +521,13 @@ function ProductCarousel({ config }: ProductCarouselProps): React.ReactElement {
                         onScroll={checkScrollState}
                         className="flex gap-4 overflow-x-auto pb-2 scrollbar-hidden scroll-smooth snap-x snap-mandatory -mx-1 px-1"
                     >
-                        {products.map((product) => (
+                        {products.map((product, index) => (
                             <div key={product.id} className="w-56 sm:w-64 md:w-72 shrink-0 snap-start">
                                 <CompactProductCard
                                     product={product}
                                     color={config.color}
                                     onAddToCart={handleAddToCart}
+                                    isPriority={index < 4}
                                 />
                             </div>
                         ))}

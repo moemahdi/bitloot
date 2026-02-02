@@ -184,6 +184,7 @@ export function TrendingSection({
                       onViewProduct={onViewProduct}
                       isInWishlist={wishlistIds.has(product.id)}
                       showQuickActions
+                      isPriority={index < 4}
                     />
                   </div>
                 </div>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useMemo } from 'react';
 
 export interface RetryConfig {
   /** Maximum number of retry attempts */
@@ -47,7 +47,14 @@ export function useRetry<T>(
   reset: () => void;
   cancel: () => void;
 } {
-  const mergedConfig = { ...DEFAULT_CONFIG, ...config };
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- We intentionally depend on individual properties for stable reference
+  const mergedConfig = useMemo(() => ({ ...DEFAULT_CONFIG, ...config }), [
+    config.maxRetries,
+    config.initialDelay,
+    config.maxDelay,
+    config.backoffMultiplier,
+    config.retryOn,
+  ]);
   const [state, setState] = useState<RetryState>({
     attempt: 0,
     isRetrying: false,
@@ -61,7 +68,7 @@ export function useRetry<T>(
   const calculateDelay = useCallback((attempt: number): number => {
     const delay = mergedConfig.initialDelay * Math.pow(mergedConfig.backoffMultiplier, attempt);
     return Math.min(delay, mergedConfig.maxDelay);
-  }, [mergedConfig.initialDelay, mergedConfig.backoffMultiplier, mergedConfig.maxDelay]);
+  }, [mergedConfig]);
 
   const cancel = useCallback(() => {
     cancelledRef.current = true;
@@ -147,7 +154,7 @@ export function useRetry<T>(
     };
 
     return attemptExecution();
-  }, [fn, mergedConfig.maxRetries, mergedConfig.retryOn, calculateDelay, reset]);
+  }, [fn, mergedConfig, calculateDelay, reset]);
 
   return { execute, state, reset, cancel };
 }

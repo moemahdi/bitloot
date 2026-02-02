@@ -379,10 +379,10 @@ function ProductSearch({
                   onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
-                    console.log('[ProductSearch] Add clicked, product:', product.id, product.title);
-                    console.log('[ProductSearch] canAddMore:', canAddMore);
+                    console.info('[ProductSearch] Add clicked, product:', product.id, product.title);
+                    console.info('[ProductSearch] canAddMore:', canAddMore);
                     if (canAddMore) {
-                      console.log('[ProductSearch] Calling onSelect...');
+                      console.info('[ProductSearch] Calling onSelect...');
                       onSelect(product);
                     }
                   }}
@@ -795,23 +795,23 @@ export default function HomepageSectionsPage(): React.ReactElement {
   };
 
   const handleAddProduct = async (product: Product) => {
-    console.log('[handleAddProduct] Called with product:', product.id, product.title);
-    console.log('[handleAddProduct] activeSection:', activeSection?.key);
+    console.info('[handleAddProduct] Called with product:', product.id, product.title);
+    console.info('[handleAddProduct] activeSection:', activeSection?.key);
     if (activeSection === null) {
-      console.log('[handleAddProduct] activeSection is null, returning early');
+      console.info('[handleAddProduct] activeSection is null, returning early');
       return;
     }
     setIsLoading(true);
     try {
       const currentProducts = getSectionProducts(activeSection.key);
-      console.log('[handleAddProduct] currentProducts count:', currentProducts.length);
+      console.info('[handleAddProduct] currentProducts count:', currentProducts.length);
       // Use product's featuredSections directly - the addProductToSection handles the merge
       const currentSections = product.featuredSections ?? [];
-      console.log('[handleAddProduct] currentSections:', currentSections);
+      console.info('[handleAddProduct] currentSections:', currentSections);
       
-      console.log('[handleAddProduct] Calling addProductToSection...');
+      console.info('[handleAddProduct] Calling addProductToSection...');
       await addProductToSection(product.id, activeSection.key, currentSections, currentProducts.length);
-      console.log('[handleAddProduct] addProductToSection completed');
+      console.info('[handleAddProduct] addProductToSection completed');
       
       // Optimistically update the cache with the new product
       const sectionKey = activeSection.key;
@@ -832,15 +832,15 @@ export default function HomepageSectionsPage(): React.ReactElement {
           return [...existing, updatedProduct];
         }
       );
-      console.log('[handleAddProduct] Cache updated optimistically');
+      console.info('[handleAddProduct] Cache updated optimistically');
       
       // Also refetch to ensure server state is synced
-      console.log('[handleAddProduct] Refetching queries...');
+      console.info('[handleAddProduct] Refetching queries...');
       await queryClient.invalidateQueries({ 
         queryKey: ['admin', 'products', 'search'],
         refetchType: 'all'
       });
-      console.log('[handleAddProduct] Done!');
+      console.info('[handleAddProduct] Done!');
     } catch (error) {
       console.error('[handleAddProduct] Failed to add product:', error);
       // Refetch on error to restore correct state

@@ -802,4 +802,65 @@ export class PaymentsService {
     // If some payment was received → actual failure (not expiration)
     return paidAmount === 0;
   }
+
+  /**
+   * Get the most recent active payment for an order
+   * 
+   * Returns the latest payment that is still in a non-terminal state (waiting, confirming)
+   * or the most recent one if all are terminal.
+   * 
+   * @param orderId Order ID to look up
+   * @returns EmbeddedPaymentResponseDto if payment exists, null otherwise
+   */
+  async getActivePaymentForOrder(orderId: string): Promise<EmbeddedPaymentResponseDto | null> {
+    this.logger.debug(`Looking up active payment for order ${orderId}`);
+
+    // Find the most recent payment for this order
+    const payment = await this.paymentsRepo.findOne({
+      where: { orderId },
+      order: { createdAt: 'DESC' },
+    });
+
+    if (payment === null || payment === undefined) {
+      this.logger.debug(`No payment found for order ${orderId}`);
+      return null;
+    }
+
+    // Check if payment is in a terminal state that shouldn't be resumed
+    const terminalStatuses = ['finished', 'failed', 'refunded', 'expired'];
+    if (terminalStatuses.includes(payment.status)) {
+      this.logger.debug(`Payment ${payment.id} is in terminal state: ${payment.status}`);
+      return null;
+    }
+
+    // Get raw payload for additional details
+    const rawPayload = payment.rawPayload as Record<string, unknown> | null;
+    const payAddress = (rawPayload?.['pay_address'] as string) ?? '';
+    const expirationDate = (rawPayload?.['expiration_date'] as string) ?? 
+      new Date(Date.now() + 60 * 60 * 1000).toISOString();
+
+    // Generate QR code data
+    const qrCodeData = this.generateQrCodeData(
+      payment.payCurrency ?? 'btc',
+      payAddress,
+      parseFloat(payment.payAmount ?? '0'),
+    );
+
+    this.logger.log(`Found active payment ${payment.id} for order ${orderId}, status: ${payment.status}`);
+
+    return {
+      paymentId: payment.id,
+      externalId: payment.externalId,
+      orderId: payment.orderId,
+      payAddress,
+      payAmount: parseFloat(payment.payAmount ?? '0'),
+      payCurrency: payment.payCurrency ?? 'btc',
+      priceAmount: parseFloat(payment.priceAmount ?? '0'),
+      priceCurrency: payment.priceCurrency ?? 'eur',
+      status: payment.status,
+      expiresAt: expirationDate,
+      qrCodeData,
+      estimatedTime: this.getEstimatedConfirmationTime(payment.payCurrency ?? 'btc'),
+    };
+  }
 }

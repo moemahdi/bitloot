@@ -165,7 +165,7 @@ function getCurrencySymbol(currency?: string): string {
 }
 
 // Flash deal product card - Enhanced design
-function FlashDealProductCard({ product, onAddToCart, index }: { product: FlashDealProduct; onAddToCart: (product: FlashDealProduct) => void; index: number }) {
+function FlashDealProductCard({ product, onAddToCart, index, isPriority = false }: { product: FlashDealProduct; onAddToCart: (product: FlashDealProduct) => void; index: number; isPriority?: boolean }) {
   // Use originalPrice if set, otherwise fall back to product.price
   const originalPrice = parseFloat(product.originalPrice ?? product.product?.price ?? '0');
   // Use discountPrice if set, otherwise calculate from discount percent
@@ -208,6 +208,7 @@ function FlashDealProductCard({ product, onAddToCart, index }: { product: FlashD
                   src={product.product.coverImageUrl}
                   alt={product.product.title ?? 'Product'}
                   fill
+                  priority={isPriority}
                   sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
                   className="object-contain transition-transform duration-700 group-hover:scale-110"
                 />
@@ -302,7 +303,7 @@ function FlashDealProductCard({ product, onAddToCart, index }: { product: FlashD
 }
 
 // Loading skeleton - Enhanced
-function FlashDealSkeleton() {
+function _FlashDealSkeleton() {
   return (
     <section className="py-16 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-yellow-500/5 via-orange-500/5 to-transparent relative overflow-hidden">
       <div className="max-w-7xl mx-auto">
@@ -505,7 +506,7 @@ export function FlashDealSection(): React.ReactElement | null {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.05, duration: 0.4 }}
               >
-                <FlashDealProductCard product={product} onAddToCart={handleAddToCart} index={index} />
+                <FlashDealProductCard product={product} onAddToCart={handleAddToCart} index={index} isPriority={index < 4} />
               </motion.div>
             ))}
           </motion.div>

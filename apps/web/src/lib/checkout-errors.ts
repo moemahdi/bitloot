@@ -189,9 +189,15 @@ function extractErrorMessage(error: unknown): string {
     const errorObj = error as Record<string, unknown>;
     if (typeof errorObj.message === 'string') return errorObj.message;
     if (typeof errorObj.error === 'string') return errorObj.error;
+    // Stringify object to avoid [object Object]
+    try {
+      return JSON.stringify(error);
+    } catch {
+      return 'Unknown error';
+    }
   }
   
-  return String(error);
+  return typeof error === 'number' || typeof error === 'boolean' ? String(error) : 'Unknown error';
 }
 
 /**
@@ -205,26 +211,18 @@ function mapStatusCodeToError(status: number): CheckoutError | null {
       return { ...DEFAULT_ERROR, message: 'Session expired', description: 'Please log in again.', action: 'refresh' };
     case 403:
       return { ...DEFAULT_ERROR, message: 'Access denied', description: 'You don\'t have permission for this action.', isRetryable: false };
-    case 404: {
-      const notFoundError = ERROR_MAP['ORDER_NOT_FOUND'];
-      return notFoundError !== undefined ? notFoundError : null;
-    }
+    case 404:
+      return ERROR_MAP['ORDER_NOT_FOUND'] ?? null;
     case 409:
       return { ...DEFAULT_ERROR, message: 'Conflict detected', description: 'This action has already been completed.', isRetryable: false };
-    case 429: {
-      const rateLimitError = ERROR_MAP['TOO_MANY_REQUESTS'];
-      return rateLimitError !== undefined ? rateLimitError : null;
-    }
-    case 500: {
-      const serverError = ERROR_MAP['SERVER_ERROR'];
-      return serverError !== undefined ? serverError : null;
-    }
+    case 429:
+      return ERROR_MAP['TOO_MANY_REQUESTS'] ?? null;
+    case 500:
+      return ERROR_MAP['SERVER_ERROR'] ?? null;
     case 502:
     case 503:
-    case 504: {
-      const serviceError = ERROR_MAP['SERVICE_UNAVAILABLE'];
-      return serviceError !== undefined ? serviceError : null;
-    }
+    case 504:
+      return ERROR_MAP['SERVICE_UNAVAILABLE'] ?? null;
     default:
       return null;
   }

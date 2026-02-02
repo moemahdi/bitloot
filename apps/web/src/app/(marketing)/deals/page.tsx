@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Flame, Clock, Zap, Package, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
@@ -12,6 +13,93 @@ import { Button } from '@/design-system/primitives/button';
 import { FlashDealSection } from '@/components/marketing/FlashDealSection';
 import { BundleDealsSection } from '@/components/marketing/BundleDealsSection';
 
+// ============ MAX DEALS DISCOUNT HOOK ============
+interface FlashDealProduct {
+  discountPercent?: string;
+}
+
+interface ActiveFlashDeal {
+  products: FlashDealProduct[];
+}
+
+interface BundleDeal {
+  savingsPercent?: string; // API returns this as string (e.g., "13.23")
+}
+
+function useMaxDealsDiscount(): { maxDiscount: number; isLoading: boolean } {
+  const [maxDiscount, setMaxDiscount] = useState(90); // Default fallback
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchMaxDiscount = async (): Promise<void> => {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
+      let highestDiscount = 0;
+
+      try {
+        // Fetch flash deals (both inline and sticky)
+        const [flashInlineRes, flashStickyRes, bundlesRes] = await Promise.allSettled([
+          fetch(`${apiUrl}/public/marketing/flash-deal/active?type=inline`),
+          fetch(`${apiUrl}/public/marketing/flash-deal/active?type=sticky`),
+          fetch(`${apiUrl}/public/marketing/bundles?limit=20`),
+        ]);
+
+        // Process flash deals (inline)
+        if (flashInlineRes.status === 'fulfilled' && flashInlineRes.value.ok) {
+          const data: unknown = await flashInlineRes.value.json();
+          const deal = data as ActiveFlashDeal | null;
+          if (deal?.products !== undefined && deal.products.length > 0) {
+            const max = Math.max(
+              ...deal.products.map(p => Math.round(parseFloat(p.discountPercent ?? '0')))
+            );
+            highestDiscount = Math.max(highestDiscount, max);
+          }
+        }
+
+        // Process flash deals (sticky)
+        if (flashStickyRes.status === 'fulfilled' && flashStickyRes.value.ok) {
+          const data: unknown = await flashStickyRes.value.json();
+          const deal = data as ActiveFlashDeal | null;
+          if (deal?.products !== undefined && deal.products.length > 0) {
+            const max = Math.max(
+              ...deal.products.map(p => Math.round(parseFloat(p.discountPercent ?? '0')))
+            );
+            highestDiscount = Math.max(highestDiscount, max);
+          }
+        }
+
+        // Process bundle deals - uses savingsPercent (string) from API
+        if (bundlesRes.status === 'fulfilled' && bundlesRes.value.ok) {
+          const data: unknown = await bundlesRes.value.json();
+          const bundles = data as BundleDeal[];
+          if (Array.isArray(bundles)) {
+            for (const bundle of bundles) {
+              if (bundle.savingsPercent !== undefined) {
+                const savings = Math.round(parseFloat(bundle.savingsPercent));
+                if (!isNaN(savings)) {
+                  highestDiscount = Math.max(highestDiscount, savings);
+                }
+              }
+            }
+          }
+        }
+
+        // Only update if we found a valid discount
+        if (highestDiscount > 0) {
+          setMaxDiscount(highestDiscount);
+        }
+      } catch {
+        // Keep default on error
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    void fetchMaxDiscount();
+  }, []);
+
+  return { maxDiscount, isLoading };
+}
+
 /**
  * Deals Page - Combines Flash Deals and Bundle Deals
  * 
@@ -19,6 +107,9 @@ import { BundleDealsSection } from '@/components/marketing/BundleDealsSection';
  * making it easy for users who want to find the best prices.
  */
 export default function DealsPage(): React.ReactElement {
+    // Get dynamic max discount from active deals
+    const { maxDiscount } = useMaxDealsDiscount();
+
     return (
         <main className="min-h-screen bg-bg-primary">
             {/* Hero Section */}
@@ -60,7 +151,7 @@ export default function DealsPage(): React.ReactElement {
                             </div>
                             <div className="flex items-center gap-2 text-text-secondary">
                                 <Zap className="w-5 h-5 text-cyan-glow" />
-                                <span className="text-sm">Up to 90% Off</span>
+                                <span className="text-sm">Up to {maxDiscount}% Off</span>
                             </div>
                             <div className="flex items-center gap-2 text-text-secondary">
                                 <Package className="w-5 h-5 text-purple-neon" />

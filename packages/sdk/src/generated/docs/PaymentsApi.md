@@ -8,6 +8,7 @@ All URIs are relative to *http://localhost*
 | [**paymentsControllerCreate**](PaymentsApi.md#paymentscontrollercreate) | **POST** /payments/create | Create payment invoice (redirect flow) |
 | [**paymentsControllerCreateEmbedded**](PaymentsApi.md#paymentscontrollercreateembedded) | **POST** /payments/embedded | Create embedded payment (no redirect) |
 | [**paymentsControllerGetJobStatus**](PaymentsApi.md#paymentscontrollergetjobstatus) | **GET** /payments/jobs/{jobId}/status | Get payment job status |
+| [**paymentsControllerGetPaymentForOrder**](PaymentsApi.md#paymentscontrollergetpaymentfororder) | **GET** /payments/order/{orderId} | Get existing payment for order |
 | [**paymentsControllerIpn**](PaymentsApi.md#paymentscontrolleripn) | **POST** /payments/ipn | NOWPayments IPN webhook |
 | [**paymentsControllerPollPaymentStatus**](PaymentsApi.md#paymentscontrollerpollpaymentstatus) | **GET** /payments/poll/{paymentId} | Poll payment status from NOWPayments |
 
@@ -293,6 +294,74 @@ No authorization required
 |-------------|-------------|------------------|
 | **200** | Job status with progress |  -  |
 | **404** | Job not found |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## paymentsControllerGetPaymentForOrder
+
+> EmbeddedPaymentResponseDto paymentsControllerGetPaymentForOrder(orderId)
+
+Get existing payment for order
+
+Returns the active payment for an order if one exists. Used to resume checkout after navigation.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  PaymentsApi,
+} from '';
+import type { PaymentsControllerGetPaymentForOrderRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new PaymentsApi();
+
+  const body = {
+    // string
+    orderId: orderId_example,
+  } satisfies PaymentsControllerGetPaymentForOrderRequest;
+
+  try {
+    const data = await api.paymentsControllerGetPaymentForOrder(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **orderId** | `string` |  | [Defaults to `undefined`] |
+
+### Return type
+
+[**EmbeddedPaymentResponseDto**](EmbeddedPaymentResponseDto.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** |  |  -  |
+| **404** | No active payment found for order |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 

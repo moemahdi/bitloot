@@ -14,15 +14,14 @@
  * 2.  Welcome                  - welcomeEmail()
  * 3.  Order Confirmation       - orderConfirmationEmail()
  * 4.  Key Delivery             - keyDeliveryEmail()
- * 5.  Password Reset           - passwordResetEmail()
- * 6.  Underpayment Notice      - underpaymentNoticeEmail()
- * 7.  Payment Failed           - paymentFailedEmail()
- * 8.  Payment Expired          - paymentExpiredEmail()
- * 9.  Email Changed (Old)      - emailChangedOldEmail()
- * 10. Email Changed (New)      - emailChangedNewEmail()
- * 11. Deletion Scheduled       - deletionScheduledEmail()
- * 12. Deletion Cancelled       - deletionCancelledEmail()
- * 13. Generic Email            - genericEmail()
+ * 5.  Underpayment Notice      - underpaymentNoticeEmail()
+ * 6.  Payment Failed           - paymentFailedEmail()
+ * 7.  Payment Expired          - paymentExpiredEmail()
+ * 8.  Email Changed (Old)      - emailChangedOldEmail()
+ * 9.  Email Changed (New)      - emailChangedNewEmail()
+ * 10. Deletion Scheduled       - deletionScheduledEmail()
+ * 11. Deletion Cancelled       - deletionCancelledEmail()
+ * 12. Generic Email            - genericEmail()
  */
 
 import { EmailStyles, EmailColors, wrapEmailTemplate } from './email-styles';
@@ -113,8 +112,8 @@ export function welcomeEmail(params: WelcomeEmailParams): EmailTemplate {
 
     <ul style="${EmailStyles.list}">
       <li style="${EmailStyles.listItem}">🎮 Browse verified game keys and software licenses</li>
-      <li style="${EmailStyles.listItem}">💳 Pay with <strong>300+ cryptocurrencies</strong> (BTC, ETH, XRP, USDT, etc.)</li>
-      <li style="${EmailStyles.listItem}">⚡ Receive your keys <strong>instantly</strong> — no waiting</li>
+      <li style="${EmailStyles.listItem}">💳 Pay with <strong>100+ cryptocurrencies</strong> (BTC, ETH, XRP, USDT, etc.)</li>
+      <li style="${EmailStyles.listItem}">⚡ Receive your digital products <strong>instantly</strong> — no waiting</li>
       <li style="${EmailStyles.listItem}">🔒 Secure, encrypted storage with time-limited download links</li>
     </ul>
 
@@ -128,7 +127,7 @@ export function welcomeEmail(params: WelcomeEmailParams): EmailTemplate {
     </ol>
 
     <div style="text-align: center; margin: 32px 0;">
-      <a href="${frontendUrl}/catalog" style="${EmailStyles.buttonPrimary}">
+      <a href="${frontendUrl}" style="${EmailStyles.buttonPrimary}">
         🛒 Start Shopping
       </a>
     </div>
@@ -138,7 +137,7 @@ export function welcomeEmail(params: WelcomeEmailParams): EmailTemplate {
     <p style="${EmailStyles.smallText}">
       <strong>Quick Tips:</strong> All payments are processed via secure blockchain transactions.
       Keys are encrypted and never stored in plaintext. Need help? Visit our
-      <a href="${frontendUrl}/support" style="color: ${EmailColors.primary};">Support Center</a>.
+      <a href="${frontendUrl}/help" style="color: ${EmailColors.primary};">Help Center</a>.
     </p>
   `;
 
@@ -195,25 +194,24 @@ export function orderConfirmationEmail(params: OrderConfirmationParams): EmailTe
 
     <div style="${EmailStyles.warningBox}">
       <p style="margin: 0 0 8px 0; color: ${EmailColors.warning};">
-        <strong>⏰ Payment link expires in 30 minutes</strong>
+        <strong>⏰ Payment window expires in 20 minutes</strong>
       </p>
       <p style="margin: 0; color: ${EmailColors.textSecondary}; font-size: 14px;">
         ⚠️ Underpayments are <strong>non-refundable</strong> due to blockchain immutability.
-        Please send the exact amount.
+        Please send the exact amount shown.
       </p>
     </div>
 
     <h3 style="${EmailStyles.heading2}">What Happens Next?</h3>
     <ol style="${EmailStyles.list}">
       <li style="${EmailStyles.listItem}">Click the payment button above</li>
-      <li style="${EmailStyles.listItem}">Choose your cryptocurrency and send the exact amount</li>
-      <li style="${EmailStyles.listItem}">Wait for blockchain confirmation (typically 1-5 minutes)</li>
-      <li style="${EmailStyles.listItem}">Receive your keys instantly via secure email link</li>
+      <li style="${EmailStyles.listItem}">Select your preferred cryptocurrency and send the exact amount</li>
+      <li style="${EmailStyles.listItem}">Wait for blockchain confirmation (typically 1-10 minutes)</li>
+      <li style="${EmailStyles.listItem}">Receive your products instantly via a secure link</li>
     </ol>
 
     <p style="${EmailStyles.paragraph}">
-      Questions? Visit our <a href="${frontendUrl}/faq" style="color: ${EmailColors.primary};">FAQ</a>
-      or <a href="${frontendUrl}/support" style="color: ${EmailColors.primary};">Support Center</a>.
+      Questions? Visit our <a href="${frontendUrl}/help" style="color: ${EmailColors.primary};">Help Center</a>.
     </p>
   `;
 
@@ -286,8 +284,8 @@ export function keyDeliveryEmail(params: KeyDeliveryParams): EmailTemplate {
     <hr style="${EmailStyles.divider}">
 
     <p style="${EmailStyles.smallText}">
-      <strong>Link expired?</strong> <a href="${frontendUrl}/auth/login" style="color: ${EmailColors.primary};">Sign in</a>
-      and visit your <a href="${frontendUrl}/account/orders" style="color: ${EmailColors.primary};">order history</a>
+      <strong>Link expired?</strong> <a href="${frontendUrl}/login" style="color: ${EmailColors.primary};">Sign in</a>
+      and visit your <a href="${frontendUrl}/profile?tab=purchases" style="color: ${EmailColors.primary};">order history</a>
       to get a fresh download link.
     </p>
   `;
@@ -299,58 +297,7 @@ export function keyDeliveryEmail(params: KeyDeliveryParams): EmailTemplate {
 }
 
 // ============================================================
-// 5. PASSWORD RESET EMAIL
-// ============================================================
-
-export interface PasswordResetParams {
-  resetLink: string;
-  email: string;
-}
-
-export function passwordResetEmail(params: PasswordResetParams): EmailTemplate {
-  const { resetLink } = params;
-
-  const content = `
-    <h2 style="${EmailStyles.heading2}">🔐 Password Reset Request</h2>
-
-    <p style="${EmailStyles.paragraph}">
-      We received a request to reset your BitLoot password.
-      Click the button below to create a new password:
-    </p>
-
-    <div style="text-align: center; margin: 32px 0;">
-      <a href="${resetLink}" style="${EmailStyles.buttonPrimary}">
-        Reset Password
-      </a>
-    </div>
-
-    <div style="${EmailStyles.warningBox}">
-      <p style="margin: 0; color: ${EmailColors.warning};">
-        ⏰ <strong>This link expires in 1 hour.</strong>
-      </p>
-    </div>
-
-    <p style="${EmailStyles.paragraph}">
-      If you didn't request this password reset, you can safely ignore this email.
-      Your password will remain unchanged.
-    </p>
-
-    <hr style="${EmailStyles.divider}">
-
-    <p style="${EmailStyles.smallText}">
-      <strong>Security Notice:</strong> Never share this link with anyone.
-      BitLoot staff will never ask for your password via email.
-    </p>
-  `;
-
-  return {
-    subject: 'Reset Your BitLoot Password',
-    html: wrapEmailTemplate(content),
-  };
-}
-
-// ============================================================
-// 6. UNDERPAYMENT NOTICE EMAIL
+// 5. UNDERPAYMENT NOTICE EMAIL
 // ============================================================
 
 export interface UnderpaymentParams {
@@ -408,9 +355,9 @@ export function underpaymentNoticeEmail(params: UnderpaymentParams): EmailTempla
     </div>
 
     <p style="${EmailStyles.paragraph}">
-      We're sorry we couldn't complete this order. Our
-      <a href="${frontendUrl}/support" style="color: ${EmailColors.primary};">support team</a>
-      is here to help if you have questions.
+      We're sorry we couldn't complete this order. Visit our
+      <a href="${frontendUrl}/help" style="color: ${EmailColors.primary};">Help Center</a>
+      if you have questions.
     </p>
   `;
 
@@ -421,7 +368,7 @@ export function underpaymentNoticeEmail(params: UnderpaymentParams): EmailTempla
 }
 
 // ============================================================
-// 7. PAYMENT FAILED EMAIL
+// 6. PAYMENT FAILED EMAIL
 // ============================================================
 
 export interface PaymentFailedParams {
@@ -456,8 +403,8 @@ export function paymentFailedEmail(params: PaymentFailedParams): EmailTemplate {
     </p>
 
     <ul style="${EmailStyles.list}">
-      <li style="${EmailStyles.listItem}">Try placing a new order with a different payment method</li>
-      <li style="${EmailStyles.listItem}">Contact our support team for assistance</li>
+      <li style="${EmailStyles.listItem}">Place a new order and try a different cryptocurrency</li>
+      <li style="${EmailStyles.listItem}">Visit our Help Center for troubleshooting tips</li>
     </ul>
 
     <div style="text-align: center; margin: 32px 0;">
@@ -467,9 +414,9 @@ export function paymentFailedEmail(params: PaymentFailedParams): EmailTemplate {
     </div>
 
     <p style="${EmailStyles.paragraph}">
-      We apologize for the inconvenience. Our
-      <a href="${frontendUrl}/support" style="color: ${EmailColors.primary};">support team</a>
-      is here to help.
+      We apologize for the inconvenience. Visit our
+      <a href="${frontendUrl}/help" style="color: ${EmailColors.primary};">Help Center</a>
+      if you need assistance.
     </p>
   `;
 
@@ -480,7 +427,7 @@ export function paymentFailedEmail(params: PaymentFailedParams): EmailTemplate {
 }
 
 // ============================================================
-// 8. PAYMENT EXPIRED EMAIL
+// 7. PAYMENT EXPIRED EMAIL
 // ============================================================
 
 export interface PaymentExpiredParams {
@@ -505,31 +452,30 @@ export function paymentExpiredEmail(params: PaymentExpiredParams): EmailTemplate
     </div>
 
     <div style="${EmailStyles.infoBox}">
-      <p style="margin: 0;"><strong>Reason:</strong> ${reason ?? 'Payment window timed out (1 hour)'}</p>
+      <p style="margin: 0;"><strong>Reason:</strong> ${reason ?? 'Payment window timed out (20 minutes)'}</p>
     </div>
 
     <p style="${EmailStyles.paragraph}">
-      <strong>Don't worry!</strong> No funds have been charged. Our checkout has a
-      1-hour window to complete payment.
+      <strong>Don't worry!</strong> No funds have been charged. You have 20 minutes to complete payment after checkout.
     </p>
 
     <h3 style="${EmailStyles.heading2}">What Can You Do?</h3>
 
     <ul style="${EmailStyles.list}">
-      <li style="${EmailStyles.listItem}">Visit our checkout page to create a new order</li>
-      <li style="${EmailStyles.listItem}">Ensure you have your wallet ready before starting payment</li>
-      <li style="${EmailStyles.listItem}">Complete the transfer promptly once you receive the payment address</li>
+      <li style="${EmailStyles.listItem}">Start a new order when you're ready to pay</li>
+      <li style="${EmailStyles.listItem}">Have your crypto wallet ready before checkout</li>
+      <li style="${EmailStyles.listItem}">Complete the transfer as soon as you see the payment address</li>
     </ul>
 
     <div style="text-align: center; margin: 32px 0;">
       <a href="${retryUrl}" style="${EmailStyles.buttonSecondary}">
-        🛒 Create New Order
+        🛒 Shop Again
       </a>
     </div>
 
     <p style="${EmailStyles.paragraph}">
-      We're here to help if you have any questions!
-      <a href="${frontendUrl}/support" style="color: ${EmailColors.primary};">Contact Support</a>
+      Need help? Visit our
+      <a href="${frontendUrl}/help" style="color: ${EmailColors.primary};">Help Center</a>.
     </p>
   `;
 
@@ -540,7 +486,7 @@ export function paymentExpiredEmail(params: PaymentExpiredParams): EmailTemplate
 }
 
 // ============================================================
-// 9. EMAIL CHANGED (NOTIFICATION TO OLD EMAIL)
+// 8. EMAIL CHANGED (NOTIFICATION TO OLD EMAIL)
 // ============================================================
 
 export interface EmailChangedOldParams {
@@ -569,7 +515,7 @@ export function emailChangedOldEmail(params: EmailChangedOldParams): EmailTempla
       <p style="margin: 0; color: ${EmailColors.warning};">
         <strong>Didn't make this change?</strong><br>
         Contact support immediately at
-        <a href="mailto:support@bitloot.com" style="color: ${EmailColors.primary};">support@bitloot.com</a>
+        <a href="mailto:support@bitloot.io" style="color: ${EmailColors.primary};">support@bitloot.io</a>
       </p>
     </div>
 
@@ -585,7 +531,7 @@ export function emailChangedOldEmail(params: EmailChangedOldParams): EmailTempla
 }
 
 // ============================================================
-// 10. EMAIL CHANGED (WELCOME TO NEW EMAIL)
+// 9. EMAIL CHANGED (WELCOME TO NEW EMAIL)
 // ============================================================
 
 export interface EmailChangedNewParams {
@@ -610,24 +556,24 @@ export function emailChangedNewEmail(params: EmailChangedNewParams): EmailTempla
     </p>
 
     <div style="text-align: center; margin: 32px 0;">
-      <a href="${frontendUrl}/auth/login" style="${EmailStyles.buttonPrimary}">
+      <a href="${frontendUrl}/login" style="${EmailStyles.buttonPrimary}">
         Sign In to BitLoot
       </a>
     </div>
 
     <p style="${EmailStyles.paragraph}">
-      Welcome to your updated account! All your order history and settings have been preserved.
+      Your account is ready! All your order history and settings have been preserved.
     </p>
   `;
 
   return {
-    subject: 'Welcome to Your Updated BitLoot Account',
+    subject: 'Email Updated — BitLoot',
     html: wrapEmailTemplate(content),
   };
 }
 
 // ============================================================
-// 11. ACCOUNT DELETION SCHEDULED EMAIL
+// 10. ACCOUNT DELETION SCHEDULED EMAIL
 // ============================================================
 
 export interface DeletionScheduledParams {
@@ -670,9 +616,9 @@ export function deletionScheduledEmail(params: DeletionScheduledParams): EmailTe
     </div>
 
     <p style="${EmailStyles.smallText}">
-      This link is secure and expires in 30 days. If you didn't request this deletion,
-      please <a href="${frontendUrl}/profile?tab=security" style="color: ${EmailColors.primary};">secure your account</a>
-      immediately.
+      This link is valid for 30 days. If you didn't request this deletion,
+      please <a href="${frontendUrl}/help" style="color: ${EmailColors.primary};">contact support</a>
+      immediately to secure your account.
     </p>
   `;
 
@@ -683,7 +629,7 @@ export function deletionScheduledEmail(params: DeletionScheduledParams): EmailTe
 }
 
 // ============================================================
-// 12. ACCOUNT DELETION CANCELLED EMAIL
+// 11. ACCOUNT DELETION CANCELLED EMAIL
 // ============================================================
 
 export interface DeletionCancelledParams {
@@ -716,8 +662,7 @@ export function deletionCancelledEmail(_params: DeletionCancelledParams): EmailT
     <div style="${EmailStyles.warningBox}">
       <p style="margin: 0; color: ${EmailColors.warning};">
         <strong>Didn't request this cancellation?</strong><br>
-        Contact support immediately and consider changing your password.
-        <a href="${frontendUrl}/profile?tab=security" style="color: ${EmailColors.primary};">Account Settings</a>
+        <a href="${frontendUrl}/help" style="color: ${EmailColors.primary};">Contact support</a> immediately to secure your account.
       </p>
     </div>
   `;
@@ -729,7 +674,7 @@ export function deletionCancelledEmail(_params: DeletionCancelledParams): EmailT
 }
 
 // ============================================================
-// 13. GENERIC EMAIL (for custom messages)
+// 12. GENERIC EMAIL (for custom messages)
 // ============================================================
 
 export interface GenericEmailParams {
@@ -773,7 +718,6 @@ export const EmailTemplates = {
   welcome: welcomeEmail,
   orderConfirmation: orderConfirmationEmail,
   keyDelivery: keyDeliveryEmail,
-  passwordReset: passwordResetEmail,
   underpaymentNotice: underpaymentNoticeEmail,
   paymentFailed: paymentFailedEmail,
   paymentExpired: paymentExpiredEmail,

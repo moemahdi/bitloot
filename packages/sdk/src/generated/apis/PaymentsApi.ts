@@ -60,6 +60,10 @@ export interface PaymentsControllerGetJobStatusRequest {
     jobId: string;
 }
 
+export interface PaymentsControllerGetPaymentForOrderRequest {
+    orderId: string;
+}
+
 export interface PaymentsControllerIpnRequest {
     ipnRequestDto: IpnRequestDto;
 }
@@ -281,6 +285,45 @@ export class PaymentsApi extends runtime.BaseAPI {
      */
     async paymentsControllerGetJobStatus(requestParameters: PaymentsControllerGetJobStatusRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<void> {
         await this.paymentsControllerGetJobStatusRaw(requestParameters, initOverrides);
+    }
+
+    /**
+     * Returns the active payment for an order if one exists. Used to resume checkout after navigation.
+     * Get existing payment for order
+     */
+    async paymentsControllerGetPaymentForOrderRaw(requestParameters: PaymentsControllerGetPaymentForOrderRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<EmbeddedPaymentResponseDto>> {
+        if (requestParameters['orderId'] == null) {
+            throw new runtime.RequiredError(
+                'orderId',
+                'Required parameter "orderId" was null or undefined when calling paymentsControllerGetPaymentForOrder().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/payments/order/{orderId}`;
+        urlPath = urlPath.replace(`{${"orderId"}}`, encodeURIComponent(String(requestParameters['orderId'])));
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => EmbeddedPaymentResponseDtoFromJSON(jsonValue));
+    }
+
+    /**
+     * Returns the active payment for an order if one exists. Used to resume checkout after navigation.
+     * Get existing payment for order
+     */
+    async paymentsControllerGetPaymentForOrder(requestParameters: PaymentsControllerGetPaymentForOrderRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<EmbeddedPaymentResponseDto> {
+        const response = await this.paymentsControllerGetPaymentForOrderRaw(requestParameters, initOverrides);
+        return await response.value();
     }
 
     /**

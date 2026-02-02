@@ -1,6 +1,5 @@
 'use client';
 
-import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, ZoomIn, Download, Scan } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';

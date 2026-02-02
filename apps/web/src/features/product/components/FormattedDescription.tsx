@@ -72,12 +72,12 @@ function splitIntoReadableParagraphs(text: string): string[] {
       paragraphs.push(currentPara.trim());
       currentPara = sentence;
     } else {
-      currentPara += (currentPara ? ' ' : '') + sentence;
+      currentPara += (currentPara !== '' ? ' ' : '') + sentence;
     }
   }
   
   // Don't forget the last paragraph
-  if (currentPara.trim()) {
+  if (currentPara.trim() !== '') {
     paragraphs.push(currentPara.trim());
   }
   
@@ -93,14 +93,14 @@ function parseDescription(text: string): ParsedSection[] {
   let remaining = cleanBoilerplate(text.trim());
   
   // If nothing left after cleaning, return empty
-  if (!remaining) {
+  if (remaining === '') {
     return sections;
   }
   
   // 1. Check for quote at the end
   const quoteMatch = remaining.match(/"([^"]+)"\s*[–—-]\s*(.+?)$/);
   let quoteSection: ParsedSection | null = null;
-  if (quoteMatch?.index !== undefined && quoteMatch[1] && quoteMatch[2]) {
+  if (quoteMatch?.index !== undefined && quoteMatch[1] !== undefined && quoteMatch[1] !== '' && quoteMatch[2] !== undefined && quoteMatch[2] !== '') {
     quoteSection = {
       type: 'quote',
       content: quoteMatch[1].trim(),
@@ -116,7 +116,7 @@ function parseDescription(text: string): ParsedSection[] {
   });
   
   // 3. Add quote at the end if found
-  if (quoteSection) {
+  if (quoteSection !== null) {
     sections.push(quoteSection);
   }
   
@@ -141,9 +141,9 @@ export function FormattedDescription({ text, className }: FormattedDescriptionPr
               >
                 <Quote className="absolute top-4 left-4 h-5 w-5 text-cyan-glow/30" />
                 <p className="text-text-primary italic pl-7 text-sm leading-relaxed">
-                  "{section.content}"
+                  &ldquo;{section.content}&rdquo;
                 </p>
-                {section.attribution && (
+                {section.attribution !== undefined && section.attribution !== '' && (
                   <footer className="mt-2 pl-7 text-xs text-text-muted">
                     — {section.attribution}
                   </footer>

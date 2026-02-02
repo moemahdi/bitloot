@@ -12,6 +12,13 @@ const config: Config = {
   theme: {
     extend: {
       // ============================================
+      // CUSTOM BREAKPOINTS
+      // ============================================
+      screens: {
+        xs: '475px', // Extra small devices (larger phones)
+      },
+
+      // ============================================
       // BITLOOT NEON CYBERPUNK COLOR SYSTEM
       // ============================================
       colors: {

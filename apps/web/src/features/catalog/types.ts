@@ -420,16 +420,16 @@ export function detectRegionFromTitle(
   const detectedRegions: string[] = [];
   
   // === STEP 1: Check database region field ===
-  if (dbRegion) {
+  if (dbRegion !== undefined && dbRegion !== null && dbRegion !== '') {
     const normalizedDbRegion = dbRegion.toLowerCase().trim();
     const mappedRegion = DB_REGION_MAP[normalizedDbRegion];
-    if (mappedRegion) {
+    if (mappedRegion !== undefined) {
       detectedRegions.push(mappedRegion);
     }
   }
   
   // === STEP 2: Check regional limitations (often more reliable than region field) ===
-  if (regionalLimitations) {
+  if (regionalLimitations !== undefined && regionalLimitations !== null && regionalLimitations !== '') {
     const limitations = regionalLimitations.toLowerCase();
     
     // Region free / worldwide

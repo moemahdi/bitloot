@@ -14,8 +14,8 @@ import { Skeleton } from '@/design-system/primitives/skeleton';
 import { 
   Bitcoin, Zap, Loader2, Globe, Monitor, ChevronLeft, 
   Share2, Check, Package, Play, Image as ImageIcon, 
-  HardDrive, AlertTriangle, Key, Clock, 
-  RefreshCw, FileText, Wallet, Lock, BadgeCheck, Star,
+  AlertTriangle, Key, Clock, 
+  RefreshCw, FileText, Wallet, Lock, BadgeCheck,
   Flame, Minus, Plus, ShoppingCart
 } from 'lucide-react';
 import Link from 'next/link';
@@ -433,7 +433,7 @@ function MediaGallery({
                 </div>
               )}
               <iframe
-                src={`https://www.youtube.com/embed/${currentItem.videoId}?rel=0&modestbranding=1`}
+                src={`https://www.youtube-nocookie.com/embed/${currentItem.videoId}?rel=0&modestbranding=1`}
                 title={`${productTitle} - Video`}
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                 allowFullScreen
@@ -600,8 +600,8 @@ function SystemRequirementsSection({ requirements }: { requirements: SystemRequi
   if (requirements.length === 0) return <></>;
 
   const currentReq = requirements.find(r => r.system === activeOS);
-  const minSpecs = currentReq?.requirement?.[0] ? parseSystemRequirements(currentReq.requirement[0]) : [];
-  const recSpecs = currentReq?.requirement?.[1] ? parseSystemRequirements(currentReq.requirement[1]) : [];
+  const minSpecs = currentReq?.requirement?.[0] !== undefined && currentReq.requirement[0] !== '' ? parseSystemRequirements(currentReq.requirement[0]) : [];
+  const recSpecs = currentReq?.requirement?.[1] !== undefined && currentReq.requirement[1] !== '' ? parseSystemRequirements(currentReq.requirement[1]) : [];
   const hasRecommended = recSpecs.length > 0;
 
   return (
@@ -921,7 +921,6 @@ export default function ProductPage(): React.ReactElement {
       <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
         <div className="absolute top-[-10%] left-[-10%] w-[50vw] h-[50vw] bg-purple-neon/10 rounded-full blur-[120px] mix-blend-screen" />
         <div className="absolute top-[20%] right-[-10%] w-[40vw] h-[40vw] bg-cyan-glow/10 rounded-full blur-[100px] mix-blend-screen" />
-        <div className="absolute inset-0 bg-[url('/noise.png')] opacity-[0.03] mix-blend-overlay" />
       </div>
 
       <div className="relative z-10 container mx-auto px-4 lg:px-6 pt-6 lg:pt-10 max-w-[1400px]">

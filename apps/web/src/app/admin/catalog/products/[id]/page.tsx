@@ -138,7 +138,7 @@ function parsePrice(value: string): string {
     if (parts.length > 2) {
         return parts[0] + '.' + parts.slice(1).join('');
     }
-    if (parts[1] && parts[1].length > 2) {
+    if (parts[1] !== undefined && parts[1] !== '' && parts[1].length > 2) {
         return parts[0] + '.' + parts[1].substring(0, 2);
     }
     
@@ -309,7 +309,7 @@ export default function AdminEditProductPage(): React.JSX.Element {
             // Try to parse API error response
             if (typeof error === 'object' && error !== null && 'body' in error) {
                 const body = (error as { body?: { message?: string | string[] } }).body;
-                if (body?.message) {
+                if (body?.message !== undefined) {
                     errorMessage = Array.isArray(body.message) ? body.message.join(', ') : body.message;
                 }
             }
@@ -433,8 +433,8 @@ export default function AdminEditProductPage(): React.JSX.Element {
         }
 
         // Format prices to ensure proper decimal format
-        const formattedCost = formatPrice(formData.cost) || '0.00';
-        const formattedPrice = formatPrice(formData.price) || '0.00';
+        const formattedCost = formatPrice(formData.cost) !== '' ? formatPrice(formData.cost) : '0.00';
+        const formattedPrice = formatPrice(formData.price) !== '' ? formatPrice(formData.price) : '0.00';
 
         const productData: UpdateProductDto = {
             kinguinOfferId: formData.kinguinOfferId.length > 0 ? formData.kinguinOfferId : undefined,
@@ -489,13 +489,13 @@ export default function AdminEditProductPage(): React.JSX.Element {
 
     // Build dynamic platform options - include current value if not in list
     const platformOptions = [...PLATFORMS];
-    if (formData.platform && !platformOptions.some(p => p.value === formData.platform)) {
+    if (formData.platform !== '' && !platformOptions.some(p => p.value === formData.platform)) {
         platformOptions.push({ value: formData.platform, label: formData.platform } as typeof PLATFORMS[number]);
     }
 
     // Build dynamic region options - include current value if not in list
     const regionOptions = [...REGIONS];
-    if (formData.region && !regionOptions.some(r => r.value === formData.region)) {
+    if (formData.region !== '' && !regionOptions.some(r => r.value === formData.region)) {
         regionOptions.push({ value: formData.region, label: formData.region } as typeof REGIONS[number]);
     }
 

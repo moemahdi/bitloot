@@ -654,7 +654,7 @@ export class CatalogService {
       const regionValue = filters.region.toLowerCase().trim();
       const mapping = regionMappings[regionValue];
       
-      if (mapping) {
+      if (mapping !== undefined) {
         // STEP 1: Build INCLUDE conditions (match either region field or regionalLimitations)
         const includeConditions: string[] = [];
         const params: Record<string, string> = {};

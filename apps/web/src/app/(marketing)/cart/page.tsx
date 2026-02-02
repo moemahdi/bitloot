@@ -453,7 +453,6 @@ export default function CartPage(): React.ReactElement {
       <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
         <div className="absolute top-[-10%] left-[-10%] w-[50vw] h-[50vw] bg-purple-neon/5 rounded-full blur-[120px] mix-blend-screen" />
         <div className="absolute top-[20%] right-[-10%] w-[40vw] h-[40vw] bg-cyan-glow/5 rounded-full blur-[100px] mix-blend-screen" />
-        <div className="absolute inset-0 bg-[url('/noise.png')] opacity-[0.02] mix-blend-overlay" />
       </div>
 
       <div className="relative z-10 container mx-auto px-4 py-8 max-w-6xl">

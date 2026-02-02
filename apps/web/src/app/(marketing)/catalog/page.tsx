@@ -38,7 +38,7 @@ export default function CatalogPage(): React.ReactElement {
   const router = useRouter();
   
   // Auth check for watchlist
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isLoading: isAuthLoading } = useAuth();
   
   // Cart context for add to cart
   const { addItem } = useCart();
@@ -47,8 +47,9 @@ export default function CatalogPage(): React.ReactElement {
   const addToWatchlist = useAddToWatchlist();
   const removeFromWatchlist = useRemoveFromWatchlist();
   
-  // Fetch user's watchlist to populate wishlist IDs (limit 100 for heart icons)
-  const { data: watchlistData } = useWatchlist(1, 100);
+  // Fetch user's watchlist to populate wishlist IDs (max 50 per API limit)
+  // Only fetch when authenticated AND auth is not loading to avoid 400 errors
+  const { data: watchlistData } = useWatchlist(1, 50, isAuthenticated && !isAuthLoading);
   
   // Initialize catalog state from hook
   const {

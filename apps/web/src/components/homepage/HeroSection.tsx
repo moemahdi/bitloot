@@ -179,6 +179,7 @@ function FloatingGameCovers(): React.ReactElement {
                             src={game.image}
                             alt={game.alt}
                             fill
+                            priority
                             className="object-cover"
                             sizes="(max-width: 1536px) 96px, 128px"
                         />

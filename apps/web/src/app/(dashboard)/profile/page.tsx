@@ -1,33 +1,232 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import Image from 'next/image';
 import { useAuth } from '@/hooks/useAuth';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { UsersApi, FulfillmentApi, AuthenticationApi, SessionsApi, type OrderResponseDto, type OrderItemResponseDto, type UserOrderStatsDto } from '@bitloot/sdk';
 import { apiConfig } from '@/lib/api-config';
-import { useWatchlist, useRemoveFromWatchlist } from '@/features/watchlist';
+import { useWatchlist, useRemoveFromWatchlist, useWatchlistCount } from '@/features/watchlist';
 import { useCart } from '@/context/CartContext';
 import { KeyReveal, type OrderItem } from '@/features/orders';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/design-system/primitives/card';
 import { Button } from '@/design-system/primitives/button';
 import { Input } from '@/design-system/primitives/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/design-system/primitives/select';
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/design-system/primitives/tabs';
 import { Badge } from '@/design-system/primitives/badge';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/design-system/primitives/alert-dialog';
 import { Loader2, User, Shield, Key, Package, DollarSign, Check, Copy, ShoppingBag, LogOut, LayoutDashboard, Eye, HelpCircle, Mail, Hash, Crown, ShieldCheck, AlertCircle, Fingerprint, Info, Heart, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, RefreshCw, Smartphone, Monitor, Trash2, X, AlertTriangle, MessageSquare, Book, LifeBuoy, Clock, Globe, Activity, Search, Bell, ShoppingCart, LayoutGrid, List, RotateCcw, XCircle, ExternalLink } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import { DashboardStatCard } from '@/components/dashboard/DashboardStatCard';
 import { AnimatedGridPattern } from '@/components/animations/FloatingParticles';
 import { GlowButton } from '@/design-system/primitives/glow-button';
-import { WatchlistProductCard } from '@/features/watchlist/components/WatchlistProductCard';
+import { CatalogProductCard } from '@/features/catalog/components/CatalogProductCard';
+import type { CatalogProduct } from '@/features/catalog/types';
 import { WatchlistPreview } from '@/components/WatchlistPreview';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 
 const usersClient = new UsersApi(apiConfig);
 const fulfillmentClient = new FulfillmentApi(apiConfig);
+
+// ============ CONSTANTS ============
+/** Order status constants to avoid magic strings */
+const _ORDER_STATUS = {
+  FULFILLED: 'fulfilled',
+  PAID: 'paid',
+  PENDING: 'pending',
+  FAILED: 'failed',
+  REFUNDED: 'refunded',
+  CANCELLED: 'cancelled',
+  CONFIRMING: 'confirming',
+  WAITING: 'waiting',
+} as const;
+
+type _OrderStatus = (typeof _ORDER_STATUS)[keyof typeof _ORDER_STATUS];
+
+// ============ UTILITY FUNCTIONS ============
+/** Format order total consistently (handles string and number types) */
+function formatOrderTotal(total: string | number | null | undefined): string {
+  if (total === null || total === undefined) return '0.00';
+  const numericTotal = typeof total === 'string' ? parseFloat(total) : total;
+  return isNaN(numericTotal) ? '0.00' : numericTotal.toFixed(2);
+}
+
+/** Validate email with stricter rules (requires 2+ char TLD, proper format) */
+function isValidEmail(email: string): boolean {
+  // More robust email regex:
+  // - Requires at least one character before @
+  // - Requires domain with at least one dot
+  // - Requires TLD of at least 2 characters
+  // - Disallows consecutive dots, leading/trailing dots
+  const emailRegex = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*\.[a-zA-Z]{2,}$/;
+  return emailRegex.test(email);
+}
+
+/** Partially mask an IP address for privacy (e.g., 192.168.1.100 → 192.168.xxx.xxx) */
+function maskIpAddress(ip: string | null | undefined): string {
+  if (ip === null || ip === undefined) return 'Unknown';
+  const parts = ip.split('.');
+  if (parts.length === 4) {
+    return `${parts[0]}.${parts[1]}.***.***`;
+  }
+  // For IPv6 or invalid, just mask the last half
+  if (ip.includes(':')) {
+    const v6Parts = ip.split(':');
+    const half = Math.ceil(v6Parts.length / 2);
+    return v6Parts.slice(0, half).join(':') + ':***';
+  }
+  return ip;
+}
+
+/** Truncate a UUID for display (e.g., abc123...xyz789) */
+function truncateId(id: string, startChars: number = 8, endChars: number = 6): string {
+  if (id.length <= startChars + endChars + 3) return id;
+  return `${id.slice(0, startChars)}...${id.slice(-endChars)}`;
+}
+
+// Custom hook for debouncing values
+function useDebouncedValue<T>(value: T, delay: number = 300): T {
+  const [debouncedValue, setDebouncedValue] = useState<T>(value);
+  
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+    
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [value, delay]);
+  
+  return debouncedValue;
+}
+
+// Custom hook for respecting reduced motion preference
+function useReducedMotion(): boolean {
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+  
+  useEffect(() => {
+    const mediaQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+    setPrefersReducedMotion(mediaQuery.matches);
+    
+    const handleChange = (event: MediaQueryListEvent): void => {
+      setPrefersReducedMotion(event.matches);
+    };
+    
+    mediaQuery.addEventListener('change', handleChange);
+    return () => {
+      mediaQuery.removeEventListener('change', handleChange);
+    };
+  }, []);
+  
+  return prefersReducedMotion;
+}
+
+// ============ MAX DEALS DISCOUNT HOOK ============
+interface FlashDealProduct {
+  discountPercent?: string;
+}
+
+interface ActiveFlashDeal {
+  products: FlashDealProduct[];
+}
+
+interface BundleDeal {
+  savingsPercent?: string; // API returns this as string (e.g., "13.23")
+}
+
+function useMaxDealsDiscount(): { maxDiscount: number; isLoading: boolean } {
+  const [maxDiscount, setMaxDiscount] = useState(70); // Default fallback
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchMaxDiscount = async (): Promise<void> => {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
+      let highestDiscount = 0;
+
+      try {
+        // Fetch flash deals (both inline and sticky)
+        const [flashInlineRes, flashStickyRes, bundlesRes] = await Promise.allSettled([
+          fetch(`${apiUrl}/public/marketing/flash-deal/active?type=inline`),
+          fetch(`${apiUrl}/public/marketing/flash-deal/active?type=sticky`),
+          fetch(`${apiUrl}/public/marketing/bundles?limit=20`),
+        ]);
+
+        // Process flash deals (inline)
+        if (flashInlineRes.status === 'fulfilled' && flashInlineRes.value.ok) {
+          const data: unknown = await flashInlineRes.value.json();
+          const deal = data as ActiveFlashDeal | null;
+          if (deal?.products !== undefined && deal.products.length > 0) {
+            const max = Math.max(
+              ...deal.products.map(p => Math.round(parseFloat(p.discountPercent ?? '0')))
+            );
+            highestDiscount = Math.max(highestDiscount, max);
+          }
+        }
+
+        // Process flash deals (sticky)
+        if (flashStickyRes.status === 'fulfilled' && flashStickyRes.value.ok) {
+          const data: unknown = await flashStickyRes.value.json();
+          const deal = data as ActiveFlashDeal | null;
+          if (deal?.products !== undefined && deal.products.length > 0) {
+            const max = Math.max(
+              ...deal.products.map(p => Math.round(parseFloat(p.discountPercent ?? '0')))
+            );
+            highestDiscount = Math.max(highestDiscount, max);
+          }
+        }
+
+        // Process bundle deals - uses savingsPercent (string) from API
+        if (bundlesRes.status === 'fulfilled' && bundlesRes.value.ok) {
+          const data: unknown = await bundlesRes.value.json();
+          const bundles = data as BundleDeal[];
+          if (Array.isArray(bundles)) {
+            for (const bundle of bundles) {
+              if (bundle.savingsPercent !== undefined) {
+                const savings = Math.round(parseFloat(bundle.savingsPercent));
+                if (!isNaN(savings)) {
+                  highestDiscount = Math.max(highestDiscount, savings);
+                }
+              }
+            }
+          }
+        }
+
+        // Only update if we found a valid discount
+        if (highestDiscount > 0) {
+          setMaxDiscount(highestDiscount);
+        }
+      } catch {
+        // Keep default on error
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    void fetchMaxDiscount();
+  }, []);
+
+  return { maxDiscount, isLoading };
+}
 
 // ============ WATCHLIST TAB CONTENT COMPONENT ============
 function WatchlistTabContent(): React.ReactElement {
@@ -35,6 +234,7 @@ function WatchlistTabContent(): React.ReactElement {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [sortBy, setSortBy] = useState<'recent' | 'price-low' | 'price-high' | 'name'>('recent');
   const [searchQuery, setSearchQuery] = useState('');
+  const debouncedSearchQuery = useDebouncedValue(searchQuery, 300);
   const itemsPerPage = 12;
   
   const { data: watchlistData, isLoading, error, refetch } = useWatchlist(currentPage, itemsPerPage);
@@ -82,7 +282,6 @@ function WatchlistTabContent(): React.ReactElement {
   const totalPages = watchlistData?.totalPages ?? 1;
   
   // Calculate stats
-  const totalValue = items.reduce((sum, item) => sum + item.product.price, 0);
   const availableCount = items.filter(item => item.product.isPublished !== false).length;
   const platformCounts = items.reduce((acc, item) => {
     const platform = item.product.platform ?? 'Other';
@@ -94,9 +293,9 @@ function WatchlistTabContent(): React.ReactElement {
   const filteredItems = useMemo(() => {
     let result = [...items];
     
-    // Filter by search
-    if (searchQuery.trim() !== '') {
-      const query = searchQuery.toLowerCase();
+    // Filter by search (using debounced value)
+    if (debouncedSearchQuery.trim() !== '') {
+      const query = debouncedSearchQuery.toLowerCase();
       result = result.filter(item => 
         item.product.title.toLowerCase().includes(query) ||
         (item.product.platform?.toLowerCase().includes(query) ?? false)
@@ -121,7 +320,7 @@ function WatchlistTabContent(): React.ReactElement {
     }
     
     return result;
-  }, [items, searchQuery, sortBy]);
+  }, [items, debouncedSearchQuery, sortBy]);
 
   if (isLoading) {
     return (
@@ -184,7 +383,7 @@ function WatchlistTabContent(): React.ReactElement {
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.5 }}
       >
-        <Card className="glass border-border/50 border-dashed overflow-hidden">
+        <Card className="glass border-border-subtle border-dashed overflow-hidden">
           <div className="relative">
             {/* Background gradient */}
             <div className="absolute inset-0 bg-gradient-to-br from-purple-neon/5 via-transparent to-cyan-glow/5" />
@@ -206,7 +405,7 @@ function WatchlistTabContent(): React.ReactElement {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3 }}
-                className="text-2xl font-bold text-text-primary mb-2"
+                className="text-2xl font-bold text-text-primary mb-2 text-glow-purple"
               >
                 Start Your Watchlist
               </motion.h3>
@@ -233,7 +432,7 @@ function WatchlistTabContent(): React.ReactElement {
                     Browse Games
                   </GlowButton>
                 </Link>
-                <Link href="/bundles">
+                <Link href="/deals">
                   <Button variant="outline" size="lg" className="border-orange-warning/30 text-orange-warning hover:bg-orange-warning/10">
                     <DollarSign className="mr-2 h-5 w-5" />
                     View Deals
@@ -246,7 +445,7 @@ function WatchlistTabContent(): React.ReactElement {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.6 }}
-                className="flex flex-wrap justify-center gap-6 mt-10 pt-8 border-t border-border/30"
+                className="flex flex-wrap justify-center gap-6 mt-10 pt-8 border-t border-border-subtle"
               >
                 <div className="flex items-center gap-2 text-sm text-text-muted">
                   <Heart className="h-4 w-4 text-purple-neon" />
@@ -278,7 +477,7 @@ function WatchlistTabContent(): React.ReactElement {
         className="grid gap-4 grid-cols-2 lg:grid-cols-4"
       >
         {/* Total Items */}
-        <Card className="glass border-border/50 bg-bg-secondary/50 backdrop-blur-sm hover:border-purple-neon/30 transition-colors">
+        <Card className="glass border-border-subtle bg-bg-secondary/50 backdrop-blur-sm card-interactive-glow">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-purple-neon/10">
@@ -292,23 +491,28 @@ function WatchlistTabContent(): React.ReactElement {
           </CardContent>
         </Card>
         
-        {/* Total Value */}
-        <Card className="glass border-border/50 bg-bg-secondary/50 backdrop-blur-sm hover:border-cyan-glow/30 transition-colors">
+        {/* Recently Added */}
+        <Card className="glass border-border-subtle bg-bg-secondary/50 backdrop-blur-sm card-interactive-glow">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-cyan-glow/10">
-                <DollarSign className="h-5 w-5 text-cyan-glow" />
+                <Clock className="h-5 w-5 text-cyan-glow" />
               </div>
               <div>
-                <p className="text-xs text-text-muted uppercase tracking-wider">Total Value</p>
-                <p className="text-2xl font-bold text-cyan-glow">€{totalValue.toFixed(2)}</p>
+                <p className="text-xs text-text-muted uppercase tracking-wider">This Week</p>
+                <p className="text-2xl font-bold text-cyan-glow">{items.filter(item => {
+                  const addedDate = new Date(item.createdAt);
+                  const weekAgo = new Date();
+                  weekAgo.setDate(weekAgo.getDate() - 7);
+                  return addedDate >= weekAgo;
+                }).length}</p>
               </div>
             </div>
           </CardContent>
         </Card>
         
         {/* Available Items */}
-        <Card className="glass border-border/50 bg-bg-secondary/50 backdrop-blur-sm hover:border-green-success/30 transition-colors">
+        <Card className="glass border-border-subtle bg-bg-secondary/50 backdrop-blur-sm card-interactive-glow">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-green-success/10">
@@ -323,7 +527,7 @@ function WatchlistTabContent(): React.ReactElement {
         </Card>
         
         {/* Top Platform */}
-        <Card className="glass border-border/50 bg-bg-secondary/50 backdrop-blur-sm hover:border-orange-warning/30 transition-colors">
+        <Card className="glass border-border-subtle bg-bg-secondary/50 backdrop-blur-sm card-interactive-glow">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-orange-warning/10">
@@ -348,7 +552,7 @@ function WatchlistTabContent(): React.ReactElement {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, delay: 0.1 }}
       >
-        <Card className="glass border-border/50 bg-bg-secondary/50 backdrop-blur-sm">
+        <Card className="glass border-border-subtle bg-bg-secondary/50 backdrop-blur-sm">
           <CardContent className="p-4">
             <div className="flex flex-col lg:flex-row gap-4 lg:items-center lg:justify-between">
               {/* Search & Sort */}
@@ -361,27 +565,28 @@ function WatchlistTabContent(): React.ReactElement {
                     placeholder="Search watchlist..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-9 bg-bg-tertiary/50 border-border/50 focus:border-purple-neon/50"
+                    className="pl-9 bg-bg-tertiary/50 border-border-subtle focus:border-purple-neon/50"
                   />
                 </div>
                 
                 {/* Sort Dropdown */}
-                <select
-                  value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
-                  className="px-3 py-2 rounded-md bg-bg-tertiary/50 border border-border/50 text-text-primary text-sm focus:border-purple-neon/50 focus:outline-none cursor-pointer"
-                >
-                  <option value="recent">Recently Added</option>
-                  <option value="price-low">Price: Low to High</option>
-                  <option value="price-high">Price: High to Low</option>
-                  <option value="name">Name: A-Z</option>
-                </select>
+                <Select value={sortBy} onValueChange={(value) => setSortBy(value as typeof sortBy)}>
+                  <SelectTrigger className="w-[180px] bg-bg-tertiary/50 border-border-subtle text-text-primary focus:ring-purple-neon/50 focus:border-purple-neon/50">
+                    <SelectValue placeholder="Sort by..." />
+                  </SelectTrigger>
+                  <SelectContent className="bg-bg-secondary border-border-subtle">
+                    <SelectItem value="recent" className="focus:bg-purple-neon/10 focus:text-purple-neon">Recently Added</SelectItem>
+                    <SelectItem value="price-low" className="focus:bg-purple-neon/10 focus:text-purple-neon">Price: Low to High</SelectItem>
+                    <SelectItem value="price-high" className="focus:bg-purple-neon/10 focus:text-purple-neon">Price: High to Low</SelectItem>
+                    <SelectItem value="name" className="focus:bg-purple-neon/10 focus:text-purple-neon">Name: A-Z</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               
               {/* Actions */}
               <div className="flex items-center gap-3">
                 {/* View Toggle */}
-                <div className="flex items-center rounded-md border border-border/50 p-1">
+                <div className="flex items-center rounded-md border border-border-subtle p-1">
                   <Button
                     variant="ghost"
                     size="sm"
@@ -414,7 +619,7 @@ function WatchlistTabContent(): React.ReactElement {
                 
                 {/* Browse More */}
                 <Link href="/">
-                  <Button variant="outline" size="sm" className="border-border/50 hover:border-purple-neon/30">
+                  <Button variant="outline" size="sm" className="border-border-subtle hover:border-purple-neon/30">
                     <ShoppingBag className="h-4 w-4 mr-2" />
                     Browse
                   </Button>
@@ -424,7 +629,7 @@ function WatchlistTabContent(): React.ReactElement {
             
             {/* Active Filters Info */}
             {searchQuery.trim() !== '' && (
-              <div className="flex items-center gap-2 mt-3 pt-3 border-t border-border/30">
+              <div className="flex items-center gap-2 mt-3 pt-3 border-t border-border-subtle">
                 <span className="text-sm text-text-muted">
                   Showing {filteredItems.length} of {items.length} items
                 </span>
@@ -444,7 +649,7 @@ function WatchlistTabContent(): React.ReactElement {
 
       {/* Watchlist Items */}
       {filteredItems.length === 0 ? (
-        <Card className="glass border-border/50">
+        <Card className="glass border-border-subtle">
           <CardContent className="flex flex-col items-center justify-center py-12">
             <Search className="h-12 w-12 text-text-muted mb-4" />
             <h3 className="text-lg font-semibold text-text-primary">No matches found</h3>
@@ -454,42 +659,80 @@ function WatchlistTabContent(): React.ReactElement {
           </CardContent>
         </Card>
       ) : viewMode === 'grid' ? (
-        /* Grid View */
+        /* Grid View - Using CatalogProductCard for consistent design */
         <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {filteredItems.map((item, index) => (
-            <motion.div
-              key={item.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3, delay: index * 0.03 }}
-            >
-              <WatchlistProductCard
-                product={{
-                  id: item.product.id,
-                  slug: item.product.slug,
-                  title: item.product.title,
-                  subtitle: item.product.subtitle,
-                  price: item.product.price,
-                  coverImageUrl: item.product.coverImageUrl,
-                  platform: item.product.platform,
-                  region: item.product.region,
-                  isPublished: item.product.isPublished,
-                }}
-                addedAt={item.createdAt}
-                onRemove={async (productId: string) => {
-                  await handleRemoveFromWatchlist(productId, item.product.title);
-                }}
-                onAddToCart={() => handleAddToCart(item)}
-                isRemoving={removeFromWatchlist.isPending}
-              />
-            </motion.div>
-          ))}
+          {filteredItems.map((item, index) => {
+            // Map watchlist item to CatalogProduct format
+            const catalogProduct: CatalogProduct = {
+              id: item.product.id,
+              slug: item.product.slug,
+              name: item.product.title,
+              description: item.product.subtitle ?? '',
+              price: String(item.product.price),
+              currency: 'EUR',
+              image: item.product.coverImageUrl ?? undefined,
+              platform: item.product.platform ?? undefined,
+              region: item.product.region ?? undefined,
+              isAvailable: item.product.isPublished !== false,
+              rating: 4.8, // Default rating
+            };
+            
+            return (
+              <motion.div
+                key={item.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, delay: index * 0.03 }}
+                className="relative group"
+              >
+                <CatalogProductCard
+                  product={catalogProduct}
+                  viewMode="grid"
+                  isInWishlist={true}
+                  onAddToCart={() => handleAddToCart(item)}
+                  onToggleWishlist={async () => {
+                    await handleRemoveFromWatchlist(item.product.id, item.product.title);
+                  }}
+                  showQuickActions={true}
+                />
+                {/* Added date badge */}
+                <div className="absolute bottom-2 right-2 z-10">
+                  <Badge variant="secondary" className="text-[10px] bg-bg-tertiary/90 backdrop-blur-sm border border-border-subtle">
+                    <Clock className="h-2.5 w-2.5 mr-1" />
+                    {(() => {
+                      const d = new Date(item.createdAt);
+                      const now = new Date();
+                      const diffDays = Math.floor((now.getTime() - d.getTime()) / (1000 * 60 * 60 * 24));
+                      if (diffDays === 0) return 'Today';
+                      if (diffDays === 1) return 'Yesterday';
+                      if (diffDays < 7) return `${diffDays}d ago`;
+                      return d.toLocaleDateString();
+                    })()}
+                  </Badge>
+                </div>
+              </motion.div>
+            );
+          })}
         </div>
       ) : (
-        /* List View */
+        /* List View - Using CatalogProductCard list mode */
         <div className="space-y-3">
           {filteredItems.map((item, index) => {
-            const isUnavailable = item.product.isPublished === false;
+            // Map watchlist item to CatalogProduct format
+            const catalogProduct: CatalogProduct = {
+              id: item.product.id,
+              slug: item.product.slug,
+              name: item.product.title,
+              description: item.product.subtitle ?? '',
+              price: String(item.product.price),
+              currency: 'EUR',
+              image: item.product.coverImageUrl ?? undefined,
+              platform: item.product.platform ?? undefined,
+              region: item.product.region ?? undefined,
+              isAvailable: item.product.isPublished !== false,
+              rating: 4.8,
+            };
+            
             return (
               <motion.div
                 key={item.id}
@@ -497,91 +740,16 @@ function WatchlistTabContent(): React.ReactElement {
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.3, delay: index * 0.03 }}
               >
-                <Card className={`glass border-border/50 hover:border-purple-neon/30 transition-all group ${isUnavailable ? 'opacity-60' : ''}`}>
-                  <CardContent className="p-4">
-                    <div className="flex items-center gap-4">
-                      {/* Image */}
-                      <Link href={`/product/${item.product.slug}`} className="shrink-0">
-                        <div className="relative w-20 h-20 rounded-lg overflow-hidden bg-bg-tertiary">
-                          {item.product.coverImageUrl !== undefined && item.product.coverImageUrl !== null && item.product.coverImageUrl !== '' ? (
-                            <Image
-                              src={item.product.coverImageUrl}
-                              alt={item.product.title}
-                              width={80}
-                              height={80}
-                              className={`w-full h-full object-contain group-hover:scale-110 transition-transform duration-300 ${isUnavailable ? 'grayscale' : ''}`}
-                            />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center">
-                              <Package className="h-8 w-8 text-text-muted" />
-                            </div>
-                          )}
-                          {isUnavailable && (
-                            <div className="absolute inset-0 flex items-center justify-center bg-bg-primary/80">
-                              <Badge variant="destructive" className="text-xs">Unavailable</Badge>
-                            </div>
-                          )}
-                        </div>
-                      </Link>
-                      
-                      {/* Info */}
-                      <div className="flex-1 min-w-0">
-                        <Link href={`/product/${item.product.slug}`}>
-                          <h3 className="font-semibold text-text-primary truncate group-hover:text-purple-neon transition-colors">
-                            {item.product.title}
-                          </h3>
-                        </Link>
-                        <div className="flex items-center gap-2 mt-1">
-                          {item.product.platform !== undefined && item.product.platform !== '' && (
-                            <Badge variant="outline" className="text-xs border-border/50">
-                              {item.product.platform}
-                            </Badge>
-                          )}
-                          {item.product.region !== undefined && item.product.region !== '' && (
-                            <Badge variant="outline" className="text-xs border-border/50">
-                              {item.product.region}
-                            </Badge>
-                          )}
-                          <span className="text-xs text-text-muted flex items-center gap-1">
-                            <Clock className="h-3 w-3" />
-                            Added {new Date(item.createdAt).toLocaleDateString()}
-                          </span>
-                        </div>
-                      </div>
-                      
-                      {/* Price & Actions */}
-                      <div className="flex items-center gap-4">
-                        <div className="text-right">
-                          <p className="text-xl font-bold text-cyan-glow">€{item.product.price.toFixed(2)}</p>
-                        </div>
-                        
-                        <div className="flex items-center gap-2">
-                          <Button
-                            size="sm"
-                            onClick={() => handleAddToCart(item)}
-                            disabled={isUnavailable}
-                            className="bg-cyan-glow/10 text-cyan-glow hover:bg-cyan-glow/20 border border-cyan-glow/30"
-                          >
-                            <ShoppingCart className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => void handleRemoveFromWatchlist(item.product.id, item.product.title)}
-                            disabled={removeFromWatchlist.isPending}
-                            className="border-orange-warning/30 text-orange-warning hover:bg-orange-warning/10"
-                          >
-                            {removeFromWatchlist.isPending ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : (
-                              <Trash2 className="h-4 w-4" />
-                            )}
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
+                <CatalogProductCard
+                  product={catalogProduct}
+                  viewMode="list"
+                  isInWishlist={true}
+                  onAddToCart={() => handleAddToCart(item)}
+                  onToggleWishlist={async () => {
+                    await handleRemoveFromWatchlist(item.product.id, item.product.title);
+                  }}
+                  showQuickActions={true}
+                />
               </motion.div>
             );
           })}
@@ -595,7 +763,7 @@ function WatchlistTabContent(): React.ReactElement {
           animate={{ opacity: 1 }}
           transition={{ duration: 0.4, delay: 0.2 }}
         >
-          <Card className="glass border-border/50 bg-bg-secondary/50">
+          <Card className="glass border-border-subtle bg-bg-secondary/50">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <p className="text-sm text-text-muted">
@@ -607,7 +775,7 @@ function WatchlistTabContent(): React.ReactElement {
                     size="sm"
                     onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                     disabled={currentPage === 1}
-                    className="border-border/50 hover:border-purple-neon/30"
+                    className="border-border-subtle hover:border-purple-neon/30"
                   >
                     <ChevronLeft className="h-4 w-4 mr-1" />
                     Previous
@@ -649,7 +817,7 @@ function WatchlistTabContent(): React.ReactElement {
                     size="sm"
                     onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                     disabled={currentPage === totalPages}
-                    className="border-border/50 hover:border-purple-neon/30"
+                    className="border-border-subtle hover:border-purple-neon/30"
                   >
                     Next
                     <ChevronRight className="h-4 w-4 ml-1" />
@@ -669,6 +837,24 @@ export default function ProfilePage(): React.ReactElement {
   const searchParams = useSearchParams();
   const router = useRouter();
   
+  // Respect user's reduced motion preference
+  const prefersReducedMotion = useReducedMotion();
+  
+  // Fetch max flash deal discount for deals card
+  const { maxDiscount: maxFlashDealDiscount } = useMaxDealsDiscount();
+  
+  // Ref for logout timeout to prevent race conditions
+  const logoutTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  
+  // Cleanup logout timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (logoutTimeoutRef.current !== null) {
+        clearTimeout(logoutTimeoutRef.current);
+      }
+    };
+  }, []);
+  
   // Sync activeTab with URL query params
   const urlTab = searchParams.get('tab');
   const validTabs = ['overview', 'purchases', 'watchlist', 'security', 'account', 'help'];
@@ -678,7 +864,7 @@ export default function ProfilePage(): React.ReactElement {
 
   // State for expanded orders in Purchases tab
   const [expandedOrders, setExpandedOrders] = useState<Set<string>>(new Set());
-  // State for tracking download in progress
+  // State for tracking download in progress (reserved for future download feature)
   const [_downloadingOrder, setDownloadingOrder] = useState<string | null>(null);
   // State for tracking key recovery in progress
   const [recoveringOrder, setRecoveringOrder] = useState<string | null>(null);
@@ -689,6 +875,7 @@ export default function ProfilePage(): React.ReactElement {
   // Dynamic filter type - supports all status categories including new ones
   const [purchasesStatusFilter, setPurchasesStatusFilter] = useState<'all' | 'fulfilled' | 'paid' | 'pending' | 'failed' | 'refunded' | 'cancelled'>('all');
   const [purchasesSearchQuery, setPurchasesSearchQuery] = useState('');
+  const debouncedPurchasesSearchQuery = useDebouncedValue(purchasesSearchQuery, 300);
 
   // Security tab state
   const [newEmail, setNewEmail] = useState('');
@@ -704,6 +891,20 @@ export default function ProfilePage(): React.ReactElement {
   // Sessions pagination state
   const [sessionsPage, setSessionsPage] = useState(1);
   const sessionsPerPage = 5;
+  
+  // Session revoke confirmation dialog state
+  const [sessionToRevoke, setSessionToRevoke] = useState<{ id: string; deviceInfo: string | null } | null>(null);
+  
+  // Motion animation props - respects reduced motion preference
+  const _fadeInUp = prefersReducedMotion 
+    ? {} 
+    : { initial: { opacity: 0, y: 20 }, animate: { opacity: 1, y: 0 }, transition: { duration: 0.4 } };
+  const _fadeInLeft = prefersReducedMotion
+    ? {}
+    : { initial: { opacity: 0, x: -20 }, animate: { opacity: 1, x: 0 }, transition: { duration: 0.4 } };
+  const _fadeInRight = prefersReducedMotion
+    ? {}
+    : { initial: { opacity: 0, x: 20 }, animate: { opacity: 1, x: 0 }, transition: { duration: 0.4 } };
   
   // API clients
   const queryClient = useQueryClient();
@@ -726,6 +927,8 @@ export default function ProfilePage(): React.ReactElement {
     const params = new URLSearchParams(searchParams.toString());
     params.set('tab', newTab);
     router.push(`?${params.toString()}`, { scroll: false });
+    // Scroll to top of the page when switching tabs (respect reduced motion)
+    window.scrollTo({ top: 0, behavior: prefersReducedMotion ? 'auto' : 'smooth' });
   };
 
   // Fetch ALL user's orders (for accurate stats and client-side filtering/pagination)
@@ -799,27 +1002,37 @@ export default function ProfilePage(): React.ReactElement {
           console.info('📋 Sessions received:', result.sessions.map(s => ({ id: s.id, isCurrent: s.isCurrent })));
           
           // ========== REVOKED SESSION CHECK ==========
-          // If we passed a currentSessionId but no session is marked as current,
-          // it means our session was revoked or expired. Trigger full logout.
-          // Only check on first page to avoid false positives
-          if (sessionsPage === 1 && sessionId !== null && result.sessions.length > 0) {
+          // If we passed a currentSessionId but no session is marked as current
+          // across ALL pages (check total), our session was revoked. Trigger logout.
+          // Note: The backend marks `isCurrent` only for the session matching currentSessionId,
+          // so if our session was revoked, no session will be marked current.
+          if (sessionId !== null && result.total > 0) {
+            // Check if current session exists in this page's results
             const hasCurrentSession = result.sessions.some(s => s.isCurrent);
-            if (!hasCurrentSession) {
+            // On page 1, if no current session and we have sessions, it means ours was revoked
+            // On other pages, only logout if this specific page should contain our session
+            if (!hasCurrentSession && sessionsPage === 1) {
               console.warn('🚫 Current session was revoked - logging out');
               toast.error('Your session was revoked. Please log in again.');
-              // Use setTimeout to allow toast to show before logout
-              setTimeout(() => {
+              // Use ref-based setTimeout to allow cleanup on unmount
+              if (logoutTimeoutRef.current !== null) {
+                clearTimeout(logoutTimeoutRef.current);
+              }
+              logoutTimeoutRef.current = setTimeout(() => {
                 logout();
               }, 500);
               return { sessions: [], total: 0, page: 1, limit: sessionsPerPage, totalPages: 0 };
             }
           }
           
-          // Edge case: No sessions at all means all were revoked (only check on first page)
-          if (sessionsPage === 1 && sessionId !== null && result.sessions.length === 0 && result.total === 0) {
+          // Edge case: No sessions at all means all were revoked
+          if (sessionId !== null && result.sessions.length === 0 && result.total === 0) {
             console.warn('🚫 No active sessions found - logging out');
             toast.error('Your session has expired. Please log in again.');
-            setTimeout(() => {
+            if (logoutTimeoutRef.current !== null) {
+              clearTimeout(logoutTimeoutRef.current);
+            }
+            logoutTimeoutRef.current = setTimeout(() => {
               logout();
             }, 500);
             return { sessions: [], total: 0, page: 1, limit: sessionsPerPage, totalPages: 0 };
@@ -857,7 +1070,7 @@ export default function ProfilePage(): React.ReactElement {
     daysRemaining: number | null;
   }
   
-  const { data: deletionStatus, refetch: _refetchDeletionStatus } = useQuery<DeletionStatus | null>({
+  const { data: deletionStatus } = useQuery<DeletionStatus | null>({
     queryKey: ['deletion-status'],
     queryFn: async () => {
       try {
@@ -1056,6 +1269,10 @@ export default function ProfilePage(): React.ReactElement {
     staleTime: 30_000, // Cache for 30 seconds
   });
 
+  // Fetch watchlist count for stats display
+  const { data: watchlistCountData } = useWatchlistCount();
+  const watchlistCount = watchlistCountData?.count ?? 0;
+
   // Order stats from API (accurate, not limited by pagination)
   const orderStats = useMemo(() => ({
     totalOrders: apiStats?.totalOrders ?? 0,
@@ -1063,7 +1280,6 @@ export default function ProfilePage(): React.ReactElement {
     pendingOrders: apiStats?.pendingOrders ?? 0,
     processingOrders: apiStats?.processingOrders ?? 0,
     failedOrders: apiStats?.failedOrders ?? 0,
-    totalSpent: parseFloat(apiStats?.totalSpent ?? '0'),
     digitalDownloads: apiStats?.digitalDownloads ?? 0,
   }), [apiStats]);
 
@@ -1116,11 +1332,11 @@ export default function ProfilePage(): React.ReactElement {
 
     const categoryConfig: Record<FilterCategoryKey, Omit<FilterCategory, 'key' | 'count'>> = {
       'fulfilled': { label: 'Completed', icon: 'Key', activeClass: 'bg-green-success text-black' },
-      'paid': { label: 'Processing', icon: 'RefreshCw', activeClass: 'bg-blue-500 text-white' },
+      'paid': { label: 'Processing', icon: 'RefreshCw', activeClass: 'bg-cyan-glow text-black' },
       'pending': { label: 'Pending', icon: 'Clock', activeClass: 'bg-orange-warning text-black' },
-      'failed': { label: 'Failed', icon: 'AlertTriangle', activeClass: 'bg-red-500 text-white' },
-      'refunded': { label: 'Refunded', icon: 'RotateCcw', activeClass: 'bg-purple-500 text-white' },
-      'cancelled': { label: 'Cancelled', icon: 'XCircle', activeClass: 'bg-gray-500 text-white' },
+      'failed': { label: 'Failed', icon: 'AlertTriangle', activeClass: 'bg-destructive text-white' },
+      'refunded': { label: 'Refunded', icon: 'RotateCcw', activeClass: 'bg-purple-neon text-white' },
+      'cancelled': { label: 'Cancelled', icon: 'XCircle', activeClass: 'bg-text-muted text-white' },
     };
 
     // Build array of categories that have orders (in display order)
@@ -1165,17 +1381,25 @@ export default function ProfilePage(): React.ReactElement {
       });
     }
     
-    // Filter by search query (Order ID - matches both full ID and short ID)
-    if (purchasesSearchQuery.trim() !== '') {
-      const query = purchasesSearchQuery.toLowerCase().replace('#', '');
-      filtered = filtered.filter((order: OrderResponseDto) => 
-        order.id.toLowerCase().includes(query) ||
-        order.id.slice(-8).toLowerCase().includes(query)
-      );
+    // Filter by search query (Order ID + Product Titles)
+    if (debouncedPurchasesSearchQuery.trim() !== '') {
+      const query = debouncedPurchasesSearchQuery.toLowerCase().replace('#', '');
+      filtered = filtered.filter((order: OrderResponseDto) => {
+        // Match order ID (full or short)
+        const matchesOrderId = order.id.toLowerCase().includes(query) ||
+          order.id.slice(-8).toLowerCase().includes(query);
+        
+        // Match product titles in order items
+        const matchesProductTitle = order.items?.some((item) => 
+          item.productTitle?.toLowerCase().includes(query)
+        ) ?? false;
+        
+        return matchesOrderId || matchesProductTitle;
+      });
     }
     
     return filtered;
-  }, [allOrders, purchasesStatusFilter, purchasesSearchQuery]);
+  }, [allOrders, purchasesStatusFilter, debouncedPurchasesSearchQuery]);
 
   // Client-side pagination (applied after filtering)
   const paginatedPurchases = useMemo(() => {
@@ -1189,9 +1413,9 @@ export default function ProfilePage(): React.ReactElement {
   // Reset to page 1 when filter or search changes
   useEffect(() => {
     setPurchasesPage(1);
-  }, [purchasesStatusFilter, purchasesSearchQuery]);
+  }, [purchasesStatusFilter, debouncedPurchasesSearchQuery]);
 
-  // Download keys for a fulfilled order
+  // Download keys for a fulfilled order (reserved for future download feature)
   const _handleDownloadKeys = async (orderId: string): Promise<void> => {
     setDownloadingOrder(orderId);
     try {
@@ -1317,6 +1541,7 @@ export default function ProfilePage(): React.ReactElement {
   }
 
   return (
+    <ErrorBoundary>
     <div className="container mx-auto max-w-6xl py-8 space-y-8" role="region" aria-label="User profile dashboard">
       {/* Neon Welcome Banner */}
       <div className="glass relative overflow-hidden rounded-xl border border-cyan-glow/20 bg-bg-secondary p-8 shadow-lg shadow-cyan-glow/5">
@@ -1325,7 +1550,7 @@ export default function ProfilePage(): React.ReactElement {
         </div>
         <div className="relative z-10 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
-            <h1 className="font-display text-3xl font-bold text-text-primary">
+            <h1 className="font-display text-3xl font-bold text-text-primary text-glow-cyan">
               Welcome back, <span className="text-gradient-primary">{user.email.split('@')[0]}</span>
             </h1>
             <p className="text-text-secondary">Manage your profile, security, and digital keys all in one place.</p>
@@ -1357,7 +1582,7 @@ export default function ProfilePage(): React.ReactElement {
                 logout();
                 toast.success('Logged out successfully');
               }}
-              className="border-red-500/30 text-red-400 hover:bg-red-500/10 hover:border-red-500/50 hover:text-red-300"
+              className="border-destructive/30 text-destructive hover:bg-destructive/10 hover:border-destructive/50"
             >
               <LogOut className="h-4 w-4 mr-1.5" />
               Logout
@@ -1383,9 +1608,9 @@ export default function ProfilePage(): React.ReactElement {
           delay={0.2}
         />
         <DashboardStatCard
-          title="Total Spent"
-          value={`€${orderStats.totalSpent.toFixed(2)}`}
-          icon={DollarSign}
+          title="Wishlist Items"
+          value={watchlistCount}
+          icon={Heart}
           color="orange"
           delay={0.3}
         />
@@ -1400,54 +1625,59 @@ export default function ProfilePage(): React.ReactElement {
 
       {/* Main Tabs Section */}
       <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
-        <TabsList className="glass grid w-full grid-cols-6 border border-border/30 bg-bg-secondary/50 p-1 backdrop-blur-sm">
+        <TabsList className="glass grid w-full grid-cols-6 border border-border-subtle bg-bg-secondary/50 p-1 backdrop-blur-sm">
           <TabsTrigger
             value="overview"
             aria-label="Overview tab - view dashboard summary"
-            className="flex items-center justify-center gap-1.5 transition-all duration-200 focus-visible:ring-2 focus-visible:ring-cyan-glow/50 focus-visible:ring-offset-2 focus-visible:ring-offset-bg-primary data-[state=active]:bg-cyan-glow/10 data-[state=active]:text-cyan-glow data-[state=active]:shadow-glow-sm"
+            className="flex items-center justify-center gap-1.5 text-xs sm:text-sm transition-all duration-200 focus-visible:ring-2 focus-visible:ring-cyan-glow/50 focus-visible:ring-offset-2 focus-visible:ring-offset-bg-primary data-[state=active]:bg-cyan-glow/10 data-[state=active]:text-cyan-glow data-[state=active]:shadow-glow-sm"
           >
-            <Eye className="h-4 w-4" />
+            <Eye className="h-4 w-4 shrink-0" />
+            <span className="hidden xs:inline sm:hidden">Home</span>
             <span className="hidden sm:inline">Overview</span>
           </TabsTrigger>
           <TabsTrigger
             value="purchases"
             aria-label="My Purchases tab - view order history and download keys"
-            className="flex items-center justify-center gap-1.5 transition-all duration-200 focus-visible:ring-2 focus-visible:ring-cyan-glow/50 focus-visible:ring-offset-2 focus-visible:ring-offset-bg-primary data-[state=active]:bg-cyan-glow/10 data-[state=active]:text-cyan-glow data-[state=active]:shadow-glow-sm"
+            className="flex items-center justify-center gap-1.5 text-xs sm:text-sm transition-all duration-200 focus-visible:ring-2 focus-visible:ring-cyan-glow/50 focus-visible:ring-offset-2 focus-visible:ring-offset-bg-primary data-[state=active]:bg-cyan-glow/10 data-[state=active]:text-cyan-glow data-[state=active]:shadow-glow-sm"
           >
-            <ShoppingBag className="h-4 w-4" />
+            <ShoppingBag className="h-4 w-4 shrink-0" />
+            <span className="hidden xs:inline sm:hidden">Shop</span>
             <span className="hidden sm:inline">Purchases</span>
           </TabsTrigger>
           <TabsTrigger
             value="watchlist"
             aria-label="Watchlist tab - view and manage your saved products"
-            className="flex items-center justify-center gap-1.5 transition-all duration-200 focus-visible:ring-2 focus-visible:ring-cyan-glow/50 focus-visible:ring-offset-2 focus-visible:ring-offset-bg-primary data-[state=active]:bg-cyan-glow/10 data-[state=active]:text-cyan-glow data-[state=active]:shadow-glow-sm"
+            className="flex items-center justify-center gap-1.5 text-xs sm:text-sm transition-all duration-200 focus-visible:ring-2 focus-visible:ring-cyan-glow/50 focus-visible:ring-offset-2 focus-visible:ring-offset-bg-primary data-[state=active]:bg-cyan-glow/10 data-[state=active]:text-cyan-glow data-[state=active]:shadow-glow-sm"
           >
-            <Heart className="h-4 w-4" />
+            <Heart className="h-4 w-4 shrink-0" />
+            <span className="hidden xs:inline sm:hidden">Saved</span>
             <span className="hidden sm:inline">Watchlist</span>
           </TabsTrigger>
           <TabsTrigger
             value="account"
             aria-label="Account tab - view profile information"
-            className="flex items-center justify-center gap-1.5 transition-all duration-200 focus-visible:ring-2 focus-visible:ring-cyan-glow/50 focus-visible:ring-offset-2 focus-visible:ring-offset-bg-primary data-[state=active]:bg-cyan-glow/10 data-[state=active]:text-cyan-glow data-[state=active]:shadow-glow-sm"
+            className="flex items-center justify-center gap-1.5 text-xs sm:text-sm transition-all duration-200 focus-visible:ring-2 focus-visible:ring-cyan-glow/50 focus-visible:ring-offset-2 focus-visible:ring-offset-bg-primary data-[state=active]:bg-cyan-glow/10 data-[state=active]:text-cyan-glow data-[state=active]:shadow-glow-sm"
           >
-            <User className="h-4 w-4" />
+            <User className="h-4 w-4 shrink-0" />
+            <span className="hidden xs:inline sm:hidden">Me</span>
             <span className="hidden sm:inline">Account</span>
           </TabsTrigger>
           <TabsTrigger
             value="security"
             aria-label="Security tab - manage password and security settings"
-            className="flex items-center justify-center gap-1.5 transition-all duration-200 focus-visible:ring-2 focus-visible:ring-cyan-glow/50 focus-visible:ring-offset-2 focus-visible:ring-offset-bg-primary data-[state=active]:bg-cyan-glow/10 data-[state=active]:text-cyan-glow data-[state=active]:shadow-glow-sm"
+            className="flex items-center justify-center gap-1.5 text-xs sm:text-sm transition-all duration-200 focus-visible:ring-2 focus-visible:ring-cyan-glow/50 focus-visible:ring-offset-2 focus-visible:ring-offset-bg-primary data-[state=active]:bg-cyan-glow/10 data-[state=active]:text-cyan-glow data-[state=active]:shadow-glow-sm"
           >
-            <Shield className="h-4 w-4" />
+            <Shield className="h-4 w-4 shrink-0" />
+            <span className="hidden xs:inline sm:hidden">Safe</span>
             <span className="hidden sm:inline">Security</span>
           </TabsTrigger>
-
           <TabsTrigger
             value="help"
             aria-label="Help tab - frequently asked questions and support"
-            className="flex items-center justify-center gap-1.5 transition-all duration-200 focus-visible:ring-2 focus-visible:ring-cyan-glow/50 focus-visible:ring-offset-2 focus-visible:ring-offset-bg-primary data-[state=active]:bg-cyan-glow/10 data-[state=active]:text-cyan-glow data-[state=active]:shadow-glow-sm"
+            className="flex items-center justify-center gap-1.5 text-xs sm:text-sm transition-all duration-200 focus-visible:ring-2 focus-visible:ring-cyan-glow/50 focus-visible:ring-offset-2 focus-visible:ring-offset-bg-primary data-[state=active]:bg-cyan-glow/10 data-[state=active]:text-cyan-glow data-[state=active]:shadow-glow-sm"
           >
-            <HelpCircle className="h-4 w-4" />
+            <HelpCircle className="h-4 w-4 shrink-0" />
+            <span className="hidden xs:inline sm:hidden">FAQ</span>
             <span className="hidden sm:inline">Help</span>
           </TabsTrigger>
         </TabsList>
@@ -1463,7 +1693,7 @@ export default function ProfilePage(): React.ReactElement {
               transition={{ duration: 0.4 }}
               className="lg:col-span-5"
             >
-              <Card className="glass border-border/50 bg-bg-secondary/50 backdrop-blur-sm h-full">
+              <Card className="glass border-border-subtle bg-bg-secondary/50 backdrop-blur-sm h-full card-interactive-glow">
                 <CardHeader className="pb-3">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
@@ -1501,7 +1731,7 @@ export default function ProfilePage(): React.ReactElement {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.4, delay: 0.1 }}
               >
-                <Card className="glass border-border/50 bg-bg-secondary/50 backdrop-blur-sm">
+                <Card className="glass border-border-subtle bg-bg-secondary/50 backdrop-blur-sm">
                   <CardHeader className="pb-3">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
@@ -1576,7 +1806,7 @@ export default function ProfilePage(): React.ReactElement {
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.4, delay: 0.2 }}
               >
-                <Card className="glass border-border/50 bg-bg-secondary/50 backdrop-blur-sm">
+                <Card className="glass border-border-subtle bg-bg-secondary/50 backdrop-blur-sm">
                   <CardHeader className="pb-3">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
@@ -1601,7 +1831,7 @@ export default function ProfilePage(): React.ReactElement {
                   <CardContent>
                     {isLoadingOrders ? (
                       <div className="flex items-center justify-center h-24">
-                        <Loader2 className="h-6 w-6 animate-spin text-cyan-glow" />
+                        <Loader2 className="h-6 w-6 animate-spin-glow text-cyan-glow" />
                       </div>
                     ) : allOrders === null || allOrders === undefined || allOrders.length === 0 ? (
                       <div className="flex flex-col items-center justify-center h-24 text-center">
@@ -1680,7 +1910,7 @@ export default function ProfilePage(): React.ReactElement {
                             </Badge>
                           </div>
                           <p className="text-sm font-semibold text-text-primary group-hover:text-orange-warning transition-colors">
-                            Save up to 70%
+                            Save up to {maxFlashDealDiscount}%
                           </p>
                           <p className="text-xs text-text-muted mt-1">
                             Limited time offers
@@ -1700,7 +1930,7 @@ export default function ProfilePage(): React.ReactElement {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: 0.3 }}
           >
-            <Card className="glass border-border/50 bg-bg-secondary/50 backdrop-blur-sm">
+            <Card className="glass border-border-subtle bg-bg-secondary/50 backdrop-blur-sm">
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <div>
@@ -1723,7 +1953,7 @@ export default function ProfilePage(): React.ReactElement {
               <CardContent>
                 {isLoadingOrders ? (
                   <div className="flex h-40 items-center justify-center">
-                    <Loader2 className="h-8 w-8 animate-spin text-cyan-glow" />
+                    <Loader2 className="h-8 w-8 animate-spin-glow text-cyan-glow" />
                   </div>
                 ) : (allOrders === null || allOrders === undefined || allOrders.length === 0) ? (
                   <div className="flex h-64 flex-col items-center justify-center text-center px-4">
@@ -1736,7 +1966,7 @@ export default function ProfilePage(): React.ReactElement {
                     </p>
                     <div className="flex gap-3">
                       <GlowButton size="default" asChild>
-                        <Link href="/bundles">
+                        <Link href="/deals">
                           <DollarSign className="h-4 w-4 mr-2" />
                           View Deals
                         </Link>
@@ -1764,7 +1994,7 @@ export default function ProfilePage(): React.ReactElement {
                           animate={{ opacity: 1, y: 0 }}
                           transition={{ delay: index * 0.08 }}
                           key={order.id}
-                          className="group rounded-lg border border-border/30 bg-bg-tertiary/30 p-4 transition-all hover:border-cyan-glow/30 hover:bg-bg-tertiary/50 hover:shadow-[0_0_15px_rgba(0,217,255,0.05)] cursor-pointer"
+                          className="group rounded-lg border border-border-subtle bg-bg-tertiary/30 p-4 transition-all hover:border-cyan-glow/30 hover:bg-bg-tertiary/50 hover:shadow-[0_0_15px_rgba(0,217,255,0.05)] cursor-pointer"
                           onClick={() => handleTabChange('purchases')}
                         >
                           <div className="flex items-start gap-4">
@@ -1807,26 +2037,23 @@ export default function ProfilePage(): React.ReactElement {
                             <div className="flex items-center gap-3">
                               <div className="text-right">
                                 <p className="crypto-amount font-bold text-text-primary mb-1">
-                                  €{(() => { 
-                                    const total = typeof order.total === 'string' ? parseFloat(order.total) : (order.total ?? 0); 
-                                    return typeof total === 'number' ? total.toFixed(2) : '0.00'; 
-                                  })()}
+                                  €{formatOrderTotal(order.total)}
                                 </p>
                                 <Badge
-                                  variant={order.status === 'fulfilled' ? 'default' : 'secondary'}
-                                  className={order.status === 'fulfilled'
-                                    ? 'badge-success'
+                                  variant="outline"
+                                  className={`${order.status === 'fulfilled'
+                                    ? 'bg-green-success/20 text-green-success border-green-success/30 shadow-glow-success'
                                     : order.status === 'paid'
-                                      ? 'badge-info'
-                                      : order.status === 'failed'
-                                        ? 'badge-error'
-                                        : 'badge-warning'
-                                  }
+                                      ? 'bg-cyan-glow/20 text-cyan-glow border-cyan-glow/30 shadow-glow-cyan-sm'
+                                      : order.status === 'failed' || order.status === 'underpaid'
+                                        ? 'bg-destructive/20 text-destructive border-destructive/30 shadow-glow-error'
+                                        : 'bg-orange-warning/20 text-orange-warning border-orange-warning/30'
+                                  }`}
                                 >
                                   <span className={`status-dot mr-1.5 ${
                                     order.status === 'fulfilled' ? 'status-dot-success' 
                                     : order.status === 'paid' ? 'status-dot-info'
-                                    : order.status === 'failed' ? 'status-dot-error'
+                                    : order.status === 'failed' || order.status === 'underpaid' ? 'status-dot-error'
                                     : 'status-dot-warning'
                                   }`} />
                                   {order.status ?? 'pending'}
@@ -1847,7 +2074,7 @@ export default function ProfilePage(): React.ReactElement {
 
         {/* My Purchases Tab - Enhanced with Pagination & Filters */}
         <TabsContent value="purchases" className="space-y-6">
-          <Card className="glass border-border/50 bg-bg-secondary/50 backdrop-blur-sm">
+          <Card className="glass border-border-subtle bg-bg-secondary/50 backdrop-blur-sm">
             <CardHeader className="pb-4">
               <div className="flex flex-col gap-4">
                 <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -1924,7 +2151,7 @@ export default function ProfilePage(): React.ReactElement {
                     placeholder="Search by Order ID..."
                     value={purchasesSearchQuery}
                     onChange={(e) => setPurchasesSearchQuery(e.target.value)}
-                    className="pl-10 bg-bg-tertiary/50 border-border/50"
+                    className="pl-10 bg-bg-tertiary/50 border-border-subtle"
                   />
                 </div>
               </div>
@@ -1932,27 +2159,28 @@ export default function ProfilePage(): React.ReactElement {
             <CardContent className="space-y-4">
               {isLoadingOrders ? (
                 <div className="flex flex-col items-center justify-center py-12 space-y-4">
-                  <Loader2 className="h-10 w-10 animate-spin text-purple-neon" />
+                  <Loader2 className="h-10 w-10 animate-spin-glow text-purple-neon" />
                   <p className="text-text-secondary">Loading your purchase history...</p>
                 </div>
               ) : (allOrders === null || allOrders === undefined || allOrders.length === 0) ? (
-                <div className="flex flex-col items-center justify-center py-12 text-center">
-                  <ShoppingBag className="h-16 w-16 text-text-muted/30 mb-4" />
-                  <h3 className="text-lg font-semibold text-text-primary mb-2">No purchases yet</h3>
-                  <p className="text-text-secondary mb-4">Start exploring our catalog to find amazing deals!</p>
+                <div className="empty-state">
+                  <ShoppingBag className="empty-state-icon" />
+                  <h3 className="empty-state-title">No purchases yet</h3>
+                  <p className="empty-state-description">Start exploring our catalog to find amazing deals!</p>
                   <Link href="/">
-                    <Button className="bg-purple-neon hover:bg-purple-neon/80">
+                    <Button className="mt-4 bg-purple-neon hover:bg-purple-neon/80 shadow-glow-purple-sm">
                       Browse Products
                     </Button>
                   </Link>
                 </div>
               ) : filteredOrders.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-12 text-center">
-                  <Search className="h-16 w-16 text-text-muted/30 mb-4" />
-                  <h3 className="text-lg font-semibold text-text-primary mb-2">No matching orders</h3>
-                  <p className="text-text-secondary mb-4">Try adjusting your filters or search query</p>
+                <div className="empty-state">
+                  <Search className="empty-state-icon" />
+                  <h3 className="empty-state-title">No matching orders</h3>
+                  <p className="empty-state-description">Try adjusting your filters or search query</p>
                   <Button 
                     variant="outline" 
+                    className="mt-4"
                     onClick={() => { setPurchasesStatusFilter('all'); setPurchasesSearchQuery(''); }}
                   >
                     Clear Filters
@@ -1987,10 +2215,10 @@ export default function ProfilePage(): React.ReactElement {
                           isFulfilled 
                             ? 'border-green-success/30 bg-green-success/5 hover:border-green-success/50' 
                             : isFailed
-                            ? 'border-red-500/30 bg-red-500/5 hover:border-red-500/50'
+                            ? 'border-destructive/30 bg-destructive/5 hover:border-destructive/50'
                             : isPaid
-                            ? 'border-blue-500/30 bg-blue-500/5 hover:border-blue-500/50'
-                            : 'border-border/50 bg-bg-tertiary/30 hover:border-purple-neon/20 hover:bg-bg-tertiary/50'
+                            ? 'border-cyan-glow/30 bg-cyan-glow/5 hover:border-cyan-glow/50'
+                            : 'border-border-subtle bg-bg-tertiary/30 hover:border-purple-neon/20 hover:bg-bg-tertiary/50'
                         }`}
                       >
                         {/* Order Header - Clickable to expand */}
@@ -2012,17 +2240,17 @@ export default function ProfilePage(): React.ReactElement {
                                 isFulfilled 
                                   ? 'bg-green-success/10 border-green-success/30' 
                                   : isFailed
-                                  ? 'bg-red-500/10 border-red-500/30'
+                                  ? 'bg-destructive/10 border-destructive/30'
                                   : isPaid
-                                  ? 'bg-blue-500/10 border-blue-500/30'
+                                  ? 'bg-cyan-glow/10 border-cyan-glow/30'
                                   : 'bg-purple-neon/10 border-purple-neon/20'
                               }`}>
                                 {isFulfilled ? (
                                   <Key className="h-6 w-6 text-green-success" />
                                 ) : isFailed ? (
-                                  <AlertCircle className="h-6 w-6 text-red-500" />
+                                  <AlertCircle className="h-6 w-6 text-destructive" />
                                 ) : isPaid ? (
-                                  <RefreshCw className="h-6 w-6 text-blue-400" />
+                                  <RefreshCw className="h-6 w-6 text-cyan-glow" />
                                 ) : (
                                   <Package className="h-6 w-6 text-purple-neon" />
                                 )}
@@ -2058,23 +2286,24 @@ export default function ProfilePage(): React.ReactElement {
                             </div>
                             <div className="flex items-center gap-4">
                               <Badge
-                                className={
+                                variant="outline"
+                                className={`${
                                   isFulfilled
-                                    ? 'bg-green-success/20 text-green-success border-green-success/30'
+                                    ? 'bg-green-success/20 text-green-success border-green-success/30 shadow-glow-success'
                                     : isFailed
-                                    ? 'bg-red-500/20 text-red-500 border-red-500/30'
+                                    ? 'bg-destructive/20 text-destructive border-destructive/30 shadow-glow-error'
                                     : isPaid
-                                    ? 'bg-blue-500/20 text-blue-400 border-blue-500/30'
+                                    ? 'bg-cyan-glow/20 text-cyan-glow border-cyan-glow/30 shadow-glow-cyan-sm'
                                     : order.status === 'confirming'
                                     ? 'bg-orange-warning/20 text-orange-warning border-orange-warning/30'
-                                    : 'bg-cyan-glow/20 text-cyan-glow border-cyan-glow/30'
-                                }
+                                    : 'bg-purple-neon/20 text-purple-neon border-purple-neon/30'
+                                }`}
                               >
                                 {isFulfilled && <Check className="h-3 w-3 mr-1" />}
                                 {order.status ?? 'pending'}
                               </Badge>
-                              <span className="font-bold text-lg text-text-primary">
-                                €{(() => { const total = typeof order.total === 'string' ? parseFloat(order.total) : (order.total ?? 0); return typeof total === 'number' ? total.toFixed(2) : '0.00'; })()}
+                              <span className="crypto-amount font-bold text-lg text-text-primary">
+                                €{formatOrderTotal(order.total)}
                               </span>
                               <div className="text-text-muted">
                                 {isExpanded ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
@@ -2083,7 +2312,7 @@ export default function ProfilePage(): React.ReactElement {
                           </div>
                           
                           {/* Quick action buttons (always visible) */}
-                          <div className="flex items-center gap-3 mt-4 pt-4 border-t border-border/30">
+                          <div className="flex items-center gap-3 mt-4 pt-4 border-t border-border-subtle">
                             {isFulfilled && (
                               <Button
                                 size="sm"
@@ -2111,7 +2340,7 @@ export default function ProfilePage(): React.ReactElement {
                                   size="sm"
                                   onClick={(e) => { e.stopPropagation(); void handleRecoverKeys(order.id); }}
                                   disabled={recoveringOrder === order.id}
-                                  className="bg-blue-500 hover:bg-blue-600 text-white"
+                                  className="bg-cyan-glow hover:bg-cyan-glow/80 text-black shadow-glow-cyan-sm"
                                 >
                                   {recoveringOrder === order.id ? (
                                     <><Loader2 className="h-4 w-4 mr-1 animate-spin" />Retrieving...</>
@@ -2120,14 +2349,14 @@ export default function ProfilePage(): React.ReactElement {
                                   )}
                                 </Button>
                                 <div className="flex items-center gap-2">
-                                  <div className="h-2 w-2 rounded-full bg-blue-400 animate-pulse" />
-                                  <span className="text-sm text-blue-400">Payment confirmed • Click to retrieve keys</span>
+                                  <div className="h-2 w-2 rounded-full bg-cyan-glow animate-pulse" />
+                                  <span className="text-sm text-cyan-glow">Payment confirmed • Click to retrieve keys</span>
                                 </div>
                               </div>
                             )}
                             {isPending && (
                               <div className="flex items-center gap-2 text-sm text-text-secondary">
-                                <Loader2 className="h-4 w-4 animate-spin text-orange-warning" />
+                                <Loader2 className="h-4 w-4 animate-spin-glow text-orange-warning" />
                                 <span>
                                   {order.status === 'confirming' ? 'Payment being confirmed...' : 
                                    order.status === 'waiting' ? 'Awaiting payment...' : 
@@ -2136,13 +2365,13 @@ export default function ProfilePage(): React.ReactElement {
                               </div>
                             )}
                             {isExpired && (
-                              <div className="flex items-center gap-2 text-sm text-red-400">
+                              <div className="flex items-center gap-2 text-sm text-destructive">
                                 <Clock className="h-4 w-4" />
                                 <span>Payment expired - Order cancelled</span>
                               </div>
                             )}
                             {isFailed && !isExpired && (
-                              <div className="flex items-center gap-2 text-sm text-red-400">
+                              <div className="flex items-center gap-2 text-sm text-destructive">
                                 <AlertCircle className="h-4 w-4" />
                                 <span>{order.status === 'underpaid' ? 'Insufficient payment received' : 'Payment failed'}</span>
                               </div>
@@ -2157,11 +2386,11 @@ export default function ProfilePage(): React.ReactElement {
                             animate={{ opacity: 1, height: 'auto' }}
                             exit={{ opacity: 0, height: 0 }}
                             transition={{ duration: 0.3 }}
-                            className="border-t border-border/30 px-5 pb-5"
+                            className="border-t border-border-subtle px-5 pb-5"
                           >
                             <div className="pt-5 space-y-4">
                               {/* Order Details Summary */}
-                              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 rounded-lg bg-bg-primary/50 border border-border/30">
+                              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4 rounded-lg bg-bg-primary/50 border border-border-subtle">
                                 <div>
                                   <p className="text-xs text-text-muted uppercase tracking-wider">Order Reference</p>
                                   <div className="flex items-center gap-2">
@@ -2186,14 +2415,14 @@ export default function ProfilePage(): React.ReactElement {
                                 </div>
                                 <div>
                                   <p className="text-xs text-text-muted uppercase tracking-wider">Payment</p>
-                                  <p className="font-semibold text-text-primary">€{(() => { const total = typeof order.total === 'string' ? parseFloat(order.total) : (order.total ?? 0); return typeof total === 'number' ? total.toFixed(2) : '0.00'; })()}</p>
+                                  <p className="crypto-amount font-semibold text-text-primary">€{formatOrderTotal(order.total)}</p>
                                 </div>
                                 <div>
                                   <p className="text-xs text-text-muted uppercase tracking-wider">Status</p>
                                   <p className={`font-semibold ${
                                     isFulfilled ? 'text-green-success' : 
-                                    isFailed ? 'text-red-500' : 
-                                    isPaid ? 'text-blue-400' : 
+                                    isFailed ? 'text-destructive' : 
+                                    isPaid ? 'text-cyan-glow' : 
                                     'text-orange-warning'
                                   }`}>
                                     {(order.status ?? 'pending').charAt(0).toUpperCase() + (order.status ?? 'pending').slice(1)}
@@ -2215,15 +2444,15 @@ export default function ProfilePage(): React.ReactElement {
                               
                               {/* Paid but not fulfilled - Show retrieve keys prompt */}
                               {isPaid && !isFulfilled && order.items.length > 0 && (
-                                <div className="mt-4 p-4 rounded-lg bg-blue-500/10 border border-blue-500/30">
+                                <div className="mt-4 p-4 rounded-lg bg-cyan-glow/10 border border-cyan-glow/30">
                                   <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
                                     <div className="flex items-center gap-3">
-                                      <div className="h-10 w-10 rounded-lg bg-blue-500/20 border border-blue-500/30 flex items-center justify-center">
-                                        <Key className="h-5 w-5 text-blue-400" />
+                                      <div className="h-10 w-10 rounded-lg bg-cyan-glow/20 border border-cyan-glow/30 flex items-center justify-center">
+                                        <Key className="h-5 w-5 text-cyan-glow" />
                                       </div>
                                       <div>
                                         <p className="font-medium text-text-primary">Keys Ready to Retrieve</p>
-                                        <p className="text-sm text-blue-400">Your payment was confirmed. Click the button to fetch your keys.</p>
+                                        <p className="text-sm text-cyan-glow">Your payment was confirmed. Click the button to fetch your keys.</p>
                                         <p className="text-xs text-text-muted mt-1">If retrieval fails, keys may still be processing or there may be a temporary issue.</p>
                                       </div>
                                     </div>
@@ -2231,7 +2460,7 @@ export default function ProfilePage(): React.ReactElement {
                                       size="sm"
                                       onClick={(e) => { e.stopPropagation(); void handleRecoverKeys(order.id); }}
                                       disabled={recoveringOrder === order.id}
-                                      className="bg-blue-500 hover:bg-blue-600 text-white shrink-0"
+                                      className="bg-cyan-glow hover:bg-cyan-glow/80 text-black shadow-glow-cyan-sm shrink-0"
                                     >
                                       {recoveringOrder === order.id ? (
                                         <><Loader2 className="h-4 w-4 mr-1 animate-spin" />Retrieving...</>
@@ -2240,12 +2469,12 @@ export default function ProfilePage(): React.ReactElement {
                                       )}
                                     </Button>
                                   </div>
-                                  <div className="mt-3 pt-3 border-t border-blue-500/20">
+                                  <div className="mt-3 pt-3 border-t border-cyan-glow/20">
                                     <h4 className="text-sm font-medium text-text-secondary mb-2">Items in this order:</h4>
                                     <div className="space-y-2">
                                       {order.items.map((item: OrderItemResponseDto, idx) => (
                                         <div key={item.id} className="flex items-center gap-2 text-sm">
-                                          <div className="h-6 w-6 rounded bg-blue-500/20 flex items-center justify-center text-xs text-blue-400 font-bold">{idx + 1}</div>
+                                          <div className="h-6 w-6 rounded bg-cyan-glow/20 flex items-center justify-center text-xs text-cyan-glow font-bold">{idx + 1}</div>
                                           <span className="text-text-primary">{item.productTitle ?? 'Digital Product'}</span>
                                         </div>
                                       ))}
@@ -2265,7 +2494,7 @@ export default function ProfilePage(): React.ReactElement {
                                     {order.items.map((item: OrderItemResponseDto, itemIndex) => (
                                       <div
                                         key={item.id}
-                                        className="flex items-center justify-between p-3 rounded-lg bg-bg-primary/50 border border-border/30"
+                                        className="flex items-center justify-between p-3 rounded-lg bg-bg-primary/50 border border-border-subtle"
                                       >
                                         <div className="flex items-center gap-3">
                                           <div className="flex h-8 w-8 items-center justify-center rounded bg-purple-neon/10 text-purple-neon text-sm font-bold">
@@ -2278,10 +2507,10 @@ export default function ProfilePage(): React.ReactElement {
                                           </div>
                                         </div>
                                         <Badge variant="outline" className={`text-xs ${
-                                          isExpired ? 'border-red-500/30 text-red-400' :
-                                          isFailed ? 'border-red-500/30 text-red-400' :
+                                          isExpired ? 'border-destructive/30 text-destructive' :
+                                          isFailed ? 'border-destructive/30 text-destructive' :
                                           isPending ? 'border-orange-warning/30 text-orange-warning' :
-                                          'border-border/50 text-text-muted'
+                                          'border-border-subtle text-text-muted'
                                         }`}>
                                           {isExpired ? 'Expired' : isPending ? 'Pending' : isFailed ? 'Failed' : 'Processing'}
                                         </Badge>
@@ -2320,7 +2549,7 @@ export default function ProfilePage(): React.ReactElement {
 
                   {/* Pagination Controls */}
                   {purchasesTotalPages > 1 && (
-                    <div className="flex items-center justify-between pt-4 border-t border-border/30">
+                    <div className="flex items-center justify-between pt-4 border-t border-border-subtle">
                       <div className="text-sm text-text-muted">
                         Page {purchasesPage} of {purchasesTotalPages}
                       </div>
@@ -2356,7 +2585,7 @@ export default function ProfilePage(): React.ReactElement {
                                 variant={purchasesPage === pageNumber ? 'default' : 'outline'}
                                 size="sm"
                                 onClick={() => setPurchasesPage(pageNumber)}
-                                className={purchasesPage === pageNumber ? 'bg-purple-neon text-black' : 'border-border/30'}
+                                className={purchasesPage === pageNumber ? 'bg-purple-neon text-black' : 'border-border-subtle'}
                               >
                                 {pageNumber}
                               </Button>
@@ -2392,7 +2621,7 @@ export default function ProfilePage(): React.ReactElement {
               transition={{ duration: 0.4 }}
               className="lg:col-span-1"
             >
-              <Card className="glass h-full border-border/50 bg-bg-secondary/50 backdrop-blur-sm transition-all duration-300 hover:border-green-success/30 hover:shadow-[0_0_20px_rgba(57,255,20,0.1)]">
+              <Card className="glass h-full border-border-subtle bg-bg-secondary/50 backdrop-blur-sm transition-all duration-300 hover:border-green-success/30 hover:shadow-[0_0_20px_rgba(57,255,20,0.1)]">
                 <CardContent className="flex flex-col items-center justify-center p-8 text-center">
                   <div className="relative mb-4">
                     <div className="flex h-24 w-24 items-center justify-center rounded-full bg-green-success/10 border-2 border-green-success/30">
@@ -2427,7 +2656,7 @@ export default function ProfilePage(): React.ReactElement {
               transition={{ duration: 0.4, delay: 0.1 }}
               className="lg:col-span-2"
             >
-              <Card className="glass border-border/50 bg-bg-secondary/50 backdrop-blur-sm transition-all duration-300 hover:border-cyan-glow/20">
+              <Card className="glass border-border-subtle bg-bg-secondary/50 backdrop-blur-sm transition-all duration-300 hover:border-cyan-glow/20">
                 <CardHeader className="pb-4">
                   <div className="flex items-center gap-3">
                     <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-cyan-glow/10 border border-cyan-glow/20">
@@ -2441,7 +2670,7 @@ export default function ProfilePage(): React.ReactElement {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {/* Current Email Display */}
-                  <div className="flex items-center justify-between p-4 rounded-lg bg-bg-tertiary/30 border border-border/30">
+                  <div className="flex items-center justify-between p-4 rounded-lg bg-bg-tertiary/30 border border-border-subtle">
                     <div className="flex items-center gap-3">
                       <Mail className="h-5 w-5 text-text-muted" />
                       <div>
@@ -2472,11 +2701,11 @@ export default function ProfilePage(): React.ReactElement {
                             placeholder="Enter new email address"
                             value={newEmail}
                             onChange={(e) => setNewEmail(e.target.value)}
-                            className="flex-1 bg-bg-tertiary/50 border-border/50"
+                            className="flex-1 bg-bg-tertiary/50 border-border-subtle"
                           />
                           <Button
                             onClick={() => void requestEmailChangeMutation.mutateAsync(newEmail)}
-                            disabled={newEmail === '' || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newEmail) || requestEmailChangeMutation.isPending}
+                            disabled={newEmail === '' || !isValidEmail(newEmail) || requestEmailChangeMutation.isPending}
                             className="bg-cyan-glow/10 text-cyan-glow hover:bg-cyan-glow/20 border border-cyan-glow/30"
                           >
                             {requestEmailChangeMutation.isPending ? (
@@ -2517,7 +2746,8 @@ export default function ProfilePage(): React.ReactElement {
                               value={oldEmailOtp}
                               onChange={(e) => setOldEmailOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
                               maxLength={6}
-                              className="bg-bg-tertiary/50 border-border/50 font-mono tracking-widest text-center"
+                              autoFocus
+                              className="bg-bg-tertiary/50 border-border-subtle font-mono tracking-widest text-center"
                             />
                           </div>
 
@@ -2532,7 +2762,7 @@ export default function ProfilePage(): React.ReactElement {
                               value={newEmailOtp}
                               onChange={(e) => setNewEmailOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
                               maxLength={6}
-                              className="bg-bg-tertiary/50 border-border/50 font-mono tracking-widest text-center"
+                              className="bg-bg-tertiary/50 border-border-subtle font-mono tracking-widest text-center"
                             />
                           </div>
 
@@ -2577,7 +2807,7 @@ export default function ProfilePage(): React.ReactElement {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: 0.15 }}
           >
-            <Card className="glass border-border/50 bg-bg-secondary/50 backdrop-blur-sm">
+            <Card className="glass border-border-subtle bg-bg-secondary/50 backdrop-blur-sm">
               <CardHeader className="pb-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
@@ -2621,11 +2851,23 @@ export default function ProfilePage(): React.ReactElement {
               </CardHeader>
               <CardContent className="space-y-3">
                 {sessionsLoading ? (
-                  <div className="flex items-center justify-center p-8">
-                    <Loader2 className="h-6 w-6 animate-spin text-text-muted" />
+                  <div className="space-y-2">
+                    {/* Skeleton loading for sessions */}
+                    {Array.from({ length: 3 }).map((_, i) => (
+                      <div key={i} className="flex items-center justify-between p-4 rounded-lg bg-bg-tertiary/30 border border-border-subtle">
+                        <div className="flex items-center gap-3">
+                          <div className="skeleton h-10 w-10 animate-shimmer rounded-lg" />
+                          <div className="space-y-2">
+                            <div className="skeleton h-4 w-32 animate-shimmer rounded" />
+                            <div className="skeleton h-3 w-24 animate-shimmer rounded" />
+                          </div>
+                        </div>
+                        <div className="skeleton h-8 w-16 animate-shimmer rounded" />
+                      </div>
+                    ))}
                   </div>
                 ) : sessions.length === 0 ? (
-                  <div className="p-6 rounded-lg bg-bg-tertiary/20 border border-border/30 text-center">
+                  <div className="p-6 rounded-lg bg-bg-tertiary/20 border border-border-subtle text-center">
                     <p className="text-sm text-text-secondary">No active sessions found</p>
                   </div>
                 ) : (
@@ -2636,7 +2878,7 @@ export default function ProfilePage(): React.ReactElement {
                         className={`flex items-center justify-between p-4 rounded-lg border transition-colors ${
                           session.isCurrent === true
                             ? 'bg-green-success/5 border-green-success/30'
-                            : 'bg-bg-tertiary/30 border-border/30 hover:border-border/50'
+                            : 'bg-bg-tertiary/30 border-border-subtle hover:border-border-subtle'
                         }`}
                       >
                         <div className="flex items-center gap-3">
@@ -2661,7 +2903,7 @@ export default function ProfilePage(): React.ReactElement {
                               )}
                             </div>
                             <div className="flex items-center gap-2 text-xs text-text-muted">
-                              <span>{session.ipAddress ?? 'Unknown'}</span>
+                              <span>{maskIpAddress(session.ipAddress)}</span>
                               <span>•</span>
                               <span>Last active: {session.lastActiveAt != null ? new Date(session.lastActiveAt).toLocaleDateString() : 'Unknown'}</span>
                             </div>
@@ -2671,11 +2913,11 @@ export default function ProfilePage(): React.ReactElement {
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => void revokeSessionMutation.mutateAsync(session.id)}
+                            onClick={() => setSessionToRevoke({ id: session.id, deviceInfo: session.deviceInfo ?? 'Unknown Device' })}
                             disabled={revokeSessionMutation.isPending}
-                            className="text-red-500 hover:text-red-400 hover:bg-red-500/10"
+                            className="text-destructive hover:text-destructive hover:bg-destructive/10"
                           >
-                            {revokeSessionMutation.isPending ? (
+                            {revokeSessionMutation.isPending && sessionToRevoke?.id === session.id ? (
                               <Loader2 className="h-4 w-4 animate-spin" />
                             ) : (
                               <Trash2 className="h-4 w-4" />
@@ -2687,9 +2929,38 @@ export default function ProfilePage(): React.ReactElement {
                   </div>
                 )}
                 
+                {/* Session Revoke Confirmation Dialog */}
+                <AlertDialog open={sessionToRevoke !== null} onOpenChange={(open) => !open && setSessionToRevoke(null)}>
+                  <AlertDialogContent className="bg-bg-secondary border-border-subtle">
+                    <AlertDialogHeader>
+                      <AlertDialogTitle className="text-text-primary">Revoke Session?</AlertDialogTitle>
+                      <AlertDialogDescription className="text-text-secondary">
+                        This will sign out the device &quot;{sessionToRevoke?.deviceInfo}&quot;. 
+                        They will need to log in again to access the account.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel className="border-border-subtle text-text-secondary hover:text-text-primary">
+                        Cancel
+                      </AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={() => {
+                          if (sessionToRevoke !== null) {
+                            void revokeSessionMutation.mutateAsync(sessionToRevoke.id);
+                            setSessionToRevoke(null);
+                          }
+                        }}
+                        className="bg-destructive text-white hover:bg-destructive/90"
+                      >
+                        Revoke Session
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+                
                 {/* Sessions Pagination */}
                 {sessionsTotalPages > 1 && (
-                  <div className="flex items-center justify-between pt-4 border-t border-border/30 mt-4">
+                  <div className="flex items-center justify-between pt-4 border-t border-border-subtle mt-4">
                     <p className="text-sm text-text-muted">
                       Showing {sessions.length} of {sessionsTotal} sessions
                     </p>
@@ -2699,7 +2970,7 @@ export default function ProfilePage(): React.ReactElement {
                         size="sm"
                         onClick={() => setSessionsPage(p => Math.max(1, p - 1))}
                         disabled={sessionsPage === 1 || sessionsLoading}
-                        className="border-border/50 text-text-secondary hover:text-text-primary"
+                        className="border-border-subtle text-text-secondary hover:text-text-primary"
                       >
                         <ChevronLeft className="h-4 w-4 mr-1" />
                         Previous
@@ -2712,7 +2983,7 @@ export default function ProfilePage(): React.ReactElement {
                         size="sm"
                         onClick={() => setSessionsPage(p => Math.min(sessionsTotalPages, p + 1))}
                         disabled={sessionsPage === sessionsTotalPages || sessionsLoading}
-                        className="border-border/50 text-text-secondary hover:text-text-primary"
+                        className="border-border-subtle text-text-secondary hover:text-text-primary"
                       >
                         Next
                         <ChevronRight className="h-4 w-4 ml-1" />
@@ -2730,11 +3001,11 @@ export default function ProfilePage(): React.ReactElement {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: 0.2 }}
           >
-            <Card className="glass border-red-500/20 bg-red-500/5 backdrop-blur-sm">
+            <Card className="glass border-destructive/20 bg-destructive/5 backdrop-blur-sm">
               <CardHeader className="pb-4">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-red-500/10 border border-red-500/20">
-                    <AlertTriangle className="h-5 w-5 text-red-500" />
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-destructive/10 border border-destructive/20">
+                    <AlertTriangle className="h-5 w-5 text-destructive" />
                   </div>
                   <div>
                     <CardTitle className="text-text-primary">Delete Account</CardTitle>
@@ -2784,9 +3055,9 @@ export default function ProfilePage(): React.ReactElement {
                   </div>
                 ) : showDeleteConfirm ? (
                   <div className="space-y-4">
-                    <div className="p-4 rounded-lg bg-red-500/10 border border-red-500/30">
+                    <div className="p-4 rounded-lg bg-destructive/10 border border-destructive/30">
                       <p className="text-sm text-text-secondary mb-3">
-                        This action is <span className="font-bold text-red-500">irreversible</span>. After 30 days, all your data will be permanently deleted including:
+                        This action is <span className="font-bold text-destructive">irreversible</span>. After 30 days, all your data will be permanently deleted including:
                       </p>
                       <ul className="text-sm text-text-muted space-y-1 ml-4">
                         <li>• Your account and profile</li>
@@ -2797,14 +3068,14 @@ export default function ProfilePage(): React.ReactElement {
                     </div>
                     <div className="space-y-2">
                       <p className="text-sm text-text-secondary">
-                        Type <span className="font-mono font-bold text-red-500">DELETE</span> to confirm:
+                        Type <span className="font-mono font-bold text-destructive">DELETE</span> to confirm:
                       </p>
                       <Input
                         type="text"
                         placeholder="Type DELETE"
                         value={deleteConfirmText}
                         onChange={(e) => setDeleteConfirmText(e.target.value)}
-                        className="bg-bg-tertiary/50 border-red-500/30 focus:border-red-500"
+                        className="bg-bg-tertiary/50 border-destructive/30 focus:border-destructive"
                       />
                     </div>
                     <div className="flex gap-2">
@@ -2821,7 +3092,7 @@ export default function ProfilePage(): React.ReactElement {
                       <Button
                         onClick={() => void requestDeletionMutation.mutateAsync()}
                         disabled={deleteConfirmText !== 'DELETE' || requestDeletionMutation.isPending}
-                        className="flex-1 bg-red-500 text-white hover:bg-red-600"
+                        className="flex-1 bg-destructive text-white hover:bg-destructive/90"
                       >
                         {requestDeletionMutation.isPending ? (
                           <Loader2 className="h-4 w-4 animate-spin mr-2" />
@@ -2840,7 +3111,7 @@ export default function ProfilePage(): React.ReactElement {
                     <Button
                       variant="outline"
                       onClick={() => setShowDeleteConfirm(true)}
-                      className="text-red-500 border-red-500/30 hover:bg-red-500/10"
+                      className="text-destructive border-destructive/30 hover:bg-destructive/10"
                     >
                       <Trash2 className="h-4 w-4 mr-2" />
                       Delete Account
@@ -2900,7 +3171,7 @@ export default function ProfilePage(): React.ReactElement {
               transition={{ duration: 0.4 }}
               className="lg:col-span-1"
             >
-              <Card className="glass h-full border-border/50 bg-bg-secondary/50 backdrop-blur-sm transition-all duration-300 hover:border-cyan-glow/30 hover:shadow-[0_0_20px_rgba(0,217,255,0.1)]">
+              <Card className="glass h-full border-border-subtle bg-bg-secondary/50 backdrop-blur-sm transition-all duration-300 hover:border-cyan-glow/30 hover:shadow-[0_0_20px_rgba(0,217,255,0.1)]">
                 <CardContent className="flex flex-col items-center justify-center p-8 text-center">
                   {/* Avatar with initials */}
                   <div className="relative mb-4">
@@ -2952,7 +3223,7 @@ export default function ProfilePage(): React.ReactElement {
               transition={{ duration: 0.4, delay: 0.1 }}
               className="lg:col-span-2"
             >
-              <Card className="glass border-border/50 bg-bg-secondary/50 backdrop-blur-sm transition-all duration-300 hover:border-cyan-glow/20">
+              <Card className="glass border-border-subtle bg-bg-secondary/50 backdrop-blur-sm transition-all duration-300 hover:border-cyan-glow/20">
                 <CardHeader className="pb-4">
                   <div className="flex items-center gap-3">
                     <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-cyan-glow/10 border border-cyan-glow/20">
@@ -2966,7 +3237,7 @@ export default function ProfilePage(): React.ReactElement {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {/* Email Field */}
-                  <div className="group rounded-lg border border-border/30 bg-bg-tertiary/30 p-4 transition-all hover:border-cyan-glow/20 hover:bg-bg-tertiary/50">
+                  <div className="group rounded-lg border border-border-subtle bg-bg-tertiary/30 p-4 transition-all hover:border-cyan-glow/20 hover:bg-bg-tertiary/50">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-cyan-glow/10">
@@ -2986,7 +3257,7 @@ export default function ProfilePage(): React.ReactElement {
                   </div>
 
                   {/* User ID Field */}
-                  <div className="group rounded-lg border border-border/30 bg-bg-tertiary/30 p-4 transition-all hover:border-cyan-glow/20 hover:bg-bg-tertiary/50">
+                  <div className="group rounded-lg border border-border-subtle bg-bg-tertiary/30 p-4 transition-all hover:border-cyan-glow/20 hover:bg-bg-tertiary/50">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
                         <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-purple-neon/10">
@@ -2994,7 +3265,7 @@ export default function ProfilePage(): React.ReactElement {
                         </div>
                         <div>
                           <p className="text-xs text-text-muted uppercase tracking-wide">User ID</p>
-                          <p className="font-mono text-sm text-text-primary">{user.id}</p>
+                          <p className="font-mono text-sm text-text-primary" title={user.id}>{truncateId(user.id)}</p>
                         </div>
                       </div>
                       <Button 
@@ -3003,7 +3274,7 @@ export default function ProfilePage(): React.ReactElement {
                         className="text-text-muted hover:text-cyan-glow"
                         onClick={() => {
                           void navigator.clipboard.writeText(user.id);
-                          toast.success('User ID copied to clipboard');
+                          toast.success('Full User ID copied to clipboard');
                         }}
                       >
                         <Copy className="h-4 w-4" />
@@ -3012,7 +3283,7 @@ export default function ProfilePage(): React.ReactElement {
                   </div>
 
                   {/* Account Role Field */}
-                  <div className="group rounded-lg border border-border/30 bg-bg-tertiary/30 p-4 transition-all hover:border-cyan-glow/20 hover:bg-bg-tertiary/50">
+                  <div className="group rounded-lg border border-border-subtle bg-bg-tertiary/30 p-4 transition-all hover:border-cyan-glow/20 hover:bg-bg-tertiary/50">
                     <div className="flex items-center gap-3">
                       <div className={`flex h-9 w-9 items-center justify-center rounded-lg ${
                         user.role === 'admin' ? 'bg-purple-neon/10' : 'bg-cyan-glow/10'
@@ -3032,13 +3303,13 @@ export default function ProfilePage(): React.ReactElement {
 
                   {/* Account Stats */}
                   <div className="grid grid-cols-2 gap-3 pt-2">
-                    <div className="rounded-lg border border-border/30 bg-bg-tertiary/30 p-4 text-center group hover:border-cyan-glow/30 transition-colors">
+                    <div className="rounded-lg border border-border-subtle bg-bg-tertiary/30 p-4 text-center group hover:border-cyan-glow/30 transition-colors">
                       <p className="crypto-amount text-2xl font-bold text-cyan-glow">{orderStats.totalOrders}</p>
                       <p className="text-xs text-text-muted">Total Orders</p>
                     </div>
-                    <div className="rounded-lg border border-border/30 bg-bg-tertiary/30 p-4 text-center group hover:border-green-success/30 transition-colors">
-                      <p className="crypto-amount text-2xl font-bold text-green-success">€{orderStats.totalSpent.toFixed(2)}</p>
-                      <p className="text-xs text-text-muted">Total Spent</p>
+                    <div className="rounded-lg border border-border-subtle bg-bg-tertiary/30 p-4 text-center group hover:border-purple-neon/30 transition-colors">
+                      <p className="crypto-amount text-2xl font-bold text-purple-neon">{watchlistCount}</p>
+                      <p className="text-xs text-text-muted">Wishlist Items</p>
                     </div>
                   </div>
                 </CardContent>
@@ -3052,21 +3323,21 @@ export default function ProfilePage(): React.ReactElement {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: 0.2 }}
           >
-            <Card className="glass border-border/50 bg-bg-secondary/50 backdrop-blur-sm">
+            <Card className="glass border-border-subtle bg-bg-secondary/50 backdrop-blur-sm">
               <CardContent className="p-5">
                 <h4 className="font-semibold text-text-primary mb-4">Quick Actions</h4>
                 <div className="grid gap-3 sm:grid-cols-3">
                   <Button 
                     variant="outline" 
-                    className="h-auto flex-col gap-2 py-4 border-border/50 hover:border-cyan-glow/30 hover:bg-cyan-glow/5"
+                    className="h-auto flex-col gap-2 py-4 border-border-subtle hover:border-cyan-glow/30 hover:bg-cyan-glow/5"
                     onClick={() => setActiveTab('security')}
                   >
                     <Shield className="h-5 w-5 text-cyan-glow" />
-                    <span className="text-sm">Change Password</span>
+                    <span className="text-sm">Manage Sessions</span>
                   </Button>
                   <Button 
                     variant="outline" 
-                    className="h-auto flex-col gap-2 py-4 border-border/50 hover:border-purple-neon/30 hover:bg-purple-neon/5"
+                    className="h-auto flex-col gap-2 py-4 border-border-subtle hover:border-purple-neon/30 hover:bg-purple-neon/5"
                     onClick={() => setActiveTab('purchases')}
                   >
                     <ShoppingBag className="h-5 w-5 text-purple-neon" />
@@ -3074,7 +3345,7 @@ export default function ProfilePage(): React.ReactElement {
                   </Button>
                   <Button 
                     variant="outline" 
-                    className="h-auto flex-col gap-2 py-4 border-border/50 hover:border-green-success/30 hover:bg-green-success/5"
+                    className="h-auto flex-col gap-2 py-4 border-border-subtle hover:border-green-success/30 hover:bg-green-success/5"
                     onClick={() => setActiveTab('help')}
                   >
                     <HelpCircle className="h-5 w-5 text-green-success" />
@@ -3095,7 +3366,7 @@ export default function ProfilePage(): React.ReactElement {
         <TabsContent value="help" className="space-y-6">
           {/* Quick Support Links */}
           <div className="grid gap-4 md:grid-cols-3">
-            <Card className="glass border-border/50 bg-gradient-to-br from-cyan-glow/5 to-transparent hover:border-cyan-glow/30 transition-all duration-300 cursor-pointer group">
+            <Card className="glass border-border-subtle bg-gradient-to-br from-cyan-glow/5 to-transparent hover:border-cyan-glow/30 transition-all duration-300 cursor-pointer group">
               <CardContent className="flex flex-col items-center justify-center p-6 text-center space-y-3">
                 <div className="p-3 rounded-full bg-cyan-glow/10 group-hover:bg-cyan-glow/20 transition-colors">
                   <MessageSquare className="h-6 w-6 text-cyan-glow" />
@@ -3108,7 +3379,7 @@ export default function ProfilePage(): React.ReactElement {
               </CardContent>
             </Card>
             
-            <Card className="glass border-border/50 bg-gradient-to-br from-purple-neon/5 to-transparent hover:border-purple-neon/30 transition-all duration-300 cursor-pointer group">
+            <Card className="glass border-border-subtle bg-gradient-to-br from-purple-neon/5 to-transparent hover:border-purple-neon/30 transition-all duration-300 cursor-pointer group">
               <CardContent className="flex flex-col items-center justify-center p-6 text-center space-y-3">
                 <div className="p-3 rounded-full bg-purple-neon/10 group-hover:bg-purple-neon/20 transition-colors">
                   <Mail className="h-6 w-6 text-purple-neon" />
@@ -3126,7 +3397,7 @@ export default function ProfilePage(): React.ReactElement {
               </CardContent>
             </Card>
             
-            <Card className="glass border-border/50 bg-gradient-to-br from-orange-warning/5 to-transparent hover:border-orange-warning/30 transition-all duration-300 cursor-pointer group">
+            <Card className="glass border-border-subtle bg-gradient-to-br from-orange-warning/5 to-transparent hover:border-orange-warning/30 transition-all duration-300 cursor-pointer group">
               <CardContent className="flex flex-col items-center justify-center p-6 text-center space-y-3">
                 <div className="p-3 rounded-full bg-orange-warning/10 group-hover:bg-orange-warning/20 transition-colors">
                   <Book className="h-6 w-6 text-orange-warning" />
@@ -3146,7 +3417,7 @@ export default function ProfilePage(): React.ReactElement {
           </div>
 
           {/* FAQs Section - Simplified, links to Help Center */}
-          <Card className="glass border-border/50 bg-bg-secondary/50 backdrop-blur-sm">
+          <Card className="glass border-border-subtle bg-bg-secondary/50 backdrop-blur-sm">
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
@@ -3165,7 +3436,7 @@ export default function ProfilePage(): React.ReactElement {
             <CardContent className="space-y-4">
               {/* Most Essential FAQs Only */}
               <div className="space-y-4">
-                <div className="p-4 rounded-lg bg-bg-secondary/30 border border-border/30">
+                <div className="p-4 rounded-lg bg-bg-secondary/30 border border-border-subtle">
                   <h4 className="font-medium mb-1 text-text-primary flex items-center gap-2">
                     <Package className="h-4 w-4 text-cyan-glow" />
                     How do I access my purchased keys?
@@ -3176,7 +3447,7 @@ export default function ProfilePage(): React.ReactElement {
                   </p>
                 </div>
                 
-                <div className="p-4 rounded-lg bg-bg-secondary/30 border border-border/30">
+                <div className="p-4 rounded-lg bg-bg-secondary/30 border border-border-subtle">
                   <h4 className="font-medium mb-1 text-text-primary flex items-center gap-2">
                     <ShieldCheck className="h-4 w-4 text-purple-neon" />
                     How do I change my email or manage security?
@@ -3187,7 +3458,7 @@ export default function ProfilePage(): React.ReactElement {
                   </p>
                 </div>
                 
-                <div className="p-4 rounded-lg bg-bg-secondary/30 border border-border/30">
+                <div className="p-4 rounded-lg bg-bg-secondary/30 border border-border-subtle">
                   <h4 className="font-medium mb-1 text-text-primary flex items-center gap-2">
                     <DollarSign className="h-4 w-4 text-orange-warning" />
                     What if I underpay or overpay?
@@ -3213,7 +3484,7 @@ export default function ProfilePage(): React.ReactElement {
           </Card>
 
           {/* Contact Support */}
-          <Card className="glass border-border/50 bg-gradient-to-r from-cyan-glow/5 via-purple-neon/5 to-orange-warning/5">
+          <Card className="glass border-border-subtle bg-gradient-to-r from-cyan-glow/5 via-purple-neon/5 to-orange-warning/5">
             <CardHeader>
               <CardTitle className="text-text-primary flex items-center gap-2">
                 <LifeBuoy className="h-5 w-5 text-cyan-glow" />
@@ -3225,7 +3496,7 @@ export default function ProfilePage(): React.ReactElement {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid gap-4 md:grid-cols-2">
-                <div className="flex items-start gap-3 p-4 rounded-lg bg-bg-secondary/30 border border-border/30">
+                <div className="flex items-start gap-3 p-4 rounded-lg bg-bg-secondary/30 border border-border-subtle">
                   <Clock className="h-5 w-5 text-cyan-glow mt-0.5" />
                   <div>
                     <h4 className="font-medium text-sm text-text-primary">Response Time</h4>
@@ -3236,7 +3507,7 @@ export default function ProfilePage(): React.ReactElement {
                   </div>
                 </div>
                 
-                <div className="flex items-start gap-3 p-4 rounded-lg bg-bg-secondary/30 border border-border/30">
+                <div className="flex items-start gap-3 p-4 rounded-lg bg-bg-secondary/30 border border-border-subtle">
                   <Globe className="h-5 w-5 text-purple-neon mt-0.5" />
                   <div>
                     <h4 className="font-medium text-sm text-text-primary">Availability</h4>
@@ -3260,7 +3531,7 @@ export default function ProfilePage(): React.ReactElement {
                 <Button 
                   variant="outline" 
                   size="sm"
-                  className="border-border/50 text-text-secondary hover:text-text-primary"
+                  className="border-border-subtle text-text-secondary hover:text-text-primary"
                   asChild
                 >
                   <Link href="/help">
@@ -3271,7 +3542,7 @@ export default function ProfilePage(): React.ReactElement {
                 <Button 
                   variant="outline" 
                   size="sm"
-                  className="border-border/50 text-text-secondary hover:text-text-primary"
+                  className="border-border-subtle text-text-secondary hover:text-text-primary"
                   asChild
                 >
                   <Link href="/refund">
@@ -3285,5 +3556,6 @@ export default function ProfilePage(): React.ReactElement {
         </TabsContent>
       </Tabs>
     </div>
+    </ErrorBoundary>
   );
 }

@@ -70,7 +70,7 @@ function formatPrice(price: string | number): string {
 }
 
 // Bundle card component
-function BundleCard({ bundle, onSelect }: { bundle: BundleDeal; onSelect: (bundle: BundleDeal) => void }) {
+function BundleCard({ bundle, onSelect, isPriority = false }: { bundle: BundleDeal; onSelect: (bundle: BundleDeal) => void; isPriority?: boolean }) {
   const originalPriceRaw = parseFloat(bundle.originalPrice);
   const bundlePriceRaw = parseFloat(bundle.bundlePrice);
   const originalPrice = Number.isNaN(originalPriceRaw) ? 0 : originalPriceRaw;
@@ -97,6 +97,7 @@ function BundleCard({ bundle, onSelect }: { bundle: BundleDeal; onSelect: (bundl
                   src={bundle.heroImage}
                   alt={bundle.name}
                   fill
+                  priority={isPriority}
                   sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
                   className="object-cover transition-transform duration-500 group-hover:scale-110"
                 />
@@ -307,7 +308,7 @@ export function BundleDealsSection(): React.ReactElement | null {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.1 }}
             >
-              <BundleCard bundle={bundle} onSelect={setSelectedBundle} />
+              <BundleCard bundle={bundle} onSelect={setSelectedBundle} isPriority={index < 3} />
             </motion.div>
           ))}
         </div>

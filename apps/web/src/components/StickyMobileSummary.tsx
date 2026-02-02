@@ -35,20 +35,17 @@ export function StickyMobileSummary({
       <div className="h-20 lg:hidden" />
 
       {/* Sticky Summary Bar - Only visible on mobile/tablet */}
-      <motion.div
-        initial={{ y: 100, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        exit={{ y: 100, opacity: 0 }}
-        className="fixed bottom-0 left-0 right-0 z-50 lg:hidden"
-      >
+      <div className="fixed bottom-0 left-0 right-0 z-50 lg:hidden">
+        <motion.div
+          initial={{ y: 100, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          exit={{ y: 100, opacity: 0 }}
+        >
         {/* Gradient fade effect */}
         <div className="absolute inset-x-0 -top-8 h-8 bg-gradient-to-t from-bg-primary to-transparent pointer-events-none" />
 
         {/* Main bar */}
-        <motion.div
-          className="relative bg-bg-secondary/95 backdrop-blur-xl border-t border-border-subtle shadow-[0_-4px_20px_rgba(0,0,0,0.3)]"
-          layout
-        >
+        <div className="relative bg-bg-secondary/95 backdrop-blur-xl border-t border-border-subtle shadow-[0_-4px_20px_rgba(0,0,0,0.3)]">
           {/* Expand/collapse handle */}
           <button
             onClick={() => setIsExpanded(!isExpanded)}
@@ -113,8 +110,9 @@ export function StickyMobileSummary({
               </div>
             </div>
           </div>
+        </div>
         </motion.div>
-      </motion.div>
+      </div>
     </>
   );
 }

@@ -106,7 +106,7 @@ export function CatalogProductGrid({
       ))}
       
       {/* Render products */}
-      {products.map((product) => (
+      {products.map((product, index) => (
         <div key={product.id} role="listitem">
           <CatalogProductCard
             product={product}
@@ -116,6 +116,7 @@ export function CatalogProductGrid({
             onViewProduct={onViewProduct}
             isInWishlist={wishlistIds.has(product.id)}
             showQuickActions
+            isPriority={index < 4}
           />
         </div>
       ))}

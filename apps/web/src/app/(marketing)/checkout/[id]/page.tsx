@@ -342,6 +342,33 @@ export default function CheckoutPage(): React.ReactElement {
     }
   }, [order, orderId, router]);
 
+  // Check for existing payment on page load (restores state if user navigates back)
+  useEffect(() => {
+    // Only check if we don't already have a payment and order exists
+    if (embeddedPayment !== null || order === null || order === undefined) {
+      return;
+    }
+    // Don't check if order is in a terminal state
+    const terminalStatuses = ['fulfilled', 'failed', 'expired', 'refunded', 'cancelled'];
+    if (terminalStatuses.includes(order.status)) {
+      return;
+    }
+
+    const checkExistingPayment = async (): Promise<void> => {
+      try {
+        const existingPayment = await paymentsClient.paymentsControllerGetPaymentForOrder({ orderId });
+        // Payment exists - restore state
+        setEmbeddedPayment(existingPayment);
+        setCurrentStep('paying');
+      } catch {
+        // No existing payment (404) or error - user will select crypto normally
+        // This is expected for new orders
+      }
+    };
+
+    void checkExistingPayment();
+  }, [orderId, order, embeddedPayment]);
+
   // Create embedded payment mutation
   const createPaymentMutation = useMutation({
     mutationFn: async (payCurrency: string): Promise<EmbeddedPaymentResponseDto> => {

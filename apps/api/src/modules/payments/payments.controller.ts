@@ -74,6 +74,31 @@ export class PaymentsController {
   }
 
   /**
+   * Get existing active payment for an order
+   *
+   * Returns the most recent payment for an order if it exists and is in
+   * an active (non-terminal) state. Used to resume payment after navigation.
+   *
+   * @param orderId Order ID to look up
+   * @returns EmbeddedPaymentResponseDto if active payment exists, null otherwise
+   */
+  @Get('order/:orderId')
+  @ApiOperation({
+    summary: 'Get existing payment for order',
+    description:
+      'Returns the active payment for an order if one exists. Used to resume checkout after navigation.',
+  })
+  @ApiResponse({ status: 200, type: EmbeddedPaymentResponseDto })
+  @ApiResponse({ status: 404, description: 'No active payment found for order' })
+  async getPaymentForOrder(@Param('orderId') orderId: string): Promise<EmbeddedPaymentResponseDto> {
+    const payment = await this.payments.getActivePaymentForOrder(orderId);
+    if (payment === null) {
+      throw new HttpException('No active payment found for order', HttpStatus.NOT_FOUND);
+    }
+    return payment;
+  }
+
+  /**
    * Poll payment status directly from NOWPayments
    *
    * This endpoint polls NOWPayments API directly to get the current

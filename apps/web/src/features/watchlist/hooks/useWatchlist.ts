@@ -57,11 +57,16 @@ function createWatchlistApi(): WatchlistApi {
  * Hook to fetch the user's watchlist with pagination
  * @param page - Page number (default 1)
  * @param limit - Items per page (default 20)
+ * @param enabled - Optional override for enabled state (defaults to isAuthenticated check)
  */
 export function useWatchlist(
   page = 1,
-  limit = 20
+  limit = 20,
+  enabled?: boolean
 ): UseQueryResult<PaginatedWatchlistResponseDto> {
+  // Use provided enabled value, or fall back to internal auth check
+  const isEnabled = enabled !== undefined ? enabled : isAuthenticated();
+  
   return useQuery<PaginatedWatchlistResponseDto>({
     queryKey: watchlistKeys.list(page, limit),
     queryFn: async () => {
@@ -69,8 +74,9 @@ export function useWatchlist(
       return api.watchlistControllerGetWatchlist({ page, limit });
     },
     staleTime: 30_000, // 30 seconds
-    // Check authentication on each render - this ensures it works after hydration
-    enabled: isAuthenticated(),
+    // Only fetch when authenticated - disable retry to prevent repeated 400s
+    enabled: isEnabled,
+    retry: false,
   });
 }
 

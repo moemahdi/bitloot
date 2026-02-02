@@ -47,6 +47,8 @@ interface CatalogProductCardProps {
   onViewProduct?: (productId: string) => void;
   showQuickActions?: boolean;
   className?: string;
+  /** Set to true for above-the-fold images (LCP optimization) */
+  isPriority?: boolean;
 }
 
 // Format price with proper formatting (EUR only)
@@ -158,6 +160,7 @@ function CatalogProductCardComponent({
   onViewProduct,
   showQuickActions = true,
   className,
+  isPriority = false,
 }: CatalogProductCardProps): React.ReactElement {
   const [isHovered, setIsHovered] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
@@ -237,6 +240,7 @@ function CatalogProductCardComponent({
             src={product.image !== undefined && product.image !== '' && product.image.length > 0 ? product.image : '/placeholder-product.jpg'}
             alt={product.name}
             fill
+            priority={isPriority}
             className={cn(
               'object-contain transition-all duration-300',
               imageLoaded ? 'opacity-100' : 'opacity-0',
@@ -458,6 +462,7 @@ function CatalogProductCardComponent({
           src={product.image !== undefined && product.image !== '' && product.image.length > 0 ? product.image : '/placeholder-product.jpg'}
           alt={product.name}
           fill
+          priority={isPriority}
           className={cn(
             'object-contain transition-all duration-500',
             imageLoaded ? 'opacity-100' : 'opacity-0',
