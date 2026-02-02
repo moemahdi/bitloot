@@ -27,9 +27,9 @@ import {
     Compass,
     Brain,
     Gauge,
-    Skull,
     Trophy,
     Users,
+    Sparkles,
     // Platforms
     Play,
     Tv,
@@ -68,26 +68,37 @@ interface PlatformItem {
 // Game genres for mega menu (these map to product.genres in the backend)
 const GAME_GENRES: GenreItem[] = [
     { id: 'action', label: 'Action', icon: Swords },
-    { id: 'shooter', label: 'Shooter', icon: Crosshair },
-    { id: 'rpg', label: 'RPG', icon: Shield },
     { id: 'adventure', label: 'Adventure', icon: Compass },
+    { id: 'rpg', label: 'RPG', icon: Shield },
+    { id: 'simulation', label: 'Simulation', icon: Gamepad2 },
     { id: 'strategy', label: 'Strategy', icon: Brain },
     { id: 'racing', label: 'Racing', icon: Gauge },
-    { id: 'horror', label: 'Horror', icon: Skull },
-    { id: 'sports', label: 'Sports', icon: Trophy },
+    { id: 'sport', label: 'Sports', icon: Trophy },
+    { id: 'casual', label: 'Casual', icon: Play },
+    { id: 'indie', label: 'Indie', icon: Sparkles },
     { id: 'mmo', label: 'MMO', icon: Users },
+    { id: 'fps', label: 'FPS', icon: Crosshair },
+    { id: 'survival', label: 'Survival', icon: Shield },
+    { id: 'open world', label: 'Open World', icon: Compass },
+    { id: 'anime', label: 'Anime', icon: Sparkles },
+    { id: 'co-op', label: 'Co-op', icon: Users },
+    { id: 'story rich', label: 'Story Rich', icon: Compass },
+    { id: 'vr games', label: 'VR Games', icon: Gamepad2 },
 ];
 
 // Platforms for mega menu (these map to product.platform in the backend - must match PLATFORMS in catalog/types.ts)
 const PLATFORMS: PlatformItem[] = [
-    { id: 'Steam', label: 'Steam', icon: Play },
-    { id: 'PlayStation', label: 'PlayStation', icon: Gamepad2 },
-    { id: 'Xbox', label: 'Xbox', icon: Gamepad2 },
-    { id: 'Nintendo', label: 'Nintendo', icon: Gamepad2 },
-    { id: 'Epic', label: 'Epic Games', icon: Play },
-    { id: 'Origin', label: 'EA / Origin', icon: Play },
-    { id: 'Uplay', label: 'Ubisoft', icon: Play },
-    { id: 'GOG', label: 'GOG', icon: Play },
+    { id: 'steam', label: 'Steam', icon: Play },
+    { id: 'playstation', label: 'PlayStation', icon: Gamepad2 },
+    { id: 'xbox', label: 'Xbox', icon: Gamepad2 },
+    { id: 'nintendo', label: 'Nintendo', icon: Gamepad2 },
+    { id: 'epic', label: 'Epic Games', icon: Play },
+    { id: 'origin', label: 'EA / Origin', icon: Play },
+    { id: 'uplay', label: 'Ubisoft', icon: Play },
+    { id: 'gog', label: 'GOG', icon: Play },
+    { id: 'android', label: 'Android', icon: Gamepad2 },
+    { id: 'pc', label: 'PC', icon: Monitor },
+    { id: 'rockstar', label: 'Rockstar', icon: Play },
 ];
 
 // Main navigation links - properly filtered URLs matching catalog page

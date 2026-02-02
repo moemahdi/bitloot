@@ -16,7 +16,7 @@
  */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   Card,
   CardContent,
@@ -110,19 +110,23 @@ import {
   ArrowUpDown,
   ArrowUp,
   ArrowDown,
+  Download,
 } from 'lucide-react';
 
-// Platform options for filter - values that exist in database from Kinguin
+// Platform options for filter - value is lowercase for backend matching, label for display
 const PLATFORMS = [
-  'Steam',
-  'Epic',
-  'Uplay',
-  'Origin',
-  'GOG',
-  'Xbox',
-  'PlayStation',
-  'Nintendo',
-  'Battle.net',
+  { value: 'steam', label: 'Steam' },
+  { value: 'epic', label: 'Epic Games' },
+  { value: 'uplay', label: 'Ubisoft' },
+  { value: 'origin', label: 'EA / Origin' },
+  { value: 'gog', label: 'GOG' },
+  { value: 'xbox', label: 'Xbox' },
+  { value: 'playstation', label: 'PlayStation' },
+  { value: 'nintendo', label: 'Nintendo' },
+  { value: 'android', label: 'Android' },
+  { value: 'pc', label: 'PC' },
+  { value: 'rockstar', label: 'Rockstar Games' },
+  { value: 'battle.net', label: 'Battle.net' },
 ] as const;
 
 // Region options for filter - values that exist in database from Kinguin
@@ -170,6 +174,9 @@ export default function AdminCatalogProductsPage(): React.JSX.Element {
   // Sorting state
   const [sortBy, setSortBy] = useState<'createdAt' | 'title' | 'cost' | 'price'>('createdAt');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+
+  // Export state
+  const [isExporting, setIsExporting] = useState(false);
 
   // Error handling
   const { handleError, clearError } = useErrorHandler({
@@ -549,6 +556,119 @@ export default function AdminCatalogProductsPage(): React.JSX.Element {
     void productsQuery.refetch();
   };
 
+  // Handle CSV export of all listed products
+  const handleExportCSV = useCallback(async (): Promise<void> => {
+    if (!isOnline || isExporting) return;
+
+    setIsExporting(true);
+    try {
+      const api = new AdminCatalogProductsApi(apiConfig);
+      const allProducts: AdminProductResponseDto[] = [];
+      let page = 1;
+      const limit = 100;
+      let hasMore = true;
+
+      // Fetch all products with current filters (paginated)
+      while (hasMore) {
+        const response = await api.adminProductsControllerListAll({
+          search: searchQuery !== '' ? searchQuery : undefined,
+          platform: platformFilter === 'all' ? undefined : platformFilter,
+          region: regionFilter === 'all' ? undefined : regionFilter,
+          published: publishedFilter === 'all' ? undefined : publishedFilter,
+          source: sourceFilter === 'all' ? undefined : sourceFilter,
+          businessCategory: businessCategoryFilter === 'all' ? undefined : businessCategoryFilter,
+          genre: genreFilter === 'all' ? undefined : genreFilter,
+          page: String(page),
+          limit: String(limit),
+          sortBy: sortBy,
+          sortOrder: sortOrder,
+        });
+
+        const products = response.products ?? [];
+        allProducts.push(...products);
+
+        // Check if there are more pages
+        hasMore = products.length === limit && page < (response.totalPages ?? 1);
+        page++;
+      }
+
+      if (allProducts.length === 0) {
+        console.warn('No products to export');
+        return;
+      }
+
+      // Build CSV content
+      const headers = [
+        'ID',
+        'Title',
+        'Slug',
+        'Platform',
+        'Category',
+        'Genre',
+        'Region',
+        'Cost (EUR)',
+        'Price (EUR)',
+        'Original Price (EUR)',
+        'Discount %',
+        'Source',
+        'Published',
+        'Featured',
+        'Kinguin ID',
+        'Created At',
+        'Updated At',
+      ];
+
+      const escapeCSV = (value: string | number | boolean | null | undefined): string => {
+        if (value === null || value === undefined) return '';
+        const str = String(value);
+        if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+          return `"${str.replace(/"/g, '""')}"`;
+        }
+        return str;
+      };
+
+      const rows = allProducts.map((product) => [
+        escapeCSV(product.id),
+        escapeCSV(product.title),
+        escapeCSV(product.slug),
+        escapeCSV(product.platform),
+        escapeCSV(product.businessCategory),
+        escapeCSV(product.genre),
+        escapeCSV(product.region),
+        escapeCSV(product.cost),
+        escapeCSV(product.price),
+        escapeCSV(product.originalPrice),
+        escapeCSV(product.discountPercent),
+        escapeCSV(product.sourceType),
+        escapeCSV(product.published),
+        escapeCSV(product.isFeatured),
+        escapeCSV(product.kinguinId),
+        escapeCSV(product.createdAt),
+        escapeCSV(product.updatedAt),
+      ]);
+
+      const csvContent = [headers.join(','), ...rows.map((row) => row.join(','))].join('\n');
+
+      // Create and download file
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `bitloot-products-${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      console.info(`Exported ${allProducts.length} products to CSV`);
+    } catch (error) {
+      console.error('Failed to export products:', error);
+      handleError(error instanceof Error ? error : new Error(String(error)), 'export-products');
+    } finally {
+      setIsExporting(false);
+    }
+  }, [isOnline, isExporting, searchQuery, platformFilter, regionFilter, publishedFilter, sourceFilter, businessCategoryFilter, genreFilter, sortBy, sortOrder, handleError]);
+
   // Format price with proper currency (EUR from Kinguin)
   const formatPrice = (amount: number | undefined): string => {
     if (amount === undefined || amount === null) {
@@ -594,6 +714,20 @@ export default function AdminCatalogProductsPage(): React.JSX.Element {
               Create Product
             </GlowButton>
           </Link>
+          <GlowButton
+            onClick={() => void handleExportCSV()}
+            disabled={isLoading || isExporting || !isOnline}
+            variant="secondary"
+            size="sm"
+            glowColor="purple"
+          >
+            {isExporting ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Download className="mr-2 h-4 w-4" />
+            )}
+            {isExporting ? 'Exporting...' : 'Export CSV'}
+          </GlowButton>
           <GlowButton
             onClick={handleRefresh}
             disabled={isLoading}
@@ -864,8 +998,8 @@ export default function AdminCatalogProductsPage(): React.JSX.Element {
                 <SelectContent className="border-cyan-glow/20 bg-bg-secondary/95 backdrop-blur-xl">
                   <SelectItem value="all">All Platforms</SelectItem>
                   {PLATFORMS.map((platform) => (
-                    <SelectItem key={platform} value={platform}>
-                      {platform}
+                    <SelectItem key={platform.value} value={platform.value}>
+                      {platform.label}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -1000,7 +1134,7 @@ export default function AdminCatalogProductsPage(): React.JSX.Element {
                     </TableHead>
                     <TableHead className="text-text-secondary uppercase tracking-wider text-xs">Title</TableHead>
                     <TableHead className="text-text-secondary uppercase tracking-wider text-xs">Source</TableHead>
-                    <TableHead className="text-text-secondary uppercase tracking-wider text-xs">Category</TableHead>
+                    <TableHead className="text-text-secondary uppercase tracking-wider text-xs">Genre</TableHead>
                     <TableHead className="text-text-secondary uppercase tracking-wider text-xs">Platform</TableHead>
                     <TableHead className="text-text-secondary uppercase tracking-wider text-xs">Region</TableHead>
                     <TableHead className="text-right text-text-secondary uppercase tracking-wider text-xs">
@@ -1423,8 +1557,13 @@ export default function AdminCatalogProductsPage(): React.JSX.Element {
                       </div>
                       <div className="flex items-center gap-2 p-2 rounded bg-bg-primary border border-cyan-glow/10">
                         <Gamepad2 className="h-4 w-4 text-cyan-glow shrink-0" />
-                        <span className="text-text-secondary">Category:</span>
+                        <span className="text-text-secondary">Genre:</span>
                         <span className="text-text-primary font-medium">{selectedProduct.category ?? 'N/A'}</span>
+                      </div>
+                      <div className="flex items-center gap-2 p-2 rounded bg-bg-primary border border-cyan-glow/10">
+                        <Store className="h-4 w-4 text-cyan-glow shrink-0" />
+                        <span className="text-text-secondary">Business Category:</span>
+                        <span className="text-text-primary font-medium capitalize">{selectedProduct.businessCategory ?? 'games'}</span>
                       </div>
                       <div className="flex items-center gap-2 p-2 rounded bg-bg-primary border border-cyan-glow/10">
                         <Shield className="h-4 w-4 text-cyan-glow shrink-0" />

@@ -19,7 +19,7 @@ import type {
   SortOption,
   ViewMode,
 } from '../types';
-import { DEFAULT_FILTERS } from '../types';
+import { DEFAULT_FILTERS, detectRegionFromTitle } from '../types';
 
 const STORAGE_KEYS = {
   PRESETS: 'bitloot_filter_presets',
@@ -168,23 +168,35 @@ export function useCatalogState(): UseCatalogStateReturn {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   
-  // Initialize filters from URL and localStorage
+  // Track hydration status
+  const [isHydrated, setIsHydrated] = useState(false);
+  
+  // Initialize filters from URL only (NOT localStorage - to avoid hydration mismatch)
   const [filters, setFiltersState] = useState<FilterState>(() => {
     const urlFilters = parseFiltersFromURL(searchParams);
-    const storedViewMode = typeof window !== 'undefined' 
-      ? getFromStorage<ViewMode>(STORAGE_KEYS.VIEW_MODE, 'grid')
-      : 'grid';
-    const storedItemsPerPage = typeof window !== 'undefined'
-      ? getFromStorage<24 | 48 | 96>(STORAGE_KEYS.ITEMS_PER_PAGE, 24)
-      : 24;
-    
+    // Always use defaults on initial render to match server
     return {
       ...DEFAULT_FILTERS,
       ...urlFilters,
-      viewMode: storedViewMode,
-      itemsPerPage: storedItemsPerPage,
+      viewMode: 'grid', // Default - will be updated after hydration
+      itemsPerPage: 24, // Default - will be updated after hydration
     };
   });
+  
+  // Apply localStorage preferences AFTER hydration to prevent mismatch
+  useEffect(() => {
+    if (!isHydrated) {
+      const storedViewMode = getFromStorage<ViewMode>(STORAGE_KEYS.VIEW_MODE, 'grid');
+      const storedItemsPerPage = getFromStorage<24 | 48 | 96>(STORAGE_KEYS.ITEMS_PER_PAGE, 24);
+      
+      setFiltersState((prev) => ({
+        ...prev,
+        viewMode: storedViewMode,
+        itemsPerPage: storedItemsPerPage,
+      }));
+      setIsHydrated(true);
+    }
+  }, [isHydrated]);
   
   // Track if URL sync is happening to avoid infinite loops
   const isInternalNavigation = useRef(false);
@@ -240,6 +252,9 @@ export function useCatalogState(): UseCatalogStateReturn {
   );
   
   // Fetch products
+  // Server-side region filtering is now supported, so we use normal pagination
+  const fetchLimit = filters.itemsPerPage;
+  
   const {
     data,
     isLoading,
@@ -253,37 +268,60 @@ export function useCatalogState(): UseCatalogStateReturn {
       businessCategory: filters.businessCategory ?? undefined,
       category: filters.genre !== '' ? filters.genre : undefined, // Genre filter passed as 'category' to API
       platform: filters.platform.length > 0 ? filters.platform.join(',') : undefined,
-      region: filters.region !== '' ? filters.region : undefined,
+      region: filters.region !== '' ? filters.region : undefined, // Server-side region filtering
       minPrice: filters.minPrice > 0 ? filters.minPrice : undefined,
       maxPrice: filters.maxPrice < 500 ? filters.maxPrice : undefined,
       sort: filters.sortBy as 'newest' | 'price_asc' | 'price_desc' | 'rating',
-      limit: filters.itemsPerPage,
+      limit: fetchLimit,
       page: filters.page,
     }),
     staleTime: 2 * 60 * 1000, // 2 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes
   });
   
-  const products: CatalogProduct[] = useMemo(() => {
+  // Transform API products to CatalogProduct format
+  const rawProducts: CatalogProduct[] = useMemo(() => {
     if (data?.data === undefined || data.data === null) return [];
-    return data.data.map((p) => ({
-      id: p.id,
-      slug: p.slug,
-      name: p.title,
-      description: p.description ?? '',
-      price: p.price,
-      currency: p.currency ?? 'EUR',
-      image: p.imageUrl ?? undefined,
-      platform: p.platform ?? undefined,
-      category: p.category ?? undefined,
-      discount: undefined, // SDK doesn't have discountPercent
-      stock: undefined, // SDK doesn't have stock
-      isAvailable: p.isPublished,
-      rating: p.rating ?? undefined,
-      isFeatured: p.isFeatured ?? false,
-    }));
+    return data.data.map((p) => {
+      const title = p.title ?? '';
+      // Use hybrid detection: database region + regional limitations + title patterns
+      const dbRegion = (p as { region?: string }).region ?? null;
+      const regionalLimitations = (p as { regionalLimitations?: string }).regionalLimitations ?? null;
+      // Detect region using all available sources
+      const detectedRegions = detectRegionFromTitle(title, dbRegion, regionalLimitations);
+      
+      return {
+        id: p.id,
+        slug: p.slug,
+        name: title,
+        description: p.description ?? '',
+        price: p.price,
+        currency: p.currency ?? 'EUR',
+        image: p.imageUrl ?? undefined,
+        platform: p.platform ?? undefined,
+        genre: p.category ?? undefined, // Kinguin genre (Action, RPG, etc.)
+        category: p.category ?? undefined, // Keep for backwards compatibility
+        businessCategory: p.businessCategory ?? undefined, // BitLoot store section
+        discount: undefined, // SDK doesn't have discountPercent
+        stock: undefined, // SDK doesn't have stock
+        isAvailable: p.isPublished,
+        rating: p.rating ?? undefined,
+        isFeatured: p.isFeatured ?? false,
+        // Store detected regions for filtering
+        detectedRegions,
+        region: detectedRegions.includes('global') ? 'Global' : detectedRegions[0]?.toUpperCase() ?? 'Global',
+      };
+    });
   }, [data]);
   
+  // Server-side filtering is now used, so products come pre-filtered
+  // The detectedRegions are still computed for display purposes
+  const products: CatalogProduct[] = rawProducts;
+  
+  // Server handles pagination, no need for client-side pagination
+  const paginatedProducts: CatalogProduct[] = products;
+  
+  // Use server-provided counts
   const totalCount = data?.total ?? 0;
   const totalPages = Math.ceil(totalCount / filters.itemsPerPage);
   
@@ -510,7 +548,7 @@ export function useCatalogState(): UseCatalogStateReturn {
   return {
     // State
     filters,
-    products,
+    products: paginatedProducts, // Use paginated products (handles both server and client-side pagination)
     totalCount,
     totalPages,
     isLoading,

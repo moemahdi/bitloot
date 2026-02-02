@@ -1,5 +1,6 @@
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
+import { RecommendedSection } from '@/components/layout/RecommendedSection';
 
 /**
  * Marketing Layout - With Header/Footer
@@ -78,6 +79,9 @@ export default function MarketingLayout({
         >
           {children}
         </main>
+        
+        {/* Recommended Products Section - Shows on all pages except homepage/catalog/product */}
+        <RecommendedSection />
         
         <Footer />
       </div>

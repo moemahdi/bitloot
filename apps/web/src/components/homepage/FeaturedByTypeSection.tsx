@@ -1,9 +1,20 @@
 'use client';
 
-import { useState, useMemo, useCallback } from 'react';
+/**
+ * FeaturedByTypeSection - 3 Carousel Layout
+ * 
+ * Redesigned featured collections section with 3 horizontal scrollable carousels:
+ * - Carousel 1: Games (cyan accent)
+ * - Carousel 2: Software (purple accent)
+ * - Carousel 3: Subscriptions (pink accent)
+ * 
+ * Features auto-scroll, segment progress indicators, and compact product cards.
+ */
+
+import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { useQuery } from '@tanstack/react-query';
 import { CatalogApi, Configuration } from '@bitloot/sdk';
 import type { ProductListResponseDto } from '@bitloot/sdk';
@@ -14,6 +25,7 @@ const apiConfig = new Configuration({
     basePath: process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000',
 });
 const catalogApi = new CatalogApi(apiConfig);
+
 import {
     Gamepad2,
     Monitor,
@@ -22,35 +34,36 @@ import {
     ArrowRight,
     Package,
     Shield,
-    TrendingUp,
     ChevronLeft,
     ChevronRight,
+    ShoppingCart,
+    Heart,
+    Star,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
+import { cn } from '@/design-system/utils/utils';
 
 // Design System Components
 import { Button } from '@/design-system/primitives/button';
 import { Badge } from '@/design-system/primitives/badge';
-import { Tabs, TabsList, TabsTrigger } from '@/design-system/primitives/tabs';
 import { Skeleton } from '@/design-system/primitives/skeleton';
 
 // Components
-import { CatalogProductCard } from '@/features/catalog/components/CatalogProductCard';
 import type { CatalogProduct } from '@/features/catalog/types';
 import { useCart } from '@/context/CartContext';
 import { useAuth } from '@/hooks/useAuth';
-import { useAddToWatchlist, useRemoveFromWatchlist } from '@/features/watchlist/hooks/useWatchlist';
 
 // ============================================================================
 // TYPE DEFINITIONS
 // ============================================================================
 
-interface ProductTypeTab {
+interface ProductTypeConfig {
     id: string;
     label: string;
     icon: LucideIcon;
-    category: string; // API category filter
-    color: string;
+    category: string;
+    color: 'cyan' | 'purple' | 'pink';
+    accentHex: string;
     description: string;
 }
 
@@ -58,13 +71,14 @@ interface ProductTypeTab {
 // CONSTANTS
 // ============================================================================
 
-const PRODUCT_TYPE_TABS: ProductTypeTab[] = [
+const PRODUCT_TYPES: ProductTypeConfig[] = [
     { 
         id: 'featured_games', 
         label: 'Games', 
         icon: Gamepad2, 
         category: 'games',
         color: 'cyan',
+        accentHex: '#00d9ff',
         description: 'PC, PlayStation, Xbox, Nintendo & more'
     },
     { 
@@ -73,6 +87,7 @@ const PRODUCT_TYPE_TABS: ProductTypeTab[] = [
         icon: Monitor, 
         category: 'software',
         color: 'purple',
+        accentHex: '#9d4edd',
         description: 'Productivity, security & creative tools'
     },
     { 
@@ -81,49 +96,148 @@ const PRODUCT_TYPE_TABS: ProductTypeTab[] = [
         icon: Repeat, 
         category: 'subscriptions',
         color: 'pink',
+        accentHex: '#ff006e',
         description: 'Game Pass, EA Play, Ubisoft+ & more'
     },
 ];
 
-// Category-specific background gradients
-const CATEGORY_BACKGROUNDS: Record<string, string> = {
-    'cyan': 'from-cyan-glow/5 via-cyan-glow/2 to-transparent',
-    'purple': 'from-purple-neon/5 via-purple-neon/2 to-transparent',
-    'green': 'from-green-success/5 via-green-success/2 to-transparent',
-    'pink': 'from-pink-featured/5 via-pink-featured/2 to-transparent',
+const PRODUCTS_PER_CAROUSEL = 48;
+const CARD_WIDTH = 288; // Card width + gap for scroll calculations
+
+// ============================================================================
+// COLOR CLASSES
+// ============================================================================
+
+const colorClasses = {
+    cyan: {
+        iconBg: 'bg-cyan-glow/20',
+        iconColor: 'text-cyan-glow',
+        badgeBg: 'bg-cyan-glow/10 text-cyan-glow',
+        cardBorder: 'hover:border-cyan-glow/50',
+        buttonBg: 'bg-cyan-glow hover:bg-cyan-glow/90 text-bg-primary',
+        glow: 'hover:shadow-[0_0_20px_rgba(0,217,255,0.15)]',
+    },
+    purple: {
+        iconBg: 'bg-purple-neon/20',
+        iconColor: 'text-purple-neon',
+        badgeBg: 'bg-purple-neon/10 text-purple-neon',
+        cardBorder: 'hover:border-purple-neon/50',
+        buttonBg: 'bg-purple-neon hover:bg-purple-neon/90 text-white',
+        glow: 'hover:shadow-[0_0_20px_rgba(157,78,221,0.15)]',
+    },
+    pink: {
+        iconBg: 'bg-pink-featured/20',
+        iconColor: 'text-pink-featured',
+        badgeBg: 'bg-pink-featured/10 text-pink-featured',
+        cardBorder: 'hover:border-pink-featured/50',
+        buttonBg: 'bg-pink-featured hover:bg-pink-featured/90 text-white',
+        glow: 'hover:shadow-[0_0_20px_rgba(255,0,110,0.15)]',
+    },
 };
 
-// Pagination constants
-const PRODUCTS_PER_PAGE = 12;
-const TOTAL_PRODUCTS = 48;
-
 // ============================================================================
-// ANIMATED TAB ICON - Icon with animation on tab switch
+// COMPACT PRODUCT CARD
 // ============================================================================
 
-function AnimatedTabIcon({ Icon, isActive, color }: { Icon: LucideIcon; isActive: boolean; color: string }): React.ReactElement {
-    const getColorClass = (c: string, active: boolean): string => {
-        if (!active) return 'text-current';
-        switch (c) {
-            case 'cyan': return 'text-white';
-            case 'purple': return 'text-white';
-            case 'green': return 'text-white';
-            case 'pink': return 'text-white';
-            default: return 'text-current';
-        }
-    };
+interface CompactProductCardProps {
+    product: CatalogProduct;
+    color: 'cyan' | 'purple' | 'pink';
+    onAddToCart: (productId: string) => void;
+}
+
+function CompactProductCard({ product, color, onAddToCart }: CompactProductCardProps): React.ReactElement {
+    const colors = colorClasses[color];
 
     return (
-        <motion.div
-            initial={false}
-            animate={isActive ? { 
-                scale: [1, 1.2, 1],
-                rotate: [0, -10, 10, 0],
-            } : { scale: 1, rotate: 0 }}
-            transition={{ duration: 0.4, ease: 'easeOut' }}
-        >
-            <Icon className={`w-4 h-4 ${getColorClass(color, isActive)}`} aria-hidden="true" />
-        </motion.div>
+        <Link href={`/product/${product.slug}`} className="block group">
+            <div className={cn(
+                'relative flex flex-col overflow-hidden rounded-xl border border-border-subtle bg-bg-secondary transition-all duration-300',
+                'hover:-translate-y-1',
+                colors.cardBorder,
+                colors.glow
+            )}>
+                {/* Image Container */}
+                <div className="relative aspect-[4/3] overflow-hidden bg-bg-tertiary">
+                    {product.image != null && product.image !== '' ? (
+                        <Image
+                            src={product.image}
+                            alt={product.name}
+                            fill
+                            className="object-cover transition-transform duration-300 group-hover:scale-105"
+                            sizes="288px"
+                        />
+                    ) : (
+                        <div className="flex h-full w-full items-center justify-center">
+                            <Package className="h-10 w-10 text-text-muted" />
+                        </div>
+                    )}
+                    
+                    {/* Platform Badge */}
+                    {product.platform != null && (
+                        <div className="absolute left-2 top-2">
+                            <Badge className="bg-bg-primary/80 text-text-primary text-[10px] px-1.5 py-0.5 backdrop-blur-sm">
+                                {product.platform}
+                            </Badge>
+                        </div>
+                    )}
+
+                    {/* Wishlist Button */}
+                    <button
+                        onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                        }}
+                        className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-bg-primary/70 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity hover:bg-bg-primary"
+                    >
+                        <Heart className="h-3.5 w-3.5 text-text-secondary hover:text-pink-featured transition-colors" />
+                    </button>
+
+                    {/* Quick Add Button - Shows on hover */}
+                    <div className="absolute inset-x-2 bottom-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button
+                            onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                onAddToCart(product.id);
+                            }}
+                            className={cn(
+                                'w-full flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-medium transition-colors',
+                                colors.buttonBg
+                            )}
+                        >
+                            <ShoppingCart className="h-3.5 w-3.5" />
+                            Add to Cart
+                        </button>
+                    </div>
+                </div>
+
+                {/* Content */}
+                <div className="flex flex-col gap-1.5 p-3">
+                    {/* Title */}
+                    <h3 className="text-sm font-medium text-text-primary line-clamp-2 min-h-10 group-hover:text-white transition-colors">
+                        {product.name}
+                    </h3>
+
+                    {/* Rating & Price Row */}
+                    <div className="flex items-center justify-between">
+                        {/* Rating */}
+                        {product.rating != null && product.rating > 0 ? (
+                            <div className="flex items-center gap-1">
+                                <Star className="h-3 w-3 fill-yellow-500 text-yellow-500" />
+                                <span className="text-xs text-text-secondary">{product.rating.toFixed(1)}</span>
+                            </div>
+                        ) : (
+                            <span className="text-xs text-text-muted">New</span>
+                        )}
+
+                        {/* Price */}
+                        <div className="text-sm font-bold text-text-primary">
+                            €{parseFloat(product.price).toFixed(2)}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </Link>
     );
 }
 
@@ -131,19 +245,19 @@ function AnimatedTabIcon({ Icon, isActive, color }: { Icon: LucideIcon; isActive
 // LOADING SKELETON
 // ============================================================================
 
-function ProductGridSkeleton(): React.ReactElement {
+function CarouselSkeleton(): React.ReactElement {
     return (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {Array.from({ length: 12 }).map((_, i) => (
-                <div key={i} className="overflow-hidden rounded-xl bg-bg-secondary border border-border-subtle">
-                    <Skeleton className="aspect-[16/10]" />
-                    <div className="p-4 space-y-3">
-                        <Skeleton className="h-4 w-16" />
-                        <Skeleton className="h-5 w-full" />
-                        <Skeleton className="h-4 w-1/2" />
-                        <div className="flex gap-2 pt-2">
-                            <Skeleton className="h-8 flex-1" />
-                            <Skeleton className="h-8 flex-1" />
+        <div className="flex gap-4 overflow-hidden">
+            {Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="w-56 sm:w-64 md:w-72 shrink-0">
+                    <div className="overflow-hidden rounded-xl bg-bg-secondary border border-border-subtle">
+                        <Skeleton className="aspect-[4/3]" />
+                        <div className="p-3 space-y-2">
+                            <Skeleton className="h-4 w-full" />
+                            <div className="flex justify-between">
+                                <Skeleton className="h-3 w-12" />
+                                <Skeleton className="h-4 w-16" />
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -156,19 +270,16 @@ function ProductGridSkeleton(): React.ReactElement {
 // EMPTY STATE
 // ============================================================================
 
-function EmptyProductsState({ type }: { type: string }): React.ReactElement {
+function EmptyState({ type }: { type: string }): React.ReactElement {
     return (
-        <div className="text-center py-16">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-bg-secondary border border-border-subtle mb-4">
-                <Package className="w-8 h-8 text-text-muted" aria-hidden="true" />
+        <div className="text-center py-12">
+            <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-bg-secondary border border-border-subtle mb-3">
+                <Package className="w-6 h-6 text-text-muted" />
             </div>
-            <h3 className="text-lg font-semibold text-text-primary mb-2">No {type} found</h3>
-            <p className="text-text-secondary mb-4">
-                Check back soon for new products in this category.
+            <h3 className="text-sm font-semibold text-text-primary mb-1">No {type} found</h3>
+            <p className="text-xs text-text-secondary">
+                Check back soon for new products.
             </p>
-            <Button asChild variant="outline">
-                <Link href="/catalog">Browse All Products</Link>
-            </Button>
         </div>
     );
 }
@@ -179,62 +290,48 @@ function EmptyProductsState({ type }: { type: string }): React.ReactElement {
 
 function ErrorState({ message }: { message: string }): React.ReactElement {
     return (
-        <div className="text-center py-16">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-red-error/10 border border-red-error/30 mb-4">
-                <Shield className="w-8 h-8 text-red-error" aria-hidden="true" />
+        <div className="text-center py-12">
+            <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-red-500/10 border border-red-500/30 mb-3">
+                <Shield className="w-6 h-6 text-red-500" />
             </div>
-            <h3 className="text-lg font-semibold text-red-error mb-2">Something went wrong</h3>
-            <p className="text-text-secondary mb-4">{message}</p>
-            <Button
-                variant="outline"
-                onClick={() => window.location.reload()}
-            >
-                Try Again
-            </Button>
+            <h3 className="text-sm font-semibold text-red-500 mb-1">Something went wrong</h3>
+            <p className="text-xs text-text-secondary">{message}</p>
         </div>
     );
 }
 
 // ============================================================================
-// MAIN COMPONENT
+// PRODUCT CAROUSEL COMPONENT
 // ============================================================================
 
-export function FeaturedByTypeSection(): React.ReactElement {
-    const [activeTab, setActiveTab] = useState('featured_games');
-    const [currentPage, setCurrentPage] = useState(0);
-    const router = useRouter();
+interface ProductCarouselProps {
+    config: ProductTypeConfig;
+}
+
+function ProductCarousel({ config }: ProductCarouselProps): React.ReactElement {
+    const scrollContainerRef = useRef<HTMLDivElement>(null);
+    const [canScrollLeft, setCanScrollLeft] = useState(false);
+    const [canScrollRight, setCanScrollRight] = useState(true);
+    const [activeSegment, setActiveSegment] = useState(0);
+    const [totalSegments, setTotalSegments] = useState(1);
+    const [isAutoScrollPaused, setIsAutoScrollPaused] = useState(false);
+    
     const { addItem } = useCart();
     const { isAuthenticated } = useAuth();
-    const { mutate: _addToWatchlist } = useAddToWatchlist();
-    const { mutate: _removeFromWatchlist } = useRemoveFromWatchlist();
+    const colors = colorClasses[config.color];
+    const Icon = config.icon;
 
-    // Reset page when tab changes
-    const handleTabChange = useCallback((tabId: string) => {
-        setActiveTab(tabId);
-        setCurrentPage(0);
-    }, []);
-
-    // Get current tab config (always defined since we have PRODUCT_TYPE_TABS[0] fallback)
-    const currentTab = useMemo(() => {
-        return PRODUCT_TYPE_TABS.find(t => t.id === activeTab) ?? PRODUCT_TYPE_TABS[0]!;
-    }, [activeTab]);
-
-    // Fetch products from admin-configured section
-    const {
-        data: productsData,
-        isLoading,
-        isError,
-        error,
-    } = useQuery<ProductListResponseDto>({
-        queryKey: ['homepage', 'section', activeTab],
+    // Fetch products
+    const { data: productsData, isLoading, isError, error } = useQuery<ProductListResponseDto>({
+        queryKey: ['homepage', 'carousel', config.id],
         queryFn: () => catalogApi.catalogControllerGetProductsBySection({ 
-            sectionKey: activeTab, 
-            limit: TOTAL_PRODUCTS 
+            sectionKey: config.id, 
+            limit: PRODUCTS_PER_CAROUSEL 
         }),
-        staleTime: 2 * 60 * 1000, // 2 minutes to pick up admin changes quickly
+        staleTime: 2 * 60 * 1000,
     });
 
-    // Transform API response to CatalogProduct format
+    // Transform products
     const products: CatalogProduct[] = useMemo(() => {
         if (productsData?.data == null) return [];
         return productsData.data.map((p) => ({
@@ -252,24 +349,77 @@ export function FeaturedByTypeSection(): React.ReactElement {
         }));
     }, [productsData]);
 
-    // Pagination logic
-    const totalPages = Math.ceil(products.length / PRODUCTS_PER_PAGE);
-    const paginatedProducts = useMemo(() => {
-        const start = currentPage * PRODUCTS_PER_PAGE;
-        return products.slice(start, start + PRODUCTS_PER_PAGE);
-    }, [products, currentPage]);
+    // Check scroll state
+    const checkScrollState = useCallback(() => {
+        const container = scrollContainerRef.current;
+        if (container === null) return;
 
-    const handlePrevPage = useCallback(() => {
-        setCurrentPage((prev) => Math.max(0, prev - 1));
+        setCanScrollLeft(container.scrollLeft > 0);
+        setCanScrollRight(
+            container.scrollLeft < container.scrollWidth - container.clientWidth - 10
+        );
+
+        // Calculate segments
+        const visibleCards = Math.floor(container.clientWidth / CARD_WIDTH);
+        const segments = Math.max(1, Math.ceil(products.length / Math.max(1, visibleCards)));
+        setTotalSegments(segments);
+
+        // Calculate active segment
+        const maxScroll = container.scrollWidth - container.clientWidth;
+        if (maxScroll <= 0) {
+            setActiveSegment(0);
+            return;
+        }
+        const scrollProgress = container.scrollLeft / maxScroll;
+        const currentSegment = Math.min(segments - 1, Math.floor(scrollProgress * segments));
+        setActiveSegment(Number.isNaN(currentSegment) ? 0 : currentSegment);
+    }, [products.length]);
+
+    // Initialize scroll state
+    useEffect(() => {
+        checkScrollState();
+        window.addEventListener('resize', checkScrollState);
+        return () => window.removeEventListener('resize', checkScrollState);
+    }, [checkScrollState, products.length]);
+
+    // Scroll function
+    const scroll = useCallback((direction: 'left' | 'right') => {
+        const container = scrollContainerRef.current;
+        if (container === null) return;
+
+        const scrollAmount = direction === 'left' ? -CARD_WIDTH * 3 : CARD_WIDTH * 3;
+        container.scrollBy({ left: scrollAmount, behavior: 'smooth' });
     }, []);
 
-    const handleNextPage = useCallback(() => {
-        setCurrentPage((prev) => Math.min(totalPages - 1, prev + 1));
-    }, [totalPages]);
+    // Scroll to segment
+    const scrollToSegment = useCallback((segmentIndex: number) => {
+        const container = scrollContainerRef.current;
+        if (container === null || totalSegments <= 1) return;
 
-    const handlePageClick = useCallback((pageIndex: number) => {
-        setCurrentPage(pageIndex);
-    }, []);
+        const maxScroll = container.scrollWidth - container.clientWidth;
+        const targetScroll = (segmentIndex / (totalSegments - 1)) * maxScroll;
+        container.scrollTo({ left: targetScroll, behavior: 'smooth' });
+    }, [totalSegments]);
+
+    // Auto-scroll
+    useEffect(() => {
+        if (isAutoScrollPaused || products.length <= 6 || isLoading) return;
+
+        const intervalId = setInterval(() => {
+            const container = scrollContainerRef.current;
+            if (container === null) return;
+
+            const isAtEnd = container.scrollLeft >= container.scrollWidth - container.clientWidth - 10;
+
+            if (isAtEnd) {
+                container.scrollTo({ left: 0, behavior: 'smooth' });
+            } else {
+                container.scrollBy({ left: CARD_WIDTH * 2, behavior: 'smooth' });
+            }
+        }, 15000);
+
+        return () => clearInterval(intervalId);
+    }, [isAutoScrollPaused, products.length, isLoading]);
 
     // Handle Add to Cart
     const handleAddToCart = useCallback((productId: string) => {
@@ -286,74 +436,135 @@ export function FeaturedByTypeSection(): React.ReactElement {
         toast.success(`${product.name} added to cart`);
     }, [addItem, products]);
 
-    // Handle View Product
-    const handleViewProduct = useCallback((productId: string) => {
-        const product = products.find(p => p.id === productId);
-        if (product == null) return;
-        router.push(`/product/${product.slug}`);
-    }, [router, products]);
-
-    // Handle Wishlist Toggle
-    const handleToggleWishlist = useCallback((_productId: string) => {
-        if (!isAuthenticated) {
-            toast.error('Please login to add items to your wishlist', {
-                action: {
-                    label: 'Login',
-                    onClick: () => { window.location.href = '/auth/login'; },
-                },
-            });
-            return;
-        }
-
-        // We'll let the CatalogProductCard handle the actual toggle logic
-        // since it has access to the isInWishlist state
-    }, [isAuthenticated]);
-
-    // Tab color classes
-    const getTabColorClasses = (tabId: string, isActive: boolean): string => {
-        const tab = PRODUCT_TYPE_TABS.find(t => t.id === tabId);
-        if (tab === undefined) return '';
-        
-        if (isActive) {
-            switch (tab.color) {
-                case 'cyan': return 'bg-cyan-glow text-bg-primary shadow-glow-cyan-sm';
-                case 'purple': return 'bg-purple-neon text-white shadow-glow-purple-sm';
-                case 'green': return 'bg-green-success text-white shadow-glow-success';
-                case 'pink': return 'bg-pink-featured text-white shadow-glow-pink';
-                default: return 'bg-cyan-glow text-bg-primary';
-            }
-        }
-        return 'text-text-muted hover:text-text-primary';
-    };
-
     return (
-        <section className="py-20 bg-bg-primary relative overflow-hidden">
-            {/* Animated category-specific background gradient */}
-            <AnimatePresence mode="wait">
-                <motion.div
-                    key={currentTab.color}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.5 }}
-                    className={`absolute inset-0 bg-gradient-to-b ${CATEGORY_BACKGROUNDS[currentTab.color] ?? CATEGORY_BACKGROUNDS['cyan']} pointer-events-none`}
-                    aria-hidden="true"
-                />
-            </AnimatePresence>
-            
-            {/* Subtle orb effect matching category color */}
-            <motion.div
-                key={`orb-${currentTab.color}`}
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 0.4, scale: 1 }}
-                transition={{ duration: 0.6 }}
-                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[400px] rounded-full blur-[150px] pointer-events-none"
-                style={{
-                    background: currentTab.color === 'cyan' ? 'rgba(0, 217, 255, 0.08)' 
-                        : currentTab.color === 'purple' ? 'rgba(157, 78, 221, 0.08)'
-                        : currentTab.color === 'green' ? 'rgba(57, 255, 20, 0.08)'
-                        : 'rgba(255, 0, 110, 0.08)'
-                }}
+        <div className="space-y-4">
+            {/* Carousel Header */}
+            <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                    <div className={cn('flex h-10 w-10 items-center justify-center rounded-xl shadow-card-sm', colors.iconBg)}>
+                        <Icon className={cn('h-5 w-5', colors.iconColor)} />
+                    </div>
+                    <div>
+                        <div className="flex items-center gap-2">
+                            <h3 className="text-lg font-semibold text-text-primary">{config.label}</h3>
+                            {products.length > 0 && (
+                                <Badge variant="secondary" className={cn('text-[10px] px-1.5', colors.badgeBg)}>
+                                    {products.length}
+                                </Badge>
+                            )}
+                        </div>
+                        <p className="text-xs text-text-muted">{config.description}</p>
+                    </div>
+                </div>
+
+                {/* Navigation + View All */}
+                <div className="flex items-center gap-2">
+                    <div className="hidden sm:flex gap-1">
+                        <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={() => scroll('left')}
+                            disabled={!canScrollLeft}
+                            className="h-8 w-8 rounded-full border-border-subtle bg-bg-tertiary disabled:opacity-30"
+                        >
+                            <ChevronLeft className="h-4 w-4" />
+                        </Button>
+                        <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={() => scroll('right')}
+                            disabled={!canScrollRight}
+                            className="h-8 w-8 rounded-full border-border-subtle bg-bg-tertiary disabled:opacity-30"
+                        >
+                            <ChevronRight className="h-4 w-4" />
+                        </Button>
+                    </div>
+                    <Button asChild variant="ghost" size="sm" className="text-xs">
+                        <Link href={`/catalog?category=${config.category}`}>
+                            View All
+                            <ArrowRight className="ml-1 h-3 w-3" />
+                        </Link>
+                    </Button>
+                </div>
+            </div>
+
+            {/* Carousel */}
+            {isLoading ? (
+                <CarouselSkeleton />
+            ) : isError ? (
+                <ErrorState message={error instanceof Error ? error.message : 'Failed to load'} />
+            ) : products.length === 0 ? (
+                <EmptyState type={config.label} />
+            ) : (
+                <div
+                    className="relative"
+                    onMouseEnter={() => setIsAutoScrollPaused(true)}
+                    onMouseLeave={() => setIsAutoScrollPaused(false)}
+                >
+                    {/* Gradient fades */}
+                    <div className={cn(
+                        'pointer-events-none absolute left-0 top-0 bottom-0 z-10 w-8 bg-linear-to-r from-bg-primary to-transparent transition-opacity',
+                        canScrollLeft ? 'opacity-100' : 'opacity-0'
+                    )} />
+                    <div className={cn(
+                        'pointer-events-none absolute right-0 top-0 bottom-0 z-10 w-8 bg-linear-to-l from-bg-primary to-transparent transition-opacity',
+                        canScrollRight ? 'opacity-100' : 'opacity-0'
+                    )} />
+
+                    {/* Products */}
+                    <div
+                        ref={scrollContainerRef}
+                        onScroll={checkScrollState}
+                        className="flex gap-4 overflow-x-auto pb-2 scrollbar-hidden scroll-smooth snap-x snap-mandatory -mx-1 px-1"
+                    >
+                        {products.map((product) => (
+                            <div key={product.id} className="w-56 sm:w-64 md:w-72 shrink-0 snap-start">
+                                <CompactProductCard
+                                    product={product}
+                                    color={config.color}
+                                    onAddToCart={handleAddToCart}
+                                />
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+
+            {/* Segment Progress */}
+            {!isLoading && products.length > 6 && totalSegments > 1 && (
+                <div className="flex items-center justify-center gap-1.5">
+                    {Array.from({ length: totalSegments }).map((_, index) => (
+                        <button
+                            key={index}
+                            onClick={() => scrollToSegment(index)}
+                            className={cn(
+                                'h-1.5 rounded-full transition-all duration-300',
+                                index === activeSegment
+                                    ? 'w-6'
+                                    : 'w-1.5 bg-border-accent hover:bg-text-muted'
+                            )}
+                            style={{
+                                backgroundColor: index === activeSegment ? config.accentHex : undefined
+                            }}
+                            aria-label={`Go to section ${index + 1}`}
+                        />
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+}
+
+// ============================================================================
+// MAIN COMPONENT
+// ============================================================================
+
+export function FeaturedByTypeSection(): React.ReactElement {
+    return (
+        <section className="py-12 md:py-16 bg-bg-primary relative overflow-hidden">
+            {/* Background decoration */}
+            <div
+                className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,var(--tw-gradient-stops))] from-purple-neon/5 via-transparent to-transparent opacity-50"
                 aria-hidden="true"
             />
 
@@ -364,224 +575,47 @@ export function FeaturedByTypeSection(): React.ReactElement {
                     whileInView={{ opacity: 1, y: 0 }}
                     viewport={{ once: true }}
                     transition={{ duration: 0.5 }}
-                    className="text-center mb-12"
+                    className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-10"
                 >
-                    <Badge
-                        variant="secondary"
-                        className="mb-4 px-3 py-1 bg-purple-neon/10 border border-purple-neon/30 text-purple-neon"
-                    >
-                        <Sparkles className="w-3.5 h-3.5 mr-2" aria-hidden="true" />
-                        Featured Collections
-                    </Badge>
-                    <h2 className="text-3xl md:text-4xl font-display font-bold text-text-primary mb-4">
-                        Shop by Category
-                    </h2>
-                    <AnimatePresence mode="wait">
-                        <motion.p
-                            key={currentTab.description}
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: -10 }}
-                            transition={{ duration: 0.2 }}
-                            className="text-text-secondary max-w-2xl mx-auto"
-                        >
-                            {currentTab.description}
-                        </motion.p>
-                    </AnimatePresence>
-                </motion.div>
-
-                {/* Enhanced Product Type Tabs */}
-                <Tabs
-                    value={activeTab}
-                    onValueChange={handleTabChange}
-                    className="w-full"
-                >
-                    <div className="flex justify-center mb-10">
-                        <TabsList className="inline-flex p-1.5 bg-bg-secondary/70 border border-border-subtle rounded-2xl backdrop-blur-md gap-1 shadow-lg">
-                            {PRODUCT_TYPE_TABS.map((tab) => {
-                                const isActive = activeTab === tab.id;
-                                return (
-                                    <TabsTrigger
-                                        key={tab.id}
-                                        value={tab.id}
-                                        className={`relative flex items-center gap-2 px-5 py-3 rounded-xl text-sm font-medium transition-all duration-300 ${getTabColorClasses(tab.id, isActive)}`}
-                                    >
-                                        <AnimatedTabIcon 
-                                            Icon={tab.icon} 
-                                            isActive={isActive} 
-                                            color={tab.color} 
-                                        />
-                                        <span className="hidden sm:inline">{tab.label}</span>
-                                        {/* Popular badge on hover */}
-                                        {isActive && (
-                                            <motion.span
-                                                initial={{ opacity: 0, scale: 0.8 }}
-                                                animate={{ opacity: 1, scale: 1 }}
-                                                className="hidden lg:inline-flex items-center ml-1 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded bg-white/20"
-                                            >
-                                                Popular
-                                            </motion.span>
-                                        )}
-                                    </TabsTrigger>
-                                );
-                            })}
-                        </TabsList>
+                    <div className="flex items-center gap-3">
+                        <div className="flex items-center justify-center w-11 h-11 rounded-xl bg-linear-to-br from-purple-neon/20 to-pink-featured/20 border border-purple-neon/30">
+                            <Sparkles className="w-5 h-5 text-purple-neon" aria-hidden="true" />
+                        </div>
+                        <div>
+                            <h2 className="text-xl md:text-2xl font-display font-bold text-text-primary flex items-center gap-2">
+                                Featured Collections
+                                <Badge className="bg-linear-to-r from-purple-neon to-pink-featured text-white border-0 text-[10px]">
+                                    CURATED
+                                </Badge>
+                            </h2>
+                            <p className="text-sm text-text-muted mt-0.5">
+                                Hand-picked products across all categories
+                            </p>
+                        </div>
                     </div>
 
-                    {/* Category Stats Bar */}
-                    <motion.div
-                        initial={{ opacity: 0, y: -10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="flex justify-center gap-4 md:gap-8 mb-8"
-                    >
-                        <div className="flex items-center gap-2 text-sm text-text-secondary">
-                            <span className="font-semibold text-text-primary">{paginatedProducts.length}</span>
-                            <span>of {products.length} products</span>
-                        </div>
-                        <div className="w-px h-4 bg-border-subtle" />
-                        <div className="flex items-center gap-2 text-sm">
-                            <motion.span 
-                                key={currentTab.color}
-                                initial={{ scale: 0.8 }}
-                                animate={{ scale: 1 }}
-                                className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${
-                                    currentTab.color === 'cyan' ? 'bg-cyan-glow/10 text-cyan-glow' :
-                                    currentTab.color === 'purple' ? 'bg-purple-neon/10 text-purple-neon' :
-                                    currentTab.color === 'green' ? 'bg-green-success/10 text-green-success' :
-                                    'bg-pink-featured/10 text-pink-featured'
-                                }`}
-                            >
-                                <TrendingUp className="w-3 h-3" />
-                                Trending in {currentTab.label}
-                            </motion.span>
-                        </div>
-                    </motion.div>
-
-                    {/* Products Grid */}
-                    <AnimatePresence mode="wait">
-                        <motion.div
-                            key={activeTab}
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: -20 }}
-                            transition={{ duration: 0.3 }}
-                        >
-                            {isLoading ? (
-                                <ProductGridSkeleton />
-                            ) : isError ? (
-                                <ErrorState
-                                    message={
-                                        error instanceof Error
-                                            ? error.message
-                                            : 'Failed to load products'
-                                    }
-                                />
-                            ) : products.length === 0 ? (
-                                <EmptyProductsState type={currentTab.label} />
-                            ) : (
-                                <div className="relative group">
-                                    {/* Left Arrow */}
-                                    {totalPages > 1 && currentPage > 0 && (
-                                        <button
-                                            onClick={handlePrevPage}
-                                            className={`absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 z-20 w-12 h-12 rounded-full bg-bg-secondary/90 backdrop-blur-sm border border-border-accent shadow-lg flex items-center justify-center text-text-primary transition-all duration-300 opacity-0 group-hover:opacity-100 group-hover:-translate-x-6 ${
-                                                currentTab.color === 'cyan' ? 'hover:bg-cyan-glow hover:text-bg-primary hover:border-cyan-glow hover:shadow-glow-cyan'
-                                                : currentTab.color === 'purple' ? 'hover:bg-purple-neon hover:text-white hover:border-purple-neon hover:shadow-glow-purple'
-                                                : currentTab.color === 'green' ? 'hover:bg-green-success hover:text-white hover:border-green-success hover:shadow-glow-success'
-                                                : 'hover:bg-pink-featured hover:text-white hover:border-pink-featured hover:shadow-glow-pink'
-                                            }`}
-                                            aria-label="Previous products"
-                                        >
-                                            <ChevronLeft className="w-6 h-6" />
-                                        </button>
-                                    )}
-
-                                    {/* Right Arrow */}
-                                    {totalPages > 1 && currentPage < totalPages - 1 && (
-                                        <button
-                                            onClick={handleNextPage}
-                                            className={`absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 z-20 w-12 h-12 rounded-full bg-bg-secondary/90 backdrop-blur-sm border border-border-accent shadow-lg flex items-center justify-center text-text-primary transition-all duration-300 opacity-0 group-hover:opacity-100 group-hover:translate-x-6 ${
-                                                currentTab.color === 'cyan' ? 'hover:bg-cyan-glow hover:text-bg-primary hover:border-cyan-glow hover:shadow-glow-cyan'
-                                                : currentTab.color === 'purple' ? 'hover:bg-purple-neon hover:text-white hover:border-purple-neon hover:shadow-glow-purple'
-                                                : currentTab.color === 'green' ? 'hover:bg-green-success hover:text-white hover:border-green-success hover:shadow-glow-success'
-                                                : 'hover:bg-pink-featured hover:text-white hover:border-pink-featured hover:shadow-glow-pink'
-                                            }`}
-                                            aria-label="Next products"
-                                        >
-                                            <ChevronRight className="w-6 h-6" />
-                                        </button>
-                                    )}
-
-                                    {/* Products Grid with Animation */}
-                                    <AnimatePresence mode="wait">
-                                        <motion.div
-                                            key={`${activeTab}-${currentPage}`}
-                                            initial={{ opacity: 0, x: 50 }}
-                                            animate={{ opacity: 1, x: 0 }}
-                                            exit={{ opacity: 0, x: -50 }}
-                                            transition={{ duration: 0.3, ease: 'easeInOut' }}
-                                            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
-                                        >
-                                            {paginatedProducts.map((product) => (
-                                                <CatalogProductCard
-                                                    key={product.id}
-                                                    product={product}
-                                                    onAddToCart={handleAddToCart}
-                                                    onViewProduct={handleViewProduct}
-                                                    onToggleWishlist={handleToggleWishlist}
-                                                    showQuickActions={true}
-                                                />
-                                            ))}
-                                        </motion.div>
-                                    </AnimatePresence>
-
-                                    {/* Page Indicators (dots) */}
-                                    {totalPages > 1 && (
-                                        <div className="flex items-center justify-center gap-2 mt-8">
-                                            {Array.from({ length: totalPages }).map((_, idx) => (
-                                                <button
-                                                    key={idx}
-                                                    onClick={() => handlePageClick(idx)}
-                                                    className={`transition-all duration-300 rounded-full ${
-                                                        currentPage === idx
-                                                            ? `w-8 h-2 ${
-                                                                currentTab.color === 'cyan' ? 'bg-cyan-glow shadow-glow-cyan-sm'
-                                                                : currentTab.color === 'purple' ? 'bg-purple-neon shadow-glow-purple-sm'
-                                                                : currentTab.color === 'green' ? 'bg-green-success shadow-glow-success'
-                                                                : 'bg-pink-featured shadow-glow-pink'
-                                                            }`
-                                                            : 'w-2 h-2 bg-bg-tertiary hover:bg-text-muted'
-                                                    }`}
-                                                    aria-label={`Go to page ${idx + 1}`}
-                                                    aria-current={currentPage === idx ? 'page' : undefined}
-                                                />
-                                            ))}
-                                        </div>
-                                    )}
-                                </div>
-                            )}
-                        </motion.div>
-                    </AnimatePresence>
-                </Tabs>
-
-                {/* View All Button */}
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true }}
-                    transition={{ duration: 0.5, delay: 0.2 }}
-                    className="text-center mt-12"
-                >
-                    <Button asChild variant="outline" size="lg" className="group">
-                        <Link href={`/catalog?category=${currentTab.category}`}>
-                            View All {currentTab.label}
-                            <ArrowRight
-                                className="ml-2 h-5 w-5 transition-transform group-hover:translate-x-1"
-                                aria-hidden="true"
-                            />
+                    <Button asChild variant="outline" size="sm" className="group">
+                        <Link href="/catalog">
+                            Browse All
+                            <ArrowRight className="ml-2 h-3.5 w-3.5 transition-transform group-hover:translate-x-1" />
                         </Link>
                     </Button>
                 </motion.div>
+
+                {/* 3 Carousels */}
+                <div className="space-y-10">
+                    {PRODUCT_TYPES.map((config, index) => (
+                        <motion.div
+                            key={config.id}
+                            initial={{ opacity: 0, y: 20 }}
+                            whileInView={{ opacity: 1, y: 0 }}
+                            viewport={{ once: true }}
+                            transition={{ duration: 0.4, delay: index * 0.1 }}
+                        >
+                            <ProductCarousel config={config} />
+                        </motion.div>
+                    ))}
+                </div>
             </div>
         </section>
     );

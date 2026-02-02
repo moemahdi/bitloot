@@ -253,9 +253,21 @@ function CatalogProductCardComponent({
               {product.platform !== undefined && <PlatformBadge platform={product.platform} />}
               {variant !== 'default' && <ProductTypeBadge type={variant} />}
             </div>
-            <h3 className="text-sm font-medium text-white line-clamp-1 group-hover:text-cyan-glow transition-colors">
-              {product.name}
-            </h3>
+            <TooltipProvider delayDuration={300}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <h3 className="text-sm font-medium text-white line-clamp-1 group-hover:text-cyan-glow transition-colors cursor-default">
+                    {product.name}
+                  </h3>
+                </TooltipTrigger>
+                <TooltipContent
+                  side="top"
+                  className="max-w-xs bg-bg-tertiary border-border-accent text-text-primary text-sm px-3 py-2"
+                >
+                  {product.name}
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
             {product.description !== undefined && product.description !== '' && (
               <p className="text-sm text-text-muted line-clamp-1">{product.description}</p>
             )}
@@ -371,9 +383,21 @@ function CatalogProductCardComponent({
         
         {/* Content */}
         <div className="flex-1 min-w-0">
-          <h3 className="text-sm font-medium text-white line-clamp-1 group-hover:text-cyan-glow transition-colors">
-            {product.name}
-          </h3>
+          <TooltipProvider delayDuration={300}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <h3 className="text-sm font-medium text-white line-clamp-1 group-hover:text-cyan-glow transition-colors cursor-default">
+                  {product.name}
+                </h3>
+              </TooltipTrigger>
+              <TooltipContent
+                side="top"
+                className="max-w-xs bg-bg-tertiary border-border-accent text-text-primary text-sm px-3 py-2"
+              >
+                {product.name}
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
           <div className="flex items-center gap-2 mt-0.5 flex-wrap">
             <span className="text-xs text-text-muted">{product.platform}</span>
             <div className="flex items-center gap-1 px-1 py-0.5 rounded bg-bg-tertiary/50">
@@ -417,7 +441,7 @@ function CatalogProductCardComponent({
       onMouseLeave={() => setIsHovered(false)}
     >
       {/* Image container */}
-      <div className="relative aspect-[16/10] overflow-hidden bg-bg-tertiary">
+      <div className="relative aspect-16/10 overflow-hidden bg-bg-tertiary">
         {/* Loading skeleton */}
         {!imageLoaded && (
           <div className="absolute inset-0 animate-pulse bg-bg-tertiary" />
@@ -440,7 +464,7 @@ function CatalogProductCardComponent({
         {/* Gradient overlay on hover */}
         <div
           className={cn(
-            'absolute inset-0 bg-gradient-to-t from-bg-primary/90 via-bg-primary/20 to-transparent transition-opacity duration-300',
+            'absolute inset-0 bg-linear-to-t from-bg-primary/90 via-bg-primary/20 to-transparent transition-opacity duration-300',
             isHovered ? 'opacity-100' : 'opacity-0'
           )}
         />
@@ -491,18 +515,30 @@ function CatalogProductCardComponent({
       
       {/* Content */}
       <div className="flex flex-1 flex-col p-4">
-        {/* Platform and category */}
+        {/* Platform and genre */}
         <div className="mb-2 flex items-center gap-2">
           {product.platform !== undefined && <PlatformBadge platform={product.platform} />}
-          {product.category !== undefined && (
-            <span className="text-xs text-text-muted capitalize">{product.category}</span>
+          {(product.genre ?? product.category) !== undefined && (
+            <span className="text-xs text-text-muted capitalize">{product.genre ?? product.category}</span>
           )}
         </div>
         
-        {/* Title */}
-        <h3 className="mb-2 text-sm font-medium text-white line-clamp-2 group-hover:text-cyan-glow transition-colors min-h-[2.25rem]">
-          {product.name}
-        </h3>
+        {/* Title with Tooltip */}
+        <TooltipProvider delayDuration={300}>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <h3 className="mb-2 text-sm font-medium text-white line-clamp-2 group-hover:text-cyan-glow transition-colors min-h-9 cursor-default">
+                {product.name}
+              </h3>
+            </TooltipTrigger>
+            <TooltipContent
+              side="top"
+              className="max-w-xs bg-bg-tertiary border-border-accent text-text-primary text-sm px-3 py-2"
+            >
+              {product.name}
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
         
         {/* Rating - always show with default 4.8 if not provided */}
         <div className="mb-3 flex items-center gap-1.5">
@@ -624,7 +660,7 @@ export function CatalogProductCardSkeleton({ viewMode = 'grid' }: { viewMode?: V
   
   return (
     <div className="rounded-xl border border-border-subtle bg-bg-secondary overflow-hidden animate-pulse">
-      <div className="aspect-[16/10] bg-bg-tertiary" />
+      <div className="aspect-16/10 bg-bg-tertiary" />
       <div className="p-4 space-y-3">
         <div className="h-4 w-20 rounded bg-bg-tertiary" />
         <div className="h-5 w-full rounded bg-bg-tertiary" />

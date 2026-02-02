@@ -95,9 +95,9 @@ export function BundleModal({ bundle, isOpen, onClose }: BundleModalProps): Reac
 
   const handleProductClick = (slug: string | undefined, e: React.MouseEvent) => {
     e.stopPropagation();
+    e.preventDefault();
     if (slug !== undefined && slug !== null && slug !== '') {
-      router.push(`/product/${slug}`);
-      onClose();
+      window.open(`/product/${slug}`, '_blank');
     }
   };
 
@@ -157,7 +157,7 @@ export function BundleModal({ bundle, isOpen, onClose }: BundleModalProps): Reac
                 alt={bundle.name}
                 fill
                 sizes="(max-width: 640px) 100vw, 600px"
-                className="object-contain"
+                className="object-cover"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-bg-primary via-bg-primary/60 to-transparent" />
             </div>
@@ -236,7 +236,7 @@ export function BundleModal({ bundle, isOpen, onClose }: BundleModalProps): Reac
                               alt={bp.product?.title ?? ''}
                               fill
                               sizes="64px"
-                              className="object-contain"
+                              className="object-cover"
                             />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center">
@@ -253,9 +253,17 @@ export function BundleModal({ bundle, isOpen, onClose }: BundleModalProps): Reac
 
                       {/* Product Info */}
                       <div className="flex-1 min-w-0 overflow-hidden">
-                        <p className="font-medium text-sm sm:text-base text-text-primary truncate group-hover:text-pink-400 transition-colors">
+                        <button
+                          type="button"
+                          onClick={(e) => handleProductClick(productSlug, e)}
+                          className={`font-medium text-sm sm:text-base text-text-primary truncate block w-full text-left transition-colors ${
+                            productSlug !== undefined && productSlug !== '' 
+                              ? 'hover:text-pink-400 hover:underline cursor-pointer' 
+                              : ''
+                          }`}
+                        >
                           {bp.product?.title ?? 'Unknown Product'}
-                        </p>
+                        </button>
                         <div className="flex items-center gap-2 mt-1 flex-wrap">
                           {bp.product?.platform !== undefined && bp.product.platform !== '' ? (
                             <Badge variant="outline" className="text-xs flex-shrink-0">
@@ -317,7 +325,7 @@ export function BundleModal({ bundle, isOpen, onClose }: BundleModalProps): Reac
                                 alt={bp.product?.title ?? ''}
                                 fill
                                 sizes="64px"
-                                className="object-contain"
+                                className="object-cover"
                               />
                             ) : (
                               <div className="w-full h-full flex items-center justify-center">
@@ -332,9 +340,17 @@ export function BundleModal({ bundle, isOpen, onClose }: BundleModalProps): Reac
                           ) : null}
                         </div>
                         <div className="flex-1 min-w-0 overflow-hidden">
-                          <p className="font-medium text-sm sm:text-base text-text-primary truncate group-hover:text-yellow-400 transition-colors">
+                          <button
+                            type="button"
+                            onClick={(e) => handleProductClick(bp.product?.slug, e)}
+                            className={`font-medium text-sm sm:text-base text-text-primary truncate block w-full text-left transition-colors ${
+                              bp.product?.slug !== undefined && bp.product.slug !== '' 
+                                ? 'hover:text-yellow-400 hover:underline cursor-pointer' 
+                                : ''
+                            }`}
+                          >
                             {bp.product?.title ?? 'Bonus Product'}
-                          </p>
+                          </button>
                           <Badge className="bg-yellow-500/20 text-yellow-400 text-xs mt-1">
                             100% OFF - FREE
                           </Badge>

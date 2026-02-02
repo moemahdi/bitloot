@@ -27,8 +27,9 @@ import type {
   FilterPreset,
   PlatformOption,
   RegionOption,
+  GenreOption,
 } from '../types';
-import { PLATFORMS, REGIONS } from '../types';
+import { PLATFORMS, REGIONS, GENRES } from '../types';
 
 interface MobileFilterSheetProps {
   isOpen: boolean;
@@ -39,6 +40,7 @@ interface MobileFilterSheetProps {
   onApply: () => void;
   platforms?: PlatformOption[];
   regions?: RegionOption[];
+  genres?: GenreOption[];
   savedPresets: FilterPreset[];
   onSavePreset: (name: string) => void;
   onApplyPreset: (preset: FilterPreset) => void;
@@ -60,6 +62,7 @@ export function MobileFilterSheet({
   onApply,
   platforms = PLATFORMS,
   regions = REGIONS,
+  genres = GENRES,
   savedPresets,
   onSavePreset,
   onApplyPreset,
@@ -76,6 +79,7 @@ export function MobileFilterSheet({
       filters.search,
       filters.businessCategory,
       filters.platform.length > 0,
+      filters.genre !== '',
       filters.region,
       filters.minPrice > 0 || filters.maxPrice < 500,
     ].filter(Boolean).length;
@@ -164,6 +168,7 @@ export function MobileFilterSheet({
               onReset={handleReset}
               platforms={platforms}
               regions={regions}
+              genres={genres}
               savedPresets={savedPresets}
               onSavePreset={onSavePreset}
               onApplyPreset={onApplyPreset}

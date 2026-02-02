@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -108,14 +109,42 @@ function DynamicHeadline(): React.ReactElement {
 }
 
 // ============================================================================
-// FLOATING GAME COVERS - Decorative elements around hero
+// FLOATING GAME COVERS - Real game images around hero
 // ============================================================================
 
 const FLOATING_GAMES = [
-    { id: 1, position: 'left-top', delay: 0, rotate: -12 },
-    { id: 2, position: 'left-bottom', delay: 0.2, rotate: -8 },
-    { id: 3, position: 'right-top', delay: 0.1, rotate: 8 },
-    { id: 4, position: 'right-bottom', delay: 0.3, rotate: 15 },
+    { 
+        id: 1, 
+        position: 'left-top', 
+        delay: 0, 
+        rotate: -12,
+        image: 'https://i.postimg.cc/28LTmpPP/Chat-GPT-Image-Feb-2-2026-02-36-02-AM.png',
+        alt: 'Featured Game 1'
+    },
+    { 
+        id: 2, 
+        position: 'left-bottom', 
+        delay: 0.2, 
+        rotate: -8,
+        image: 'https://i.postimg.cc/593xfTMW/Feb-2-2026-01-47-34-AM.jpg',
+        alt: 'Featured Game 2'
+    },
+    { 
+        id: 3, 
+        position: 'right-top', 
+        delay: 0.1, 
+        rotate: 8,
+        image: 'https://i.postimg.cc/dV6L73Cz/01000f70-5ac8-4fdf-af77-ea10610b5855.png',
+        alt: 'Featured Game 3'
+    },
+    { 
+        id: 4, 
+        position: 'right-bottom', 
+        delay: 0.3, 
+        rotate: 15,
+        image: 'https://i.postimg.cc/qvwGbrtp/mgs-delta-key-visual-1024x576.png',
+        alt: 'Metal Gear Solid Delta'
+    },
 ];
 
 function FloatingGameCovers(): React.ReactElement {
@@ -126,13 +155,6 @@ function FloatingGameCovers(): React.ReactElement {
         'right-bottom': 'right-8 xl:right-28 bottom-[25%]',
     };
 
-    const gradientColors: Record<string, string> = {
-        'left-top': 'from-cyan-glow/20 to-purple-neon/10',
-        'left-bottom': 'from-green-success/20 to-cyan-glow/10',
-        'right-top': 'from-purple-neon/20 to-pink-featured/10',
-        'right-bottom': 'from-orange-warning/20 to-pink-featured/10',
-    };
-
     return (
         <>
             {FLOATING_GAMES.map((game) => (
@@ -140,7 +162,7 @@ function FloatingGameCovers(): React.ReactElement {
                     key={game.id}
                     initial={{ opacity: 0, scale: 0.8, rotate: game.rotate * 1.5 }}
                     animate={{ 
-                        opacity: 0.8, 
+                        opacity: 0.9, 
                         scale: 1,
                         rotate: game.rotate,
                         y: [0, -8, 0],
@@ -152,11 +174,18 @@ function FloatingGameCovers(): React.ReactElement {
                     }}
                     className={`absolute ${positionClasses[game.position]} hidden xl:block z-0 pointer-events-none`}
                 >
-                    <div className={`relative w-16 h-20 2xl:w-20 2xl:h-28 rounded-lg overflow-hidden shadow-2xl border border-white/10 bg-gradient-to-br ${gradientColors[game.position]}`}>
-                        <div className="absolute inset-0 flex items-center justify-center">
-                            <Sparkles className="w-6 h-6 text-white/30" />
-                        </div>
-                        <div className="absolute inset-0 bg-gradient-to-t from-bg-primary/60 via-transparent to-transparent" />
+                    <div className="relative w-24 h-32 2xl:w-32 2xl:h-44 rounded-xl overflow-hidden shadow-2xl border border-white/20 group">
+                        <Image
+                            src={game.image}
+                            alt={game.alt}
+                            fill
+                            className="object-cover"
+                            sizes="(max-width: 1536px) 96px, 128px"
+                        />
+                        {/* Gradient overlay for depth */}
+                        <div className="absolute inset-0 bg-linear-to-t from-bg-primary/40 via-transparent to-transparent" />
+                        {/* Glow effect on hover */}
+                        <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 shadow-glow-cyan" />
                     </div>
                 </motion.div>
             ))}

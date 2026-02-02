@@ -164,8 +164,9 @@ export class AdminProductsController {
   @ApiQuery({ name: 'businessCategory', required: false, description: 'Filter by business category (games/software/subscriptions)' })
   @ApiQuery({ name: 'genre', required: false, description: 'Filter by genre (e.g., Action, RPG, Strategy)' })
   @ApiQuery({ name: 'featured', required: false, description: 'Filter by featured status (true/false)' })
+  @ApiQuery({ name: 'section', required: false, description: 'Filter by featured section key (e.g., trending, featured_games)' })
   @ApiQuery({ name: 'page', required: false, description: 'Page number (1-based)', example: 1 })
-  @ApiQuery({ name: 'limit', required: false, description: 'Items per page (max 100)', example: 25 })
+  @ApiQuery({ name: 'limit', required: false, description: 'Items per page (max 500)', example: 25 })
   @ApiQuery({ name: 'sortBy', required: false, description: 'Sort field', enum: ['createdAt', 'title', 'cost', 'price'] })
   @ApiQuery({ name: 'sortOrder', required: false, description: 'Sort order', enum: ['asc', 'desc'] })
   @ApiResponse({
@@ -182,6 +183,7 @@ export class AdminProductsController {
     @Query('businessCategory') businessCategory?: string,
     @Query('genre') genre?: string,
     @Query('featured') featured?: string,
+    @Query('section') section?: string,
     @Query('page') pageStr?: string,
     @Query('limit') limitStr?: string,
     @Query('sortBy') sortBy?: 'createdAt' | 'title' | 'cost' | 'price',
@@ -212,6 +214,7 @@ export class AdminProductsController {
         genre,
         sortBy,
         sortOrder,
+        section,
       );
 
       return {

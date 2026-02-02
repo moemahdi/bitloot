@@ -23,14 +23,12 @@ import {
   FilterPanel,
   MobileFilterSheet,
   CatalogProductGrid,
-  FeaturedProducts,
-  TrendingSection,
   GroupVariantsModal,
   CatalogEmptyState,
   CatalogErrorState,
   CatalogPagination,
 } from '@/features/catalog/components';
-import { PLATFORMS, REGIONS } from '@/features/catalog/types';
+import { PLATFORMS, REGIONS, GENRES } from '@/features/catalog/types';
 import type { FilterPreset, CatalogProduct } from '@/features/catalog/types';
 import { CatalogGroupsApi, Configuration, type ProductGroupResponseDto } from '@bitloot/sdk';
 
@@ -130,32 +128,13 @@ export default function CatalogPage(): React.ReactElement {
     });
   }, [productGroups, filters.search]);
   
-  // Separate featured and trending products from main grid
-  const { featuredProducts, trendingProducts, gridProducts } = useMemo(() => {
+  // Grid products are just all products (no more featured/trending separation)
+  const gridProducts = useMemo(() => {
     if (products === null || products === undefined || products.length === 0) {
-      return {
-        featuredProducts: [],
-        trendingProducts: [],
-        gridProducts: [],
-      };
+      return [];
     }
-    
-    // In production, these would come from separate API calls
-    // For now, simulate by filtering/slicing the products
-    const featured = products.filter((p: CatalogProduct) => p.isFeatured === true).slice(0, 6);
-    const trending = products.filter((p: CatalogProduct) => p.viewerCount !== undefined && p.viewerCount !== null && p.viewerCount > 0).slice(0, 8);
-    
-    // Grid products exclude featured items on first page to avoid duplicates
-    const gridItems = currentPage === 1
-      ? products.filter((p: CatalogProduct) => !featured.some((f: CatalogProduct) => f.id === p.id))
-      : products;
-    
-    return {
-      featuredProducts: featured,
-      trendingProducts: trending,
-      gridProducts: gridItems,
-    };
-  }, [products, currentPage]);
+    return products;
+  }, [products]);
   
   // Handlers
   const handleAddToCart = useCallback((productId: string) => {
@@ -271,10 +250,6 @@ export default function CatalogPage(): React.ReactElement {
   // Show hero on first page (keep it visible even during search for smooth UX)
   const showHero = currentPage === 1;
   
-  // Show featured/trending sections only on first page with no category filter and no search
-  const hasBusinessCategory = filters.businessCategory !== undefined && filters.businessCategory !== null;
-  const showFeaturedSections = currentPage === 1 && !hasBusinessCategory && filters.search === '';
-  
   // Error state
   if (error !== null && error !== undefined) {
     return (
@@ -310,32 +285,6 @@ export default function CatalogPage(): React.ReactElement {
           className="mb-6"
         />
         
-        {/* Featured Products Section */}
-        {showFeaturedSections && featuredProducts.length > 0 && (
-          <FeaturedProducts
-            products={featuredProducts}
-            isLoading={isLoading}
-            onAddToCart={handleAddToCart}
-            onToggleWishlist={handleToggleWishlist}
-            onViewProduct={handleViewProduct}
-            wishlistIds={wishlistIds}
-            className="mb-8"
-          />
-        )}
-        
-        {/* Trending Section */}
-        {showFeaturedSections && trendingProducts.length > 0 && (
-          <TrendingSection
-            products={trendingProducts}
-            isLoading={isLoading}
-            onAddToCart={handleAddToCart}
-            onToggleWishlist={handleToggleWishlist}
-            onViewProduct={handleViewProduct}
-            wishlistIds={wishlistIds}
-            className="mb-8"
-          />
-        )}
-        
         {/* Main Layout with Sidebar */}
         <div className="flex gap-8">
           {/* Desktop Filter Sidebar */}
@@ -347,6 +296,7 @@ export default function CatalogPage(): React.ReactElement {
                 onReset={resetFilters}
                 platforms={PLATFORMS}
                 regions={REGIONS}
+                genres={GENRES}
                 savedPresets={savedPresets}
                 onSavePreset={handleSavePreset}
                 onApplyPreset={handleApplyPreset}
@@ -430,6 +380,7 @@ export default function CatalogPage(): React.ReactElement {
         onApply={() => setIsMobileFilterOpen(false)}
         platforms={PLATFORMS}
         regions={REGIONS}
+        genres={GENRES}
         savedPresets={savedPresets}
         onSavePreset={handleSavePreset}
         onApplyPreset={handleApplyPreset}

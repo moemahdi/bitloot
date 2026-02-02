@@ -18,6 +18,7 @@ export { CatalogProductCard, CatalogProductCardSkeleton } from './CatalogProduct
 export { CatalogProductGrid } from './CatalogProductGrid';
 export { FeaturedProducts } from './FeaturedProducts';
 export { TrendingSection } from './TrendingSection';
+export { RecommendedForYou } from './RecommendedForYou';
 export { ProductGroupCard } from './ProductGroupCard';
 export { ProductGroupGridCard, ProductGroupGridCardSkeleton } from './ProductGroupGridCard';
 export { ProductGroupsSection } from './ProductGroupsSection';

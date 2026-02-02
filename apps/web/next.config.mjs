@@ -51,6 +51,12 @@ const nextConfig = {
         hostname: 'placehold.co',
         pathname: '/**',
       },
+      // User uploaded images (postimg.cc)
+      {
+        protocol: 'https',
+        hostname: 'i.postimg.cc',
+        pathname: '/**',
+      },
     ],
     // Cache optimization for crypto icons
     minimumCacheTTL: 2592000, // 30 days cache for external images

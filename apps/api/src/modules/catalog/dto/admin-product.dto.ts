@@ -96,13 +96,13 @@ export class CreateProductDto {
   @ApiProperty({ description: 'DRM type', required: false })
   @IsOptional()
   @IsString()
-  @MaxLength(50)
+  @MaxLength(100)
   drm?: string;
 
   @ApiProperty({ description: 'Age rating (PEGI-16, ESRB-M, etc.)', required: false })
   @IsOptional()
   @IsString()
-  @MaxLength(10)
+  @MaxLength(50)
   ageRating?: string;
 
   @ApiProperty({ description: 'Category', required: false })
@@ -206,13 +206,13 @@ export class UpdateProductDto {
   @ApiProperty({ description: 'DRM type', required: false })
   @IsOptional()
   @IsString()
-  @MaxLength(50)
+  @MaxLength(100)
   drm?: string;
 
   @ApiProperty({ description: 'Age rating', required: false })
   @IsOptional()
   @IsString()
-  @MaxLength(10)
+  @MaxLength(50)
   ageRating?: string;
 
   @ApiProperty({ description: 'Category', required: false })

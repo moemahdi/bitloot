@@ -9,7 +9,7 @@
  * - Assign/remove products from each section
  * - Reorder products within sections
  * 
- * Follows Level 5 admin page patterns
+ * Follows Level 5 admin page patterns with neon cyberpunk design
  */
 
 import { useQuery, useQueryClient, useQueries } from '@tanstack/react-query';
@@ -23,17 +23,20 @@ import {
   CardTitle,
 } from '@/design-system/primitives/card';
 import { Button } from '@/design-system/primitives/button';
+import { GlowButton } from '@/design-system/primitives/glow-button';
 import { Input } from '@/design-system/primitives/input';
 import { Badge } from '@/design-system/primitives/badge';
-import { Label } from '@/design-system/primitives/label';
 import { Alert, AlertDescription, AlertTitle } from '@/design-system/primitives/alert';
-import { ScrollArea } from '@/design-system/primitives/scroll-area';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/design-system/primitives/tooltip';
 import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
-  DialogHeader,
   DialogTitle,
 } from '@/design-system/primitives/dialog';
 import {
@@ -44,17 +47,17 @@ import {
   Search,
   Plus,
   Trash2,
-  GripVertical,
   TrendingUp,
   Gamepad2,
   Monitor,
   Repeat,
   Zap,
-  X,
   LayoutGrid,
   Eye,
   ArrowUp,
   ArrowDown,
+  Package,
+  Sparkles,
 } from 'lucide-react';
 import { Configuration, AdminCatalogProductsApi } from '@bitloot/sdk';
 import type { AdminProductResponseDto } from '@bitloot/sdk';
@@ -91,8 +94,15 @@ const apiConfig = new Configuration({
 // TYPE DEFINITIONS
 // ============================================================================
 
-// Use AdminProductResponseDto from SDK, with simplified local alias
 type Product = AdminProductResponseDto;
+
+// Format price to always show 2 decimal places
+function formatPrice(price: string | number | undefined): string {
+  if (price === undefined || price === null || price === '') return '0.00';
+  const num = typeof price === 'string' ? parseFloat(price) : price;
+  if (isNaN(num)) return '0.00';
+  return num.toFixed(2);
+}
 
 interface SectionConfig {
   key: string;
@@ -100,6 +110,8 @@ interface SectionConfig {
   description: string;
   icon: React.ElementType;
   color: string;
+  bgColor: string;
+  borderColor: string;
   maxProducts: number;
 }
 
@@ -111,33 +123,41 @@ const HOMEPAGE_SECTIONS: SectionConfig[] = [
   {
     key: 'trending',
     name: 'Trending Now',
-    description: 'Top selling products displayed on homepage. Shows up to 48 products with pagination.',
+    description: 'Top selling products displayed on homepage with pagination.',
     icon: TrendingUp,
     color: 'text-orange-warning',
+    bgColor: 'bg-orange-warning/10',
+    borderColor: 'border-orange-warning/30',
     maxProducts: 48,
   },
   {
     key: 'featured_games',
     name: 'Featured Games',
-    description: 'Featured game keys shown in the Games tab. Shows up to 48 products with pagination.',
+    description: 'Featured game keys shown in the Games tab.',
     icon: Gamepad2,
     color: 'text-cyan-glow',
+    bgColor: 'bg-cyan-glow/10',
+    borderColor: 'border-cyan-glow/30',
     maxProducts: 48,
   },
   {
     key: 'featured_software',
     name: 'Featured Software',
-    description: 'Featured software products in the Software tab. Shows up to 48 products with pagination.',
+    description: 'Featured software products in the Software tab.',
     icon: Monitor,
     color: 'text-purple-neon',
+    bgColor: 'bg-purple-neon/10',
+    borderColor: 'border-purple-neon/30',
     maxProducts: 48,
   },
   {
     key: 'featured_subscriptions',
     name: 'Featured Subscriptions',
-    description: 'Subscription services in the Subscriptions tab. Shows up to 48 products with pagination.',
+    description: 'Subscription services in the Subscriptions tab.',
     icon: Repeat,
     color: 'text-pink-featured',
+    bgColor: 'bg-pink-featured/10',
+    borderColor: 'border-pink-featured/30',
     maxProducts: 48,
   },
 ];
@@ -156,30 +176,21 @@ async function fetchProducts(search: string): Promise<Product[]> {
   return response.products;
 }
 
-/**
- * Fetch products that are assigned to a specific section
- */
 async function fetchSectionProducts(sectionKey: string): Promise<Product[]> {
   const api = new AdminCatalogProductsApi(apiConfig);
-  // Fetch all published products and filter by section client-side
-  // (API filter by featuredSections would require new endpoint)
   const response = await api.adminProductsControllerListAll({
     published: 'true',
-    limit: '100',
+    limit: '5000',
   });
   
   return response.products
     .filter((p) => {
-      // featuredSections is Array<string> | undefined in SDK
       const sections = p.featuredSections ?? [];
       return sections.includes(sectionKey);
     })
     .sort((a, b) => (a.featuredOrder ?? 0) - (b.featuredOrder ?? 0));
 }
 
-/**
- * Add a product to a section by updating its featuredSections array
- */
 async function addProductToSection(
   productId: string,
   sectionKey: string,
@@ -187,7 +198,6 @@ async function addProductToSection(
   order: number
 ): Promise<void> {
   const api = new AdminCatalogProductsApi(apiConfig);
-  // Handle case where featuredSections might be a comma-separated string from DB
   let sections: string[] = [];
   if (Array.isArray(currentSections)) {
     sections = [...currentSections];
@@ -203,16 +213,12 @@ async function addProductToSection(
   });
 }
 
-/**
- * Remove a product from a section
- */
 async function removeProductFromSection(
   productId: string,
   sectionKey: string,
   currentSections: string[] | string | undefined
 ): Promise<void> {
   const api = new AdminCatalogProductsApi(apiConfig);
-  // Handle case where featuredSections might be a comma-separated string from DB
   let sectionsArray: string[] = [];
   if (Array.isArray(currentSections)) {
     sectionsArray = [...currentSections];
@@ -226,13 +232,7 @@ async function removeProductFromSection(
   });
 }
 
-/**
- * Update product order within a section
- */
-async function updateProductOrder(
-  productId: string,
-  newOrder: number
-): Promise<void> {
+async function updateProductOrder(productId: string, newOrder: number): Promise<void> {
   const api = new AdminCatalogProductsApi(apiConfig);
   await api.adminProductsControllerUpdate({
     id: productId,
@@ -260,7 +260,6 @@ function ProductSearch({
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
 
-  // Debounce search
   const handleSearch = useCallback((value: string) => {
     setSearchQuery(value);
     const timeoutId = setTimeout(() => {
@@ -283,104 +282,118 @@ function ProductSearch({
   const canAddMore = currentCount < maxSelections;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-2">
+      {/* Search Input */}
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-text-muted" />
         <Input
           type="text"
-          placeholder="Search published products..."
+          placeholder="Search products..."
           value={searchQuery}
           onChange={(e) => handleSearch(e.target.value)}
-          className="pl-10 bg-bg-tertiary border-border-subtle"
+          className="pl-9 h-9 bg-bg-tertiary border-border-subtle focus:border-cyan-glow/50 text-sm"
         />
       </div>
 
+      {/* Max Products Warning */}
       {!canAddMore && (
-        <Alert className="bg-orange-warning/10 border-orange-warning/30">
-          <AlertCircle className="h-4 w-4 text-orange-warning" />
-          <AlertDescription className="text-orange-warning">
-            Maximum of {maxSelections} products reached for this section.
+        <Alert className="bg-orange-warning/5 border-orange-warning/20 py-2">
+          <AlertCircle className="h-3.5 w-3.5 text-orange-warning" />
+          <AlertDescription className="text-orange-warning text-xs ml-2">
+            Maximum of {maxSelections} products reached.
           </AlertDescription>
         </Alert>
       )}
 
-      <ScrollArea className="h-[300px] border border-border-subtle rounded-lg">
+      {/* Products List */}
+      <div className="border border-border-subtle rounded-lg overflow-hidden bg-bg-tertiary/20 max-h-[200px] overflow-y-auto">
         {productsQuery.isLoading ? (
-          <div className="flex items-center justify-center h-full">
-            <Loader2 className="h-6 w-6 animate-spin text-cyan-glow" />
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="h-5 w-5 animate-spin text-cyan-glow" />
           </div>
         ) : productsQuery.error !== null && productsQuery.error !== undefined ? (
-          <div className="flex items-center justify-center h-full text-text-muted">
-            Failed to load products
+          <div className="flex flex-col items-center justify-center py-8 text-text-muted">
+            <AlertCircle className="h-6 w-6 mb-2" />
+            <p className="text-xs">Failed to load products</p>
           </div>
         ) : filteredProducts.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-text-muted gap-2">
-            <Search className="h-8 w-8" />
-            <p>No products found</p>
+          <div className="flex flex-col items-center justify-center py-8 text-text-muted">
+            <Search className="h-6 w-6 mb-2" />
+            <p className="text-xs">No products found</p>
           </div>
         ) : (
-          <div className="p-2 space-y-1">
-            {filteredProducts.map((product) => (
-              <motion.div
+          <div className="p-1.5 space-y-1">
+            {filteredProducts.slice(0, 10).map((product) => (
+              <div
                 key={product.id}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="flex items-center gap-3 p-2 rounded-lg hover:bg-bg-tertiary transition-colors cursor-pointer group"
-                onClick={() => canAddMore && onSelect(product)}
+                className="flex items-center gap-2 p-2 rounded-md hover:bg-bg-tertiary transition-colors"
               >
                 {/* Product Image */}
-                <div className="relative w-12 h-12 rounded-md overflow-hidden bg-bg-secondary shrink-0">
+                <div className="relative w-8 h-8 rounded overflow-hidden bg-bg-secondary shrink-0 border border-border-subtle">
                   {product.coverImageUrl !== undefined && product.coverImageUrl !== '' ? (
                     <Image
                       src={product.coverImageUrl}
                       alt={product.title}
                       fill
-                      sizes="48px"
+                      sizes="32px"
                       className="object-contain"
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center">
-                      <LayoutGrid className="w-5 h-5 text-text-muted" />
+                      <Package className="w-3.5 h-3.5 text-text-muted" />
                     </div>
                   )}
                 </div>
 
                 {/* Product Info */}
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-text-primary truncate">
-                    {product.title}
-                  </p>
-                  <div className="flex items-center gap-2 mt-0.5">
+                  <TooltipProvider delayDuration={300}>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <p className="text-xs font-medium text-text-primary truncate">
+                          {product.title}
+                        </p>
+                      </TooltipTrigger>
+                      <TooltipContent side="top" className="max-w-xs">
+                        <p className="text-xs">{product.title}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                  <div className="flex items-center gap-1.5">
                     {product.platform !== undefined && product.platform !== '' && (
-                      <Badge variant="outline" className="text-xs py-0 px-1.5">
-                        {product.platform}
-                      </Badge>
+                      <span className="text-[9px] text-text-muted">{product.platform}</span>
                     )}
-                    <span className="text-xs text-text-muted">
-                      €{product.price ?? '0.00'}
+                    <span className="text-[10px] text-green-success font-medium tabular-nums">
+                      €{formatPrice(product.price)}
                     </span>
                   </div>
                 </div>
 
                 {/* Add Button */}
                 <Button
+                  type="button"
                   size="sm"
-                  variant="outline"
-                  className="border-cyan-glow/50 text-cyan-glow hover:bg-cyan-glow/10 hover:border-cyan-glow"
+                  variant="ghost"
+                  className="h-7 px-2 text-cyan-glow hover:bg-cyan-glow/10 shrink-0"
                   disabled={!canAddMore}
                   onClick={(e) => {
+                    e.preventDefault();
                     e.stopPropagation();
-                    if (canAddMore) onSelect(product);
+                    console.log('[ProductSearch] Add clicked, product:', product.id, product.title);
+                    console.log('[ProductSearch] canAddMore:', canAddMore);
+                    if (canAddMore) {
+                      console.log('[ProductSearch] Calling onSelect...');
+                      onSelect(product);
+                    }
                   }}
                 >
-                  <Plus className="h-4 w-4 mr-1" />
-                  Add
+                  <Plus className="h-3.5 w-3.5" />
                 </Button>
-              </motion.div>
+              </div>
             ))}
           </div>
         )}
-      </ScrollArea>
+      </div>
     </div>
   );
 }
@@ -391,22 +404,20 @@ function ProductSearch({
 
 interface SectionProductListProps {
   products: Product[];
-  _sectionKey: string;
   onRemove: (product: Product) => void;
   onReorder: (product: Product, direction: 'up' | 'down') => void;
 }
 
 function SectionProductList({
   products,
-  _sectionKey,
   onRemove,
   onReorder,
 }: SectionProductListProps): React.ReactElement {
   if (products.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-12 text-text-muted border border-dashed border-border-subtle rounded-lg">
-        <LayoutGrid className="h-10 w-10 mb-3" />
-        <p className="text-sm">No products in this section</p>
+      <div className="flex flex-col items-center justify-center py-12 text-text-muted border border-dashed border-border-subtle rounded-xl bg-bg-tertiary/20">
+        <Package className="h-10 w-10 mb-3 opacity-50" />
+        <p className="text-sm font-medium">No products in this section</p>
         <p className="text-xs mt-1">Search and add products above</p>
       </div>
     );
@@ -421,57 +432,65 @@ function SectionProductList({
           <motion.div
             key={product.id}
             layout
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: 20 }}
-            className="flex items-center gap-3 p-3 bg-bg-tertiary rounded-lg border border-border-subtle group"
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className="flex items-center gap-2 p-2.5 bg-bg-tertiary rounded-lg border border-border-subtle hover:border-border-accent transition-colors"
           >
-            {/* Drag Handle / Order Number */}
-            <div className="flex items-center gap-2 text-text-muted">
-              <GripVertical className="h-4 w-4 cursor-grab" />
-              <span className="text-xs font-mono w-6 text-center">#{index + 1}</span>
-            </div>
+            {/* Order Number */}
+            <span className="text-xs font-mono w-5 text-center font-semibold text-cyan-glow bg-cyan-glow/10 rounded py-0.5 shrink-0">
+              {index + 1}
+            </span>
 
             {/* Product Image */}
-            <div className="relative w-10 h-10 rounded-md overflow-hidden bg-bg-secondary shrink-0">
+            <div className="relative w-9 h-9 rounded-md overflow-hidden bg-bg-secondary shrink-0 border border-border-subtle">
               {product.coverImageUrl !== undefined && product.coverImageUrl !== '' ? (
                 <Image
                   src={product.coverImageUrl}
                   alt={product.title}
                   fill
-                  sizes="40px"
+                  sizes="36px"
                   className="object-contain"
                 />
               ) : (
                 <div className="w-full h-full flex items-center justify-center">
-                  <LayoutGrid className="w-4 h-4 text-text-muted" />
+                  <Package className="w-3.5 h-3.5 text-text-muted" />
                 </div>
               )}
             </div>
 
             {/* Product Info */}
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-text-primary truncate">
-                {product.title}
-              </p>
-              <div className="flex items-center gap-2 mt-0.5">
+            <div className="flex-1 min-w-0 overflow-hidden">
+              <TooltipProvider delayDuration={300}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <p className="text-xs font-medium text-text-primary truncate cursor-default">
+                      {product.title}
+                    </p>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="max-w-xs">
+                    <p className="text-sm">{product.title}</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+              <div className="flex items-center gap-1.5 mt-0.5">
                 {product.platform !== undefined && product.platform !== '' && (
-                  <Badge variant="outline" className="text-xs py-0 px-1.5">
+                  <Badge variant="secondary" className="text-[9px] py-0 px-1 bg-bg-secondary">
                     {product.platform}
                   </Badge>
                 )}
-                <span className="text-xs text-text-muted">
-                  €{product.price ?? '0.00'}
+                <span className="text-[10px] text-green-success font-medium tabular-nums">
+                  €{formatPrice(product.price)}
                 </span>
               </div>
             </div>
 
-            {/* Actions */}
-            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            {/* Actions - Always Visible */}
+            <div className="flex items-center gap-0.5 shrink-0">
               <Button
                 size="icon"
                 variant="ghost"
-                className="h-7 w-7"
+                className="h-7 w-7 text-text-muted hover:text-cyan-glow hover:bg-cyan-glow/10 disabled:opacity-30"
                 onClick={() => onReorder(product, 'up')}
                 disabled={index === 0}
               >
@@ -480,7 +499,7 @@ function SectionProductList({
               <Button
                 size="icon"
                 variant="ghost"
-                className="h-7 w-7"
+                className="h-7 w-7 text-text-muted hover:text-cyan-glow hover:bg-cyan-glow/10 disabled:opacity-30"
                 onClick={() => onReorder(product, 'down')}
                 disabled={index === sortedProducts.length - 1}
               >
@@ -489,7 +508,7 @@ function SectionProductList({
               <Button
                 size="icon"
                 variant="ghost"
-                className="h-7 w-7 text-destructive hover:text-destructive"
+                className="h-7 w-7 text-text-muted hover:text-destructive hover:bg-destructive/10"
                 onClick={() => onRemove(product)}
               >
                 <Trash2 className="h-3.5 w-3.5" />
@@ -515,19 +534,20 @@ interface SectionCardProps {
 function SectionCard({ config, products, onManage }: SectionCardProps): React.ReactElement {
   const IconComponent = config.icon;
   const productCount = products.length;
+  const progressPercent = Math.min(100, (productCount / config.maxProducts) * 100);
 
   return (
-    <Card className="bg-bg-secondary border-border-subtle hover:border-border-accent transition-colors">
-      <CardHeader className="pb-3">
-        <div className="flex items-start justify-between">
+    <Card className="bg-bg-secondary border-border-subtle hover:border-border-accent transition-all duration-300 hover:shadow-card-md group">
+      <CardHeader className="p-5 pb-4">
+        <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-3">
-            <div className={`p-2 rounded-lg bg-bg-tertiary ${config.color}`}>
-              <IconComponent className="h-5 w-5" />
+            <div className={`p-2.5 rounded-xl ${config.bgColor} ${config.borderColor} border`}>
+              <IconComponent className={`h-5 w-5 ${config.color}`} />
             </div>
             <div>
-              <CardTitle className="text-base">{config.name}</CardTitle>
+              <CardTitle className="text-base font-semibold">{config.name}</CardTitle>
               <CardDescription className="text-xs mt-0.5">
-                {productCount}/{config.maxProducts} products
+                {productCount} / {config.maxProducts} products
               </CardDescription>
             </div>
           </div>
@@ -535,52 +555,70 @@ function SectionCard({ config, products, onManage }: SectionCardProps): React.Re
             variant="outline"
             className={
               productCount > 0
-                ? 'border-green-success/30 text-green-success bg-green-success/10'
-                : 'border-border-subtle text-text-muted'
+                ? 'border-green-success/30 text-green-success bg-green-success/10 text-xs'
+                : 'border-border-subtle text-text-muted bg-bg-tertiary/50 text-xs'
             }
           >
             {productCount > 0 ? 'Active' : 'Empty'}
           </Badge>
         </div>
       </CardHeader>
-      <CardContent className="pt-0">
-        <p className="text-xs text-text-muted mb-4">{config.description}</p>
+      
+      <CardContent className="px-5 pb-5 pt-0 space-y-4">
+        {/* Description */}
+        <p className="text-xs text-text-muted leading-relaxed">{config.description}</p>
+        
+        {/* Progress Bar */}
+        <div className="space-y-1.5">
+          <div className="h-1.5 w-full bg-bg-tertiary rounded-full overflow-hidden">
+            <div
+              className={`h-full rounded-full transition-all duration-500 ${
+                productCount > 0 ? config.bgColor.replace('/10', '/60') : 'bg-bg-tertiary'
+              }`}
+              style={{ width: `${progressPercent}%` }}
+            />
+          </div>
+          <p className="text-[10px] text-text-muted text-right">
+            {Math.round(progressPercent)}% filled
+          </p>
+        </div>
         
         {/* Product Preview */}
         {productCount > 0 && (
-          <div className="flex -space-x-2 mb-4">
-            {products.slice(0, 5).map((product) => (
-              <div
-                key={product.id}
-                className="relative w-8 h-8 rounded-md overflow-hidden border-2 border-bg-secondary"
-              >
-                {product.coverImageUrl !== undefined && product.coverImageUrl !== '' ? (
-                  <Image
-                    src={product.coverImageUrl}
-                    alt={product.title}
-                    fill
-                    sizes="32px"
-                    className="object-contain"
-                  />
-                ) : (
-                  <div className="w-full h-full bg-bg-tertiary flex items-center justify-center">
-                    <LayoutGrid className="w-3 h-3 text-text-muted" />
-                  </div>
-                )}
-              </div>
-            ))}
-            {productCount > 5 && (
-              <div className="w-8 h-8 rounded-md bg-bg-tertiary border-2 border-bg-secondary flex items-center justify-center">
-                <span className="text-xs text-text-muted">+{productCount - 5}</span>
-              </div>
+          <div className="flex items-center gap-1.5">
+            <div className="flex -space-x-2">
+              {products.slice(0, 4).map((product) => (
+                <div
+                  key={product.id}
+                  className="relative w-8 h-8 rounded-lg overflow-hidden border-2 border-bg-secondary bg-bg-tertiary"
+                >
+                  {product.coverImageUrl !== undefined && product.coverImageUrl !== '' ? (
+                    <Image
+                      src={product.coverImageUrl}
+                      alt={product.title}
+                      fill
+                      sizes="32px"
+                      className="object-contain"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <Package className="w-3 h-3 text-text-muted" />
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+            {productCount > 4 && (
+              <span className="text-xs text-text-muted ml-1">+{productCount - 4} more</span>
             )}
           </div>
         )}
 
+        {/* Manage Button */}
         <Button
           onClick={onManage}
           variant="outline"
-          className="w-full border-border-subtle hover:border-cyan-glow hover:text-cyan-glow"
+          className="w-full h-9 border-border-subtle hover:border-cyan-glow/50 hover:text-cyan-glow hover:bg-cyan-glow/5 transition-all"
         >
           <LayoutGrid className="h-4 w-4 mr-2" />
           Manage Products
@@ -619,27 +657,46 @@ function SectionManageDialog({
 
   const IconComponent = config.icon;
   const excludeIds = products.map((p) => p.id);
+  const progressPercent = Math.min(100, (products.length / config.maxProducts) * 100);
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
-      <DialogContent className="max-w-3xl bg-bg-primary border-border-subtle">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-3">
-            <div className={`p-2 rounded-lg bg-bg-tertiary ${config.color}`}>
-              <IconComponent className="h-5 w-5" />
+      <DialogContent className="max-w-xl w-[95vw] max-h-[85vh] p-0 bg-bg-secondary border-border-subtle shadow-card-lg overflow-hidden flex flex-col">
+        {/* Header */}
+        <div className="px-5 py-4 border-b border-border-subtle bg-bg-tertiary/30 shrink-0">
+          <div className="flex items-center gap-3">
+            <div className={`p-2 rounded-lg ${config.bgColor} ${config.borderColor} border`}>
+              <IconComponent className={`h-5 w-5 ${config.color}`} />
             </div>
-            {config.name}
-          </DialogTitle>
-          <DialogDescription>{config.description}</DialogDescription>
-        </DialogHeader>
+            <div className="flex-1 min-w-0">
+              <DialogTitle className="text-base font-semibold text-text-primary">
+                {config.name}
+              </DialogTitle>
+              <DialogDescription className="text-xs text-text-secondary">
+                {products.length} / {config.maxProducts} products
+              </DialogDescription>
+            </div>
+            <div className="w-16 h-1.5 bg-bg-tertiary rounded-full overflow-hidden">
+              <div
+                className={`h-full rounded-full transition-all ${products.length > 0 ? 'bg-cyan-glow' : ''}`}
+                style={{ width: `${progressPercent}%` }}
+              />
+            </div>
+          </div>
+        </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 py-4">
-          {/* Left: Product Search */}
-          <div>
-            <Label className="text-sm font-medium mb-3 block">
-              Search Products to Add
-            </Label>
+        {/* Scrollable Content */}
+        <div className="flex-1 overflow-y-auto">
+          {/* Search Section */}
+          <div className="p-4 border-b border-border-subtle">
+            <div className="flex items-center gap-2 mb-2">
+              <Search className="h-3.5 w-3.5 text-cyan-glow" />
+              <span className="text-xs font-semibold text-text-primary uppercase tracking-wide">
+                Search & Add
+              </span>
+            </div>
             <ProductSearch
+              key={`search-${products.length}`}
               onSelect={(product) => { void onAddProduct(product); }}
               excludeIds={excludeIds}
               maxSelections={config.maxProducts}
@@ -647,33 +704,46 @@ function SectionManageDialog({
             />
           </div>
 
-          {/* Right: Current Products */}
-          <div>
+          {/* Current Products Section */}
+          <div className="p-4">
             <div className="flex items-center justify-between mb-3">
-              <Label className="text-sm font-medium">
-                Section Products ({products.length}/{config.maxProducts})
-              </Label>
-              {isLoading && (
-                <Loader2 className="h-4 w-4 animate-spin text-cyan-glow" />
-              )}
+              <div className="flex items-center gap-2">
+                <LayoutGrid className="h-3.5 w-3.5 text-purple-neon" />
+                <span className="text-xs font-semibold text-text-primary uppercase tracking-wide">
+                  Assigned Products
+                </span>
+                {isLoading && (
+                  <Loader2 className="h-3 w-3 animate-spin text-cyan-glow" />
+                )}
+              </div>
+              <Badge 
+                variant="secondary" 
+                className={`text-[10px] ${
+                  products.length > 0 
+                    ? 'bg-green-success/10 text-green-success' 
+                    : 'bg-bg-tertiary text-text-muted'
+                }`}
+              >
+                {products.length}
+              </Badge>
             </div>
-            <ScrollArea className="h-[340px]">
-              <SectionProductList
-                products={products}
-                _sectionKey={config.key}
-                onRemove={(product) => { void onRemoveProduct(product); }}
-                onReorder={(product, direction) => { void onReorderProduct(product, direction); }}
-              />
-            </ScrollArea>
+            <SectionProductList
+              products={products}
+              onRemove={(product) => { void onRemoveProduct(product); }}
+              onReorder={(product, direction) => { void onReorderProduct(product, direction); }}
+            />
           </div>
         </div>
 
-        <DialogFooter className="border-t border-border-subtle pt-4">
-          <Button variant="outline" onClick={onClose}>
-            <X className="h-4 w-4 mr-2" />
-            Close
+        {/* Footer */}
+        <div className="px-5 py-3 border-t border-border-subtle bg-bg-tertiary/30 shrink-0">
+          <Button 
+            onClick={onClose} 
+            className="w-full bg-cyan-glow/10 text-cyan-glow border border-cyan-glow/30 hover:bg-cyan-glow/20"
+          >
+            Done
           </Button>
-        </DialogFooter>
+        </div>
       </DialogContent>
     </Dialog>
   );
@@ -689,7 +759,7 @@ export default function HomepageSectionsPage(): React.ReactElement {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Fetch products for all sections using useQueries (proper hook usage)
+  // Fetch products for all sections
   const sectionQueryResults = useQueries({
     queries: HOMEPAGE_SECTIONS.map((config) => ({
       queryKey: ['admin', 'marketing', 'section-products', config.key],
@@ -698,60 +768,101 @@ export default function HomepageSectionsPage(): React.ReactElement {
     })),
   });
 
-  // Map query results back to section keys with proper typing
   const sectionQueries = HOMEPAGE_SECTIONS.map((config, index) => {
     const queryResult = sectionQueryResults[index];
-    return {
-      key: config.key,
-      query: queryResult,
-    };
+    return { key: config.key, query: queryResult };
   }).filter((sq): sq is { key: string; query: NonNullable<typeof sq.query> } => sq.query !== undefined);
 
-  // Get products for a specific section
   const getSectionProducts = (key: string): Product[] => {
     const sectionQuery = sectionQueries.find((sq) => sq.key === key);
     return sectionQuery?.query.data ?? [];
   };
 
-  // Handle manage button click
   const handleManage = (config: SectionConfig) => {
     setActiveSection(config);
     setIsDialogOpen(true);
   };
 
-  // Invalidate section queries
-  const invalidateSection = (sectionKey: string) => {
-    void queryClient.invalidateQueries({ 
+  const invalidateSection = async (sectionKey: string) => {
+    await queryClient.refetchQueries({ 
       queryKey: ['admin', 'marketing', 'section-products', sectionKey] 
+    });
+    // Also refetch search queries so excludeIds updates
+    await queryClient.invalidateQueries({ 
+      queryKey: ['admin', 'products', 'search'],
+      refetchType: 'all'
     });
   };
 
-  // Add product to section
   const handleAddProduct = async (product: Product) => {
-    if (activeSection === null) return;
+    console.log('[handleAddProduct] Called with product:', product.id, product.title);
+    console.log('[handleAddProduct] activeSection:', activeSection?.key);
+    if (activeSection === null) {
+      console.log('[handleAddProduct] activeSection is null, returning early');
+      return;
+    }
     setIsLoading(true);
     try {
       const currentProducts = getSectionProducts(activeSection.key);
-      await addProductToSection(product.id, activeSection.key, product.featuredSections, currentProducts.length);
-      invalidateSection(activeSection.key);
+      console.log('[handleAddProduct] currentProducts count:', currentProducts.length);
+      // Use product's featuredSections directly - the addProductToSection handles the merge
+      const currentSections = product.featuredSections ?? [];
+      console.log('[handleAddProduct] currentSections:', currentSections);
+      
+      console.log('[handleAddProduct] Calling addProductToSection...');
+      await addProductToSection(product.id, activeSection.key, currentSections, currentProducts.length);
+      console.log('[handleAddProduct] addProductToSection completed');
+      
+      // Optimistically update the cache with the new product
+      const sectionKey = activeSection.key;
+      const updatedProduct = {
+        ...product,
+        featuredSections: [...currentSections, sectionKey].filter((v, i, a) => a.indexOf(v) === i),
+        featuredOrder: currentProducts.length,
+      };
+      
+      queryClient.setQueryData(
+        ['admin', 'marketing', 'section-products', sectionKey],
+        (oldData: Product[] | undefined) => {
+          const existing = oldData ?? [];
+          // Check if product already exists
+          if (existing.some(p => p.id === product.id)) {
+            return existing;
+          }
+          return [...existing, updatedProduct];
+        }
+      );
+      console.log('[handleAddProduct] Cache updated optimistically');
+      
+      // Also refetch to ensure server state is synced
+      console.log('[handleAddProduct] Refetching queries...');
+      await queryClient.invalidateQueries({ 
+        queryKey: ['admin', 'products', 'search'],
+        refetchType: 'all'
+      });
+      console.log('[handleAddProduct] Done!');
+    } catch (error) {
+      console.error('[handleAddProduct] Failed to add product:', error);
+      // Refetch on error to restore correct state
+      await queryClient.refetchQueries({ 
+        queryKey: ['admin', 'marketing', 'section-products', activeSection.key] 
+      });
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Remove product from section
   const handleRemoveProduct = async (product: Product) => {
     if (activeSection === null) return;
     setIsLoading(true);
     try {
       await removeProductFromSection(product.id, activeSection.key, product.featuredSections);
-      invalidateSection(activeSection.key);
+      await invalidateSection(activeSection.key);
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Reorder product in section
   const handleReorderProduct = async (product: Product, direction: 'up' | 'down') => {
     if (activeSection === null) return;
     const products = getSectionProducts(activeSection.key);
@@ -763,114 +874,111 @@ export default function HomepageSectionsPage(): React.ReactElement {
 
     setIsLoading(true);
     try {
-      // Swap orders
       const otherProduct = sorted[newIndex];
       if (otherProduct !== undefined) {
         await updateProductOrder(product.id, newIndex);
         await updateProductOrder(otherProduct.id, currentIndex);
       }
-      invalidateSection(activeSection.key);
+      await invalidateSection(activeSection.key);
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Calculate total products across sections
   const totalProducts = useMemo(() => {
     return sectionQueries.reduce((acc, sq) => acc + (sq.query.data?.length ?? 0), 0);
   }, [sectionQueries]);
 
-  // Calculate active sections count
   const activeSectionsCount = useMemo(() => {
     return sectionQueries.filter((sq) => (sq.query.data?.length ?? 0) > 0).length;
   }, [sectionQueries]);
 
-  // Check if any query is loading
   const isAnyLoading = sectionQueries.some((sq) => sq.query.isLoading);
   const isAnyRefetching = sectionQueries.some((sq) => sq.query.isRefetching);
 
-  // Refetch all sections
   const refetchAll = () => {
     sectionQueries.forEach((sq) => { void sq.query.refetch(); });
   };
 
   return (
-    <div className="space-y-6">
-      {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-text-primary flex items-center gap-3">
-            <LayoutGrid className="h-7 w-7 text-cyan-glow" />
-            Homepage Sections
-          </h1>
-          <p className="text-text-secondary mt-1">
-            Manage which products appear in each homepage section
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          <Button
-            variant="outline"
-            size="sm"
+    <div className="space-y-6 p-6">
+      {/* Header with Gradient Accent */}
+      <div className="relative">
+        <div className="absolute inset-0 bg-linear-to-r from-purple-neon/5 via-cyan-glow/5 to-transparent rounded-2xl blur-xl" />
+        <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-start gap-4">
+            <div className="p-3 rounded-xl bg-purple-neon/10 border border-purple-neon/20 shadow-glow-purple-sm">
+              <Sparkles className="h-7 w-7 text-purple-neon" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight text-text-primary">
+                Homepage Sections
+              </h1>
+              <p className="text-text-secondary text-sm mt-1">
+                Curate products for each homepage section
+              </p>
+            </div>
+          </div>
+          <GlowButton
             onClick={refetchAll}
             disabled={isAnyRefetching}
-            className="border-border-subtle"
+            variant="secondary"
+            size="sm"
+            glowColor="cyan"
           >
-            {isAnyRefetching ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <RefreshCw className="h-4 w-4" />
-            )}
-            <span className="ml-2 hidden sm:inline">Refresh</span>
-          </Button>
+            <RefreshCw className={`mr-2 h-4 w-4 ${isAnyRefetching ? 'animate-spin' : ''}`} />
+            Refresh All
+          </GlowButton>
         </div>
       </div>
 
-      {/* Stats Bar */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <Card className="bg-bg-secondary border-border-subtle">
-          <CardContent className="p-4 flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-cyan-glow/10">
+      {/* Stats Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card className="bg-bg-secondary border-border-subtle hover:border-border-accent transition-colors">
+          <CardContent className="p-4 flex items-center gap-4">
+            <div className="p-2.5 rounded-xl bg-cyan-glow/10 border border-cyan-glow/20">
               <LayoutGrid className="h-5 w-5 text-cyan-glow" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-text-primary">
+              <p className="text-2xl font-bold text-text-primary tabular-nums">
                 {HOMEPAGE_SECTIONS.length}
               </p>
-              <p className="text-xs text-text-muted">Sections</p>
+              <p className="text-xs text-text-muted">Total Sections</p>
             </div>
           </CardContent>
         </Card>
-        <Card className="bg-bg-secondary border-border-subtle">
-          <CardContent className="p-4 flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-green-success/10">
+        
+        <Card className="bg-bg-secondary border-border-subtle hover:border-border-accent transition-colors">
+          <CardContent className="p-4 flex items-center gap-4">
+            <div className="p-2.5 rounded-xl bg-green-success/10 border border-green-success/20">
               <CheckCircle className="h-5 w-5 text-green-success" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-text-primary">{totalProducts}</p>
-              <p className="text-xs text-text-muted">Total Products</p>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="bg-bg-secondary border-border-subtle">
-          <CardContent className="p-4 flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-purple-neon/10">
-              <Eye className="h-5 w-5 text-purple-neon" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-text-primary">
-                {activeSectionsCount}
-              </p>
+              <p className="text-2xl font-bold text-text-primary tabular-nums">{activeSectionsCount}</p>
               <p className="text-xs text-text-muted">Active Sections</p>
             </div>
           </CardContent>
         </Card>
-        <Card className="bg-bg-secondary border-border-subtle">
-          <CardContent className="p-4 flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-orange-warning/10">
+        
+        <Card className="bg-bg-secondary border-border-subtle hover:border-border-accent transition-colors">
+          <CardContent className="p-4 flex items-center gap-4">
+            <div className="p-2.5 rounded-xl bg-purple-neon/10 border border-purple-neon/20">
+              <Package className="h-5 w-5 text-purple-neon" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-text-primary tabular-nums">{totalProducts}</p>
+              <p className="text-xs text-text-muted">Total Products</p>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card className="bg-bg-secondary border-border-subtle hover:border-border-accent transition-colors">
+          <CardContent className="p-4 flex items-center gap-4">
+            <div className="p-2.5 rounded-xl bg-orange-warning/10 border border-orange-warning/20">
               <Zap className="h-5 w-5 text-orange-warning" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-text-primary">
+              <p className="text-2xl font-bold text-text-primary tabular-nums">
                 {HOMEPAGE_SECTIONS.reduce((acc, s) => acc + s.maxProducts, 0)}
               </p>
               <p className="text-xs text-text-muted">Max Capacity</p>
@@ -881,27 +989,28 @@ export default function HomepageSectionsPage(): React.ReactElement {
 
       {/* Sections Grid */}
       {isAnyLoading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {Array.from({ length: 5 }).map((_, i) => (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          {Array.from({ length: 4 }).map((_, i) => (
             <Card key={i} className="bg-bg-secondary border-border-subtle animate-pulse">
-              <CardHeader className="pb-3">
+              <CardHeader className="p-5 pb-4">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-bg-tertiary" />
-                  <div className="space-y-2">
-                    <div className="w-24 h-4 bg-bg-tertiary rounded" />
-                    <div className="w-16 h-3 bg-bg-tertiary rounded" />
+                  <div className="w-11 h-11 rounded-xl bg-bg-tertiary" />
+                  <div className="space-y-2 flex-1">
+                    <div className="w-32 h-4 bg-bg-tertiary rounded" />
+                    <div className="w-20 h-3 bg-bg-tertiary rounded" />
                   </div>
                 </div>
               </CardHeader>
-              <CardContent>
-                <div className="w-full h-3 bg-bg-tertiary rounded mb-4" />
-                <div className="w-full h-9 bg-bg-tertiary rounded" />
+              <CardContent className="px-5 pb-5 pt-0 space-y-4">
+                <div className="w-full h-3 bg-bg-tertiary rounded" />
+                <div className="w-full h-1.5 bg-bg-tertiary rounded-full" />
+                <div className="w-full h-9 bg-bg-tertiary rounded-lg" />
               </CardContent>
             </Card>
           ))}
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           {HOMEPAGE_SECTIONS.map((config) => (
             <SectionCard
               key={config.key}
@@ -928,10 +1037,10 @@ export default function HomepageSectionsPage(): React.ReactElement {
       {/* Info Alert */}
       <Alert className="bg-cyan-glow/5 border-cyan-glow/20">
         <Eye className="h-4 w-4 text-cyan-glow" />
-        <AlertTitle className="text-cyan-glow">Preview Changes</AlertTitle>
-        <AlertDescription className="text-text-secondary">
+        <AlertTitle className="text-cyan-glow font-semibold">Preview Changes</AlertTitle>
+        <AlertDescription className="text-text-secondary text-sm">
           Changes are saved immediately. Visit the{' '}
-          <a href="/" target="_blank" className="text-cyan-glow hover:underline">
+          <a href="/" target="_blank" rel="noopener noreferrer" className="text-cyan-glow hover:underline font-medium">
             homepage
           </a>{' '}
           to see your updates live.

@@ -77,7 +77,7 @@ import { MetricsModule } from '../metrics/metrics.module';
           return new MockKinguinClient() as unknown as KinguinClient;
         }
 
-        logger.log(`✅ Using real KinguinClient (API key: ${apiKey.substring(0, 8)}...)`);
+        logger.log('✅ Using real KinguinClient');
         return new KinguinClient(apiKey, baseUrl);
       },
     },

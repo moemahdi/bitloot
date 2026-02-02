@@ -60,39 +60,115 @@ import { useErrorHandler } from '@/hooks/useErrorHandler';
 import { useNetworkStatus } from '@/hooks/useNetworkStatus';
 import { motion } from 'framer-motion';
 
-// Platform options
+// Platform options - matching Kinguin API values
 const PLATFORMS = [
-    { value: 'STEAM', label: 'Steam' },
-    { value: 'EPIC', label: 'Epic Games' },
-    { value: 'UPLAY', label: 'Ubisoft Connect' },
-    { value: 'ORIGIN', label: 'EA Origin' },
-    { value: 'GOG', label: 'GOG' },
-    { value: 'XBOX', label: 'Xbox' },
-    { value: 'PLAYSTATION', label: 'PlayStation' },
-    { value: 'NINTENDO', label: 'Nintendo' },
-    { value: 'BATTLENET', label: 'Battle.net' },
-    { value: 'OTHER', label: 'Other' },
+    { value: 'Steam', label: 'Steam' },
+    { value: 'PC Steam', label: 'PC Steam' },
+    { value: 'PC Epic Games', label: 'Epic Games' },
+    { value: 'PC Ubisoft Connect', label: 'Ubisoft Connect' },
+    { value: 'EA App', label: 'EA App' },
+    { value: 'PC GOG', label: 'GOG' },
+    { value: 'PC Battle.net', label: 'Battle.net' },
+    { value: 'PC Rockstar Games', label: 'Rockstar Games' },
+    { value: 'Xbox One', label: 'Xbox One' },
+    { value: 'Xbox Series X|S', label: 'Xbox Series X|S' },
+    { value: 'Xbox Live', label: 'Xbox Live' },
+    { value: 'PlayStation 4', label: 'PlayStation 4' },
+    { value: 'PlayStation 5', label: 'PlayStation 5' },
+    { value: 'PlayStation Network', label: 'PlayStation Network' },
+    { value: 'Nintendo Switch', label: 'Nintendo Switch' },
+    { value: 'Nintendo eShop', label: 'Nintendo eShop' },
+    { value: 'PC Digital Download', label: 'PC Digital Download' },
+    { value: 'PC', label: 'PC (Other)' },
+    { value: 'Other', label: 'Other' },
 ] as const;
 
-// Region options
+// Region options - matching Kinguin API values
 const REGIONS = [
-    { value: 'GLOBAL', label: 'Global' },
-    { value: 'NA', label: 'North America' },
-    { value: 'EU', label: 'Europe' },
-    { value: 'UK', label: 'United Kingdom' },
-    { value: 'ASIA', label: 'Asia' },
-    { value: 'LATAM', label: 'Latin America' },
-    { value: 'OCEANIA', label: 'Oceania' },
-    { value: 'OTHER', label: 'Other' },
+    { value: 'REGION FREE', label: 'Region Free (Global)' },
+    { value: 'Region free', label: 'Region Free' },
+    { value: 'Europe', label: 'Europe' },
+    { value: 'United States', label: 'United States' },
+    { value: 'United Kingdom', label: 'United Kingdom' },
+    { value: 'North America', label: 'North America' },
+    { value: 'Asia', label: 'Asia' },
+    { value: 'Latin America', label: 'Latin America' },
+    { value: 'Australia', label: 'Australia' },
+    { value: 'Germany', label: 'Germany' },
+    { value: 'France', label: 'France' },
+    { value: 'Other', label: 'Other' },
 ] as const;
 
-// Category options
+// Field character limits (matching backend DTO validation)
+const FIELD_LIMITS = {
+    title: 255,
+    subtitle: 255,
+    kinguinOfferId: 255,
+    platform: 50,
+    region: 100,
+    drm: 100,
+    ageRating: 50,
+    category: 50,
+    currency: 3,
+} as const;
+
+/**
+ * Format a number string to proper decimal format (00.00)
+ */
+function formatPrice(value: string | number | undefined | null): string {
+    if (value === undefined || value === null || value === '') {
+        return '';
+    }
+    const num = typeof value === 'string' ? parseFloat(value) : value;
+    if (isNaN(num)) {
+        return '';
+    }
+    return num.toFixed(2);
+}
+
+/**
+ * Parse price input to ensure valid decimal format
+ */
+function parsePrice(value: string): string {
+    // Remove non-numeric chars except . and -
+    const cleaned = value.replace(/[^0-9.-]/g, '');
+    
+    // Limit to 2 decimal places
+    const parts = cleaned.split('.');
+    if (parts.length > 2) {
+        return parts[0] + '.' + parts.slice(1).join('');
+    }
+    if (parts[1] && parts[1].length > 2) {
+        return parts[0] + '.' + parts[1].substring(0, 2);
+    }
+    
+    return cleaned;
+}
+
+/**
+ * Get character count display with color coding
+ */
+function CharacterCount({ current, max }: { current: number; max: number }): React.JSX.Element {
+    const percentage = (current / max) * 100;
+    let colorClass = 'text-text-muted';
+    if (percentage >= 90) {
+        colorClass = 'text-destructive';
+    } else if (percentage >= 75) {
+        colorClass = 'text-orange-warning';
+    }
+    
+    return (
+        <span className={`text-xs ${colorClass}`}>
+            {current}/{max}
+        </span>
+    );
+}
+
+// Business category options (BitLoot store organization)
 const CATEGORIES = [
     { value: 'games', label: 'Games' },
     { value: 'software', label: 'Software' },
     { value: 'subscriptions', label: 'Subscriptions' },
-    { value: 'dlc', label: 'DLC' },
-    { value: 'other', label: 'Other' },
 ] as const;
 
 // Currency options
@@ -112,6 +188,7 @@ interface FormData {
     drm: string;
     ageRating: string;
     category: string;
+    businessCategory: 'games' | 'software' | 'subscriptions';
     cost: string;
     price: string;
     currency: string;
@@ -123,14 +200,15 @@ const initialFormData: FormData = {
     title: '',
     subtitle: '',
     description: '',
-    platform: 'STEAM',
-    region: 'GLOBAL',
+    platform: 'Steam',
+    region: 'REGION FREE',
     drm: '',
     ageRating: '',
-    category: 'games',
+    category: '',
+    businessCategory: 'games',
     cost: '',
     price: '',
-    currency: 'USD',
+    currency: 'EUR',
     isPublished: false,
 };
 
@@ -183,14 +261,15 @@ export default function AdminEditProductPage(): React.JSX.Element {
             title: product.title ?? '',
             subtitle: product.subtitle ?? '',
             description: product.description ?? '',
-            platform: product.platform ?? 'STEAM',
-            region: product.region ?? 'GLOBAL',
+            platform: product.platform ?? 'Steam',
+            region: product.region ?? product.regionalLimitations ?? 'REGION FREE',
             drm: product.drm ?? '',
             ageRating: product.ageRating ?? '',
-            category: product.category ?? 'games',
-            cost: product.cost?.toString() ?? '',
-            price: product.price?.toString() ?? '',
-            currency: product.currency ?? 'USD',
+            category: product.category ?? '',
+            businessCategory: (product.businessCategory as 'games' | 'software' | 'subscriptions') ?? 'games',
+            cost: formatPrice(product.cost),
+            price: formatPrice(product.price),
+            currency: product.currency ?? 'EUR',
             isPublished: product.isPublished ?? false,
         });
         setHasChanges(false);
@@ -222,7 +301,20 @@ export default function AdminEditProductPage(): React.JSX.Element {
             router.push('/admin/catalog/products');
         },
         onError: (error: unknown): void => {
-            handleError(error instanceof Error ? error : new Error(String(error)), 'update-product');
+            // Extract detailed error message if available
+            let errorMessage = 'Failed to update product';
+            if (error instanceof Error) {
+                errorMessage = error.message;
+            }
+            // Try to parse API error response
+            if (typeof error === 'object' && error !== null && 'body' in error) {
+                const body = (error as { body?: { message?: string | string[] } }).body;
+                if (body?.message) {
+                    errorMessage = Array.isArray(body.message) ? body.message.join(', ') : body.message;
+                }
+            }
+            setLastError(errorMessage);
+            handleError(error instanceof Error ? error : new Error(errorMessage), 'update-product');
         },
     });
 
@@ -277,26 +369,54 @@ export default function AdminEditProductPage(): React.JSX.Element {
     const validateForm = (): boolean => {
         const errors: Record<string, string> = {};
 
+        // Title validation
         if (formData.title.trim().length === 0) {
             errors.title = 'Title is required';
+        } else if (formData.title.length < 3) {
+            errors.title = 'Title must be at least 3 characters';
+        } else if (formData.title.length > FIELD_LIMITS.title) {
+            errors.title = `Title must be less than ${FIELD_LIMITS.title} characters`;
         }
 
+        // Cost validation
         if (formData.cost.trim().length === 0) {
             errors.cost = 'Cost is required';
-        } else if (isNaN(parseFloat(formData.cost)) || parseFloat(formData.cost) < 0) {
-            errors.cost = 'Cost must be a valid positive number';
+        } else {
+            const costNum = parseFloat(formData.cost);
+            if (isNaN(costNum)) {
+                errors.cost = 'Cost must be a valid number (e.g., 45.99)';
+            } else if (costNum < 0) {
+                errors.cost = 'Cost cannot be negative';
+            }
         }
 
+        // Price validation
         if (formData.price.trim().length === 0) {
             errors.price = 'Price is required';
-        } else if (isNaN(parseFloat(formData.price)) || parseFloat(formData.price) < 0) {
-            errors.price = 'Price must be a valid positive number';
+        } else {
+            const priceNum = parseFloat(formData.price);
+            if (isNaN(priceNum)) {
+                errors.price = 'Price must be a valid number (e.g., 59.99)';
+            } else if (priceNum < 0) {
+                errors.price = 'Price cannot be negative';
+            }
         }
 
         // Kinguin Offer ID is required for Kinguin products
         const product = productQuery.data;
         if (product?.sourceType === 'kinguin' && formData.kinguinOfferId.trim().length === 0) {
             errors.kinguinOfferId = 'Kinguin Offer ID is required for Kinguin products';
+        }
+
+        // Field length validations
+        if (formData.drm.length > FIELD_LIMITS.drm) {
+            errors.drm = `DRM must be less than ${FIELD_LIMITS.drm} characters`;
+        }
+        if (formData.ageRating.length > FIELD_LIMITS.ageRating) {
+            errors.ageRating = `Age rating must be less than ${FIELD_LIMITS.ageRating} characters`;
+        }
+        if (formData.platform.length > FIELD_LIMITS.platform) {
+            errors.platform = `Platform must be less than ${FIELD_LIMITS.platform} characters`;
         }
 
         setValidationErrors(errors);
@@ -306,28 +426,48 @@ export default function AdminEditProductPage(): React.JSX.Element {
     // Handle form submission
     const handleSubmit = (e: React.FormEvent): void => {
         e.preventDefault();
+        setLastError(null);
 
         if (!validateForm()) {
             return;
         }
 
+        // Format prices to ensure proper decimal format
+        const formattedCost = formatPrice(formData.cost) || '0.00';
+        const formattedPrice = formatPrice(formData.price) || '0.00';
+
         const productData: UpdateProductDto = {
             kinguinOfferId: formData.kinguinOfferId.length > 0 ? formData.kinguinOfferId : undefined,
-            title: formData.title,
-            subtitle: formData.subtitle.length > 0 ? formData.subtitle : undefined,
-            description: formData.description.length > 0 ? formData.description : undefined,
+            title: formData.title.trim(),
+            subtitle: formData.subtitle.trim().length > 0 ? formData.subtitle.trim() : undefined,
+            description: formData.description.trim().length > 0 ? formData.description.trim() : undefined,
             platform: formData.platform.length > 0 ? formData.platform : undefined,
             region: formData.region.length > 0 ? formData.region : undefined,
-            drm: formData.drm.length > 0 ? formData.drm : undefined,
-            ageRating: formData.ageRating.length > 0 ? formData.ageRating : undefined,
+            drm: formData.drm.trim().length > 0 ? formData.drm.trim() : undefined,
+            ageRating: formData.ageRating.trim().length > 0 ? formData.ageRating.trim() : undefined,
             category: formData.category.length > 0 ? formData.category : undefined,
-            cost: formData.cost,
-            price: formData.price,
+            businessCategory: formData.businessCategory,
+            cost: formattedCost,
+            price: formattedPrice,
             currency: formData.currency,
             // Note: isPublished is handled separately via publish/unpublish endpoints
         };
 
         updateMutation.mutate(productData);
+    };
+
+    // Handle price input with proper parsing
+    const handlePriceChange = (field: 'cost' | 'price', value: string): void => {
+        const parsed = parsePrice(value);
+        updateField(field, parsed);
+    };
+
+    // Handle price blur to format to 2 decimal places
+    const handlePriceBlur = (field: 'cost' | 'price'): void => {
+        const formatted = formatPrice(formData[field]);
+        if (formatted !== formData[field]) {
+            setFormData((prev) => ({ ...prev, [field]: formatted }));
+        }
     };
 
     // Update form field
@@ -346,6 +486,18 @@ export default function AdminEditProductPage(): React.JSX.Element {
 
     const product = productQuery.data;
     const isKinguin = product?.sourceType === 'kinguin';
+
+    // Build dynamic platform options - include current value if not in list
+    const platformOptions = [...PLATFORMS];
+    if (formData.platform && !platformOptions.some(p => p.value === formData.platform)) {
+        platformOptions.push({ value: formData.platform, label: formData.platform } as typeof PLATFORMS[number]);
+    }
+
+    // Build dynamic region options - include current value if not in list
+    const regionOptions = [...REGIONS];
+    if (formData.region && !regionOptions.some(r => r.value === formData.region)) {
+        regionOptions.push({ value: formData.region, label: formData.region } as typeof REGIONS[number]);
+    }
 
     // Loading state
     if (productQuery.isLoading) {
@@ -677,10 +829,10 @@ export default function AdminEditProductPage(): React.JSX.Element {
                                 </div>
 
                                 <div className="space-y-2">
-                                    <Label htmlFor="category" className="text-text-secondary">
-                                        Category
+                                    <Label htmlFor="businessCategory" className="text-text-secondary">
+                                        Business Category
                                     </Label>
-                                    <Select value={formData.category} onValueChange={(v) => updateField('category', v)}>
+                                    <Select value={formData.businessCategory} onValueChange={(v) => updateField('businessCategory', v as 'games' | 'software' | 'subscriptions')}>
                                         <SelectTrigger className="border-border-subtle bg-bg-tertiary/50 focus:border-cyan-glow/50 focus:ring-cyan-glow/20 transition-all duration-250">
                                             <SelectValue placeholder="Select category" />
                                         </SelectTrigger>
@@ -722,13 +874,16 @@ export default function AdminEditProductPage(): React.JSX.Element {
                                                 <SelectValue placeholder="Select platform" />
                                             </SelectTrigger>
                                             <SelectContent className="border-border-subtle bg-bg-secondary/95 backdrop-blur-xl max-h-60">
-                                                {PLATFORMS.map((p) => (
+                                                {platformOptions.map((p) => (
                                                     <SelectItem key={p.value} value={p.value}>
                                                         {p.label}
                                                     </SelectItem>
                                                 ))}
                                             </SelectContent>
                                         </Select>
+                                        {validationErrors.platform !== undefined && (
+                                            <p className="text-xs text-destructive">{validationErrors.platform}</p>
+                                        )}
                                     </div>
 
                                     <div className="space-y-2">
@@ -739,8 +894,8 @@ export default function AdminEditProductPage(): React.JSX.Element {
                                             <SelectTrigger className="border-border-subtle bg-bg-tertiary/50 focus:border-cyan-glow/50 focus:ring-cyan-glow/20 transition-all duration-250">
                                                 <SelectValue placeholder="Select region" />
                                             </SelectTrigger>
-                                            <SelectContent className="border-border-subtle bg-bg-secondary/95 backdrop-blur-xl">
-                                                {REGIONS.map((r) => (
+                                            <SelectContent className="border-border-subtle bg-bg-secondary/95 backdrop-blur-xl max-h-60">
+                                                {regionOptions.map((r) => (
                                                     <SelectItem key={r.value} value={r.value}>
                                                         {r.label}
                                                     </SelectItem>
@@ -750,29 +905,43 @@ export default function AdminEditProductPage(): React.JSX.Element {
                                     </div>
 
                                     <div className="space-y-2">
-                                        <Label htmlFor="drm" className="text-text-secondary">
-                                            DRM
-                                        </Label>
+                                        <div className="flex items-center justify-between">
+                                            <Label htmlFor="drm" className="text-text-secondary">
+                                                DRM
+                                            </Label>
+                                            <CharacterCount current={formData.drm.length} max={FIELD_LIMITS.drm} />
+                                        </div>
                                         <Input
                                             id="drm"
                                             value={formData.drm}
                                             onChange={(e) => updateField('drm', e.target.value)}
-                                            placeholder="e.g., Steam, DRM-Free"
-                                            className="border-border-subtle bg-bg-tertiary/50 focus:border-cyan-glow/50 focus:ring-cyan-glow/20 transition-all duration-250"
+                                            placeholder="e.g., Steam, DRM-Free, Ubisoft Connect"
+                                            maxLength={FIELD_LIMITS.drm}
+                                            className={`border-border-subtle bg-bg-tertiary/50 focus:border-cyan-glow/50 focus:ring-cyan-glow/20 transition-all duration-250 ${validationErrors.drm !== undefined ? 'border-destructive' : ''}`}
                                         />
+                                        {validationErrors.drm !== undefined && (
+                                            <p className="text-xs text-destructive">{validationErrors.drm}</p>
+                                        )}
                                     </div>
 
                                     <div className="space-y-2">
-                                        <Label htmlFor="ageRating" className="text-text-secondary">
-                                            Age Rating
-                                        </Label>
+                                        <div className="flex items-center justify-between">
+                                            <Label htmlFor="ageRating" className="text-text-secondary">
+                                                Age Rating
+                                            </Label>
+                                            <CharacterCount current={formData.ageRating.length} max={FIELD_LIMITS.ageRating} />
+                                        </div>
                                         <Input
                                             id="ageRating"
                                             value={formData.ageRating}
                                             onChange={(e) => updateField('ageRating', e.target.value)}
-                                            placeholder="e.g., PEGI-18, ESRB-M"
-                                            className="border-border-subtle bg-bg-tertiary/50 focus:border-cyan-glow/50 focus:ring-cyan-glow/20 transition-all duration-250"
+                                            placeholder="e.g., PEGI 18, ESRB M, USK 16"
+                                            maxLength={FIELD_LIMITS.ageRating}
+                                            className={`border-border-subtle bg-bg-tertiary/50 focus:border-cyan-glow/50 focus:ring-cyan-glow/20 transition-all duration-250 ${validationErrors.ageRating !== undefined ? 'border-destructive' : ''}`}
                                         />
+                                        {validationErrors.ageRating !== undefined && (
+                                            <p className="text-xs text-destructive">{validationErrors.ageRating}</p>
+                                        )}
                                     </div>
                                 </div>
                             </CardContent>
@@ -817,7 +986,7 @@ export default function AdminEditProductPage(): React.JSX.Element {
 
                                 <div className="space-y-2">
                                     <Label htmlFor="cost" className="text-text-secondary">
-                                        Cost <span className="text-destructive">*</span>
+                                        Cost (EUR) <span className="text-destructive">*</span>
                                     </Label>
                                     <div className="relative">
                                         <span className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted font-mono">
@@ -825,11 +994,11 @@ export default function AdminEditProductPage(): React.JSX.Element {
                                         </span>
                                         <Input
                                             id="cost"
-                                            type="number"
-                                            step="0.01"
-                                            min="0"
+                                            type="text"
+                                            inputMode="decimal"
                                             value={formData.cost}
-                                            onChange={(e) => updateField('cost', e.target.value)}
+                                            onChange={(e) => handlePriceChange('cost', e.target.value)}
+                                            onBlur={() => handlePriceBlur('cost')}
                                             placeholder="0.00"
                                             className={`pl-7 font-mono border-border-subtle bg-bg-tertiary/50 focus:border-cyan-glow/50 focus:ring-cyan-glow/20 transition-all duration-250 ${validationErrors.cost !== undefined ? 'border-destructive' : ''
                                                 }`}
@@ -838,12 +1007,12 @@ export default function AdminEditProductPage(): React.JSX.Element {
                                     {validationErrors.cost !== undefined && (
                                         <p className="text-xs text-destructive">{validationErrors.cost}</p>
                                     )}
-                                    <p className="text-xs text-text-muted">Your wholesale cost</p>
+                                    <p className="text-xs text-text-muted">Your wholesale cost from Kinguin or supplier</p>
                                 </div>
 
                                 <div className="space-y-2">
                                     <Label htmlFor="price" className="text-text-secondary">
-                                        Retail Price <span className="text-destructive">*</span>
+                                        Retail Price (EUR) <span className="text-destructive">*</span>
                                     </Label>
                                     <div className="relative">
                                         <span className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted font-mono">
@@ -851,11 +1020,11 @@ export default function AdminEditProductPage(): React.JSX.Element {
                                         </span>
                                         <Input
                                             id="price"
-                                            type="number"
-                                            step="0.01"
-                                            min="0"
+                                            type="text"
+                                            inputMode="decimal"
                                             value={formData.price}
-                                            onChange={(e) => updateField('price', e.target.value)}
+                                            onChange={(e) => handlePriceChange('price', e.target.value)}
+                                            onBlur={() => handlePriceBlur('price')}
                                             placeholder="0.00"
                                             className={`pl-7 font-mono border-border-subtle bg-bg-tertiary/50 focus:border-cyan-glow/50 focus:ring-cyan-glow/20 transition-all duration-250 ${validationErrors.price !== undefined ? 'border-destructive' : ''
                                                 }`}
@@ -864,7 +1033,7 @@ export default function AdminEditProductPage(): React.JSX.Element {
                                     {validationErrors.price !== undefined && (
                                         <p className="text-xs text-destructive">{validationErrors.price}</p>
                                     )}
-                                    <p className="text-xs text-text-muted">Customer-facing price</p>
+                                    <p className="text-xs text-text-muted">Customer-facing price on storefront</p>
                                 </div>
 
                                 {/* Profit Preview */}

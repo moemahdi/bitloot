@@ -12,8 +12,9 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from '@/design-system/primitives/accordion';
-import { Gamepad2, Monitor, Clock, DollarSign, Star, RotateCcw, Tag } from 'lucide-react';
+import { Gamepad2, Monitor, Clock, DollarSign, Star, RotateCcw, Tag, Sparkles } from 'lucide-react';
 import { cn } from '@/design-system/utils/utils';
+import { GENRES } from '../types';
 
 // BitLoot Business Categories - The 4 main store sections
 const BITLOOT_CATEGORIES = [
@@ -40,16 +41,19 @@ const BITLOOT_CATEGORIES = [
   },
 ];
 
-// Platform options with colors
+// Platform options with colors - IDs must be lowercase to match backend filter mapping
 const PLATFORMS = [
-  { id: 'Steam', label: 'Steam', color: 'text-blue-400' },
-  { id: 'Origin', label: 'EA / Origin', color: 'text-orange-400' },
-  { id: 'Uplay', label: 'Ubisoft', color: 'text-cyan-400' },
-  { id: 'Xbox', label: 'Xbox', color: 'text-green-400' },
-  { id: 'PlayStation', label: 'PlayStation', color: 'text-blue-500' },
-  { id: 'Epic', label: 'Epic Games', color: 'text-slate-400' },
-  { id: 'GOG', label: 'GOG', color: 'text-purple-400' },
-  { id: 'Nintendo', label: 'Nintendo', color: 'text-red-400' },
+  { id: 'steam', label: 'Steam', color: 'text-blue-400' },
+  { id: 'origin', label: 'EA / Origin', color: 'text-orange-400' },
+  { id: 'uplay', label: 'Ubisoft', color: 'text-cyan-400' },
+  { id: 'xbox', label: 'Xbox', color: 'text-green-400' },
+  { id: 'playstation', label: 'PlayStation', color: 'text-blue-500' },
+  { id: 'epic', label: 'Epic Games', color: 'text-slate-400' },
+  { id: 'gog', label: 'GOG', color: 'text-purple-400' },
+  { id: 'nintendo', label: 'Nintendo', color: 'text-red-400' },
+  { id: 'android', label: 'Android', color: 'text-green-500' },
+  { id: 'pc', label: 'PC', color: 'text-gray-400' },
+  { id: 'rockstar', label: 'Rockstar Games', color: 'text-yellow-500' },
 ];
 
 export function CatalogFilters(): React.ReactElement {
@@ -59,6 +63,7 @@ export function CatalogFilters(): React.ReactElement {
   const [priceRange, setPriceRange] = useState([0, 200]);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]);
+  const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
 
   // Initialize from URL
   useEffect(() => {
@@ -74,6 +79,9 @@ export function CatalogFilters(): React.ReactElement {
 
     const platforms = (searchParams.get('platform') ?? '').split(',').filter(Boolean);
     setSelectedPlatforms(platforms);
+
+    const genres = (searchParams.get('genre') ?? '').split(',').filter(Boolean);
+    setSelectedGenres(genres);
   }, [searchParams]);
 
   const updateFilters = (): void => {
@@ -91,6 +99,12 @@ export function CatalogFilters(): React.ReactElement {
       params.delete('platform');
     }
 
+    if (selectedGenres.length > 0) {
+      params.set('genre', selectedGenres.join(','));
+    } else {
+      params.delete('genre');
+    }
+
     params.set('minPrice', (priceRange[0] ?? 0).toString());
     params.set('maxPrice', (priceRange[1] ?? 200).toString());
     params.set('page', '1');
@@ -102,6 +116,7 @@ export function CatalogFilters(): React.ReactElement {
     setPriceRange([0, 200]);
     setSelectedCategory(null);
     setSelectedPlatforms([]);
+    setSelectedGenres([]);
     router.push('/catalog');
   };
 
@@ -115,9 +130,16 @@ export function CatalogFilters(): React.ReactElement {
     );
   };
 
+  const toggleGenre = (genre: string): void => {
+    setSelectedGenres((prev) =>
+      prev.includes(genre) ? prev.filter((g) => g !== genre) : [...prev, genre]
+    );
+  };
+
   const hasActiveFilters =
     selectedCategory !== null ||
     selectedPlatforms.length > 0 ||
+    selectedGenres.length > 0 ||
     priceRange[0] !== 0 ||
     priceRange[1] !== 200;
 
@@ -127,7 +149,7 @@ export function CatalogFilters(): React.ReactElement {
       {hasActiveFilters && (
         <div className="flex items-center justify-between rounded-lg border border-cyan-glow/20 bg-cyan-glow/5 px-3 py-2">
           <span className="text-sm text-cyan-glow">
-            {(selectedCategory !== null ? 1 : 0) + selectedPlatforms.length + (priceRange[0] !== 0 || priceRange[1] !== 200 ? 1 : 0)}{' '}
+            {(selectedCategory !== null ? 1 : 0) + selectedPlatforms.length + selectedGenres.length + (priceRange[0] !== 0 || priceRange[1] !== 200 ? 1 : 0)}{' '}
             filters active
           </span>
           <button
@@ -139,7 +161,7 @@ export function CatalogFilters(): React.ReactElement {
         </div>
       )}
 
-      <Accordion type="multiple" defaultValue={['category', 'platform', 'price']} className="w-full">
+      <Accordion type="multiple" defaultValue={['category', 'platform', 'genre', 'price']} className="w-full">
         {/* Categories - The 4 BitLoot Business Categories */}
         <AccordionItem value="category" className="border-border-subtle">
           <AccordionTrigger className="text-white hover:text-cyan-glow hover:no-underline">
@@ -215,6 +237,45 @@ export function CatalogFilters(): React.ReactElement {
                     className={cn('cursor-pointer text-sm', platform.color)}
                   >
                     {platform.label}
+                  </Label>
+                </div>
+              ))}
+            </div>
+          </AccordionContent>
+        </AccordionItem>
+
+        {/* Genres */}
+        <AccordionItem value="genre" className="border-border-subtle">
+          <AccordionTrigger className="text-white hover:text-cyan-glow hover:no-underline">
+            <div className="flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-cyan-glow" />
+              <span>Genres</span>
+              {selectedGenres.length > 0 && (
+                <span className="ml-2 rounded-full bg-cyan-glow/20 px-2 py-0.5 text-xs text-cyan-glow">
+                  {selectedGenres.length}
+                </span>
+              )}
+            </div>
+          </AccordionTrigger>
+          <AccordionContent>
+            <div className="max-h-64 space-y-2 overflow-y-auto pt-2">
+              {GENRES.map((genre) => (
+                <div
+                  key={genre.id}
+                  className="flex cursor-pointer items-center space-x-3 rounded-lg px-2 py-1.5 transition-colors hover:bg-bg-tertiary"
+                  onClick={() => toggleGenre(genre.id)}
+                >
+                  <Checkbox
+                    id={`genre-${genre.id}`}
+                    checked={selectedGenres.includes(genre.id)}
+                    onCheckedChange={() => toggleGenre(genre.id)}
+                    className="border-border-subtle data-[state=checked]:border-cyan-glow data-[state=checked]:bg-cyan-glow"
+                  />
+                  <Label
+                    htmlFor={`genre-${genre.id}`}
+                    className={cn('cursor-pointer text-sm', genre.color)}
+                  >
+                    {genre.label}
                   </Label>
                 </div>
               ))}

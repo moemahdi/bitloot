@@ -111,6 +111,7 @@ export class CatalogController {
   @ApiQuery({ name: 'region', required: false, description: 'Filter by region (US, EU, etc)' })
   @ApiQuery({ name: 'businessCategory', required: false, description: 'Filter by BitLoot category: games, software, subscriptions' })
   @ApiQuery({ name: 'category', required: false, description: 'Filter by genre (legacy Kinguin genres)' })
+  @ApiQuery({ name: 'genre', required: false, description: 'Filter by genre (comma-separated: action,rpg,adventure)' })
   @ApiQuery({ name: 'featured', required: false, type: 'boolean', description: 'Show only featured products' })
   @ApiQuery({ name: 'minPrice', required: false, type: 'number', description: 'Minimum price filter (EUR)' })
   @ApiQuery({ name: 'maxPrice', required: false, type: 'number', description: 'Maximum price filter (EUR)' })
@@ -124,6 +125,7 @@ export class CatalogController {
     @Query('region') region?: string,
     @Query('businessCategory') businessCategory?: string,
     @Query('category') category?: string,
+    @Query('genre') genre?: string,
     @Query('featured') featuredParam?: string,
     @Query('minPrice') minPriceParam?: string,
     @Query('maxPrice') maxPriceParam?: string,
@@ -149,6 +151,7 @@ export class CatalogController {
         region,
         businessCategory,
         category,
+        genre,
         featured,
         minPrice,
         maxPrice,

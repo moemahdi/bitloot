@@ -107,7 +107,7 @@ import { FulfillmentGateway as _FulfillmentGateway } from './fulfillment.gateway
           return new MockKinguinClient() as unknown as KinguinClient;
         }
 
-        logger.log(`✅ Using real KinguinClient (API key: ${apiKey.substring(0, 8)}...)`);
+        logger.log('✅ Using real KinguinClient');
         return new KinguinClient(apiKey, baseUrl);
       },
     },
@@ -131,7 +131,7 @@ import { FulfillmentGateway as _FulfillmentGateway } from './fulfillment.gateway
 
         // Use real client when credentials are available (even in dev mode)
         if (hasCredentials) {
-          logger.log(`✅ Using real R2StorageClient (bucket: ${bucketName})`);
+          logger.log('✅ Using real R2StorageClient');
           return new R2StorageClient({
             endpoint,
             accessKeyId,

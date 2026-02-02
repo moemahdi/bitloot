@@ -41,6 +41,7 @@ import {
   Trash2,
   Gamepad2,
   Clock,
+  Sparkles,
   X,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
@@ -50,11 +51,13 @@ import type {
   BusinessCategory,
   PlatformOption,
   RegionOption,
+  GenreOption,
 } from '../types';
 import { 
   BUSINESS_CATEGORIES, 
   PLATFORMS, 
-  REGIONS, 
+  REGIONS,
+  GENRES,
   PRICE_PRESETS,
 } from '../types';
 
@@ -71,6 +74,7 @@ interface FilterPanelProps {
   onReset: () => void;
   platforms?: PlatformOption[];
   regions?: RegionOption[];
+  genres?: GenreOption[];
   savedPresets: FilterPreset[];
   onSavePreset: (name: string) => void;
   onApplyPreset: (preset: FilterPreset) => void;
@@ -88,6 +92,7 @@ export function FilterPanel({
   onReset,
   platforms = PLATFORMS,
   regions = REGIONS,
+  genres = GENRES,
   savedPresets,
   onSavePreset,
   onApplyPreset,
@@ -143,6 +148,15 @@ export function FilterPanel({
     onFilterChange({ platform: newPlatforms });
   }, [filters.platform, onFilterChange]);
   
+  // Handle genre toggle
+  const handleGenreToggle = useCallback((genreId: string) => {
+    const currentGenres = filters.genre.split(',').filter(g => g !== '');
+    const newGenres = currentGenres.includes(genreId)
+      ? currentGenres.filter((g) => g !== genreId)
+      : [...currentGenres, genreId];
+    onFilterChange({ genre: newGenres.join(',') });
+  }, [filters.genre, onFilterChange]);
+  
   // Handle region change
   const handleRegionChange = useCallback((regionId: string) => {
     const newRegion = filters.region === regionId ? '' : regionId;
@@ -173,6 +187,7 @@ export function FilterPanel({
     filters.search !== '',
     filters.businessCategory !== null,
     filters.platform.length > 0,
+    filters.genre !== '',
     filters.region !== '',
     filters.minPrice > 0 || filters.maxPrice < 500,
   ].filter(Boolean).length;
@@ -248,7 +263,7 @@ export function FilterPanel({
       
       <Accordion 
         type="multiple" 
-        defaultValue={['category', 'platform', 'price']} 
+        defaultValue={[]} 
         className="w-full"
       >
         {/* Categories */}
@@ -341,6 +356,48 @@ export function FilterPanel({
                   </Label>
                 </div>
               ))}
+            </div>
+          </AccordionContent>
+        </AccordionItem>
+        
+        {/* Genres */}
+        <AccordionItem value="genre" className="border-border-subtle">
+          <AccordionTrigger className="text-white hover:text-cyan-glow hover:no-underline">
+            <div className="flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-cyan-glow" aria-hidden="true" />
+              <span>Genres</span>
+              {filters.genre !== '' && (
+                <Badge variant="secondary" className="ml-2 bg-cyan-glow/20 text-cyan-glow text-xs">
+                  {filters.genre.split(',').filter(g => g !== '').length}
+                </Badge>
+              )}
+            </div>
+          </AccordionTrigger>
+          <AccordionContent>
+            <div className="max-h-64 space-y-2 overflow-y-auto pt-2">
+              {genres.map((genre) => {
+                const selectedGenres = filters.genre.split(',').filter(g => g !== '');
+                return (
+                  <div
+                    key={genre.id}
+                    className="flex cursor-pointer items-center space-x-3 rounded-lg px-2 py-1.5 transition-colors hover:bg-bg-tertiary"
+                    onClick={() => handleGenreToggle(genre.id)}
+                  >
+                    <Checkbox
+                      id={`genre-${genre.id}`}
+                      checked={selectedGenres.includes(genre.id)}
+                      onCheckedChange={() => handleGenreToggle(genre.id)}
+                      className="border-border-subtle data-[state=checked]:border-cyan-glow data-[state=checked]:bg-cyan-glow"
+                    />
+                    <Label
+                      htmlFor={`genre-${genre.id}`}
+                      className={cn('cursor-pointer text-sm', genre.color ?? 'text-text-primary')}
+                    >
+                      {genre.label}
+                    </Label>
+                  </div>
+                );
+              })}
             </div>
           </AccordionContent>
         </AccordionItem>

@@ -98,7 +98,7 @@ function BundleCard({ bundle, onSelect }: { bundle: BundleDeal; onSelect: (bundl
                   alt={bundle.name}
                   fill
                   sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                  className="object-contain transition-transform duration-500 group-hover:scale-110"
+                  className="object-cover transition-transform duration-500 group-hover:scale-110"
                 />
               ) : (
                 <div className="w-full h-full flex items-center justify-center">
@@ -160,7 +160,7 @@ function BundleCard({ bundle, onSelect }: { bundle: BundleDeal; onSelect: (bundl
                             alt=""
                             fill
                             sizes="40px"
-                            className="object-contain"
+                            className="object-cover"
                           />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center">

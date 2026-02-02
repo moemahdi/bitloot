@@ -87,9 +87,7 @@ export class R2StorageClient {
       },
     });
 
-    this.logger.debug(
-      `✅ R2StorageClient initialized: ${this.endpoint} (bucket: ${this.bucketName})`,
-    );
+    this.logger.debug('✅ R2StorageClient initialized');
   }
 
   /**

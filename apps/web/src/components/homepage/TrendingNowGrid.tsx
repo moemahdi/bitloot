@@ -1,19 +1,33 @@
 'use client';
 
-import { useMemo, useCallback, useState } from 'react';
+/**
+ * TrendingNowGrid - 3 Carousel Layout
+ * 
+ * Redesigned trending section with 3 horizontal scrollable carousels:
+ * - Grid 1: Top Sellers (ranks 1-16)
+ * - Grid 2: Rising Stars (ranks 17-32)
+ * - Grid 3: Hot Picks (ranks 33-48)
+ * 
+ * Inspired by RecommendedForYou carousel design with auto-scroll,
+ * segment progress indicators, and compact product cards.
+ */
+
+import { useMemo, useCallback, useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { useQuery } from '@tanstack/react-query';
 import { CatalogApi, Configuration } from '@bitloot/sdk';
 import type { ProductListResponseDto } from '@bitloot/sdk';
 import { toast } from 'sonner';
+import { cn } from '@/design-system/utils/utils';
 
 // API Configuration
 const apiConfig = new Configuration({
     basePath: process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000',
 });
 const catalogApi = new CatalogApi(apiConfig);
+
 import {
     TrendingUp,
     Star,
@@ -24,12 +38,22 @@ import {
     Eye,
     ChevronLeft,
     ChevronRight,
+    Rocket,
+    Sparkles,
+    Zap,
+    Package,
 } from 'lucide-react';
 
 // Design System Components
 import { Button } from '@/design-system/primitives/button';
 import { Badge } from '@/design-system/primitives/badge';
 import { Skeleton } from '@/design-system/primitives/skeleton';
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from '@/design-system/primitives/tooltip';
 import { useCart } from '@/context/CartContext';
 import { useAuth } from '@/hooks/useAuth';
 import { useAddToWatchlist, useRemoveFromWatchlist, useCheckWatchlist } from '@/features/watchlist/hooks/useWatchlist';
@@ -53,30 +77,59 @@ interface TrendingProduct {
     discount?: number;
 }
 
+interface CarouselConfig {
+    id: string;
+    title: string;
+    subtitle: string;
+    icon: React.ElementType;
+    iconBg: string;
+    iconColor: string;
+    accentColor: string;
+    startIndex: number;
+    endIndex: number;
+}
+
 // ============================================================================
-// LOADING SKELETON
+// CONSTANTS
 // ============================================================================
 
-function TrendingGridSkeleton(): React.ReactElement {
-    return (
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
-            {Array.from({ length: 12 }).map((_, i) => (
-                <div key={i} className="overflow-hidden rounded-xl bg-bg-secondary border border-border-subtle">
-                    <Skeleton className="aspect-[16/10]" />
-                    <div className="p-4 space-y-3">
-                        <Skeleton className="h-4 w-16" />
-                        <Skeleton className="h-5 w-full" />
-                        <Skeleton className="h-4 w-1/2" />
-                        <div className="flex gap-2 pt-2">
-                            <Skeleton className="h-8 flex-1" />
-                            <Skeleton className="h-8 flex-1" />
-                        </div>
-                    </div>
-                </div>
-            ))}
-        </div>
-    );
-}
+const TOTAL_PRODUCTS = 48;
+
+const CAROUSEL_CONFIGS: CarouselConfig[] = [
+    {
+        id: 'top-sellers',
+        title: 'Top Sellers',
+        subtitle: 'Best performing games this week',
+        icon: Flame,
+        iconBg: 'bg-orange-warning/20',
+        iconColor: 'text-orange-warning',
+        accentColor: 'orange-warning',
+        startIndex: 0,
+        endIndex: 16,
+    },
+    {
+        id: 'rising-stars',
+        title: 'Rising Stars',
+        subtitle: 'Rapidly climbing in popularity',
+        icon: Rocket,
+        iconBg: 'bg-purple-neon/20',
+        iconColor: 'text-purple-neon',
+        accentColor: 'purple-neon',
+        startIndex: 16,
+        endIndex: 32,
+    },
+    {
+        id: 'hot-picks',
+        title: 'Hot Picks',
+        subtitle: 'Editor\'s recommended trending games',
+        icon: Sparkles,
+        iconBg: 'bg-cyan-glow/20',
+        iconColor: 'text-cyan-glow',
+        accentColor: 'cyan-glow',
+        startIndex: 32,
+        endIndex: 48,
+    },
+];
 
 // ============================================================================
 // HELPER FUNCTIONS
@@ -92,42 +145,34 @@ function formatPrice(price: number | string): string {
     }).format(numPrice);
 }
 
-// Platform badge component
-function PlatformBadge({ platform }: { platform: string }): React.ReactElement {
-    const platformColors: Record<string, string> = {
-        steam: 'bg-[#1b2838] text-white',
-        origin: 'bg-[#f56c2d] text-white',
-        ubisoft: 'bg-[#0070ff] text-white',
-        gog: 'bg-[#86328a] text-white',
-        epic: 'bg-[#313131] text-white',
-        xbox: 'bg-[#107c10] text-white',
-        playstation: 'bg-[#003791] text-white',
-        nintendo: 'bg-[#e60012] text-white',
-        battlenet: 'bg-[#00ceff] text-black',
-        rockstar: 'bg-[#fcaf17] text-black',
-    };
-    const colorClass = platformColors[platform.toLowerCase()] ?? 'bg-bg-tertiary text-text-secondary';
-    return (
-        <Badge className={`text-[10px] px-1.5 py-0.5 font-medium uppercase tracking-wider border-0 ${colorClass}`}>
-            {platform}
-        </Badge>
-    );
-}
+// Platform badge colors
+const platformColors: Record<string, string> = {
+    steam: 'bg-[#1b2838] text-white',
+    origin: 'bg-[#f56c2d] text-white',
+    ubisoft: 'bg-[#0070ff] text-white',
+    gog: 'bg-[#86328a] text-white',
+    epic: 'bg-[#313131] text-white',
+    xbox: 'bg-[#107c10] text-white',
+    playstation: 'bg-[#003791] text-white',
+    nintendo: 'bg-[#e60012] text-white',
+    battlenet: 'bg-[#00ceff] text-black',
+    rockstar: 'bg-[#fcaf17] text-black',
+};
 
 // ============================================================================
-// PRODUCT CARD COMPONENT
+// COMPACT TRENDING CARD
 // ============================================================================
 
-interface TrendingProductCardProps {
+interface TrendingCardProps {
     product: TrendingProduct;
     rank: number;
+    accentColor: string;
     onAddToCart: (product: TrendingProduct) => void;
     onToggleWishlist: (productId: string, isInWishlist: boolean) => void;
 }
 
-function TrendingProductCard({ product, rank, onAddToCart, onToggleWishlist }: TrendingProductCardProps): React.ReactElement {
-    const [isHovered, setIsHovered] = useState(false);
-    const [imageLoaded, setImageLoaded] = useState(false);
+function TrendingCard({ product, rank, accentColor, onAddToCart, onToggleWishlist }: TrendingCardProps): React.ReactElement {
+    const [imageError, setImageError] = useState(false);
     const [isAddingToCart, setIsAddingToCart] = useState(false);
 
     // Wishlist state
@@ -137,10 +182,11 @@ function TrendingProductCard({ product, rank, onAddToCart, onToggleWishlist }: T
     const handleAddToCart = useCallback((e: React.MouseEvent) => {
         e.preventDefault();
         e.stopPropagation();
+        if (isAddingToCart) return;
         setIsAddingToCart(true);
         onAddToCart(product);
-        setTimeout(() => setIsAddingToCart(false), 1000);
-    }, [product, onAddToCart]);
+        setTimeout(() => setIsAddingToCart(false), 1500);
+    }, [product, onAddToCart, isAddingToCart]);
 
     const handleToggleWishlist = useCallback((e: React.MouseEvent) => {
         e.preventDefault();
@@ -150,147 +196,400 @@ function TrendingProductCard({ product, rank, onAddToCart, onToggleWishlist }: T
 
     const isTopThree = rank <= 3;
     const hasDiscount = product.discount != null && product.discount > 0;
+    const hasImage = product.image !== undefined && product.image !== '' && !imageError;
+    const platformKey = product.platform?.toLowerCase() ?? 'other';
 
     // Rank badge colors
     const getRankBadgeClass = () => {
         if (rank === 1) return 'bg-gradient-to-r from-yellow-400 to-orange-400 text-black';
         if (rank === 2) return 'bg-gradient-to-r from-gray-300 to-gray-400 text-black';
         if (rank === 3) return 'bg-gradient-to-r from-amber-600 to-orange-700 text-white';
-        return 'bg-bg-tertiary/90 backdrop-blur-sm text-text-primary border border-border-subtle';
+        return 'bg-bg-tertiary/90 backdrop-blur-sm text-text-primary';
+    };
+
+    // Accent hover color class
+    const getHoverClass = () => {
+        if (accentColor === 'orange-warning') return 'hover:border-orange-warning/40 hover:shadow-[0_0_20px_rgba(251,146,60,0.15)]';
+        if (accentColor === 'purple-neon') return 'hover:border-purple-neon/40 hover:shadow-[0_0_20px_rgba(157,78,221,0.15)]';
+        return 'hover:border-cyan-glow/40 hover:shadow-[0_0_20px_rgba(0,217,255,0.15)]';
     };
 
     return (
-        <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.4, delay: Math.min(rank * 0.05, 0.4) }}
+        <div
+            className={cn(
+                'group flex flex-col rounded-xl overflow-hidden bg-bg-secondary border border-border-subtle',
+                'transition-all duration-300 hover:-translate-y-1',
+                getHoverClass()
+            )}
         >
+            {/* Clickable Link Area */}
             <Link
                 href={`/product/${product.slug}`}
-                className="group relative flex flex-col overflow-hidden rounded-xl border border-border-subtle bg-bg-secondary transition-all duration-300 hover:border-orange-warning/40 hover:shadow-[0_0_25px_rgba(251,146,60,0.15)] hover:-translate-y-1"
-                onMouseEnter={() => setIsHovered(true)}
-                onMouseLeave={() => setIsHovered(false)}
+                className="flex flex-col flex-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-glow focus-visible:ring-inset"
             >
-                {/* Image container - 16/10 aspect ratio like CatalogProductCard */}
-                <div className="relative aspect-[16/10] overflow-hidden bg-bg-tertiary">
-                    {/* Loading skeleton */}
-                    {!imageLoaded && (
-                        <div className="absolute inset-0 animate-pulse bg-bg-tertiary" />
+                {/* Image Container */}
+                <div className="relative aspect-16/10 overflow-hidden bg-bg-tertiary">
+                    {hasImage ? (
+                        <Image
+                            src={product.image ?? ''}
+                            alt=""
+                            fill
+                            sizes="(max-width: 640px) 45vw, (max-width: 1024px) 30vw, 18vw"
+                            className="object-contain transition-transform duration-500 group-hover:scale-110"
+                            onError={() => setImageError(true)}
+                            loading="lazy"
+                        />
+                    ) : (
+                        <div className="flex h-full w-full items-center justify-center">
+                            <Package className="h-8 w-8 text-text-muted" aria-hidden="true" />
+                        </div>
                     )}
-                    
-                    {/* Product image */}
-                    <Image
-                        src={product.image !== undefined && product.image !== '' && product.image.length > 0 ? product.image : '/placeholder-product.jpg'}
-                        alt={product.name}
-                        fill
-                        className={`object-contain transition-all duration-500 ${imageLoaded ? 'opacity-100' : 'opacity-0'} ${isHovered ? 'scale-110' : ''}`}
-                        onLoad={() => setImageLoaded(true)}
-                        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
-                    />
-                    
-                    {/* Gradient overlay on hover */}
-                    <div className={`absolute inset-0 bg-gradient-to-t from-bg-primary/90 via-bg-primary/20 to-transparent transition-opacity duration-300 ${isHovered ? 'opacity-100' : 'opacity-0'}`} />
-                    
+
                     {/* Top badges */}
-                    <div className="absolute top-3 left-3 right-3 flex items-start justify-between">
-                        <div className="flex flex-wrap gap-1.5">
+                    <div className="absolute top-2 left-2 right-2 flex items-start justify-between">
+                        <div className="flex flex-wrap gap-1">
                             {/* Rank Badge */}
-                            <div className={`flex items-center gap-1 px-2 py-1 rounded-lg font-bold text-xs shadow-lg ${getRankBadgeClass()}`}>
-                                {isTopThree && <Flame className="w-3 h-3" />}
+                            <div className={cn(
+                                'flex items-center gap-0.5 px-1.5 py-0.5 rounded-md font-bold text-[10px] shadow-lg',
+                                getRankBadgeClass()
+                            )}>
+                                {isTopThree && <Flame className="w-2.5 h-2.5" />}
                                 #{rank}
                             </div>
                             {/* Discount Badge */}
                             {hasDiscount && (
-                                <Badge className="bg-green-success text-bg-primary border-0 text-xs font-bold px-2 py-0.5">
+                                <Badge className="bg-green-success text-bg-primary border-0 text-[10px] font-bold px-1.5 py-0.5">
                                     -{product.discount}%
                                 </Badge>
                             )}
                         </div>
-                        
+
                         {/* Wishlist button */}
                         <button
                             onClick={handleToggleWishlist}
-                            className={`rounded-full bg-bg-primary/80 p-2 backdrop-blur-sm transition-all hover:bg-bg-primary hover:scale-110 ${isInWishlist ? 'text-pink-featured' : 'text-white'} ${isHovered ? 'opacity-100' : 'opacity-0'}`}
+                            className={cn(
+                                'rounded-full bg-bg-primary/80 p-1.5 backdrop-blur-sm transition-all hover:scale-110',
+                                isInWishlist ? 'text-pink-featured' : 'text-white opacity-0 group-hover:opacity-100'
+                            )}
                             aria-label={isInWishlist ? 'Remove from wishlist' : 'Add to wishlist'}
                         >
-                            <Heart className={`h-4 w-4 ${isInWishlist ? 'fill-current' : ''}`} />
+                            <Heart className={cn('h-3.5 w-3.5', isInWishlist && 'fill-current')} />
                         </button>
                     </div>
-                    
-                    {/* Trending indicator for top 3 */}
-                    {isTopThree && (
-                        <div className="absolute bottom-3 left-3 flex items-center gap-1.5 rounded-full bg-orange-500/90 px-2.5 py-1 text-xs font-medium text-white backdrop-blur-sm">
-                            <TrendingUp className="h-3.5 w-3.5" />
-                            Hot this week
-                        </div>
-                    )}
+
+                    {/* Instant delivery badge */}
+                    <div className="absolute bottom-2 right-2">
+                        <Badge variant="secondary" className="glass text-[9px] px-1.5 py-0.5">
+                            <Zap className="h-2.5 w-2.5 mr-0.5 text-green-success" />
+                            Instant
+                        </Badge>
+                    </div>
                 </div>
-                
+
                 {/* Content */}
-                <div className="flex flex-1 flex-col p-4">
-                    {/* Platform and category */}
-                    <div className="mb-2 flex items-center gap-2">
-                        {product.platform !== undefined && <PlatformBadge platform={product.platform} />}
+                <div className="flex flex-1 flex-col p-3">
+                    {/* Platform & Category */}
+                    <div className="mb-1.5 flex items-center gap-1.5 flex-wrap">
+                        {product.platform !== undefined && (
+                            <Badge
+                                className={cn(
+                                    'text-[9px] px-1.5 py-0 uppercase tracking-wider border-0',
+                                    platformColors[platformKey] ?? 'bg-bg-tertiary text-text-secondary'
+                                )}
+                            >
+                                {product.platform}
+                            </Badge>
+                        )}
                         {product.category !== undefined && (
-                            <span className="text-xs text-text-muted capitalize">{product.category}</span>
+                            <span className="text-[10px] text-text-muted capitalize">{product.category}</span>
                         )}
                     </div>
-                    
-                    {/* Title */}
-                    <h3 className="mb-2 text-sm font-medium text-white line-clamp-2 group-hover:text-cyan-glow transition-colors min-h-[2.25rem]">
-                        {product.name}
-                    </h3>
-                    
+
+                    {/* Title with Tooltip */}
+                    <TooltipProvider delayDuration={300}>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <h3 className="mb-1.5 text-sm font-medium text-text-primary line-clamp-2 min-h-10 group-hover:text-cyan-glow transition-colors cursor-default">
+                                    {product.name}
+                                </h3>
+                            </TooltipTrigger>
+                            <TooltipContent side="top" className="max-w-xs bg-bg-tertiary border-border-accent text-text-primary">
+                                {product.name}
+                            </TooltipContent>
+                        </Tooltip>
+                    </TooltipProvider>
+
                     {/* Rating */}
-                    <div className="mb-3 flex items-center gap-1.5">
-                        <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-bg-tertiary/50">
-                            <Star className="h-3 w-3 fill-orange-warning text-orange-warning" aria-hidden="true" />
+                    <div className="mb-2 flex items-center gap-1">
+                        <div className="flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-bg-tertiary/50">
+                            <Star className="h-3 w-3 fill-orange-warning text-orange-warning" />
                             <span className="text-xs font-semibold text-text-primary tabular-nums">
                                 {product.rating !== undefined ? product.rating.toFixed(1) : '4.8'}
                             </span>
                         </div>
                     </div>
-                    
-                    {/* Price and action */}
-                    <div className="mt-auto pt-2 border-t border-border-subtle">
-                        <div className="flex flex-col mb-3">
-                            <span className="text-lg font-bold text-white">
-                                {formatPrice(product.price)}
+
+                    {/* Price */}
+                    <div className="mt-auto flex items-baseline gap-1.5">
+                        <span className="text-base font-bold text-text-primary">
+                            {formatPrice(product.price)}
+                        </span>
+                        {hasDiscount && product.originalPrice !== undefined && (
+                            <span className="text-xs text-text-muted line-through">
+                                {formatPrice(product.originalPrice)}
                             </span>
-                            {hasDiscount && product.originalPrice !== undefined && (
-                                <span className="text-xs text-text-muted line-through">
-                                    {formatPrice(product.originalPrice)}
-                                </span>
-                            )}
-                        </div>
-                        
-                        {/* Action Buttons */}
-                        <div className="flex gap-2 w-full">
-                            <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={handleAddToCart}
-                                disabled={isAddingToCart}
-                                className="flex-1 h-8 text-xs font-medium border-border-accent bg-bg-tertiary/50 text-text-secondary hover:text-cyan-glow hover:border-cyan-glow/60 hover:bg-bg-tertiary hover:shadow-glow-cyan-sm transition-all duration-200"
-                                aria-label={`Add ${product.name} to cart`}
-                            >
-                                <ShoppingCart className="h-3.5 w-3.5 mr-1" />
-                                Cart
-                            </Button>
-                            <Button
-                                size="sm"
-                                className="flex-1 h-8 text-xs font-semibold bg-cyan-glow text-bg-primary hover:bg-cyan-glow/90 hover:shadow-glow-cyan active:scale-[0.98] transition-all duration-200"
-                                aria-label={`View ${product.name} details`}
-                            >
-                                <Eye className="h-3.5 w-3.5 mr-1" />
-                                View
-                            </Button>
-                        </div>
+                        )}
                     </div>
                 </div>
             </Link>
-        </motion.div>
+
+            {/* Action Buttons */}
+            <div className="px-2.5 pb-2.5 pt-1.5 border-t border-border-subtle flex gap-1.5">
+                <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={handleAddToCart}
+                    disabled={isAddingToCart}
+                    className="flex-1 h-8 text-xs font-medium border-border-accent bg-bg-tertiary/50 text-text-secondary hover:text-cyan-glow hover:border-cyan-glow/60"
+                >
+                    <ShoppingCart className="h-3.5 w-3.5 mr-1" />
+                    Cart
+                </Button>
+                <Button
+                    size="sm"
+                    asChild
+                    className="flex-1 h-8 text-xs font-semibold bg-cyan-glow text-bg-primary hover:bg-cyan-glow/90"
+                >
+                    <Link href={`/product/${product.slug}`}>
+                        <Eye className="h-3.5 w-3.5 mr-1" />
+                        View
+                    </Link>
+                </Button>
+            </div>
+        </div>
+    );
+}
+
+// ============================================================================
+// CAROUSEL SKELETON
+// ============================================================================
+
+function CarouselSkeleton(): React.ReactElement {
+    return (
+        <div className="flex gap-4 overflow-hidden">
+            {Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="w-56 sm:w-64 md:w-72 shrink-0 rounded-xl bg-bg-secondary border border-border-subtle overflow-hidden">
+                    <Skeleton className="aspect-16/10" />
+                    <div className="p-3 space-y-2">
+                        <Skeleton className="h-3 w-14" />
+                        <Skeleton className="h-4 w-full" />
+                        <Skeleton className="h-3 w-1/2" />
+                        <Skeleton className="h-4 w-16" />
+                    </div>
+                </div>
+            ))}
+        </div>
+    );
+}
+
+// ============================================================================
+// SINGLE CAROUSEL COMPONENT
+// ============================================================================
+
+interface TrendingCarouselProps {
+    config: CarouselConfig;
+    products: TrendingProduct[];
+    onAddToCart: (product: TrendingProduct) => void;
+    onToggleWishlist: (productId: string, isInWishlist: boolean) => void;
+    isLoading: boolean;
+}
+
+function TrendingCarousel({ config, products, onAddToCart, onToggleWishlist, isLoading }: TrendingCarouselProps): React.ReactElement {
+    const scrollContainerRef = useRef<HTMLDivElement>(null);
+    const [canScrollLeft, setCanScrollLeft] = useState(false);
+    const [canScrollRight, setCanScrollRight] = useState(true);
+    const [activeSegment, setActiveSegment] = useState(0);
+    const [totalSegments, setTotalSegments] = useState(1);
+    const [isAutoScrollPaused, setIsAutoScrollPaused] = useState(false);
+
+    const IconComponent = config.icon;
+
+    // Check scroll state
+    const checkScrollState = useCallback(() => {
+        const container = scrollContainerRef.current;
+        if (container === null) return;
+
+        setCanScrollLeft(container.scrollLeft > 0);
+        setCanScrollRight(
+            container.scrollLeft < container.scrollWidth - container.clientWidth - 10
+        );
+
+        // Calculate segments
+        const cardWidth = 288; // ~18rem card width + gap
+        const visibleCards = Math.floor(container.clientWidth / cardWidth);
+        const segments = Math.max(1, Math.ceil(products.length / Math.max(1, visibleCards)));
+        setTotalSegments(segments);
+
+        // Calculate active segment
+        const scrollProgress = container.scrollLeft / Math.max(1, container.scrollWidth - container.clientWidth);
+        const currentSegment = Math.min(segments - 1, Math.floor(scrollProgress * segments));
+        setActiveSegment(Number.isNaN(currentSegment) ? 0 : currentSegment);
+    }, [products.length]);
+
+    // Initialize scroll state
+    useEffect(() => {
+        checkScrollState();
+        window.addEventListener('resize', checkScrollState);
+        return () => window.removeEventListener('resize', checkScrollState);
+    }, [checkScrollState, products]);
+
+    // Scroll function
+    const scroll = useCallback((direction: 'left' | 'right') => {
+        const container = scrollContainerRef.current;
+        if (container === null) return;
+
+        const cardWidth = 288;
+        const scrollAmount = direction === 'left' ? -cardWidth * 3 : cardWidth * 3;
+        container.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+    }, []);
+
+    // Scroll to segment
+    const scrollToSegment = useCallback((segmentIndex: number) => {
+        const container = scrollContainerRef.current;
+        if (container === null || totalSegments <= 1) return;
+
+        const maxScroll = container.scrollWidth - container.clientWidth;
+        const targetScroll = (segmentIndex / (totalSegments - 1)) * maxScroll;
+        container.scrollTo({ left: targetScroll, behavior: 'smooth' });
+    }, [totalSegments]);
+
+    // Auto-scroll
+    useEffect(() => {
+        if (isAutoScrollPaused || products.length === 0) return;
+
+        const intervalId = setInterval(() => {
+            const container = scrollContainerRef.current;
+            if (container === null) return;
+
+const cardWidth = 288;
+            const isAtEnd = container.scrollLeft >= container.scrollWidth - container.clientWidth - 10;
+
+            if (isAtEnd) {
+                container.scrollTo({ left: 0, behavior: 'smooth' });
+            } else {
+                container.scrollBy({ left: cardWidth * 2, behavior: 'smooth' });
+            }
+        }, 15000);
+
+        return () => clearInterval(intervalId);
+    }, [isAutoScrollPaused, products.length]);
+
+    if (products.length === 0 && !isLoading) return <></>;
+
+    return (
+        <div className="space-y-4">
+            {/* Carousel Header */}
+            <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                    <div className={cn('flex h-9 w-9 items-center justify-center rounded-lg shadow-card-sm', config.iconBg)}>
+                        <IconComponent className={cn('h-4 w-4', config.iconColor)} />
+                    </div>
+                    <div>
+                        <h3 className="text-base font-semibold text-text-primary">{config.title}</h3>
+                        <p className="text-xs text-text-muted">{config.subtitle}</p>
+                    </div>
+                </div>
+
+                {/* Navigation */}
+                <div className="flex items-center gap-2">
+                    <div className="hidden sm:flex gap-1">
+                        <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={() => scroll('left')}
+                            disabled={!canScrollLeft}
+                            className="h-7 w-7 rounded-full border-border-subtle bg-bg-tertiary disabled:opacity-30"
+                        >
+                            <ChevronLeft className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={() => scroll('right')}
+                            disabled={!canScrollRight}
+                            className="h-7 w-7 rounded-full border-border-subtle bg-bg-tertiary disabled:opacity-30"
+                        >
+                            <ChevronRight className="h-3.5 w-3.5" />
+                        </Button>
+                    </div>
+                </div>
+            </div>
+
+            {/* Carousel */}
+            <div
+                className="relative"
+                onMouseEnter={() => setIsAutoScrollPaused(true)}
+                onMouseLeave={() => setIsAutoScrollPaused(false)}
+            >
+                {/* Gradient fades */}
+                <div className={cn(
+                    'pointer-events-none absolute left-0 top-0 bottom-0 z-10 w-6 bg-linear-to-r from-bg-primary to-transparent transition-opacity',
+                    canScrollLeft ? 'opacity-100' : 'opacity-0'
+                )} />
+                <div className={cn(
+                    'pointer-events-none absolute right-0 top-0 bottom-0 z-10 w-6 bg-linear-to-l from-bg-primary to-transparent transition-opacity',
+                    canScrollRight ? 'opacity-100' : 'opacity-0'
+                )} />
+
+                {/* Products */}
+                <div
+                    ref={scrollContainerRef}
+                    onScroll={checkScrollState}
+                    className="flex gap-4 overflow-x-auto pb-2 scrollbar-hidden scroll-smooth snap-x snap-mandatory -mx-1 px-1"
+                >
+                    {isLoading ? (
+                        <CarouselSkeleton />
+                    ) : (
+                        products.map((product, index) => (
+                            <div key={product.id} className="w-56 sm:w-64 md:w-72 shrink-0 snap-start">
+                                <TrendingCard
+                                    product={product}
+                                    rank={config.startIndex + index + 1}
+                                    accentColor={config.accentColor}
+                                    onAddToCart={onAddToCart}
+                                    onToggleWishlist={onToggleWishlist}
+                                />
+                            </div>
+                        ))
+                    )}
+                </div>
+            </div>
+
+            {/* Segment Progress */}
+            {!isLoading && products.length > 0 && totalSegments > 1 && (
+                <div className="flex items-center justify-center gap-1.5">
+                    {Array.from({ length: totalSegments }).map((_, index) => (
+                        <button
+                            key={index}
+                            onClick={() => scrollToSegment(index)}
+                            className={cn(
+                                'h-1 rounded-full transition-all duration-300',
+                                index === activeSegment
+                                    ? 'w-5'
+                                    : 'w-1.5 bg-border-accent hover:bg-text-muted'
+                            )}
+                            style={{
+                                backgroundColor: index === activeSegment
+                                    ? (config.accentColor === 'orange-warning' ? '#ff6b00' :
+                                        config.accentColor === 'purple-neon' ? '#9d4edd' : '#00d9ff')
+                                    : undefined
+                            }}
+                            aria-label={`Go to section ${index + 1}`}
+                        />
+                    ))}
+                </div>
+            )}
+        </div>
     );
 }
 
@@ -298,21 +597,17 @@ function TrendingProductCard({ product, rank, onAddToCart, onToggleWishlist }: T
 // MAIN COMPONENT
 // ============================================================================
 
-const PRODUCTS_PER_PAGE = 12;
-const TOTAL_PRODUCTS = 48;
-
 export function TrendingNowGrid(): React.ReactElement {
     const { addItem } = useCart();
     const { isAuthenticated } = useAuth();
     const { mutate: addToWatchlist } = useAddToWatchlist();
     const { mutate: removeFromWatchlist } = useRemoveFromWatchlist();
-    const [currentPage, setCurrentPage] = useState(0);
 
-    // Fetch trending products from admin-configured 'trending' section
+    // Fetch trending products
     const { data: trendingData, isLoading, error } = useQuery<ProductListResponseDto>({
         queryKey: ['homepage', 'section', 'trending'],
         queryFn: () => catalogApi.catalogControllerGetProductsBySection({ sectionKey: 'trending', limit: TOTAL_PRODUCTS }),
-        staleTime: 2 * 60 * 1000, // 2 minutes to pick up admin changes quickly
+        staleTime: 2 * 60 * 1000,
     });
 
     // Transform API response
@@ -331,6 +626,14 @@ export function TrendingNowGrid(): React.ReactElement {
         }));
     }, [trendingData]);
 
+    // Split products into 3 groups
+    const productGroups = useMemo(() => {
+        return CAROUSEL_CONFIGS.map((config) => ({
+            config,
+            products: trendingProducts.slice(config.startIndex, config.endIndex),
+        }));
+    }, [trendingProducts]);
+
     // Handle Add to Cart
     const handleAddToCart = useCallback((product: TrendingProduct) => {
         addItem({
@@ -347,52 +650,26 @@ export function TrendingNowGrid(): React.ReactElement {
     const handleToggleWishlist = useCallback((productId: string, isInWishlist: boolean) => {
         if (!isAuthenticated) {
             toast.error('Please login to add items to your wishlist', {
-                action: {
-                    label: 'Login',
-                    onClick: () => { window.location.href = '/auth/login'; },
-                },
+                action: { label: 'Login', onClick: () => { window.location.href = '/auth/login'; } },
             });
             return;
         }
 
         if (isInWishlist) {
-            removeFromWatchlist(productId, {
-                onError: () => toast.error('Failed to remove from wishlist'),
-            });
+            removeFromWatchlist(productId, { onError: () => toast.error('Failed to remove from wishlist') });
         } else {
-            addToWatchlist(productId, {
-                onError: () => toast.error('Failed to add to wishlist'),
-            });
+            addToWatchlist(productId, { onError: () => toast.error('Failed to add to wishlist') });
         }
     }, [isAuthenticated, addToWatchlist, removeFromWatchlist]);
 
-    // Pagination logic
-    const totalPages = Math.ceil(trendingProducts.length / PRODUCTS_PER_PAGE);
-    const paginatedProducts = useMemo(() => {
-        const start = currentPage * PRODUCTS_PER_PAGE;
-        return trendingProducts.slice(start, start + PRODUCTS_PER_PAGE);
-    }, [trendingProducts, currentPage]);
-
-    const handlePrevPage = useCallback(() => {
-        setCurrentPage((prev) => Math.max(0, prev - 1));
-    }, []);
-
-    const handleNextPage = useCallback(() => {
-        setCurrentPage((prev) => Math.min(totalPages - 1, prev + 1));
-    }, [totalPages]);
-
-    const handlePageClick = useCallback((pageIndex: number) => {
-        setCurrentPage(pageIndex);
-    }, []);
-
-    // Don't render if error or no products
+    // Don't render on error
     if (error !== null && error !== undefined) {
         return <></>;
     }
 
     return (
-        <section className="py-16 bg-bg-primary relative">
-            {/* Subtle top gradient */}
+        <section className="py-12 md:py-16 bg-bg-primary relative">
+            {/* Top gradient line */}
             <div
                 className="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-orange-warning/30 to-transparent"
                 aria-hidden="true"
@@ -405,106 +682,53 @@ export function TrendingNowGrid(): React.ReactElement {
                     whileInView={{ opacity: 1, y: 0 }}
                     viewport={{ once: true }}
                     transition={{ duration: 0.5 }}
-                    className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-10"
+                    className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-8"
                 >
                     <div className="flex items-center gap-3">
-                        <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-gradient-to-br from-orange-warning/20 to-pink-featured/20 border border-orange-warning/30">
-                            <TrendingUp className="w-6 h-6 text-orange-warning" aria-hidden="true" />
+                        <div className="flex items-center justify-center w-11 h-11 rounded-xl bg-linear-to-br from-orange-warning/20 to-pink-featured/20 border border-orange-warning/30">
+                            <TrendingUp className="w-5 h-5 text-orange-warning" />
                         </div>
                         <div>
-                            <h2 className="text-2xl md:text-3xl font-display font-bold text-text-primary flex items-center gap-3">
+                            <h2 className="text-xl md:text-2xl font-display font-bold text-text-primary flex items-center gap-2">
                                 Trending Now
-                                <Badge className="bg-gradient-to-r from-orange-warning to-pink-featured text-white border-0 text-xs">
+                                <Badge className="bg-linear-to-r from-orange-warning to-pink-featured text-white border-0 text-[10px]">
                                     POPULAR
                                 </Badge>
                             </h2>
-                            <p className="text-sm text-text-muted mt-1">
+                            <p className="text-sm text-text-muted mt-0.5">
                                 Most popular games this week based on sales
                             </p>
                         </div>
                     </div>
 
-                    <Button asChild variant="outline" className="group">
+                    <Button asChild variant="outline" size="sm" className="group">
                         <Link href="/catalog?sort=rating">
                             View All Trending
-                            <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
+                            <ArrowRight className="ml-2 h-3.5 w-3.5 transition-transform group-hover:translate-x-1" />
                         </Link>
                     </Button>
                 </motion.div>
 
-                {/* Products Carousel */}
-                {isLoading ? (
-                    <TrendingGridSkeleton />
-                ) : paginatedProducts.length > 0 ? (
-                    <div className="relative group">
-                        {/* Left Arrow */}
-                        {totalPages > 1 && currentPage > 0 && (
-                            <button
-                                onClick={handlePrevPage}
-                                className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 z-20 w-12 h-12 rounded-full bg-bg-secondary/90 backdrop-blur-sm border border-border-accent shadow-lg flex items-center justify-center text-text-primary hover:bg-orange-warning hover:text-bg-primary hover:border-orange-warning hover:shadow-glow-cyan transition-all duration-300 opacity-0 group-hover:opacity-100 group-hover:-translate-x-6"
-                                aria-label="Previous products"
-                            >
-                                <ChevronLeft className="w-6 h-6" />
-                            </button>
-                        )}
-
-                        {/* Right Arrow */}
-                        {totalPages > 1 && currentPage < totalPages - 1 && (
-                            <button
-                                onClick={handleNextPage}
-                                className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 z-20 w-12 h-12 rounded-full bg-bg-secondary/90 backdrop-blur-sm border border-border-accent shadow-lg flex items-center justify-center text-text-primary hover:bg-orange-warning hover:text-bg-primary hover:border-orange-warning hover:shadow-glow-cyan transition-all duration-300 opacity-0 group-hover:opacity-100 group-hover:translate-x-6"
-                                aria-label="Next products"
-                            >
-                                <ChevronRight className="w-6 h-6" />
-                            </button>
-                        )}
-
-                        {/* Products Grid with Animation */}
-                        <AnimatePresence mode="wait">
-                            <motion.div
-                                key={currentPage}
-                                initial={{ opacity: 0, x: 50 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                exit={{ opacity: 0, x: -50 }}
-                                transition={{ duration: 0.3, ease: 'easeInOut' }}
-                                className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6"
-                            >
-                                {paginatedProducts.map((product, index) => (
-                                    <TrendingProductCard
-                                        key={product.id}
-                                        product={product}
-                                        rank={currentPage * PRODUCTS_PER_PAGE + index + 1}
-                                        onAddToCart={handleAddToCart}
-                                        onToggleWishlist={handleToggleWishlist}
-                                    />
-                                ))}
-                            </motion.div>
-                        </AnimatePresence>
-
-                        {/* Page Indicators (dots) */}
-                        {totalPages > 1 && (
-                            <div className="flex items-center justify-center gap-2 mt-8">
-                                {Array.from({ length: totalPages }).map((_, idx) => (
-                                    <button
-                                        key={idx}
-                                        onClick={() => handlePageClick(idx)}
-                                        className={`transition-all duration-300 rounded-full ${
-                                            currentPage === idx
-                                                ? 'w-8 h-2 bg-orange-warning shadow-glow-cyan-sm'
-                                                : 'w-2 h-2 bg-bg-tertiary hover:bg-text-muted'
-                                        }`}
-                                        aria-label={`Go to page ${idx + 1}`}
-                                        aria-current={currentPage === idx ? 'page' : undefined}
-                                    />
-                                ))}
-                            </div>
-                        )}
-                    </div>
-                ) : (
-                    <div className="text-center py-12">
-                        <p className="text-text-muted">No trending products available right now.</p>
-                    </div>
-                )}
+                {/* 3 Carousels */}
+                <div className="space-y-8">
+                    {productGroups.map(({ config, products }, index) => (
+                        <motion.div
+                            key={config.id}
+                            initial={{ opacity: 0, y: 20 }}
+                            whileInView={{ opacity: 1, y: 0 }}
+                            viewport={{ once: true }}
+                            transition={{ duration: 0.4, delay: index * 0.1 }}
+                        >
+                            <TrendingCarousel
+                                config={config}
+                                products={products}
+                                onAddToCart={handleAddToCart}
+                                onToggleWishlist={handleToggleWishlist}
+                                isLoading={isLoading}
+                            />
+                        </motion.div>
+                    ))}
+                </div>
             </div>
         </section>
     );

@@ -524,6 +524,7 @@ export class CatalogService {
       platform?: string;
       region?: string;
       category?: string; // Kinguin genre
+      genre?: string; // Genre filter (supports comma-separated values)
       businessCategory?: string; // BitLoot category: games, software, subscriptions
       minPrice?: number; // Minimum price in EUR
       maxPrice?: number; // Maximum price in EUR
@@ -545,18 +546,149 @@ export class CatalogService {
       );
     }
 
-    // Filter by platform (case-insensitive to match slugified IDs from frontend)
+    // Filter by platform - supports multiple comma-separated platforms
+    // Maps frontend filter IDs to actual database values (case-insensitive exact match)
     if (typeof filters.platform === 'string' && filters.platform.length > 0) {
-      query = query.andWhere('LOWER(product.platform) = LOWER(:platform)', {
-        platform: filters.platform,
-      });
+      const platformList = filters.platform.split(',').map(p => p.trim().toLowerCase()).filter(Boolean);
+      
+      if (platformList.length > 0) {
+        // Map filter IDs to actual database values (based on SELECT DISTINCT platform FROM products)
+        const platformMappings: Record<string, string[]> = {
+          'steam': ['steam'],
+          'origin': ['ea app'],  // EA App is the actual value in database
+          'epic': ['epic games'],
+          'uplay': ['ubisoft connect'],
+          'gog': ['gog'],
+          'xbox': ['xbox'],
+          'playstation': ['playstation'],
+          'nintendo': ['nintendo'],
+          'battle.net': ['battle.net'],
+          'rockstar': ['rockstar games'],
+          'pc': ['pc'],
+          'android': ['android'],
+          'other': ['other'],
+        };
+        
+        // Build OR conditions for exact matches
+        const platformConditions: string[] = [];
+        const platformParams: Record<string, string> = {};
+        let paramIdx = 0;
+        
+        platformList.forEach((platform) => {
+          const dbValues = platformMappings[platform] ?? [platform];
+          
+          dbValues.forEach((dbValue) => {
+            const paramName = `platform_${paramIdx++}`;
+            platformConditions.push(`LOWER(product.platform) = :${paramName}`);
+            platformParams[paramName] = dbValue.toLowerCase();
+          });
+        });
+        
+        if (platformConditions.length > 0) {
+          query = query.andWhere(`(${platformConditions.join(' OR ')})`, platformParams);
+        }
+      }
     }
 
-    // Filter by region (case-insensitive to match slugified IDs from frontend)
+    // Filter by region (case-insensitive with mapping for common region codes)
+    // Uses BOTH the region field AND regionalLimitations for robust filtering
+    // PRIORITY: regionalLimitations is more accurate than region field
     if (typeof filters.region === 'string' && filters.region.length > 0) {
-      query = query.andWhere('LOWER(product.region) = LOWER(:region)', {
-        region: filters.region,
-      });
+      // Map frontend region IDs to actual database values (based on database analysis)
+      // Format: { include: patterns to match, exclude: patterns that should NOT appear }
+      const regionMappings: Record<string, { 
+        includeRegions: string[]; 
+        includeLimitations: string[];
+        excludeLimitations: string[]; // If these appear in regionalLimitations, exclude the product
+      }> = {
+        // Global / Region Free
+        'global': { 
+          includeRegions: ['global'],
+          includeLimitations: ['region free', 'worldwide'],
+          excludeLimitations: []
+        },
+        
+        // North America (US/NA/Americas)
+        'na': { 
+          includeRegions: ['north america', 'region 74'], // Region 74 = AMERICAS
+          includeLimitations: ['americas', 'united states', 'north america'],
+          excludeLimitations: ['europe', 'asia', 'rest of the world']
+        },
+        
+        // Europe
+        'eu': { 
+          includeRegions: ['europe', 'region 75'], // Region 75 = EUROPE
+          includeLimitations: ['europe', 'eu only', 'europe - all countries'],
+          excludeLimitations: ['united states', 'americas', 'asia', 'rest of the world']
+        },
+        
+        // Rest of World
+        'row': { 
+          includeRegions: ['region 80', 'region 10'], // Region 80 = REST OF THE WORLD
+          includeLimitations: ['rest of the world', 'row', 'rest of world'],
+          excludeLimitations: []
+        },
+        
+        // UK
+        'uk': { 
+          includeRegions: ['uk', 'united kingdom'],
+          includeLimitations: ['uk', 'united kingdom'],
+          excludeLimitations: []
+        },
+        
+        // Asia
+        'asia': { 
+          includeRegions: ['asia'],
+          includeLimitations: ['asia'],
+          excludeLimitations: ['europe', 'united states', 'americas']
+        },
+        
+        // Latin America
+        'latam': { 
+          includeRegions: ['latam', 'latin america', 'south america'],
+          includeLimitations: ['latam', 'latin america'],
+          excludeLimitations: []
+        },
+      };
+      
+      const regionValue = filters.region.toLowerCase().trim();
+      const mapping = regionMappings[regionValue];
+      
+      if (mapping) {
+        // STEP 1: Build INCLUDE conditions (match either region field or regionalLimitations)
+        const includeConditions: string[] = [];
+        const params: Record<string, string> = {};
+        
+        mapping.includeRegions.forEach((r, i) => {
+          includeConditions.push(`LOWER(product.region) = :incRegion${i}`);
+          params[`incRegion${i}`] = r.toLowerCase();
+        });
+        
+        mapping.includeLimitations.forEach((l, i) => {
+          includeConditions.push(`LOWER(product.regionalLimitations) LIKE :incLimit${i}`);
+          params[`incLimit${i}`] = `%${l.toLowerCase()}%`;
+        });
+        
+        // STEP 2: Build EXCLUDE conditions (regionalLimitations that conflict)
+        const excludeConditions: string[] = [];
+        mapping.excludeLimitations.forEach((l, i) => {
+          excludeConditions.push(`LOWER(product.regionalLimitations) NOT LIKE :excLimit${i}`);
+          params[`excLimit${i}`] = `%${l.toLowerCase()}%`;
+        });
+        
+        // Combine: must match at least one include AND not match any exclude
+        let whereClause = `(${includeConditions.join(' OR ')})`;
+        if (excludeConditions.length > 0) {
+          whereClause += ` AND (${excludeConditions.join(' AND ')})`;
+        }
+        
+        query = query.andWhere(whereClause, params);
+      } else {
+        // Fallback: direct match on region field
+        query = query.andWhere('LOWER(product.region) LIKE LOWER(:region)', {
+          region: `%${regionValue}%`,
+        });
+      }
     }
 
     // Filter by businessCategory (the 4 BitLoot categories)
@@ -577,6 +709,20 @@ export class CatalogService {
           genrePattern: `%${filters.category}%`,
         }
       );
+    }
+
+    // Filter by genre (dedicated genre filter - supports comma-separated values)
+    if (typeof filters.genre === 'string' && filters.genre.length > 0) {
+      const genres = filters.genre.split(',').map(g => g.trim().toLowerCase()).filter(g => g.length > 0);
+      if (genres.length > 0) {
+        // Match any of the selected genres in the genres array
+        const genreConditions = genres.map((_, index) => `LOWER(product.genres) LIKE LOWER(:genrePattern${index})`);
+        const genreParams: Record<string, string> = {};
+        genres.forEach((genre, index) => {
+          genreParams[`genrePattern${index}`] = `%${genre}%`;
+        });
+        query = query.andWhere(`(${genreConditions.join(' OR ')})`, genreParams);
+      }
     }
 
     // Filter by minimum price
@@ -1137,6 +1283,7 @@ export class CatalogService {
     genre?: string,
     sortBy: 'createdAt' | 'title' | 'cost' | 'price' = 'createdAt',
     sortOrder: 'asc' | 'desc' = 'desc',
+    section?: string,
   ): Promise<{ products: Product[]; total: number; page: number; limit: number; totalPages: number }> {
     let query = this.productRepo.createQueryBuilder('product');
 
@@ -1184,9 +1331,22 @@ export class CatalogService {
       query = query.andWhere('LOWER(product.genres) LIKE LOWER(:genre)', { genre: `%${genre}%` });
     }
 
+    // Optional section filter - filter by featuredSections array (comma-separated simple-array)
+    if (typeof section === 'string' && section.length > 0) {
+      query = query.andWhere(
+        "(product.featuredSections LIKE :exactSection OR product.featuredSections LIKE :startSection OR product.featuredSections LIKE :middleSection OR product.featuredSections LIKE :endSection)",
+        {
+          exactSection: section,
+          startSection: `${section},%`,
+          middleSection: `%,${section},%`,
+          endSection: `%,${section}`,
+        }
+      );
+    }
+
     // Ensure valid pagination values
     const validPage = Math.max(1, page);
-    const validLimit = Math.min(100, Math.max(1, limit)); // Max 100 items per page
+    const validLimit = Math.max(1, limit); // No max limit for admin - allow fetching all products
     const offset = (validPage - 1) * validLimit;
 
     // Get total count and paginated results
