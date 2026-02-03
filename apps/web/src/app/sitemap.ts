@@ -45,7 +45,8 @@ async function getCategories(): Promise<CategoryForSitemap[]> {
     });
     
     if (!response.ok) return [];
-    return (await response.json()) as CategoryForSitemap[];
+    const data = (await response.json()) as { categories?: CategoryForSitemap[] };
+    return data.categories ?? [];
   } catch {
     return [];
   }

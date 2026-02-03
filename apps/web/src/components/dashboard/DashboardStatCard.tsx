@@ -1,5 +1,6 @@
 'use client';
 
+import { memo } from 'react';
 import { motion } from 'framer-motion';
 import { ArrowUpRight, ArrowDownRight } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
@@ -44,7 +45,8 @@ const colorMap = {
     },
 };
 
-export function DashboardStatCard({
+// Memoized to prevent re-renders when parent state changes
+export const DashboardStatCard = memo(function DashboardStatCard({
     title,
     value,
     icon: Icon,
@@ -96,4 +98,4 @@ export function DashboardStatCard({
             />
         </motion.div>
     );
-}
+});

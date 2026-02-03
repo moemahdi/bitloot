@@ -99,12 +99,12 @@ export function KeyReveal({
     onSuccess: (keyData, variables) => {
       setRevealedKeys(prev => ({ ...prev, [variables.itemId]: keyData }));
       setRevealingItemId(null);
-      toast.success('Key revealed successfully!');
+      toast.success('Code revealed successfully!');
     },
     onError: (err) => {
-      console.error('Failed to reveal key:', err);
+      console.error('Failed to reveal code:', err);
       setRevealingItemId(null);
-      toast.error('Failed to reveal key. Please try again.');
+      toast.error('Failed to reveal code. Please try again.');
     },
   });
 
@@ -373,7 +373,7 @@ export function KeyReveal({
                     <div className="space-y-3">
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
                         <ImageIcon className="h-4 w-4" />
-                        <span>Image Key ({revealedKey.contentType})</span>
+                        <span>Image Code ({revealedKey.contentType})</span>
                       </div>
                       <div className="relative rounded-lg overflow-hidden border bg-muted/30">
                         {/* eslint-disable-next-line @next/next/no-img-element */}

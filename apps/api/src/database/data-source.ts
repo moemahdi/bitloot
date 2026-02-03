@@ -58,8 +58,8 @@ import { CreatePromoCodes1769000000000 } from './migrations/1769000000000-Create
 import { AddPromoFieldsToOrders1769100000000 } from './migrations/1769100000000-AddPromoFieldsToOrders';
 import { AddProductFeaturedSections1769200000000 } from './migrations/1769200000000-AddProductFeaturedSections';
 import { FeatureFlag } from './entities/feature-flag.entity';
-import { SystemConfig } from './entities/system-config.entity';
 import { CreateFeatureFlagsAndConfig1769300000000 } from './migrations/1769300000000-CreateFeatureFlagsAndConfig';
+import { RemoveSystemConfigs1769400000000 } from './migrations/1769400000000-RemoveSystemConfigs';
 import { AddBusinessCategory1770000000000 } from './migrations/1770000000000-AddBusinessCategory';
 import { NormalizePlatformNames1780000000000 } from './migrations/1780000000000-NormalizePlatformNames';
 import { AddCostRangeToPricingRules1780100000000 } from './migrations/1780100000000-AddCostRangeToPricingRules';
@@ -69,7 +69,7 @@ dotenv.config({ path: path.resolve(__dirname, '../../../../.env') });
 export default new DataSource({
   type: 'postgres',
   url: process.env.DATABASE_URL,
-  entities: [Order, OrderItem, Key, Payment, WebhookLog, User, AuditLog, EmailBounce, Review, WatchlistItem, Product, ProductOffer, ProductGroup, DynamicPricingRule, Session, FlashDeal, FlashDealProduct, BundleDeal, BundleProduct, SectionAnalytics, PromoCode, PromoRedemption, FeatureFlag, SystemConfig],
+  entities: [Order, OrderItem, Key, Payment, WebhookLog, User, AuditLog, EmailBounce, Review, WatchlistItem, Product, ProductOffer, ProductGroup, DynamicPricingRule, Session, FlashDeal, FlashDealProduct, BundleDeal, BundleProduct, SectionAnalytics, PromoCode, PromoRedemption, FeatureFlag],
   migrations: [
     InitOrders1710000000000,
     AddKeysReservation1720000000000,
@@ -106,6 +106,7 @@ export default new DataSource({
     AddPromoFieldsToOrders1769100000000,
     AddProductFeaturedSections1769200000000,
     CreateFeatureFlagsAndConfig1769300000000,
+    RemoveSystemConfigs1769400000000,
     AddBusinessCategory1770000000000,
     NormalizePlatformNames1780000000000,
     AddCostRangeToPricingRules1780100000000,

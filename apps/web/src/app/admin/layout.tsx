@@ -95,7 +95,6 @@ const ADMIN_NAV = {
       { href: '/admin/webhooks', label: 'Webhooks', icon: Webhook },
       { href: '/admin/queues', label: 'Job Queues', icon: ListOrdered },
       { href: '/admin/flags', label: 'Feature Flags', icon: ToggleLeft },
-      { href: '/admin/config', label: 'API Config', icon: Settings },
       { href: '/admin/audit', label: 'Audit Logs', icon: ClipboardList },
     ],
   },

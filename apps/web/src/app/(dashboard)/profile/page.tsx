@@ -1,26 +1,17 @@
 'use client';
 
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback, startTransition } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/hooks/useAuth';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { UsersApi, FulfillmentApi, AuthenticationApi, SessionsApi, type OrderResponseDto, type OrderItemResponseDto, type UserOrderStatsDto } from '@bitloot/sdk';
 import { apiConfig } from '@/lib/api-config';
-import { useWatchlist, useRemoveFromWatchlist, useWatchlistCount } from '@/features/watchlist';
-import { useCart } from '@/context/CartContext';
+import { useWatchlistCount, WatchlistTabContent } from '@/features/watchlist';
 import { KeyReveal, type OrderItem } from '@/features/orders';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/design-system/primitives/card';
 import { Button } from '@/design-system/primitives/button';
 import { Input } from '@/design-system/primitives/input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/design-system/primitives/select';
-
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/design-system/primitives/tabs';
 import { Badge } from '@/design-system/primitives/badge';
 import {
@@ -33,14 +24,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/design-system/primitives/alert-dialog';
-import { Loader2, User, Shield, Key, Package, DollarSign, Check, Copy, ShoppingBag, LogOut, LayoutDashboard, Eye, HelpCircle, Mail, Hash, Crown, ShieldCheck, AlertCircle, Fingerprint, Info, Heart, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, RefreshCw, Smartphone, Monitor, Trash2, X, AlertTriangle, MessageSquare, Book, LifeBuoy, Clock, Globe, Activity, Search, Bell, ShoppingCart, LayoutGrid, List, RotateCcw, XCircle, ExternalLink } from 'lucide-react';
+import { Loader2, User, Shield, Key, Package, DollarSign, Check, Copy, ShoppingBag, LogOut, LayoutDashboard, Eye, HelpCircle, Mail, Hash, Crown, ShieldCheck, AlertCircle, Fingerprint, Info, Heart, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, RefreshCw, Smartphone, Monitor, Trash2, X, AlertTriangle, MessageSquare, Book, LifeBuoy, Clock, Globe, Activity, Search, RotateCcw, XCircle, ExternalLink } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import { DashboardStatCard } from '@/components/dashboard/DashboardStatCard';
 import { AnimatedGridPattern } from '@/components/animations/FloatingParticles';
 import { GlowButton } from '@/design-system/primitives/glow-button';
-import { CatalogProductCard } from '@/features/catalog/components/CatalogProductCard';
-import type { CatalogProduct } from '@/features/catalog/types';
 import { WatchlistPreview } from '@/components/WatchlistPreview';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { formatDate, formatRelativeTime } from '@/utils/format-date';
@@ -104,7 +93,7 @@ function truncateId(id: string, startChars: number = 8, endChars: number = 6): s
   return `${id.slice(0, startChars)}...${id.slice(-endChars)}`;
 }
 
-// Custom hook for debouncing values
+// Custom hook for debouncing values (used in purchases search)
 function useDebouncedValue<T>(value: T, delay: number = 300): T {
   const [debouncedValue, setDebouncedValue] = useState<T>(value);
   
@@ -155,676 +144,70 @@ interface BundleDeal {
   savingsPercent?: string; // API returns this as string (e.g., "13.23")
 }
 
+// Hook for fetching max flash deal discount - uses React Query for caching/deduplication
 function useMaxDealsDiscount(): { maxDiscount: number; isLoading: boolean } {
-  const [maxDiscount, setMaxDiscount] = useState(70); // Default fallback
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchMaxDiscount = async (): Promise<void> => {
+  const { data: maxDiscount = 70, isLoading } = useQuery({
+    queryKey: ['max-deals-discount'],
+    queryFn: async (): Promise<number> => {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
       let highestDiscount = 0;
 
-      try {
-        // Fetch flash deals (both inline and sticky)
-        const [flashInlineRes, flashStickyRes, bundlesRes] = await Promise.allSettled([
-          fetch(`${apiUrl}/public/marketing/flash-deal/active?type=inline`),
-          fetch(`${apiUrl}/public/marketing/flash-deal/active?type=sticky`),
-          fetch(`${apiUrl}/public/marketing/bundles?limit=20`),
-        ]);
+      // Fetch flash deals (both inline and sticky) and bundles in parallel
+      const [flashInlineRes, flashStickyRes, bundlesRes] = await Promise.allSettled([
+        fetch(`${apiUrl}/public/marketing/flash-deal/active?type=inline`),
+        fetch(`${apiUrl}/public/marketing/flash-deal/active?type=sticky`),
+        fetch(`${apiUrl}/public/marketing/bundles?limit=20`),
+      ]);
 
-        // Process flash deals (inline)
-        if (flashInlineRes.status === 'fulfilled' && flashInlineRes.value.ok) {
-          const data: unknown = await flashInlineRes.value.json();
-          const deal = data as ActiveFlashDeal | null;
-          if (deal?.products !== undefined && deal.products.length > 0) {
-            const max = Math.max(
-              ...deal.products.map(p => Math.round(parseFloat(p.discountPercent ?? '0')))
-            );
-            highestDiscount = Math.max(highestDiscount, max);
-          }
+      // Process flash deals (inline)
+      if (flashInlineRes.status === 'fulfilled' && flashInlineRes.value.ok) {
+        const data: unknown = await flashInlineRes.value.json();
+        const deal = data as ActiveFlashDeal | null;
+        if (deal?.products !== undefined && deal.products.length > 0) {
+          const max = Math.max(
+            ...deal.products.map(p => Math.round(parseFloat(p.discountPercent ?? '0')))
+          );
+          highestDiscount = Math.max(highestDiscount, max);
         }
+      }
 
-        // Process flash deals (sticky)
-        if (flashStickyRes.status === 'fulfilled' && flashStickyRes.value.ok) {
-          const data: unknown = await flashStickyRes.value.json();
-          const deal = data as ActiveFlashDeal | null;
-          if (deal?.products !== undefined && deal.products.length > 0) {
-            const max = Math.max(
-              ...deal.products.map(p => Math.round(parseFloat(p.discountPercent ?? '0')))
-            );
-            highestDiscount = Math.max(highestDiscount, max);
-          }
+      // Process flash deals (sticky)
+      if (flashStickyRes.status === 'fulfilled' && flashStickyRes.value.ok) {
+        const data: unknown = await flashStickyRes.value.json();
+        const deal = data as ActiveFlashDeal | null;
+        if (deal?.products !== undefined && deal.products.length > 0) {
+          const max = Math.max(
+            ...deal.products.map(p => Math.round(parseFloat(p.discountPercent ?? '0')))
+          );
+          highestDiscount = Math.max(highestDiscount, max);
         }
+      }
 
-        // Process bundle deals - uses savingsPercent (string) from API
-        if (bundlesRes.status === 'fulfilled' && bundlesRes.value.ok) {
-          const data: unknown = await bundlesRes.value.json();
-          const bundles = data as BundleDeal[];
-          if (Array.isArray(bundles)) {
-            for (const bundle of bundles) {
-              if (bundle.savingsPercent !== undefined) {
-                const savings = Math.round(parseFloat(bundle.savingsPercent));
-                if (!isNaN(savings)) {
-                  highestDiscount = Math.max(highestDiscount, savings);
-                }
+      // Process bundle deals - uses savingsPercent (string) from API
+      if (bundlesRes.status === 'fulfilled' && bundlesRes.value.ok) {
+        const data: unknown = await bundlesRes.value.json();
+        const bundles = data as BundleDeal[];
+        if (Array.isArray(bundles)) {
+          for (const bundle of bundles) {
+            if (bundle.savingsPercent !== undefined) {
+              const savings = Math.round(parseFloat(bundle.savingsPercent));
+              if (!isNaN(savings)) {
+                highestDiscount = Math.max(highestDiscount, savings);
               }
             }
           }
         }
-
-        // Only update if we found a valid discount
-        if (highestDiscount > 0) {
-          setMaxDiscount(highestDiscount);
-        }
-      } catch {
-        // Keep default on error
-      } finally {
-        setIsLoading(false);
       }
-    };
 
-    void fetchMaxDiscount();
-  }, []);
+      // Return found discount or default fallback
+      return highestDiscount > 0 ? highestDiscount : 70;
+    },
+    staleTime: 300_000, // 5 minutes - deals don't change often
+    gcTime: 600_000, // 10 minutes cache retention
+  });
 
   return { maxDiscount, isLoading };
 }
-
-// ============ WATCHLIST TAB CONTENT COMPONENT ============
-function WatchlistTabContent(): React.ReactElement {
-  const [currentPage, setCurrentPage] = useState(1);
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-  const [sortBy, setSortBy] = useState<'recent' | 'price-low' | 'price-high' | 'name'>('recent');
-  const [searchQuery, setSearchQuery] = useState('');
-  const debouncedSearchQuery = useDebouncedValue(searchQuery, 300);
-  const itemsPerPage = 12;
-  
-  const { data: watchlistData, isLoading, error, refetch } = useWatchlist(currentPage, itemsPerPage);
-  const removeFromWatchlist = useRemoveFromWatchlist();
-  const { addItem } = useCart();
-
-  const handleAddToCart = (item: NonNullable<typeof watchlistData>['data'][0]): void => {
-    addItem({
-      productId: item.product.id,
-      title: item.product.title,
-      price: item.product.price,
-      quantity: 1,
-      image: item.product.coverImageUrl ?? undefined,
-    });
-    toast.success(`${item.product.title} added to cart`);
-  };
-
-  const handleAddAllToCart = (): void => {
-    const items = watchlistData?.data ?? [];
-    const availableItems = items.filter(item => item.product.isPublished !== false);
-    availableItems.forEach(item => {
-      addItem({
-        productId: item.product.id,
-        title: item.product.title,
-        price: item.product.price,
-        quantity: 1,
-        image: item.product.coverImageUrl ?? undefined,
-      });
-    });
-    toast.success(`${availableItems.length} items added to cart`);
-  };
-
-  const handleRemoveFromWatchlist = async (productId: string, productTitle: string): Promise<void> => {
-    try {
-      await removeFromWatchlist.mutateAsync(productId);
-      toast.success(`${productTitle} removed from watchlist`);
-    } catch {
-      toast.error('Failed to remove from watchlist');
-    }
-  };
-
-  // Computed values
-  const items = useMemo(() => watchlistData?.data ?? [], [watchlistData?.data]);
-  const total = watchlistData?.total ?? 0;
-  const totalPages = watchlistData?.totalPages ?? 1;
-  
-  // Calculate stats
-  const availableCount = items.filter(item => item.product.isPublished !== false).length;
-  const platformCounts = items.reduce((acc, item) => {
-    const platform = item.product.platform ?? 'Other';
-    acc[platform] = (acc[platform] ?? 0) + 1;
-    return acc;
-  }, {} as Record<string, number>);
-  
-  // Sort and filter items
-  const filteredItems = useMemo(() => {
-    let result = [...items];
-    
-    // Filter by search (using debounced value)
-    if (debouncedSearchQuery.trim() !== '') {
-      const query = debouncedSearchQuery.toLowerCase();
-      result = result.filter(item => 
-        item.product.title.toLowerCase().includes(query) ||
-        (item.product.platform?.toLowerCase().includes(query) ?? false)
-      );
-    }
-    
-    // Sort
-    switch (sortBy) {
-      case 'price-low':
-        result.sort((a, b) => a.product.price - b.product.price);
-        break;
-      case 'price-high':
-        result.sort((a, b) => b.product.price - a.product.price);
-        break;
-      case 'name':
-        result.sort((a, b) => a.product.title.localeCompare(b.product.title));
-        break;
-      case 'recent':
-      default:
-        result.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-        break;
-    }
-    
-    return result;
-  }, [items, debouncedSearchQuery, sortBy]);
-
-  if (isLoading) {
-    return (
-      <div className="space-y-6">
-        {/* Stats Cards Skeleton */}
-        <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="glass rounded-lg p-4 space-y-2">
-              <div className="skeleton h-4 w-20 animate-shimmer rounded" />
-              <div className="skeleton h-8 w-28 animate-shimmer rounded" />
-            </div>
-          ))}
-        </div>
-        {/* Grid Skeleton */}
-        <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {Array.from({ length: 8 }).map((_, i) => (
-            <div key={i} className="glass rounded-lg overflow-hidden">
-              <div className="skeleton h-48 w-full animate-shimmer" />
-              <div className="p-4 space-y-3">
-                <div className="skeleton h-5 w-3/4 animate-shimmer rounded" />
-                <div className="skeleton h-4 w-1/2 animate-shimmer rounded" />
-                <div className="flex justify-between items-center">
-                  <div className="skeleton h-6 w-20 animate-shimmer rounded" />
-                  <div className="skeleton h-8 w-8 animate-shimmer rounded" />
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  }
-
-  if (error !== null) {
-    return (
-      <Card className="glass border-orange-warning/30">
-        <CardContent className="flex flex-col items-center justify-center py-12 space-y-4">
-          <div className="p-4 rounded-full bg-orange-warning/10">
-            <AlertCircle className="h-12 w-12 text-orange-warning" />
-          </div>
-          <h3 className="text-lg font-semibold text-text-primary">Failed to load watchlist</h3>
-          <p className="text-text-secondary text-center max-w-sm">We couldn&apos;t fetch your saved products. Please try again.</p>
-          <Button 
-            variant="outline" 
-            onClick={() => refetch()}
-            className="border-orange-warning/30 text-orange-warning hover:bg-orange-warning/10 hover:border-orange-warning/50"
-          >
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Try Again
-          </Button>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  if (items.length === 0) {
-    return (
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.5 }}
-      >
-        <Card className="glass border-border-subtle border-dashed overflow-hidden">
-          <div className="relative">
-            {/* Background gradient */}
-            <div className="absolute inset-0 bg-gradient-to-br from-purple-neon/5 via-transparent to-cyan-glow/5" />
-            
-            <CardContent className="relative flex flex-col items-center justify-center py-20 text-center">
-              <motion.div
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ delay: 0.2, type: 'spring', stiffness: 200 }}
-                className="relative mb-6"
-              >
-                <div className="absolute inset-0 bg-purple-neon/20 blur-2xl rounded-full" />
-                <div className="relative p-6 rounded-full bg-gradient-to-br from-purple-neon/20 to-purple-neon/5 border border-purple-neon/30">
-                  <Heart className="h-12 w-12 text-purple-neon" />
-                </div>
-              </motion.div>
-              
-              <motion.h3
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3 }}
-                className="text-2xl font-bold text-text-primary mb-2 text-glow-purple"
-              >
-                Start Your Watchlist
-              </motion.h3>
-              
-              <motion.p
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.4 }}
-                className="text-text-secondary max-w-md mb-8"
-              >
-                Save games you&apos;re interested in and never miss a deal. 
-                Get notified when prices drop on your favorite titles.
-              </motion.p>
-              
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.5 }}
-                className="flex flex-col sm:flex-row gap-3"
-              >
-                <Link href="/">
-                  <GlowButton variant="default" size="lg">
-                    <ShoppingBag className="mr-2 h-5 w-5" />
-                    Browse Games
-                  </GlowButton>
-                </Link>
-                <Link href="/deals">
-                  <Button variant="outline" size="lg" className="border-orange-warning/30 text-orange-warning hover:bg-orange-warning/10">
-                    <DollarSign className="mr-2 h-5 w-5" />
-                    View Deals
-                  </Button>
-                </Link>
-              </motion.div>
-              
-              {/* Feature hints */}
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.6 }}
-                className="flex flex-wrap justify-center gap-6 mt-10 pt-8 border-t border-border-subtle"
-              >
-                <div className="flex items-center gap-2 text-sm text-text-muted">
-                  <Heart className="h-4 w-4 text-purple-neon" />
-                  <span>Track prices</span>
-                </div>
-                <div className="flex items-center gap-2 text-sm text-text-muted">
-                  <Bell className="h-4 w-4 text-cyan-glow" />
-                  <span>Get deal alerts</span>
-                </div>
-                <div className="flex items-center gap-2 text-sm text-text-muted">
-                  <ShoppingCart className="h-4 w-4 text-green-success" />
-                  <span>Quick add to cart</span>
-                </div>
-              </motion.div>
-            </CardContent>
-          </div>
-        </Card>
-      </motion.div>
-    );
-  }
-
-  return (
-    <div className="space-y-6">
-      {/* Stats Overview */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4 }}
-        className="grid gap-4 grid-cols-2 lg:grid-cols-4"
-      >
-        {/* Total Items */}
-        <Card className="glass border-border-subtle bg-bg-secondary/50 backdrop-blur-sm card-interactive-glow">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-purple-neon/10">
-                <Heart className="h-5 w-5 text-purple-neon" />
-              </div>
-              <div>
-                <p className="text-xs text-text-muted uppercase tracking-wider">Saved Items</p>
-                <p className="text-2xl font-bold text-text-primary">{total}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        
-        {/* Recently Added */}
-        <Card className="glass border-border-subtle bg-bg-secondary/50 backdrop-blur-sm card-interactive-glow">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-cyan-glow/10">
-                <Clock className="h-5 w-5 text-cyan-glow" />
-              </div>
-              <div>
-                <p className="text-xs text-text-muted uppercase tracking-wider">This Week</p>
-                <p className="text-2xl font-bold text-cyan-glow">{items.filter(item => {
-                  const addedDate = new Date(item.createdAt);
-                  const weekAgo = new Date();
-                  weekAgo.setDate(weekAgo.getDate() - 7);
-                  return addedDate >= weekAgo;
-                }).length}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        
-        {/* Available Items */}
-        <Card className="glass border-border-subtle bg-bg-secondary/50 backdrop-blur-sm card-interactive-glow">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-green-success/10">
-                <Check className="h-5 w-5 text-green-success" />
-              </div>
-              <div>
-                <p className="text-xs text-text-muted uppercase tracking-wider">Available</p>
-                <p className="text-2xl font-bold text-text-primary">{availableCount}<span className="text-sm text-text-muted font-normal">/{total}</span></p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        
-        {/* Top Platform */}
-        <Card className="glass border-border-subtle bg-bg-secondary/50 backdrop-blur-sm card-interactive-glow">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-orange-warning/10">
-                <Monitor className="h-5 w-5 text-orange-warning" />
-              </div>
-              <div>
-                <p className="text-xs text-text-muted uppercase tracking-wider">Top Platform</p>
-                <p className="text-lg font-bold text-text-primary truncate">
-                  {Object.entries(platformCounts).length > 0 
-                    ? Object.entries(platformCounts).sort((a, b) => b[1] - a[1])[0]?.[0] ?? 'N/A'
-                    : 'N/A'}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </motion.div>
-
-      {/* Toolbar */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, delay: 0.1 }}
-      >
-        <Card className="glass border-border-subtle bg-bg-secondary/50 backdrop-blur-sm">
-          <CardContent className="p-4">
-            <div className="flex flex-col lg:flex-row gap-4 lg:items-center lg:justify-between">
-              {/* Search & Sort */}
-              <div className="flex flex-1 gap-3">
-                {/* Search */}
-                <div className="relative flex-1 max-w-sm">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-text-muted" />
-                  <Input
-                    type="text"
-                    placeholder="Search watchlist..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-9 bg-bg-tertiary/50 border-border-subtle focus:border-purple-neon/50"
-                  />
-                </div>
-                
-                {/* Sort Dropdown */}
-                <Select value={sortBy} onValueChange={(value) => setSortBy(value as typeof sortBy)}>
-                  <SelectTrigger className="w-[180px] bg-bg-tertiary/50 border-border-subtle text-text-primary focus:ring-purple-neon/50 focus:border-purple-neon/50">
-                    <SelectValue placeholder="Sort by..." />
-                  </SelectTrigger>
-                  <SelectContent className="bg-bg-secondary border-border-subtle">
-                    <SelectItem value="recent" className="focus:bg-purple-neon/10 focus:text-purple-neon">Recently Added</SelectItem>
-                    <SelectItem value="price-low" className="focus:bg-purple-neon/10 focus:text-purple-neon">Price: Low to High</SelectItem>
-                    <SelectItem value="price-high" className="focus:bg-purple-neon/10 focus:text-purple-neon">Price: High to Low</SelectItem>
-                    <SelectItem value="name" className="focus:bg-purple-neon/10 focus:text-purple-neon">Name: A-Z</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              {/* Actions */}
-              <div className="flex items-center gap-3">
-                {/* View Toggle */}
-                <div className="flex items-center rounded-md border border-border-subtle p-1">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setViewMode('grid')}
-                    className={`h-7 w-7 p-0 ${viewMode === 'grid' ? 'bg-purple-neon/20 text-purple-neon' : 'text-text-muted hover:text-text-primary'}`}
-                  >
-                    <LayoutGrid className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setViewMode('list')}
-                    className={`h-7 w-7 p-0 ${viewMode === 'list' ? 'bg-purple-neon/20 text-purple-neon' : 'text-text-muted hover:text-text-primary'}`}
-                  >
-                    <List className="h-4 w-4" />
-                  </Button>
-                </div>
-                
-                {/* Add All to Cart */}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleAddAllToCart}
-                  disabled={availableCount === 0}
-                  className="border-cyan-glow/30 text-cyan-glow hover:bg-cyan-glow/10 hover:border-cyan-glow/50"
-                >
-                  <ShoppingCart className="h-4 w-4 mr-2" />
-                  Add All ({availableCount})
-                </Button>
-                
-                {/* Browse More */}
-                <Link href="/">
-                  <Button variant="outline" size="sm" className="border-border-subtle hover:border-purple-neon/30">
-                    <ShoppingBag className="h-4 w-4 mr-2" />
-                    Browse
-                  </Button>
-                </Link>
-              </div>
-            </div>
-            
-            {/* Active Filters Info */}
-            {searchQuery.trim() !== '' && (
-              <div className="flex items-center gap-2 mt-3 pt-3 border-t border-border-subtle">
-                <span className="text-sm text-text-muted">
-                  Showing {filteredItems.length} of {items.length} items
-                </span>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setSearchQuery('')}
-                  className="h-6 px-2 text-xs text-purple-neon hover:bg-purple-neon/10"
-                >
-                  Clear filter
-                </Button>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </motion.div>
-
-      {/* Watchlist Items */}
-      {filteredItems.length === 0 ? (
-        <Card className="glass border-border-subtle">
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <Search className="h-12 w-12 text-text-muted mb-4" />
-            <h3 className="text-lg font-semibold text-text-primary">No matches found</h3>
-            <p className="text-text-secondary text-center max-w-sm mt-1">
-              Try adjusting your search or filters to find what you&apos;re looking for.
-            </p>
-          </CardContent>
-        </Card>
-      ) : viewMode === 'grid' ? (
-        /* Grid View - Using CatalogProductCard for consistent design */
-        <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {filteredItems.map((item, index) => {
-            // Map watchlist item to CatalogProduct format
-            const catalogProduct: CatalogProduct = {
-              id: item.product.id,
-              slug: item.product.slug,
-              name: item.product.title,
-              description: item.product.subtitle ?? '',
-              price: String(item.product.price),
-              currency: 'EUR',
-              image: item.product.coverImageUrl ?? undefined,
-              platform: item.product.platform ?? undefined,
-              region: item.product.region ?? undefined,
-              isAvailable: item.product.isPublished !== false,
-              rating: 4.8, // Default rating
-            };
-            
-            return (
-              <motion.div
-                key={item.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3, delay: index * 0.03 }}
-                className="relative group"
-              >
-                <CatalogProductCard
-                  product={catalogProduct}
-                  viewMode="grid"
-                  isInWishlist={true}
-                  onAddToCart={() => handleAddToCart(item)}
-                  onToggleWishlist={async () => {
-                    await handleRemoveFromWatchlist(item.product.id, item.product.title);
-                  }}
-                  showQuickActions={true}
-                />
-                {/* Added date badge */}
-                <div className="absolute bottom-2 right-2 z-10">
-                  <Badge variant="secondary" className="text-[10px] bg-bg-tertiary/90 backdrop-blur-sm border border-border-subtle">
-                    <Clock className="h-2.5 w-2.5 mr-1" />
-                    {formatRelativeTime(item.createdAt)}
-                  </Badge>
-                </div>
-              </motion.div>
-            );
-          })}
-        </div>
-      ) : (
-        /* List View - Using CatalogProductCard list mode */
-        <div className="space-y-3">
-          {filteredItems.map((item, index) => {
-            // Map watchlist item to CatalogProduct format
-            const catalogProduct: CatalogProduct = {
-              id: item.product.id,
-              slug: item.product.slug,
-              name: item.product.title,
-              description: item.product.subtitle ?? '',
-              price: String(item.product.price),
-              currency: 'EUR',
-              image: item.product.coverImageUrl ?? undefined,
-              platform: item.product.platform ?? undefined,
-              region: item.product.region ?? undefined,
-              isAvailable: item.product.isPublished !== false,
-              rating: 4.8,
-            };
-            
-            return (
-              <motion.div
-                key={item.id}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.3, delay: index * 0.03 }}
-              >
-                <CatalogProductCard
-                  product={catalogProduct}
-                  viewMode="list"
-                  isInWishlist={true}
-                  onAddToCart={() => handleAddToCart(item)}
-                  onToggleWishlist={async () => {
-                    await handleRemoveFromWatchlist(item.product.id, item.product.title);
-                  }}
-                  showQuickActions={true}
-                />
-              </motion.div>
-            );
-          })}
-        </div>
-      )}
-
-      {/* Pagination */}
-      {totalPages > 1 && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.4, delay: 0.2 }}
-        >
-          <Card className="glass border-border-subtle bg-bg-secondary/50">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <p className="text-sm text-text-muted">
-                  Showing {(currentPage - 1) * itemsPerPage + 1}-{Math.min(currentPage * itemsPerPage, total)} of {total} items
-                </p>
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                    disabled={currentPage === 1}
-                    className="border-border-subtle hover:border-purple-neon/30"
-                  >
-                    <ChevronLeft className="h-4 w-4 mr-1" />
-                    Previous
-                  </Button>
-                  
-                  {/* Page Numbers */}
-                  <div className="hidden sm:flex items-center gap-1">
-                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                      let pageNum: number;
-                      if (totalPages <= 5) {
-                        pageNum = i + 1;
-                      } else if (currentPage <= 3) {
-                        pageNum = i + 1;
-                      } else if (currentPage >= totalPages - 2) {
-                        pageNum = totalPages - 4 + i;
-                      } else {
-                        pageNum = currentPage - 2 + i;
-                      }
-                      return (
-                        <Button
-                          key={pageNum}
-                          variant={currentPage === pageNum ? 'default' : 'ghost'}
-                          size="sm"
-                          onClick={() => setCurrentPage(pageNum)}
-                          className={`h-8 w-8 p-0 ${currentPage === pageNum ? 'bg-purple-neon text-white' : 'text-text-secondary hover:text-text-primary'}`}
-                        >
-                          {pageNum}
-                        </Button>
-                      );
-                    })}
-                  </div>
-                  
-                  <span className="sm:hidden text-sm text-text-secondary px-2">
-                    {currentPage} / {totalPages}
-                  </span>
-                  
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                    disabled={currentPage === totalPages}
-                    className="border-border-subtle hover:border-purple-neon/30"
-                  >
-                    Next
-                    <ChevronRight className="h-4 w-4 ml-1" />
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
-      )}
-    </div>
-  );
-}
-
 export default function ProfilePage(): React.ReactElement {
   const { user, logout, accessToken, sessionId } = useAuth();
   const searchParams = useSearchParams();
@@ -859,8 +242,21 @@ export default function ProfilePage(): React.ReactElement {
   const [expandedOrders, setExpandedOrders] = useState<Set<string>>(new Set());
   // State for tracking download in progress (reserved for future download feature)
   const [_downloadingOrder, setDownloadingOrder] = useState<string | null>(null);
-  // State for tracking key recovery in progress
+  // State for tracking product recovery in progress
   const [recoveringOrder, setRecoveringOrder] = useState<string | null>(null);
+  
+  // Memoized toggle function for order expansion - prevents re-renders
+  const toggleOrderExpanded = useCallback((orderId: string): void => {
+    setExpandedOrders(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(orderId)) {
+        newSet.delete(orderId);
+      } else {
+        newSet.add(orderId);
+      }
+      return newSet;
+    });
+  }, []);
   
   // Purchases pagination, filtering, and search state
   const [purchasesPage, setPurchasesPage] = useState(1);
@@ -913,16 +309,19 @@ export default function ProfilePage(): React.ReactElement {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [urlTab]);
 
-  // Handle tab change and update URL
-  const handleTabChange = (newTab: string): void => {
-    setActiveTab(newTab);
+  // Handle tab change and update URL - memoized to prevent re-renders
+  // Uses startTransition to keep UI responsive during heavy tab content rendering
+  const handleTabChange = useCallback((newTab: string): void => {
+    startTransition(() => {
+      setActiveTab(newTab);
+    });
     // Update URL with new tab parameter
     const params = new URLSearchParams(searchParams.toString());
     params.set('tab', newTab);
     router.push(`?${params.toString()}`, { scroll: false });
     // Scroll to top of the page when switching tabs (respect reduced motion)
     window.scrollTo({ top: 0, behavior: prefersReducedMotion ? 'auto' : 'smooth' });
-  };
+  }, [searchParams, router, prefersReducedMotion]);
 
   // Fetch ALL user's orders (for accurate stats and client-side filtering/pagination)
   // Using a high limit to get all orders - typical user has < 100 orders
@@ -951,9 +350,10 @@ export default function ProfilePage(): React.ReactElement {
       }
     },
     enabled: user !== null && user !== undefined,
-    staleTime: 0, // Always consider data stale to fetch fresh status
-    refetchOnMount: 'always', // Refetch when component mounts (tab visited)
-    refetchOnWindowFocus: true, // Refetch when user returns to window
+    staleTime: 30_000, // 30 seconds - orders don't change rapidly
+    gcTime: 300_000, // 5 minutes - keep in cache
+    refetchOnMount: true, // Refetch when component mounts
+    refetchOnWindowFocus: false, // Don't refetch on focus (manual refresh available)
   });
 
   // Fetch active sessions
@@ -1040,7 +440,8 @@ export default function ProfilePage(): React.ReactElement {
       }
     },
     enabled: user !== null && user !== undefined && activeTab === 'security' && accessToken !== null,
-    staleTime: 30000,
+    staleTime: 60_000, // 1 minute - sessions don't change often
+    gcTime: 300_000, // 5 minutes - keep in cache
   });
   
   // Extract sessions data for easier access
@@ -1084,9 +485,8 @@ export default function ProfilePage(): React.ReactElement {
       }
     },
     enabled: user !== null && user !== undefined && activeTab === 'security',
-    staleTime: 0, // Always consider stale to ensure fresh data
-    refetchOnMount: 'always', // Always refetch when component mounts
-    refetchOnWindowFocus: true, // Refetch when user comes back to tab
+    staleTime: 60_000, // 1 minute - deletion status rarely changes
+    gcTime: 300_000, // 5 minutes
   });
 
   // Email change mutations (Dual-OTP: old email + new email verification)
@@ -1139,8 +539,8 @@ export default function ProfilePage(): React.ReactElement {
     }
   });
 
-  // Sessions refresh handler with feedback
-  const handleRefreshSessions = async (): Promise<void> => {
+  // Sessions refresh handler with feedback - memoized
+  const handleRefreshSessions = useCallback(async (): Promise<void> => {
     try {
       await refetchSessions();
       toast.success('Sessions refreshed');
@@ -1148,7 +548,7 @@ export default function ProfilePage(): React.ReactElement {
       console.error('Failed to refresh sessions:', error);
       toast.error('Failed to refresh sessions');
     }
-  };
+  }, [refetchSessions]);
 
   // Session mutations
   const revokeSessionMutation = useMutation({
@@ -1259,7 +659,8 @@ export default function ProfilePage(): React.ReactElement {
       }
     },
     enabled: user !== null && user !== undefined,
-    staleTime: 30_000, // Cache for 30 seconds
+    staleTime: 60_000, // 1 minute - stats don't change rapidly
+    gcTime: 300_000, // 5 minutes
   });
 
   // Fetch watchlist count for stats display
@@ -1408,23 +809,23 @@ export default function ProfilePage(): React.ReactElement {
     setPurchasesPage(1);
   }, [purchasesStatusFilter, debouncedPurchasesSearchQuery]);
 
-  // Download keys for a fulfilled order (reserved for future download feature)
-  const _handleDownloadKeys = async (orderId: string): Promise<void> => {
+  // Download products for a fulfilled order (reserved for future download feature)
+  const _handleDownloadProducts = async (orderId: string): Promise<void> => {
     setDownloadingOrder(orderId);
     try {
       const response = await fulfillmentClient.fulfillmentControllerGetDownloadLink({ id: orderId });
       if (response.signedUrl != null && response.signedUrl !== '') {
-        // Open the signed URL in a new tab to download the keys
+        // Open the signed URL in a new tab to download the products
         window.open(response.signedUrl, '_blank');
-        toast.success('Keys download started!');
+        toast.success('Download started!');
       } else {
-        toast.error('Download link not available. Keys may not be ready yet or have expired. Please contact support.');
+        toast.error('Download link not available. Products may not be ready yet or have expired. Please contact support.');
       }
     } catch (error: unknown) {
       console.error('Failed to get download link:', error);
       
       // Parse error message for better user feedback
-      let errorMessage = 'Failed to download keys. Please try again.';
+      let errorMessage = 'Failed to download. Please try again.';
       
       if (error !== null && typeof error === 'object' && 'response' in error) {
         const err = error as { response?: { status?: number; data?: { message?: string } }; message?: string };
@@ -1433,7 +834,7 @@ export default function ProfilePage(): React.ReactElement {
         } else if (err.response?.status === 403) {
           errorMessage = 'You do not have permission to access this order.';
         } else if (err.response?.status === 410) {
-          errorMessage = 'Download link has expired. Keys are still available - please use the "View & Copy Keys" option instead.';
+          errorMessage = 'Download link has expired. Your codes are still available - please use the "View & Copy Codes" option instead.';
         } else if (err.message !== undefined && err.message !== null && (err.message.includes('network') || err.message.includes('fetch'))) {
           errorMessage = 'Network error. Please check your connection and try again.';
         } else if (err.response?.data?.message !== undefined && err.response?.data?.message !== null) {
@@ -1447,8 +848,8 @@ export default function ProfilePage(): React.ReactElement {
     }
   };
 
-  // Recover keys for orders stuck at 'paid' status with null signedUrl
-  const handleRecoverKeys = async (orderId: string): Promise<void> => {
+  // Recover products for orders stuck at 'paid' status with null signedUrl - memoized
+  const handleRecoverProducts = useCallback(async (orderId: string): Promise<void> => {
     setRecoveringOrder(orderId);
     try {
       const response = await fulfillmentClient.fulfillmentControllerRecoverOrder({ id: orderId });
@@ -1460,22 +861,22 @@ export default function ProfilePage(): React.ReactElement {
         const totalItems = response.items.length;
         
         if (successfulItems === totalItems) {
-          toast.success(`All ${totalItems} keys recovered successfully! Refreshing orders...`);
+          toast.success(`All ${totalItems} products retrieved successfully! Refreshing orders...`);
         } else if (successfulItems > 0) {
-          toast.warning(`${successfulItems} of ${totalItems} keys recovered successfully. Some items may still be processing.`);
+          toast.warning(`${successfulItems} of ${totalItems} products retrieved successfully. Some items may still be processing.`);
         } else {
-          toast.error('Keys are not ready yet. Please try again in a few minutes or contact support if this persists.');
+          toast.error('Products are not ready yet. Please try again in a few minutes or contact support if this persists.');
         }
         await refetchOrders();
       } else {
         // Recovery failed
-        toast.error('Failed to recover keys. Keys may not be ready yet or there was an issue. Please contact support if this continues.');
+        toast.error('Failed to retrieve products. They may not be ready yet or there was an issue. Please contact support if this continues.');
       }
     } catch (error: unknown) {
-      console.error('Failed to recover keys:', error);
+      console.error('Failed to recover products:', error);
       
       // Parse error message for better user feedback
-      let errorMessage = 'Failed to recover keys. Please contact support.';
+      let errorMessage = 'Failed to retrieve products. Please contact support.';
       
       if (error !== null && typeof error === 'object' && 'response' in error) {
         const err = error as { response?: { status?: number; data?: { message?: string } }; message?: string };
@@ -1484,7 +885,7 @@ export default function ProfilePage(): React.ReactElement {
         } else if (err.response?.status === 403) {
           errorMessage = 'You do not have permission to access this order.';
         } else if (err.response?.status === 400) {
-          errorMessage = 'Invalid request. The order may not be eligible for key recovery.';
+          errorMessage = 'Invalid request. The order may not be eligible for product retrieval.';
         } else if (err.message !== undefined && err.message !== null && (err.message.includes('network') || err.message.includes('fetch'))) {
           errorMessage = 'Network error. Please check your connection and try again.';
         } else if (err.response?.data?.message !== undefined && err.response?.data?.message !== null) {
@@ -1496,7 +897,7 @@ export default function ProfilePage(): React.ReactElement {
     } finally {
       setRecoveringOrder(null);
     }
-  };
+  }, [refetchOrders]);
 
   // Loading state
   if (user === null || user === undefined) {
@@ -1630,7 +1031,7 @@ export default function ProfilePage(): React.ReactElement {
           </TabsTrigger>
           <TabsTrigger
             value="purchases"
-            aria-label="My Purchases tab - view order history and download keys"
+            aria-label="My Purchases tab - view order history and access your codes"
             className="flex items-center justify-center gap-1.5 text-xs sm:text-sm transition-all duration-200 focus-visible:ring-2 focus-visible:ring-cyan-glow/50 focus-visible:ring-offset-2 focus-visible:ring-offset-bg-primary data-[state=active]:bg-cyan-glow/10 data-[state=active]:text-cyan-glow data-[state=active]:shadow-glow-sm"
           >
             <ShoppingBag className="h-4 w-4 shrink-0" />
@@ -1983,9 +1384,9 @@ export default function ProfilePage(): React.ReactElement {
                       
                       return (
                         <motion.div
-                          initial={{ opacity: 0, y: 10 }}
+                          initial={prefersReducedMotion ? false : { opacity: 0, y: 10 }}
                           animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: index * 0.08 }}
+                          transition={{ delay: Math.min(index * 0.08, 0.4) }}
                           key={order.id}
                           className="group rounded-lg border border-border-subtle bg-bg-tertiary/30 p-4 transition-all hover:border-cyan-glow/30 hover:bg-bg-tertiary/50 hover:shadow-[0_0_15px_rgba(0,217,255,0.05)] cursor-pointer"
                           onClick={() => handleTabChange('purchases')}
@@ -2186,7 +1587,7 @@ export default function ProfilePage(): React.ReactElement {
                     const isFailed = order.status === 'failed' || order.status === 'underpaid' || isExpired;
                     const isPending = order.status === 'waiting' || order.status === 'pending' || order.status === 'confirming';
                     
-                    // Map order items to KeyReveal format using real product titles
+                    // Map order items to product reveal format using real product titles
                     const keyRevealItems: OrderItem[] = order.items.map((item: OrderItemResponseDto) => ({
                       id: item.id,
                       productId: item.productId,
@@ -2197,9 +1598,9 @@ export default function ProfilePage(): React.ReactElement {
                     return (
                       <motion.div
                         key={order.id}
-                        initial={{ opacity: 0, y: 20 }}
+                        initial={prefersReducedMotion ? false : { opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.3, delay: index * 0.05 }}
+                        transition={{ duration: prefersReducedMotion ? 0 : 0.3, delay: Math.min(index * 0.05, 0.3) }}
                         className={`group rounded-xl border transition-all duration-300 ${
                           isFulfilled 
                             ? 'border-green-success/30 bg-green-success/5 hover:border-green-success/50' 
@@ -2213,15 +1614,7 @@ export default function ProfilePage(): React.ReactElement {
                         {/* Order Header - Clickable to expand */}
                         <div 
                           className="p-5 cursor-pointer"
-                          onClick={() => {
-                            const newExpanded = new Set(expandedOrders);
-                            if (isExpanded) {
-                              newExpanded.delete(order.id);
-                            } else {
-                              newExpanded.add(order.id);
-                            }
-                            setExpandedOrders(newExpanded);
-                          }}
+                          onClick={() => toggleOrderExpanded(order.id)}
                         >
                           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                             <div className="flex items-center gap-3">
@@ -2302,38 +1695,31 @@ export default function ProfilePage(): React.ReactElement {
                                 variant="outline"
                                 onClick={(e) => { 
                                   e.stopPropagation(); 
-                                  // Toggle expand/collapse
-                                  const newExpanded = new Set(expandedOrders);
-                                  if (isExpanded) {
-                                    newExpanded.delete(order.id);
-                                  } else {
-                                    newExpanded.add(order.id);
-                                  }
-                                  setExpandedOrders(newExpanded);
+                                  toggleOrderExpanded(order.id);
                                 }}
                                 className="border-green-success/30 bg-green-success/10 text-green-success hover:bg-green-success/20"
                               >
                                 <Key className="h-4 w-4 mr-1" />
-                                {isExpanded ? 'Hide Keys' : 'View & Copy Keys'}
+                                {isExpanded ? 'Hide Codes' : 'View & Copy Codes'}
                               </Button>
                             )}
                             {isPaid && (
                               <div className="flex flex-wrap items-center gap-3">
                                 <Button
                                   size="sm"
-                                  onClick={(e) => { e.stopPropagation(); void handleRecoverKeys(order.id); }}
+                                  onClick={(e) => { e.stopPropagation(); void handleRecoverProducts(order.id); }}
                                   disabled={recoveringOrder === order.id}
                                   className="bg-cyan-glow hover:bg-cyan-glow/80 text-black shadow-glow-cyan-sm"
                                 >
                                   {recoveringOrder === order.id ? (
                                     <><Loader2 className="h-4 w-4 mr-1 animate-spin" />Retrieving...</>
                                   ) : (
-                                    <><Key className="h-4 w-4 mr-1" />Retrieve Keys</>
+                                    <><Key className="h-4 w-4 mr-1" />Retrieve Products</>
                                   )}
                                 </Button>
                                 <div className="flex items-center gap-2">
                                   <div className="h-2 w-2 rounded-full bg-cyan-glow animate-pulse" />
-                                  <span className="text-sm text-cyan-glow">Payment confirmed • Click to retrieve keys</span>
+                                  <span className="text-sm text-cyan-glow">Payment confirmed • Click to retrieve products</span>
                                 </div>
                               </div>
                             )}
@@ -2362,7 +1748,7 @@ export default function ProfilePage(): React.ReactElement {
                           </div>
                         </div>
 
-                        {/* Expanded Order Details with KeyReveal */}
+                        {/* Expanded Order Details with Product Codes */}
                         {isExpanded && (
                           <motion.div
                             initial={{ opacity: 0, height: 0 }}
@@ -2413,7 +1799,7 @@ export default function ProfilePage(): React.ReactElement {
                                 </div>
                               </div>
 
-                              {/* KeyReveal Component for Fulfilled Orders ONLY */}
+                              {/* Code Reveal Component for Fulfilled Orders ONLY */}
                               {isFulfilled && order.items.length > 0 && (
                                 <div className="mt-4">
                                   <KeyReveal
@@ -2441,7 +1827,7 @@ export default function ProfilePage(): React.ReactElement {
                                     </div>
                                     <Button
                                       size="sm"
-                                      onClick={(e) => { e.stopPropagation(); void handleRecoverKeys(order.id); }}
+                                      onClick={(e) => { e.stopPropagation(); void handleRecoverProducts(order.id); }}
                                       disabled={recoveringOrder === order.id}
                                       className="bg-cyan-glow hover:bg-cyan-glow/80 text-black shadow-glow-cyan-sm shrink-0"
                                     >

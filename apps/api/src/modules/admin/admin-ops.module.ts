@@ -5,10 +5,7 @@ import { AdminOpsService } from './admin-ops.service';
 import { AdminOpsController } from './admin-ops.controller';
 import { FeatureFlagsService } from './feature-flags.service';
 import { FeatureFlagsController } from './feature-flags.controller';
-import { SystemConfigService } from './system-config.service';
-import { SystemConfigController } from './system-config.controller';
 import { FeatureFlag } from '../../database/entities/feature-flag.entity';
-import { SystemConfig } from '../../database/entities/system-config.entity';
 import { UserDeletionCleanupService } from '../../jobs/user-deletion-cleanup.processor';
 import { AuthModule } from '../auth/auth.module';
 import { EmailsModule } from '../emails/emails.module';
@@ -28,7 +25,7 @@ import { CatalogModule } from '../catalog/catalog.module';
  */
 @Module({
   imports: [
-    TypeOrmModule.forFeature([FeatureFlag, SystemConfig]),
+    TypeOrmModule.forFeature([FeatureFlag]),
     BullModule.registerQueue(
       { name: 'payments-queue' },
       { name: 'fulfillment-queue' },
@@ -41,15 +38,13 @@ import { CatalogModule } from '../catalog/catalog.module';
   providers: [
     AdminOpsService,
     FeatureFlagsService,
-    SystemConfigService,
     UserDeletionCleanupService,
     // Note: AuditLogInterceptor is registered globally in AdminModule
   ],
   controllers: [
     AdminOpsController,
     FeatureFlagsController,
-    SystemConfigController,
   ],
-  exports: [AdminOpsService, FeatureFlagsService, SystemConfigService],
+  exports: [AdminOpsService, FeatureFlagsService],
 })
 export class AdminOpsModule {}
