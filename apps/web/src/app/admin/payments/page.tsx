@@ -65,7 +65,7 @@ import {
   Filter,
   Hash,
 } from 'lucide-react';
-import { format, formatDistanceToNow } from 'date-fns';
+import { formatDate, formatRelativeTime } from '@/utils/format-date';
 import { toast } from 'sonner';
 import { useAdminTableState } from '@/features/admin/hooks/useAdminTableState';
 import { useAdminPayments, type Payment } from '@/features/admin/hooks/useAdminPayments';
@@ -307,7 +307,7 @@ export default function AdminPaymentsPage(): React.ReactElement {
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement('a');
     link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `payments_export_${format(new Date(), 'yyyy-MM-dd_HHmmss')}.csv`);
+    link.setAttribute('download', `payments_export_${new Date().toISOString().slice(0, 19).replace(/[T:]/g, '_')}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -738,11 +738,11 @@ export default function AdminPaymentsPage(): React.ReactElement {
                             <Tooltip>
                               <TooltipTrigger>
                                 <span className="text-text-secondary text-sm">
-                                  {formatDistanceToNow(new Date(payment.createdAt), { addSuffix: true })}
+                                  {formatRelativeTime(payment.createdAt)}
                                 </span>
                               </TooltipTrigger>
                               <TooltipContent>
-                                {format(new Date(payment.createdAt), 'MMM d, yyyy HH:mm:ss')}
+                                {formatDate(payment.createdAt, 'datetime-long')}
                               </TooltipContent>
                             </Tooltip>
                           </TableCell>

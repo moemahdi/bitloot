@@ -11,6 +11,7 @@ import {
 import { Skeleton } from '@/design-system/primitives/skeleton';
 import { useHomepageReviews, usePublicReviews, useMyReviews } from '../hooks/useReviews';
 import { cn } from '@/design-system/utils/utils';
+import { formatDate } from '@/utils/format-date';
 
 // Star Rating Display Component
 function StarRating({ rating, size = 'default' }: { rating: number; size?: 'sm' | 'default' }): React.ReactElement {
@@ -55,11 +56,7 @@ function ReviewCard({
   createdAt,
   showProductName = false,
 }: ReviewCardProps): React.ReactElement {
-  const formattedDate = new Date(createdAt).toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  });
+  const formattedDate = formatDate(createdAt, 'date');
 
   return (
     <Card className="h-full">
@@ -296,11 +293,7 @@ export function ProductReviews({ productId, pageSize = 5 }: ProductReviewsProps)
                 <span className="font-medium">{review.authorName}</span>
                 <span>•</span>
                 <span>
-                  {new Date(review.createdAt).toLocaleDateString('en-US', {
-                    year: 'numeric',
-                    month: 'short',
-                    day: 'numeric',
-                  })}
+                  {formatDate(review.createdAt, 'date')}
                 </span>
               </div>
             </div>
@@ -426,11 +419,7 @@ export function MyReviewsList({ pageSize = 10, onEdit, onDelete }: MyReviewsList
                   </>
                 )}
                 <span>
-                  {new Date(review.createdAt).toLocaleDateString('en-US', {
-                    year: 'numeric',
-                    month: 'short',
-                    day: 'numeric',
-                  })}
+                  {formatDate(review.createdAt, 'date')}
                 </span>
               </div>
             </div>

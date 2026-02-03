@@ -19,6 +19,7 @@ import {
 import { Calendar as CalendarComponent } from '@/design-system/primitives/calendar';
 import { Badge } from '@/design-system/primitives/badge';
 import { cn } from '@/design-system/utils/utils';
+import { formatDate } from '@/utils/format-date';
 
 export interface WebhookFiltersState {
   search: string;
@@ -294,7 +295,7 @@ function DateRangePicker({
           >
             <Calendar className="h-4 w-4 text-cyan-glow" />
             <span className={startDate !== undefined ? 'text-text-primary' : 'text-text-muted'}>
-              {startDate !== undefined ? startDate.toLocaleDateString() : 'Start Date'}
+              {startDate !== undefined ? formatDate(startDate, 'date') : 'Start Date'}
             </span>
           </Button>
         </PopoverTrigger>
@@ -318,7 +319,7 @@ function DateRangePicker({
           >
             <Calendar className="h-4 w-4 text-cyan-glow" />
             <span className={endDate !== undefined ? 'text-text-primary' : 'text-text-muted'}>
-              {endDate !== undefined ? endDate.toLocaleDateString() : 'End Date'}
+              {endDate !== undefined ? formatDate(endDate, 'date') : 'End Date'}
             </span>
           </Button>
         </PopoverTrigger>
@@ -373,10 +374,10 @@ function ActiveFilterTags({
     tags.push({ key: 'paymentStatus', label: 'Payment', value: status?.label ?? filters.paymentStatus });
   }
   if (filters.startDate !== undefined) {
-    tags.push({ key: 'startDate', label: 'From', value: filters.startDate.toLocaleDateString() });
+    tags.push({ key: 'startDate', label: 'From', value: formatDate(filters.startDate, 'date') });
   }
   if (filters.endDate !== undefined) {
-    tags.push({ key: 'endDate', label: 'To', value: filters.endDate.toLocaleDateString() });
+    tags.push({ key: 'endDate', label: 'To', value: formatDate(filters.endDate, 'date') });
   }
 
   if (tags.length === 0) return <></>;

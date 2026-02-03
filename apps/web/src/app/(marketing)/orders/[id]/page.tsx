@@ -47,6 +47,7 @@ import { Alert, AlertDescription } from '@/design-system/primitives/alert';
 import { Separator } from '@/design-system/primitives/separator';
 import { toast } from 'sonner';
 import { apiConfig } from '@/lib/api-config';
+import { useClientDateFormat } from '@/hooks/useFormattedDate';
 
 // Initialize SDK clients
 const ordersClient = new OrdersApi(apiConfig);
@@ -170,25 +171,6 @@ const STATUS_CONFIG: Record<OrderStatus, {
 };
 
 // ========== Helper Functions ==========
-const formatDate = (date: string | Date): string => {
-  // Handle date - if string without timezone info, treat as UTC
-  let d: Date;
-  if (date instanceof Date) {
-    d = date;
-  } else {
-    // If the string doesn't have timezone info (no Z or +/-), append Z for UTC
-    const hasTimezone = /Z|[+-]\d{2}:?\d{2}$/.test(date);
-    d = new Date(hasTimezone ? date : `${date}Z`);
-  }
-  return d.toLocaleString(undefined, {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-};
-
 const formatCurrency = (amount: number | string): string => {
   return `€${Number(amount).toFixed(2)}`;
 };
@@ -252,6 +234,9 @@ export default function OrderStatusPage(): React.ReactElement {
   const params = useParams();
   const router = useRouter();
   const orderId = String(params.id);
+
+  // Use client-side date formatting to ensure correct timezone
+  const { formatDate } = useClientDateFormat();
 
   // Fetch order data with polling
   const {

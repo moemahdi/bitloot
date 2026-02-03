@@ -1,3 +1,7 @@
+// Force UTC timezone for consistent timestamp handling across all environments
+// This ensures Date objects are always in UTC, preventing timezone-related bugs
+process.env.TZ = 'UTC';
+
 import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe, Logger } from '@nestjs/common';

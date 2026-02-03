@@ -50,6 +50,7 @@ import {
 } from 'lucide-react';
 import Image from 'next/image';
 import { Configuration } from '@bitloot/sdk';
+import { formatDate } from '@/utils/format-date';
 
 // Helper to get cookie value
 function getCookie(name: string): string | null {
@@ -661,10 +662,10 @@ export default function AdminFlashDealsPage(): React.ReactElement {
                           <div className="text-sm">
                             <p className="flex items-center gap-1">
                               <Calendar className="h-3 w-3" />
-                              {new Date(deal.startsAt).toLocaleDateString()}
+                              {formatDate(deal.startsAt, 'date')}
                             </p>
                             <p className="text-text-muted">
-                              to {new Date(deal.endsAt).toLocaleDateString()}
+                              to {formatDate(deal.endsAt, 'date')}
                             </p>
                           </div>
                         </TableCell>

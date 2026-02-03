@@ -55,6 +55,7 @@ import {
 } from 'lucide-react';
 import { AdminOperationsApi } from '@bitloot/sdk';
 import { apiConfig } from '@/lib/api-config';
+import { formatDate } from '@/utils/format-date';
 import { toast } from 'sonner';
 
 interface QueueStats {
@@ -682,7 +683,7 @@ export default function AdminQueuesPage(): React.ReactElement {
                                 Attempts: {job.attemptsMade}
                               </Badge>
                               <span className="text-xs text-text-muted">
-                                {new Date(job.timestamp).toLocaleString()}
+                                {formatDate(job.timestamp, 'datetime')}
                               </span>
                             </div>
                             

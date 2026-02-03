@@ -45,7 +45,7 @@ import {
   ShieldCheck,
   ShieldX,
 } from 'lucide-react';
-import { formatDistanceToNow, format } from 'date-fns';
+import { formatDate, formatRelativeTime } from '@/utils/format-date';
 import { toast } from 'sonner';
 import { usePaymentWebhookLogs } from '@/features/admin/hooks/usePaymentWebhookLogs';
 import {
@@ -511,7 +511,7 @@ export function PaymentDetailModal({
                 </div>
                 {payment.refundedAt !== undefined && (
                   <p className="text-sm text-purple-neon/80 mt-1">
-                    Refunded on {format(new Date(payment.refundedAt), 'MMM d, yyyy HH:mm')}
+                    Refunded on {formatDate(payment.refundedAt, 'datetime')}
                   </p>
                 )}
               </div>
@@ -629,7 +629,7 @@ export function PaymentDetailModal({
                 <p className="text-text-secondary">Waiting for customer to send crypto</p>
                 {payment.expiresAt !== undefined && (
                   <p className="text-sm text-text-muted mt-1">
-                    Expires {formatDistanceToNow(new Date(payment.expiresAt), { addSuffix: true })}
+                    Expires {formatRelativeTime(payment.expiresAt)}
                   </p>
                 )}
               </div>
@@ -648,7 +648,7 @@ export function PaymentDetailModal({
                   <div className="flex items-center justify-between">
                     <span className="font-medium text-text-primary">Payment Created</span>
                     <span className="text-sm text-text-secondary">
-                      {format(new Date(payment.createdAt), 'MMM d, yyyy HH:mm:ss')}
+                      {formatDate(payment.createdAt, 'datetime')}
                     </span>
                   </div>
                   <p className="text-sm text-text-secondary mt-1">
@@ -671,7 +671,7 @@ export function PaymentDetailModal({
                         <span className="font-medium text-text-primary">Transaction Detected</span>
                         <span className="text-sm text-text-secondary">
                           {payment.updatedAt !== undefined
-                            ? format(new Date(payment.updatedAt), 'MMM d, yyyy HH:mm:ss')
+                            ? formatDate(payment.updatedAt, 'datetime')
                             : 'N/A'}
                         </span>
                       </div>
@@ -752,7 +752,7 @@ export function PaymentDetailModal({
                           )}
                         </div>
                         <span className="text-sm text-text-secondary">
-                          {format(new Date(log.createdAt), 'MMM d, yyyy HH:mm:ss')}
+                          {formatDate(log.createdAt, 'datetime')}
                         </span>
                       </div>
                       

@@ -43,6 +43,7 @@ import { CatalogProductCard } from '@/features/catalog/components/CatalogProduct
 import type { CatalogProduct } from '@/features/catalog/types';
 import { WatchlistPreview } from '@/components/WatchlistPreview';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { formatDate, formatRelativeTime } from '@/utils/format-date';
 
 const usersClient = new UsersApi(apiConfig);
 const fulfillmentClient = new FulfillmentApi(apiConfig);
@@ -699,15 +700,7 @@ function WatchlistTabContent(): React.ReactElement {
                 <div className="absolute bottom-2 right-2 z-10">
                   <Badge variant="secondary" className="text-[10px] bg-bg-tertiary/90 backdrop-blur-sm border border-border-subtle">
                     <Clock className="h-2.5 w-2.5 mr-1" />
-                    {(() => {
-                      const d = new Date(item.createdAt);
-                      const now = new Date();
-                      const diffDays = Math.floor((now.getTime() - d.getTime()) / (1000 * 60 * 60 * 24));
-                      if (diffDays === 0) return 'Today';
-                      if (diffDays === 1) return 'Yesterday';
-                      if (diffDays < 7) return `${diffDays}d ago`;
-                      return d.toLocaleDateString();
-                    })()}
+                    {formatRelativeTime(item.createdAt)}
                   </Badge>
                 </div>
               </motion.div>
@@ -2008,11 +2001,7 @@ export default function ProfilePage(): React.ReactElement {
                                 <p className="font-medium text-text-primary font-mono text-sm">#{order.id.slice(-8)}</p>
                                 <span className="text-text-muted">•</span>
                                 <p className="text-xs text-text-secondary">
-                                  {new Date(order.createdAt ?? new Date()).toLocaleDateString('en-US', {
-                                    month: 'short',
-                                    day: 'numeric',
-                                    year: 'numeric'
-                                  })}
+                                  {formatDate(order.createdAt ?? new Date(), 'date')}
                                 </p>
                               </div>
                               
@@ -2273,13 +2262,7 @@ export default function ProfilePage(): React.ReactElement {
                                 </p>
                                 <p className="text-xs text-text-tertiary mt-0.5">
                                   {order.createdAt != null
-                                    ? new Date(order.createdAt).toLocaleDateString('en-US', {
-                                        year: 'numeric',
-                                        month: 'short',
-                                        day: 'numeric',
-                                        hour: '2-digit',
-                                        minute: '2-digit'
-                                      })
+                                    ? formatDate(order.createdAt, 'datetime')
                                     : 'Date unknown'}
                                 </p>
                               </div>
@@ -2905,7 +2888,7 @@ export default function ProfilePage(): React.ReactElement {
                             <div className="flex items-center gap-2 text-xs text-text-muted">
                               <span>{maskIpAddress(session.ipAddress)}</span>
                               <span>•</span>
-                              <span>Last active: {session.lastActiveAt != null ? new Date(session.lastActiveAt).toLocaleDateString() : 'Unknown'}</span>
+                              <span>Last active: {session.lastActiveAt != null ? formatRelativeTime(session.lastActiveAt) : 'Unknown'}</span>
                             </div>
                           </div>
                         </div>
@@ -3029,12 +3012,7 @@ export default function ProfilePage(): React.ReactElement {
                           </p>
                           {(deletionStatus.deletionScheduledAt !== null && deletionStatus.deletionScheduledAt !== undefined && deletionStatus.deletionScheduledAt !== '') && (
                             <p className="text-xs text-text-muted mt-2">
-                              Scheduled for: {new Date(deletionStatus.deletionScheduledAt).toLocaleDateString('en-US', {
-                                weekday: 'long',
-                                year: 'numeric',
-                                month: 'long',
-                                day: 'numeric'
-                              })}
+                              Scheduled for: {formatDate(deletionStatus.deletionScheduledAt, 'date')}
                             </p>
                           )}
                         </div>

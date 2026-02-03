@@ -14,6 +14,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from '@/design-system/primitives/card';
 import { Skeleton } from '@/design-system/primitives/skeleton';
 import { cn } from '@/design-system/utils/utils';
+import { formatDate } from '@/utils/format-date';
 
 export interface TimelineDataPoint {
   timestamp: string;
@@ -237,11 +238,11 @@ function formatTimestamp(timestamp: string): string {
     const diffDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
 
     if (diffDays === 0) {
-      return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+      return formatDate(timestamp, 'time');
     } else if (diffDays < 7) {
-      return date.toLocaleDateString('en-US', { weekday: 'short', hour: '2-digit' });
+      return formatDate(timestamp, 'short');
     } else {
-      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      return formatDate(timestamp, 'date');
     }
   } catch {
     return timestamp;

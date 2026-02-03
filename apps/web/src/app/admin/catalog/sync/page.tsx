@@ -38,6 +38,7 @@ import {
   Settings,
   RotateCcw,
 } from 'lucide-react';
+import { formatDate, formatRelativeTime as formatRelativeTimeUtil, formatDuration as formatDurationUtil } from '@/utils/format-date';
 
 // ============ TYPES ============
 
@@ -74,7 +75,7 @@ const syncApi = new AdminCatalogSyncApi(apiConfig);
 
 // ============ HELPERS ============
 
-function formatDuration(ms: number): string {
+function formatSyncDuration(ms: number): string {
   if (ms < 1000) return `${ms}ms`;
   const seconds = Math.floor(ms / 1000);
   if (seconds < 60) return `${seconds}s`;
@@ -86,21 +87,8 @@ function formatDuration(ms: number): string {
   return `${hours}h ${remainingMinutes}m`;
 }
 
-function formatRelativeTime(date: Date): string {
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffMins = Math.floor(diffMs / 60000);
-  
-  if (diffMins < 1) return 'Just now';
-  if (diffMins < 60) return `${diffMins}m ago`;
-  
-  const diffHours = Math.floor(diffMins / 60);
-  if (diffHours < 24) return `${diffHours}h ago`;
-  
-  const diffDays = Math.floor(diffHours / 24);
-  if (diffDays < 7) return `${diffDays}d ago`;
-  
-  return date.toLocaleDateString();
+function formatSyncRelativeTime(dateInput: Date | string): string {
+  return formatRelativeTimeUtil(dateInput);
 }
 
 // ============ COMPONENTS ============
@@ -194,9 +182,9 @@ function LiveSyncProgress({
             />
           </div>
           <div className="flex justify-between text-xs text-text-muted">
-            <span>Elapsed: {formatDuration(elapsed)}</span>
+            <span>Elapsed: {formatSyncDuration(elapsed)}</span>
             {remaining > 0 && percent > 5 && (
-              <span>~{formatDuration(remaining)} remaining</span>
+              <span>~{formatSyncDuration(remaining)} remaining</span>
             )}
           </div>
         </div>
@@ -284,7 +272,7 @@ function SyncCompletedSummary({ result, duration }: { result: SyncResult; durati
             </span>
             <span className="flex items-center gap-1">
               <Clock className="h-4 w-4" />
-              {formatDuration(duration)}
+              {formatSyncDuration(duration)}
             </span>
           </div>
           {hasErrors && (
@@ -750,7 +738,7 @@ export default function CatalogSyncPage() {
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
           <StatsCard
             title="Last Sync"
-            value={formatRelativeTime(new Date(history[0]?.processedOn ?? Date.now()))}
+            value={formatSyncRelativeTime(new Date(history[0]?.processedOn ?? Date.now()))}
             icon={Clock}
             color="cyan"
             subtitle={history[0]?.status}
@@ -847,10 +835,10 @@ export default function CatalogSyncPage() {
                       <TableCell>
                         <div>
                           <p className="text-sm">
-                            {new Date(job.processedOn ?? job.createdAt ?? '').toLocaleString()}
+                            {formatDate(job.processedOn ?? job.createdAt ?? '', 'datetime')}
                           </p>
                           <p className="text-xs text-text-muted">
-                            {formatRelativeTime(new Date(job.processedOn ?? job.createdAt ?? ''))}
+                            {formatSyncRelativeTime(new Date(job.processedOn ?? job.createdAt ?? ''))}
                           </p>
                         </div>
                       </TableCell>
@@ -870,7 +858,7 @@ export default function CatalogSyncPage() {
                         {(result?.productsSkipped ?? 0).toLocaleString()}
                       </TableCell>
                       <TableCell className="text-right text-text-secondary">
-                        {duration > 0 ? formatDuration(duration) : '-'}
+                        {duration > 0 ? formatSyncDuration(duration) : '-'}
                       </TableCell>
                       <TableCell className="text-right">
                         <Button
@@ -904,7 +892,7 @@ export default function CatalogSyncPage() {
                 <History className="h-5 w-5 text-cyan-glow" />
                 <CardTitle>Sync Details</CardTitle>
                 <span className="text-sm text-text-muted">
-                  {selectedHistoryResult.date.toLocaleString()}
+                  {formatDate(selectedHistoryResult.date, 'datetime')}
                 </span>
               </div>
               <Button

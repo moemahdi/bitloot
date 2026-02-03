@@ -29,6 +29,7 @@ import {
   ToggleLeft,
 } from 'lucide-react';
 import { Configuration } from '@bitloot/sdk';
+import { formatDate } from '@/utils/format-date';
 
 // Helper to get cookie value
 function getCookie(name: string): string | null {
@@ -497,12 +498,7 @@ function FlagCard({
         </div>
         {flag.updatedBy !== undefined && flag.updatedBy !== '' && (
           <p className="text-xs text-text-muted mt-3 pt-3 border-t border-border-subtle">
-            Updated {new Date(flag.updatedAt).toLocaleDateString('en-US', { 
-              month: 'short', 
-              day: 'numeric',
-              hour: '2-digit',
-              minute: '2-digit',
-            })}
+            Updated {formatDate(flag.updatedAt, 'datetime')}
           </p>
         )}
       </CardContent>

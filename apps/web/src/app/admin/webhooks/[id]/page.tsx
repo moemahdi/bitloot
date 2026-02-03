@@ -13,6 +13,7 @@ import { useAdminGuard } from '@/features/admin/hooks/useAdminGuard';
 import { toast } from 'sonner';
 
 import { apiConfig } from '@/lib/api-config';
+import { formatDate } from '@/utils/format-date';
 
 const adminApi = new AdminApi(apiConfig);
 
@@ -136,7 +137,7 @@ export default function AdminWebhookDetailPage(): React.ReactElement | null {
                         </div>
                         <div className="flex justify-between items-center">
                             <span className="text-text-secondary">Created At</span>
-                            <span className="text-text-primary">{webhook.createdAt !== undefined && webhook.createdAt !== null ? new Date(webhook.createdAt).toLocaleString() : '-'}</span>
+                            <span className="text-text-primary">{webhook.createdAt !== undefined && webhook.createdAt !== null ? formatDate(webhook.createdAt, 'datetime') : '-'}</span>
                         </div>
                     </CardContent>
                 </Card>

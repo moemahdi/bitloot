@@ -37,6 +37,7 @@ import { toast } from 'sonner';
 import { apiConfig } from '@/lib/api-config';
 import { Confetti } from '@/components/animations/Confetti';
 import { cn } from '@/design-system/utils/utils';
+import { formatDate } from '@/utils/format-date';
 import { KeyReveal } from '@/features/orders';
 import { useOrderAccess } from '@/hooks/useOrderAccess';
 import { OrderReviewPrompt } from '@/features/reviews';
@@ -171,7 +172,7 @@ export default function OrderSuccessPage(): React.ReactElement {
                   <Separator orientation="vertical" className="h-4 hidden sm:block" />
                   <div className="flex items-center gap-2 text-text-muted">
                     <Calendar className="h-4 w-4" />
-                    <span>{new Date(orderData.createdAt).toLocaleDateString()}</span>
+                    <span>{formatDate(orderData.createdAt, 'date')}</span>
                   </div>
                   <Separator orientation="vertical" className="h-4 hidden sm:block" />
                   <Badge 

@@ -63,6 +63,7 @@ import {
   Copy
 } from 'lucide-react';
 import Link from 'next/link';
+import { formatDate, formatDateForExport } from '@/utils/format-date';
 import { useAdminGuard } from '@/features/admin/hooks/useAdminGuard';
 import { useAdminTableState } from '@/features/admin/hooks/useAdminTableState';
 import { useAdminOrders, type Order } from '@/features/admin/hooks/useAdminOrders';
@@ -291,7 +292,7 @@ export default function AdminOrdersPage(): React.ReactElement {
       order.payment?.status ?? 'N/A',
       order.payment?.provider ?? 'N/A',
       order.payment?.id ?? 'N/A',
-      new Date(order.createdAt).toLocaleString(),
+      formatDateForExport(order.createdAt),
     ]);
 
     const csvContent = [
@@ -915,13 +916,7 @@ export default function AdminOrdersPage(): React.ReactElement {
                         )}
                       </TableCell>
                       <TableCell className="text-text-secondary text-sm whitespace-nowrap">
-                        {new Date(order.createdAt).toLocaleString('en-US', {
-                          year: 'numeric',
-                          month: 'short',
-                          day: 'numeric',
-                          hour: '2-digit',
-                          minute: '2-digit',
-                        })}
+                        {formatDate(order.createdAt, 'datetime')}
                       </TableCell>
                       <TableCell className="text-right">
                         <Link href={`/admin/orders/${order.id}`}>

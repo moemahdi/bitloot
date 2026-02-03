@@ -31,6 +31,7 @@ import {
 import { Badge } from '@/design-system/primitives/badge';
 import { toast } from 'sonner';
 import { apiConfig } from '@/lib/api-config';
+import { formatDate } from '@/utils/format-date';
 import { AdminPromosApi } from '@bitloot/sdk';
 import type { PromoCodeResponseDto, PaginatedPromoCodesDto } from '@bitloot/sdk';
 
@@ -206,7 +207,7 @@ export function PromoCodesList({ onEdit, onCreate, onViewRedemptions }: PromoCod
                                     <TableCell>{getStatusBadge(promo)}</TableCell>
                                     <TableCell>
                                         {promo.expiresAt !== undefined ? (
-                                            new Date(promo.expiresAt).toLocaleDateString()
+                                            formatDate(promo.expiresAt, 'date')
                                         ) : (
                                             <span className="text-muted-foreground">Never</span>
                                         )}

@@ -5,6 +5,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AdminApi, KinguinApi, FulfillmentApi } from "@bitloot/sdk";
 import type { KinguinControllerGetStatus200Response } from "@bitloot/sdk";
 import { apiConfig } from '@/lib/api-config';
+import { formatDate, formatRelativeTime } from '@/utils/format-date';
 import { convertToCSV, downloadCSV } from "@/utils/csv-export";
 import { useAutoRefresh } from "@/hooks/useAutoRefresh";
 import { useAdminGuard } from '@/features/admin/hooks/useAdminGuard';
@@ -253,31 +254,10 @@ export default function AdminReservationsPage(): React.ReactElement {
   const { isAutoRefreshEnabled, setIsAutoRefreshEnabled, handleRefresh, lastRefreshTime } =
     useAutoRefresh(query, { enableAutoRefresh: false, refetchInterval: 30_000 });
 
-  // Format date helper
-  const formatDate = (dateValue: string | Date | null | undefined): string => {
-    if (dateValue === null || dateValue === undefined) return "—";
-    const date = typeof dateValue === "string" ? new Date(dateValue) : dateValue;
-    return date.toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  };
-
   // Calculate time since created
   const getTimeSince = (dateValue: string | Date | null | undefined): string => {
     if (dateValue === null || dateValue === undefined) return "—";
-    const date = typeof dateValue === "string" ? new Date(dateValue) : dateValue;
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMins / 60);
-    const diffDays = Math.floor(diffHours / 24);
-    
-    if (diffDays > 0) return `${diffDays}d ago`;
-    if (diffHours > 0) return `${diffHours}h ago`;
-    if (diffMins > 0) return `${diffMins}m ago`;
+    return formatRelativeTime(dateValue);
     return 'Just now';
   };
 
@@ -413,7 +393,7 @@ export default function AdminReservationsPage(): React.ReactElement {
             
             {lastRefreshTime !== null && (
               <span className="text-xs text-text-muted hidden sm:inline font-mono">
-                {lastRefreshTime.toLocaleTimeString()}
+                {formatDate(lastRefreshTime, 'time')}
               </span>
             )}
           </div>
@@ -826,7 +806,7 @@ export default function AdminReservationsPage(): React.ReactElement {
                                       <div className="text-xs space-y-1">
                                         <p><span className="text-text-muted">Status:</span> <span className="text-text-primary font-medium">{kinguinStatus.kinguinStatus ?? 'N/A'}</span></p>
                                         <p><span className="text-text-muted">Key Available:</span> <span className={kinguinStatus.hasKey === true ? 'text-green-success' : 'text-orange-warning'}>{kinguinStatus.hasKey === true ? 'Yes' : 'No'}</span></p>
-                                        <p><span className="text-text-muted">Checked:</span> <span className="text-text-secondary">{kinguinStatus.checkedAt.toLocaleTimeString()}</span></p>
+                                        <p><span className="text-text-muted">Checked:</span> <span className="text-text-secondary">{formatDate(kinguinStatus.checkedAt, 'time')}</span></p>
                                       </div>
                                     </TooltipContent>
                                   </Tooltip>

@@ -99,6 +99,7 @@ import Link from 'next/link';
 import type { AdminProductResponseDto, AdminProductsListResponseDto } from '@bitloot/sdk';
 import { AdminCatalogProductsApi } from '@bitloot/sdk';
 import { apiConfig } from '@/lib/api-config';
+import { formatDate } from '@/utils/format-date';
 import { useErrorHandler } from '@/hooks/useErrorHandler';
 import { useNetworkStatus } from '@/hooks/useNetworkStatus';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -1601,7 +1602,7 @@ export default function AdminCatalogProductsPage(): React.JSX.Element {
                         <div className="flex items-center gap-2 p-2 rounded bg-bg-primary border border-cyan-glow/10">
                           <Calendar className="h-4 w-4 text-cyan-glow shrink-0" />
                           <span className="text-text-secondary">Release:</span>
-                          <span className="text-text-primary font-medium">{new Date(selectedProduct.releaseDate).toLocaleDateString()}</span>
+                          <span className="text-text-primary font-medium">{formatDate(selectedProduct.releaseDate, 'date')}</span>
                         </div>
                       )}
                     </div>
@@ -1990,13 +1991,13 @@ export default function AdminCatalogProductsPage(): React.JSX.Element {
                         {selectedProduct.createdAt !== null && selectedProduct.createdAt !== undefined && (
                           <div className="flex items-center gap-2 p-2 rounded bg-bg-primary border border-cyan-glow/10">
                             <span className="text-text-secondary">Created:</span>
-                            <span className="text-text-primary">{new Date(selectedProduct.createdAt).toLocaleString()}</span>
+                            <span className="text-text-primary">{formatDate(selectedProduct.createdAt, 'datetime')}</span>
                           </div>
                         )}
                         {selectedProduct.updatedAt !== null && selectedProduct.updatedAt !== undefined && (
                           <div className="flex items-center gap-2 p-2 rounded bg-bg-primary border border-cyan-glow/10">
                             <span className="text-text-secondary">Updated:</span>
-                            <span className="text-text-primary">{new Date(selectedProduct.updatedAt).toLocaleString()}</span>
+                            <span className="text-text-primary">{formatDate(selectedProduct.updatedAt, 'datetime')}</span>
                           </div>
                         )}
                       </div>

@@ -7,6 +7,7 @@ import { Badge } from '@/design-system/primitives/badge';
 import { Button } from '@/design-system/primitives/button';
 import { Skeleton } from '@/design-system/primitives/skeleton';
 import { cn } from '@/design-system/utils/utils';
+import { formatRelativeTime } from '@/utils/format-date';
 import { WebhookTypeBadge } from './WebhookTypeBadge';
 import { SignatureIndicator } from './SignatureIndicator';
 import { PaymentStatusBadge } from './WebhookStatusBadge';
@@ -187,7 +188,7 @@ function TimelineItem({
 
         <div className="mt-1 flex items-center gap-2 text-sm text-text-secondary">
           <time dateTime={webhook.createdAt}>
-            {formatDateTime(webhook.createdAt)}
+            {formatRelativeTime(webhook.createdAt)}
           </time>
           {webhook.externalId !== null && webhook.externalId !== undefined && webhook.externalId !== '' ? (
             <span className="text-text-muted font-mono text-xs">
@@ -252,29 +253,4 @@ export function OrderWebhookTimelineCompact({
       )}
     </Link>
   );
-}
-
-function formatDateTime(dateStr: string): string {
-  try {
-    const date = new Date(dateStr);
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffMins = Math.floor(diffMs / 60000);
-    const diffHours = Math.floor(diffMs / 3600000);
-    const diffDays = Math.floor(diffMs / 86400000);
-
-    if (diffMins < 1) return 'Just now';
-    if (diffMins < 60) return `${diffMins}m ago`;
-    if (diffHours < 24) return `${diffHours}h ago`;
-    if (diffDays < 7) return `${diffDays}d ago`;
-
-    return date.toLocaleString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  } catch {
-    return dateStr;
-  }
 }

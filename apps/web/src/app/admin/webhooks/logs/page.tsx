@@ -39,8 +39,8 @@ import {
   ArrowLeft,
   CheckSquare,
 } from 'lucide-react';
-import { format } from 'date-fns';
 import { toast } from 'sonner';
+import { formatDate, formatDateForExport } from '@/utils/format-date';
 import { useAdminGuard } from '@/features/admin/hooks/useAdminGuard';
 import { useWebhookLogsEnhanced } from '@/features/admin/hooks/useWebhookLogsEnhanced';
 import { useWebhookBulkReplay } from '@/features/admin/hooks/useWebhookBulkReplay';
@@ -157,7 +157,7 @@ export default function AdminWebhookLogsPage(): React.ReactElement {
       log.paymentStatus ?? '',
       log.orderId ?? '',
       log.error ?? '',
-      new Date(log.createdAt).toISOString(),
+      formatDateForExport(log.createdAt),
     ]);
 
     const csvContent =
@@ -167,7 +167,7 @@ export default function AdminWebhookLogsPage(): React.ReactElement {
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement('a');
     link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `webhooks_export_${new Date().toISOString()}.csv`);
+    link.setAttribute('download', `webhooks_export_${new Date().toISOString().split('T')[0]}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -350,7 +350,7 @@ export default function AdminWebhookLogsPage(): React.ReactElement {
                         )}
                       </TableCell>
                       <TableCell className="text-sm text-text-secondary">
-                        {format(new Date(log.createdAt), 'MMM d, HH:mm:ss')}
+                        {formatDate(log.createdAt, 'datetime')}
                       </TableCell>
                       <TableCell className="text-right">
                         <Button variant="ghost" size="sm" asChild className="hover:text-cyan-glow hover:bg-bg-tertiary transition-all duration-200">

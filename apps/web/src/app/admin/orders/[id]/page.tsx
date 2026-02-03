@@ -11,6 +11,7 @@ import { Button } from '@/design-system/primitives/button';
 import { Loader2, ArrowLeft, Clock, Package, CreditCard, Eye, EyeOff, History, AlertTriangle, Mail, Zap, CheckCircle2, XCircle, Copy, Wallet, Hash, ExternalLink, Download, Globe, Monitor, Key, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import Link from 'next/link';
+import { formatDate } from '@/utils/format-date';
 import { useAdminGuard } from '@/features/admin/hooks/useAdminGuard';
 import { useOrderWebhooks } from '@/features/admin/hooks/useOrderWebhooks';
 import { OrderWebhookHistory } from '@/features/admin/components/webhooks';
@@ -92,18 +93,10 @@ function getOrderStatusBadge(status: string): { variant: 'default' | 'secondary'
 }
 
 /**
- * Format date with time - handles both Date objects and string dates
+ * Format date wrapper for this component
  */
 function formatDateTime(dateInput: string | Date | undefined): string {
-    if (dateInput === undefined || dateInput === null) return '-';
-    const date = typeof dateInput === 'string' ? new Date(dateInput) : dateInput;
-    return date.toLocaleString('en-US', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit',
-    });
+    return formatDate(dateInput, 'datetime');
 }
 
 /**

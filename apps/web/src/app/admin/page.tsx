@@ -80,6 +80,7 @@ import { useWebhookStats } from '@/features/admin/hooks/useWebhookStats';
 import { cn } from '@/design-system/utils/utils';
 import { useState, useCallback, useMemo, useEffect } from 'react';
 import { apiConfig } from '@/lib/api-config';
+import { formatDate } from '@/utils/format-date';
 import { toast } from 'sonner';
 
 const adminClient = new AdminApi(apiConfig);
@@ -495,7 +496,7 @@ function SystemStatusBadge({ health, isChecking }: { health: SystemHealth; isChe
               ))}
             </div>
             <p className="text-[10px] text-text-muted pt-2 border-t border-border-subtle">
-              Last checked: {health.lastChecked.toLocaleTimeString()}
+              Last checked: {formatDate(health.lastChecked, 'time')}
             </p>
           </div>
         </TooltipContent>
@@ -861,11 +862,7 @@ export default function AdminDashboardPage(): React.ReactElement | null {
       stats?.revenueHistory
         ?.filter((item) => item.date != null)
         ?.map((item) => ({
-          name: new Date(item.date!).toLocaleDateString('en-US', { 
-            weekday: 'short',
-            month: 'short',
-            day: 'numeric',
-          }),
+          name: formatDate(item.date!, 'short'),
           revenue: item.revenue,
         })) ?? []
     );
@@ -874,10 +871,7 @@ export default function AdminDashboardPage(): React.ReactElement | null {
   // Last updated time
   const lastUpdated = useMemo(() => {
     if (dataUpdatedAt === undefined || dataUpdatedAt === 0) return null;
-    return new Date(dataUpdatedAt).toLocaleTimeString('en-US', {
-      hour: '2-digit',
-      minute: '2-digit',
-    });
+    return formatDate(dataUpdatedAt, 'time');
   }, [dataUpdatedAt]);
 
   // ============================================================================
@@ -1457,18 +1451,12 @@ export default function AdminDashboardPage(): React.ReactElement | null {
                           <div className="flex flex-col items-end">
                             <span className="text-xs text-text-secondary">
                               {order.createdAt !== undefined && order.createdAt !== null
-                                ? new Date(order.createdAt).toLocaleDateString('en-US', {
-                                    month: 'short',
-                                    day: 'numeric',
-                                  })
+                                ? formatDate(order.createdAt, 'date')
                                 : 'N/A'}
                             </span>
                             <span className="text-[10px] text-text-muted">
                               {order.createdAt !== undefined && order.createdAt !== null
-                                ? new Date(order.createdAt).toLocaleTimeString('en-US', {
-                                    hour: '2-digit',
-                                    minute: '2-digit',
-                                  })
+                                ? formatDate(order.createdAt, 'time')
                                 : ''}
                             </span>
                           </div>

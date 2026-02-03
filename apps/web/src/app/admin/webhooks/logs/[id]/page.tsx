@@ -34,7 +34,7 @@ import {
   RefreshCw,
   Globe,
 } from 'lucide-react';
-import { format, formatDistanceToNow } from 'date-fns';
+import { formatDate, formatRelativeTime } from '@/utils/format-date';
 import { toast } from 'sonner';
 import { useAdminGuard } from '@/features/admin/hooks/useAdminGuard';
 import { useWebhookDetail } from '@/features/admin/hooks/useWebhookDetail';
@@ -174,9 +174,9 @@ export default function AdminWebhookDetailPage(): React.ReactElement {
                 </CardTitle>
                 <CardDescription className="mt-1 flex items-center gap-2 text-text-secondary">
                   <Clock className="h-4 w-4" />
-                  {format(new Date(webhook.createdAt), 'PPpp')}
+                  {formatDate(webhook.createdAt, 'datetime')}
                   <span className="text-text-muted">·</span>
-                  {formatDistanceToNow(new Date(webhook.createdAt), { addSuffix: true })}
+                  {formatRelativeTime(webhook.createdAt)}
                 </CardDescription>
               </div>
             </div>

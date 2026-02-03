@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { format } from 'date-fns';
+import { formatDate, formatDateForExport } from '@/utils/format-date';
 import { ArrowLeft, Download } from 'lucide-react';
 import { Button } from '@/design-system/primitives/button';
 import {
@@ -46,7 +46,7 @@ export function PromoRedemptionsView({ promoId, promoCode, onBack }: PromoRedemp
 
         const headers = ['Date', 'Order ID', 'Email', 'Original Total', 'Discount', 'Final Total'];
         const rows = data.data.map((r) => [
-            format(new Date(r.createdAt), 'yyyy-MM-dd HH:mm'),
+            formatDateForExport(r.createdAt),
             r.orderId,
             r.email,
             `€${parseFloat(r.originalTotal).toFixed(2)}`,
@@ -136,7 +136,7 @@ export function PromoRedemptionsView({ promoId, promoCode, onBack }: PromoRedemp
                             data?.data.map((redemption) => (
                                 <TableRow key={redemption.id}>
                                     <TableCell>
-                                        {format(new Date(redemption.createdAt), 'MMM d, yyyy HH:mm')}
+                                        {formatDate(redemption.createdAt, 'datetime')}
                                     </TableCell>
                                     <TableCell>
                                         <a

@@ -54,6 +54,7 @@ import {
   Plus,
 } from 'lucide-react';
 import { useAdminGuard } from '@/features/admin/hooks/useAdminGuard';
+import { formatDate } from '@/utils/format-date';
 import { useAdminTableState } from '@/features/admin/hooks/useAdminTableState';
 import {
   useAdminReviews,
@@ -453,7 +454,7 @@ export default function AdminReviewsPage(): React.ReactElement {
                           <Home className={`h-4 w-4 ${review.displayOnHomepage ? '' : 'text-muted-foreground'}`} />
                         </Button>
                       </TableCell>
-                      <TableCell>{new Date(review.createdAt).toLocaleDateString()}</TableCell>
+                      <TableCell>{formatDate(review.createdAt, 'date')}</TableCell>
                       <TableCell className="text-right">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
@@ -687,12 +688,12 @@ export default function AdminReviewsPage(): React.ReactElement {
                 </div>
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">Created</label>
-                  <p>{new Date(selectedReview.createdAt).toLocaleString()}</p>
+                  <p>{formatDate(selectedReview.createdAt, 'datetime')}</p>
                 </div>
                 {selectedReview.approvedAt != null && (
                   <div>
                     <label className="text-sm font-medium text-muted-foreground">Moderated</label>
-                    <p>{new Date(String(selectedReview.approvedAt)).toLocaleString()}</p>
+                    <p>{formatDate(String(selectedReview.approvedAt), 'datetime')}</p>
                     {selectedReview.approvedByEmail != null && (
                       <p className="text-sm text-muted-foreground">by {String(selectedReview.approvedByEmail)}</p>
                     )}

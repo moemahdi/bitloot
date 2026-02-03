@@ -8,6 +8,7 @@ import { Card, CardContent, CardFooter } from '@/design-system/primitives/card';
 import { Badge } from '@/design-system/primitives/badge';
 import { Button } from '@/design-system/primitives/button';
 import { Eye, ShoppingCart, Trash2, Loader2, Clock } from 'lucide-react';
+import { formatRelativeTime } from '@/utils/format-date';
 
 export interface WatchlistProduct {
   id: string;
@@ -47,16 +48,8 @@ export function WatchlistProductCard({
     await onRemove(product.id);
   };
 
-  const formatDate = (date: string | Date): string => {
-    const d = new Date(date);
-    const now = new Date();
-    const diffTime = Math.abs(now.getTime() - d.getTime());
-    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-
-    if (diffDays === 0) return 'Today';
-    if (diffDays === 1) return 'Yesterday';
-    if (diffDays < 7) return `${diffDays} days ago`;
-    return d.toLocaleDateString();
+  const formatAddedDate = (date: string | Date): string => {
+    return formatRelativeTime(date);
   };
 
   return (
@@ -187,7 +180,7 @@ export function WatchlistProductCard({
 
             <div className="flex items-center gap-1 text-text-muted">
               <Clock className="w-3.5 h-3.5" />
-              <span className="text-xs">{formatDate(addedAt)}</span>
+              <span className="text-xs">{formatAddedDate(addedAt)}</span>
             </div>
           </CardFooter>
         </Card>

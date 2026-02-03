@@ -56,6 +56,7 @@ import {
 import type { PaginatedAuditLogsDto, AuditLogResponseDto } from '@bitloot/sdk';
 import { AuditLogsApi } from '@bitloot/sdk';
 import { apiConfig } from '@/lib/api-config';
+import { formatDate, formatRelativeTime, formatDateForExport } from '@/utils/format-date';
 
 const auditLogsApi = new AuditLogsApi(apiConfig);
 
@@ -442,7 +443,7 @@ export default function AdminAuditPage(): React.ReactElement {
                             {log.details ?? '—'}
                           </TableCell>
                           <TableCell className="text-sm text-text-muted whitespace-nowrap">
-                            {formatDate(log.createdAt instanceof Date ? log.createdAt.toISOString() : String(log.createdAt))}
+                            {formatAuditDate(log.createdAt instanceof Date ? log.createdAt.toISOString() : String(log.createdAt))}
                           </TableCell>
                           <TableCell className="text-right">
                             <Button
@@ -564,7 +565,7 @@ export default function AdminAuditPage(): React.ReactElement {
                     Timestamp
                   </label>
                   <p className="text-sm text-text-primary mt-1">
-                    {new Date(selectedLog.createdAt).toLocaleString()}
+                    {formatDate(selectedLog.createdAt, 'datetime-long')}
                   </p>
                 </div>
                 <div>
@@ -710,23 +711,9 @@ function getTargetType(target: string): string {
   return 'settings';
 }
 
-function formatDate(dateString: string): string {
-  const date = new Date(dateString);
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffMins = Math.floor(diffMs / 60000);
-  const diffHours = Math.floor(diffMs / 3600000);
-  const diffDays = Math.floor(diffMs / 86400000);
-
-  if (diffMins < 1) return 'Just now';
-  if (diffMins < 60) return `${diffMins}m ago`;
-  if (diffHours < 24) return `${diffHours}h ago`;
-  if (diffDays < 7) return `${diffDays}d ago`;
-
-  return date.toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
+/**
+ * Format date for audit log display using centralized utility
+ */
+function formatAuditDate(dateString: string): string {
+  return formatRelativeTime(dateString);
 }

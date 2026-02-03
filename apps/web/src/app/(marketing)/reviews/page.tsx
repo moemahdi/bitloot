@@ -22,6 +22,7 @@ import {
 } from '@/design-system/primitives/select';
 import { Separator } from '@/design-system/primitives/separator';
 import { cn } from '@/design-system/utils/utils';
+import { formatDate } from '@/utils/format-date';
 
 // Sort options type
 type SortOption = 'recent' | 'highest' | 'lowest' | 'helpful';
@@ -87,11 +88,7 @@ function ReviewCard({
   orderItems,
   createdAt,
 }: ReviewCardProps) {
-  const formattedDate = new Date(createdAt).toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  });
+  const formattedDate = formatDate(createdAt, 'date');
 
   return (
     <motion.div

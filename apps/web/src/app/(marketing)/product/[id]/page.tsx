@@ -26,6 +26,7 @@ import { FormattedDescription } from '@/features/product/components/FormattedDes
 import { useAuth } from '@/hooks/useAuth';
 import { useCart } from '@/context/CartContext';
 import { useState, useCallback, useEffect } from 'react';
+import { formatDate } from '@/utils/format-date';
 
 // ========== Design Constants & Utilities (BitLoot Design System) ==========
 
@@ -1228,7 +1229,7 @@ export default function ProductPage(): React.ReactElement {
                 <div className={`p-4 rounded-xl space-y-1 ${GLASS_CARD}`}>
                   <div className="text-xs text-text-muted font-semibold uppercase tracking-wider">Release Date</div>
                   <div className="text-sm font-medium text-text-primary truncate">
-                    {product.releaseDate !== null && product.releaseDate !== undefined && product.releaseDate !== '' ? new Date(product.releaseDate).toLocaleDateString() : 'TBA'}
+                    {product.releaseDate !== null && product.releaseDate !== undefined && product.releaseDate !== '' ? formatDate(product.releaseDate, 'date') : 'TBA'}
                   </div>
                 </div>
                 <div className={`p-4 rounded-xl space-y-1 ${GLASS_CARD}`}>

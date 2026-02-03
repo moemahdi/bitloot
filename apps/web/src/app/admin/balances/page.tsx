@@ -45,6 +45,7 @@ import {
 } from 'lucide-react';
 import { AdminKinguinBalanceApi, AdminKinguinProfitAnalyticsApi } from '@bitloot/sdk';
 import { getApiConfig } from '@/lib/api-config';
+import { formatDate as formatDateUtil } from '@/utils/format-date';
 
 // ============================================================================
 // Types (matching backend DTOs)
@@ -218,18 +219,12 @@ function formatCurrency(value: number): string {
   }).format(value);
 }
 
-function formatDate(dateString: string): string {
-  return new Date(dateString).toLocaleString('en-US', {
-    dateStyle: 'short',
-    timeStyle: 'short',
-  });
+function formatBalanceDate(dateString: string): string {
+  return formatDateUtil(dateString, 'short');
 }
 
 function formatDateShort(dateString: string): string {
-  return new Date(dateString).toLocaleDateString('de-DE', {
-    month: 'short',
-    day: 'numeric',
-  });
+  return formatDateUtil(dateString, 'date-only');
 }
 
 // Default spending stats for safe fallbacks
@@ -548,7 +543,7 @@ function RecentOrdersTable({ orders }: RecentOrdersTableProps): React.ReactEleme
                       </Badge>
                     </TableCell>
                     <TableCell className="text-sm text-zinc-500">
-                      {formatDate(order.createdAt)}
+                      {formatBalanceDate(order.createdAt)}
                     </TableCell>
                   </TableRow>
                 ))}
@@ -1254,7 +1249,7 @@ export default function AdminBalancesPage(): React.ReactElement {
         <StatCard
           title="Current Balance"
           value={formatCurrency(dashboard.balance?.balance ?? 0)}
-          subtitle={`Updated ${dashboard.balance?.fetchedAt !== undefined && dashboard.balance.fetchedAt !== '' ? formatDate(dashboard.balance.fetchedAt) : 'N/A'}`}
+          subtitle={`Updated ${dashboard.balance?.fetchedAt !== undefined && dashboard.balance.fetchedAt !== '' ? formatBalanceDate(dashboard.balance.fetchedAt) : 'N/A'}`}
           icon={<Wallet className="h-8 w-8" />}
           variant={
             (dashboard.balance?.balance ?? 0) < 100
