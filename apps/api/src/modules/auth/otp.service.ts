@@ -14,9 +14,9 @@ export class OtpService {
   private readonly redis: Redis;
   private readonly logger = new Logger(OtpService.name);
   private readonly OTP_TTL = 300; // 5 minutes
-  private readonly MAX_REQUESTS_PER_WINDOW = 10; // Increased for testing
+  private readonly MAX_REQUESTS_PER_WINDOW = 5; // 5 requests per 15 minutes
   private readonly REQUEST_WINDOW_SECONDS = 900; // 15 minutes
-  private readonly MAX_VERIFY_ATTEMPTS = 10; // Increased for testing
+  private readonly MAX_VERIFY_ATTEMPTS = 5; // 5 attempts per minute
   private readonly VERIFY_WINDOW_SECONDS = 60; // 1 minute
 
   constructor(
@@ -66,7 +66,7 @@ export class OtpService {
     const rateLimitKey = `otp:ratelimit:send:${email}`;
 
     try {
-      // Check rate limit (3 requests per 15 minutes)
+      // Check rate limit (5 requests per 15 minutes)
       const attempts = await this.redis.incr(rateLimitKey);
 
       if (attempts > this.MAX_REQUESTS_PER_WINDOW) {

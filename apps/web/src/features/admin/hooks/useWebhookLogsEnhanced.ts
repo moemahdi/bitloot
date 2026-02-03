@@ -9,6 +9,8 @@ import {
   AdminControllerGetWebhookLogsEnhancedSignatureValidEnum,
   AdminControllerGetWebhookLogsEnhancedSortByEnum,
   AdminControllerGetWebhookLogsEnhancedSortOrderEnum,
+  type PaginatedWebhookLogsDto,
+  type WebhookLogListItemDto,
 } from '@bitloot/sdk';
 import { apiConfig } from '@/lib/api-config';
 import type { WebhookFiltersState } from '../components/webhooks/WebhookFilters';
@@ -48,30 +50,12 @@ function getSortOrderEnum(
     : AdminControllerGetWebhookLogsEnhancedSortOrderEnum.Desc;
 }
 
-export interface WebhookLogListItem {
-  id: string;
-  externalId: string | null;
-  webhookType: string;
-  processed: boolean;
-  signatureValid: boolean | null;
-  paymentStatus: string | null;
-  error: string | null;
-  orderId: string | null;
-  paymentId: string | null;
-  sourceIp: string | null;
-  attemptCount: number;
-  createdAt: string;
-  updatedAt: string;
-}
+// Re-export SDK types for convenience
+export type { PaginatedWebhookLogsDto, WebhookLogListItemDto };
 
-export interface PaginatedWebhookLogs {
-  data: WebhookLogListItem[];
-  total: number;
-  page: number;
-  limit: number;
-  totalPages: number;
-  hasNextPage: boolean;
-}
+// Legacy type aliases for backward compatibility
+export type WebhookLogListItem = WebhookLogListItemDto;
+export type PaginatedWebhookLogs = PaginatedWebhookLogsDto;
 
 export interface UseWebhookLogsEnhancedOptions {
   filters: WebhookFiltersState;
@@ -82,7 +66,7 @@ export interface UseWebhookLogsEnhancedOptions {
 }
 
 export interface UseWebhookLogsEnhancedReturn {
-  webhooks: PaginatedWebhookLogs | undefined;
+  webhooks: PaginatedWebhookLogsDto | undefined;
   isLoading: boolean;
   isFetching: boolean;
   error: Error | null;
@@ -94,7 +78,7 @@ export function useWebhookLogsEnhanced(options: UseWebhookLogsEnhancedOptions): 
   const { filters, page, limit, enabled = true, refetchInterval } = options;
   const queryClient = useQueryClient();
 
-  const query = useQuery<PaginatedWebhookLogs>({
+  const query = useQuery<PaginatedWebhookLogsDto>({
     queryKey: ['webhook-logs-enhanced', filters, page, limit],
     queryFn: async () => {
       const offset = (page - 1) * limit;
@@ -111,7 +95,7 @@ export function useWebhookLogsEnhanced(options: UseWebhookLogsEnhancedOptions): 
         sortBy: getSortByEnum(filters.sortBy),
         sortOrder: getSortOrderEnum(filters.sortOrder),
       });
-      return response as unknown as PaginatedWebhookLogs;
+      return response;
     },
     enabled,
     staleTime: 15_000, // 15 seconds

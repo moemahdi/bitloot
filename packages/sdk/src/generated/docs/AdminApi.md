@@ -1165,7 +1165,7 @@ example().catch(console.error);
 
 ## adminControllerGetWebhookLogsEnhanced
 
-> adminControllerGetWebhookLogsEnhanced(limit, offset, webhookType, paymentStatus, signatureValid, startDate, endDate, search, sourceIp, orderId, paymentId, sortBy, sortOrder)
+> PaginatedWebhookLogsDto adminControllerGetWebhookLogsEnhanced(limit, offset, webhookType, paymentStatus, signatureValid, startDate, endDate, search, sourceIp, orderId, paymentId, sortBy, sortOrder)
 
 Get enhanced webhook logs with advanced filtering
 
@@ -1250,7 +1250,7 @@ example().catch(console.error);
 
 ### Return type
 
-`void` (Empty response body)
+[**PaginatedWebhookLogsDto**](PaginatedWebhookLogsDto.md)
 
 ### Authorization
 
@@ -1259,7 +1259,7 @@ example().catch(console.error);
 ### HTTP request headers
 
 - **Content-Type**: Not defined
-- **Accept**: Not defined
+- **Accept**: `application/json`
 
 
 ### HTTP response details
@@ -1272,7 +1272,7 @@ example().catch(console.error);
 
 ## adminControllerGetWebhookStats
 
-> adminControllerGetWebhookStats(period)
+> WebhookStatsDto adminControllerGetWebhookStats(period)
 
 Get webhook statistics
 
@@ -1321,7 +1321,7 @@ example().catch(console.error);
 
 ### Return type
 
-`void` (Empty response body)
+[**WebhookStatsDto**](WebhookStatsDto.md)
 
 ### Authorization
 
@@ -1330,7 +1330,7 @@ example().catch(console.error);
 ### HTTP request headers
 
 - **Content-Type**: Not defined
-- **Accept**: Not defined
+- **Accept**: `application/json`
 
 
 ### HTTP response details
@@ -1343,7 +1343,7 @@ example().catch(console.error);
 
 ## adminControllerGetWebhookTimeline
 
-> adminControllerGetWebhookTimeline(period, interval)
+> WebhookTimelineDto adminControllerGetWebhookTimeline(period, interval)
 
 Get webhook activity timeline
 
@@ -1395,7 +1395,7 @@ example().catch(console.error);
 
 ### Return type
 
-`void` (Empty response body)
+[**WebhookTimelineDto**](WebhookTimelineDto.md)
 
 ### Authorization
 
@@ -1404,7 +1404,7 @@ example().catch(console.error);
 ### HTTP request headers
 
 - **Content-Type**: Not defined
-- **Accept**: Not defined
+- **Accept**: `application/json`
 
 
 ### HTTP response details

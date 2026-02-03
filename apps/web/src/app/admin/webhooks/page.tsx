@@ -84,11 +84,9 @@ export default function AdminWebhooksDashboardPage(): React.ReactElement {
               <SelectValue placeholder="Time Period" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="1h">Last Hour</SelectItem>
               <SelectItem value="24h">Last 24 Hours</SelectItem>
               <SelectItem value="7d">Last 7 Days</SelectItem>
               <SelectItem value="30d">Last 30 Days</SelectItem>
-              <SelectItem value="all">All Time</SelectItem>
             </SelectContent>
           </Select>
           <Button variant="outline" onClick={handleRefresh} disabled={isStatsLoading === true || isTimelineLoading === true} className="hover:text-cyan-glow hover:border-cyan-glow/50 transition-all duration-200">

@@ -35,9 +35,12 @@ import type {
   BulkUpdateStatusResponseDto,
   DashboardStatsDto,
   OrderAnalyticsDto,
+  PaginatedWebhookLogsDto,
   UpdateOrderStatusDto,
   UpdatePaymentStatusDto,
   UpdatePaymentStatusResponseDto,
+  WebhookStatsDto,
+  WebhookTimelineDto,
 } from '../models/index';
 import {
     AdminControllerAdminRevealKey200ResponseFromJSON,
@@ -80,12 +83,18 @@ import {
     DashboardStatsDtoToJSON,
     OrderAnalyticsDtoFromJSON,
     OrderAnalyticsDtoToJSON,
+    PaginatedWebhookLogsDtoFromJSON,
+    PaginatedWebhookLogsDtoToJSON,
     UpdateOrderStatusDtoFromJSON,
     UpdateOrderStatusDtoToJSON,
     UpdatePaymentStatusDtoFromJSON,
     UpdatePaymentStatusDtoToJSON,
     UpdatePaymentStatusResponseDtoFromJSON,
     UpdatePaymentStatusResponseDtoToJSON,
+    WebhookStatsDtoFromJSON,
+    WebhookStatsDtoToJSON,
+    WebhookTimelineDtoFromJSON,
+    WebhookTimelineDtoToJSON,
 } from '../models/index';
 
 export interface AdminControllerAdminRevealKeyRequest {
@@ -1004,7 +1013,7 @@ export class AdminApi extends runtime.BaseAPI {
      * Returns paginated webhook logs with full filter options
      * Get enhanced webhook logs with advanced filtering
      */
-    async adminControllerGetWebhookLogsEnhancedRaw(requestParameters: AdminControllerGetWebhookLogsEnhancedRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<void>> {
+    async adminControllerGetWebhookLogsEnhancedRaw(requestParameters: AdminControllerGetWebhookLogsEnhancedRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<PaginatedWebhookLogsDto>> {
         const queryParameters: any = {};
 
         if (requestParameters['limit'] != null) {
@@ -1079,22 +1088,23 @@ export class AdminApi extends runtime.BaseAPI {
             query: queryParameters,
         }, initOverrides);
 
-        return new runtime.VoidApiResponse(response);
+        return new runtime.JSONApiResponse(response, (jsonValue) => PaginatedWebhookLogsDtoFromJSON(jsonValue));
     }
 
     /**
      * Returns paginated webhook logs with full filter options
      * Get enhanced webhook logs with advanced filtering
      */
-    async adminControllerGetWebhookLogsEnhanced(requestParameters: AdminControllerGetWebhookLogsEnhancedRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<void> {
-        await this.adminControllerGetWebhookLogsEnhancedRaw(requestParameters, initOverrides);
+    async adminControllerGetWebhookLogsEnhanced(requestParameters: AdminControllerGetWebhookLogsEnhancedRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PaginatedWebhookLogsDto> {
+        const response = await this.adminControllerGetWebhookLogsEnhancedRaw(requestParameters, initOverrides);
+        return await response.value();
     }
 
     /**
      * Returns aggregated webhook statistics for the specified period
      * Get webhook statistics
      */
-    async adminControllerGetWebhookStatsRaw(requestParameters: AdminControllerGetWebhookStatsRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<void>> {
+    async adminControllerGetWebhookStatsRaw(requestParameters: AdminControllerGetWebhookStatsRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<WebhookStatsDto>> {
         const queryParameters: any = {};
 
         if (requestParameters['period'] != null) {
@@ -1121,22 +1131,23 @@ export class AdminApi extends runtime.BaseAPI {
             query: queryParameters,
         }, initOverrides);
 
-        return new runtime.VoidApiResponse(response);
+        return new runtime.JSONApiResponse(response, (jsonValue) => WebhookStatsDtoFromJSON(jsonValue));
     }
 
     /**
      * Returns aggregated webhook statistics for the specified period
      * Get webhook statistics
      */
-    async adminControllerGetWebhookStats(requestParameters: AdminControllerGetWebhookStatsRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<void> {
-        await this.adminControllerGetWebhookStatsRaw(requestParameters, initOverrides);
+    async adminControllerGetWebhookStats(requestParameters: AdminControllerGetWebhookStatsRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<WebhookStatsDto> {
+        const response = await this.adminControllerGetWebhookStatsRaw(requestParameters, initOverrides);
+        return await response.value();
     }
 
     /**
      * Returns time-series data for webhook activity visualization
      * Get webhook activity timeline
      */
-    async adminControllerGetWebhookTimelineRaw(requestParameters: AdminControllerGetWebhookTimelineRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<void>> {
+    async adminControllerGetWebhookTimelineRaw(requestParameters: AdminControllerGetWebhookTimelineRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<WebhookTimelineDto>> {
         const queryParameters: any = {};
 
         if (requestParameters['period'] != null) {
@@ -1167,15 +1178,16 @@ export class AdminApi extends runtime.BaseAPI {
             query: queryParameters,
         }, initOverrides);
 
-        return new runtime.VoidApiResponse(response);
+        return new runtime.JSONApiResponse(response, (jsonValue) => WebhookTimelineDtoFromJSON(jsonValue));
     }
 
     /**
      * Returns time-series data for webhook activity visualization
      * Get webhook activity timeline
      */
-    async adminControllerGetWebhookTimeline(requestParameters: AdminControllerGetWebhookTimelineRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<void> {
-        await this.adminControllerGetWebhookTimelineRaw(requestParameters, initOverrides);
+    async adminControllerGetWebhookTimeline(requestParameters: AdminControllerGetWebhookTimelineRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<WebhookTimelineDto> {
+        const response = await this.adminControllerGetWebhookTimelineRaw(requestParameters, initOverrides);
+        return await response.value();
     }
 
     /**

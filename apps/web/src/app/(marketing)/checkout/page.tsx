@@ -19,6 +19,7 @@ import {
   RefreshCw,
   Mail,
   CheckCircle2,
+  Shield,
 } from 'lucide-react';
 import { useMutation } from '@tanstack/react-query';
 import { OrdersApi } from '@bitloot/sdk';
@@ -26,6 +27,8 @@ import { apiConfig } from '@/lib/api-config';
 import type { OrderResponseDto } from '@bitloot/sdk';
 import { OfflineBanner } from '@/components/OfflineBanner';
 import { parseCheckoutError } from '@/lib/checkout-errors';
+import { Turnstile } from '@marsidev/react-turnstile';
+import type { TurnstileInstance } from '@marsidev/react-turnstile';
 
 // Storage key for guest email persistence
 const GUEST_EMAIL_STORAGE_KEY = 'bitloot_checkout_guest_email';
@@ -185,6 +188,15 @@ export default function CheckoutPage(): React.ReactElement {
   // Use ref to track if order creation is in progress (survives re-renders and strict mode)
   const isCreatingOrderRef = useRef(false);
 
+  // CAPTCHA state
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [captchaError, setCaptchaError] = useState('');
+  const turnstileRef = useRef<TurnstileInstance | undefined>(undefined);
+
+  // Check if CAPTCHA is enabled (via environment variable)
+  const isCaptchaEnabled = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY !== undefined && 
+    process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY !== '';
+
   // Load saved guest email from localStorage on mount
   useEffect(() => {
     try {
@@ -254,13 +266,14 @@ export default function CheckoutPage(): React.ReactElement {
       // Generate idempotency key to prevent duplicate orders
       const idempotencyKey = generateIdempotencyKey();
 
-      // Create order with all items
+      // Create order with all items (include CAPTCHA token if enabled)
       const order = await ordersClient.ordersControllerCreate({
         createOrderDto: {
           email,
           items: orderItems,
           idempotencyKey,
           promoCode: appliedPromo?.code,
+          captchaToken: captchaToken ?? undefined,
         },
       });
 
@@ -303,6 +316,9 @@ export default function CheckoutPage(): React.ReactElement {
       toast.error(parsedError.message);
       // Reset the ref so user can retry
       isCreatingOrderRef.current = false;
+      // Reset CAPTCHA so user can complete it again
+      setCaptchaToken(null);
+      turnstileRef.current?.reset();
     },
   });
 
@@ -310,6 +326,7 @@ export default function CheckoutPage(): React.ReactElement {
   const handleGuestEmailSubmit = (e: React.FormEvent): void => {
     e.preventDefault();
     setEmailError('');
+    setCaptchaError('');
     
     if (guestEmail.trim() === '') {
       setEmailError('Email is required');
@@ -318,6 +335,12 @@ export default function CheckoutPage(): React.ReactElement {
     
     if (!validateEmail(guestEmail)) {
       setEmailError('Please enter a valid email address');
+      return;
+    }
+
+    // Validate CAPTCHA if enabled
+    if (isCaptchaEnabled && (captchaToken === null || captchaToken === '')) {
+      setCaptchaError('Please complete the security check');
       return;
     }
 
@@ -444,9 +467,47 @@ export default function CheckoutPage(): React.ReactElement {
               )}
             </div>
 
+            {/* Turnstile CAPTCHA */}
+            {isCaptchaEnabled && (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-text-secondary text-sm">
+                  <Shield className="h-4 w-4" />
+                  <span>Security Check</span>
+                </div>
+                <div className="flex justify-center rounded-xl bg-bg-secondary/50 p-3 border border-border-subtle">
+                  <Turnstile
+                    ref={turnstileRef}
+                    siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ?? ''}
+                    onSuccess={(token) => {
+                      setCaptchaToken(token);
+                      setCaptchaError('');
+                    }}
+                    onError={() => {
+                      setCaptchaToken(null);
+                      setCaptchaError('Security check failed. Please try again.');
+                    }}
+                    onExpire={() => {
+                      setCaptchaToken(null);
+                      setCaptchaError('Security check expired. Please complete it again.');
+                    }}
+                    options={{
+                      theme: 'dark',
+                      size: 'normal',
+                    }}
+                  />
+                </div>
+                {captchaError !== '' && (
+                  <p className="text-red-error text-sm flex items-center gap-1">
+                    <AlertCircle className="h-3 w-3" />
+                    {captchaError}
+                  </p>
+                )}
+              </div>
+            )}
+
             <Button
               type="submit"
-              disabled={createOrderMutation.isPending}
+              disabled={createOrderMutation.isPending || (isCaptchaEnabled && captchaToken === null)}
               className="w-full bg-linear-to-r from-cyan-glow to-purple-neon text-bg-primary hover:shadow-glow-cyan-lg font-bold text-lg py-6 group"
             >
               {createOrderMutation.isPending ? (

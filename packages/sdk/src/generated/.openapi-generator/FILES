@@ -211,6 +211,7 @@ docs/PaginatedPromoCodesDto.md
 docs/PaginatedRedemptionsDto.md
 docs/PaginatedReviewsDto.md
 docs/PaginatedWatchlistResponseDto.md
+docs/PaginatedWebhookLogsDto.md
 docs/PaymentResponseDto.md
 docs/PaymentsApi.md
 docs/PaymentsControllerAdminListPayments200Response.md
@@ -306,6 +307,12 @@ docs/WatchlistApi.md
 docs/WatchlistControllerGetWatchlistCount200Response.md
 docs/WatchlistItemResponseDto.md
 docs/WatchlistProductDto.md
+docs/WebhookLogListItemDto.md
+docs/WebhookStatsByStatusDto.md
+docs/WebhookStatsByTypeDto.md
+docs/WebhookStatsDto.md
+docs/WebhookTimelineDto.md
+docs/WebhookTimelinePointDto.md
 docs/WebhooksApi.md
 index.ts
 models/AddBundleProductDto.ts
@@ -459,6 +466,7 @@ models/PaginatedPromoCodesDto.ts
 models/PaginatedRedemptionsDto.ts
 models/PaginatedReviewsDto.ts
 models/PaginatedWatchlistResponseDto.ts
+models/PaginatedWebhookLogsDto.ts
 models/PaymentResponseDto.ts
 models/PaymentsControllerAdminListPayments200Response.ts
 models/PaymentsControllerAdminListPayments200ResponseDataInner.ts
@@ -546,5 +554,11 @@ models/VideoDto.ts
 models/WatchlistControllerGetWatchlistCount200Response.ts
 models/WatchlistItemResponseDto.ts
 models/WatchlistProductDto.ts
+models/WebhookLogListItemDto.ts
+models/WebhookStatsByStatusDto.ts
+models/WebhookStatsByTypeDto.ts
+models/WebhookStatsDto.ts
+models/WebhookTimelineDto.ts
+models/WebhookTimelinePointDto.ts
 models/index.ts
 runtime.ts

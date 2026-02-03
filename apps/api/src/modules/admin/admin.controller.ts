@@ -9,6 +9,7 @@ import { DashboardStatsDto } from './dto/dashboard-stats.dto';
 import { UpdateOrderStatusDto } from './dto/update-order-status.dto';
 import { UpdatePaymentStatusDto, UpdatePaymentStatusResponseDto } from './dto/update-payment-status.dto';
 import { BulkUpdateStatusDto, BulkUpdateStatusResponseDto, OrderAnalyticsDto } from './dto/bulk-operations.dto';
+import { PaginatedWebhookLogsDto, WebhookStatsDto, WebhookTimelineDto } from './dto/webhook-stats.dto';
 
 /**
  * Admin endpoints for monitoring payments, reservations, and webhooks.
@@ -375,10 +376,11 @@ export class AdminController {
   @ApiResponse({
     status: 200,
     description: 'Webhook statistics',
+    type: WebhookStatsDto,
   })
   async getWebhookStats(
     @Query('period') period?: string,
-  ): Promise<unknown> {
+  ): Promise<WebhookStatsDto> {
     const validPeriod = ['24h', '7d', '30d'].includes(period ?? '') 
       ? (period as '24h' | '7d' | '30d') 
       : '7d';
@@ -410,11 +412,12 @@ export class AdminController {
   @ApiResponse({
     status: 200,
     description: 'Timeline data',
+    type: WebhookTimelineDto,
   })
   async getWebhookTimeline(
     @Query('period') period?: string,
     @Query('interval') interval?: string,
-  ): Promise<unknown> {
+  ): Promise<WebhookTimelineDto> {
     const validPeriod = ['24h', '7d', '30d'].includes(period ?? '') 
       ? (period as '24h' | '7d' | '30d') 
       : '7d';
@@ -448,6 +451,7 @@ export class AdminController {
   @ApiResponse({
     status: 200,
     description: 'Paginated enhanced webhook logs',
+    type: PaginatedWebhookLogsDto,
   })
   async getWebhookLogsEnhanced(
     @Query('limit') limit?: string,
@@ -463,7 +467,7 @@ export class AdminController {
     @Query('paymentId') paymentId?: string,
     @Query('sortBy') sortBy?: string,
     @Query('sortOrder') sortOrder?: string,
-  ): Promise<unknown> {
+  ): Promise<PaginatedWebhookLogsDto> {
     return this.admin.getWebhookLogsEnhanced({
       limit: typeof limit === 'string' && limit.length > 0 ? parseInt(limit, 10) : undefined,
       offset: typeof offset === 'string' && offset.length > 0 ? parseInt(offset, 10) : undefined,
