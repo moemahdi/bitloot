@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { motion } from 'framer-motion';
+import { m } from 'framer-motion';
 import {
     LayoutGrid,
     Gamepad2,
@@ -167,14 +167,14 @@ function CategoryTile({ category, color, index }: CategoryTileProps): React.Reac
     const Icon = category.icon;
 
     return (
-        <motion.div
+        <m.div
             initial={{ opacity: 0, y: 10 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.3, delay: Math.min(index * 0.03, 0.3) }}
         >
             <Link href={category.href}>
-                <motion.div
+                <m.div
                     whileHover={{ y: -3, scale: 1.02 }}
                     transition={{ duration: 0.2 }}
                     className={`group relative flex items-center gap-3 px-4 py-3 rounded-xl border transition-all duration-300 ${colors.categoryBg} ${colors.categoryBorder} ${colors.glow}`}
@@ -186,9 +186,9 @@ function CategoryTile({ category, color, index }: CategoryTileProps): React.Reac
                         {category.label}
                     </span>
                     <ArrowRight className="ml-auto w-4 h-4 text-text-muted opacity-0 group-hover:opacity-100 group-hover:text-white transition-all -translate-x-2 group-hover:translate-x-0" />
-                </motion.div>
+                </m.div>
             </Link>
-        </motion.div>
+        </m.div>
     );
 }
 
@@ -206,7 +206,7 @@ function CategoryGroupSection({ group, index }: CategoryGroupSectionProps): Reac
     const Icon = group.icon;
 
     return (
-        <motion.div
+        <m.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
@@ -237,7 +237,7 @@ function CategoryGroupSection({ group, index }: CategoryGroupSectionProps): Reac
                     />
                 ))}
             </div>
-        </motion.div>
+        </m.div>
     );
 }
 
@@ -256,7 +256,7 @@ export function CategoryBrowser(): React.ReactElement {
 
             <div className="container mx-auto px-4 md:px-6 relative z-10">
                 {/* Section Header */}
-                <motion.div
+                <m.div
                     initial={{ opacity: 0, y: 20 }}
                     whileInView={{ opacity: 1, y: 0 }}
                     viewport={{ once: true }}
@@ -276,7 +276,7 @@ export function CategoryBrowser(): React.ReactElement {
                     <p className="text-text-secondary max-w-2xl mx-auto">
                         From action-packed games to productivity software. Find exactly what you need.
                     </p>
-                </motion.div>
+                </m.div>
 
                 {/* Category Groups */}
                 <div className="space-y-10">
@@ -290,7 +290,7 @@ export function CategoryBrowser(): React.ReactElement {
                 </div>
 
                 {/* View All Link */}
-                <motion.div
+                <m.div
                     initial={{ opacity: 0, y: 20 }}
                     whileInView={{ opacity: 1, y: 0 }}
                     viewport={{ once: true }}
@@ -303,7 +303,7 @@ export function CategoryBrowser(): React.ReactElement {
                             <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
                         </Link>
                     </Button>
-                </motion.div>
+                </m.div>
             </div>
         </section>
     );

@@ -2,6 +2,7 @@ import { Processor, WorkerHost, InjectQueue } from '@nestjs/bullmq';
 import { Logger, OnModuleInit } from '@nestjs/common';
 import { Job, Queue } from 'bullmq';
 import { CatalogService } from '../modules/catalog/catalog.service';
+import { CatalogCacheService } from '../modules/catalog/catalog-cache.service';
 import { KinguinCatalogClient } from '../modules/catalog/kinguin-catalog.client';
 
 export enum CatalogJobType {
@@ -102,6 +103,7 @@ export class CatalogProcessor extends WorkerHost implements OnModuleInit {
 
   constructor(
     private readonly catalogService: CatalogService,
+    private readonly cacheService: CatalogCacheService,
     private readonly kinguinClient: KinguinCatalogClient,
     @InjectQueue('catalog') private readonly catalogQueue: Queue,
   ) {
@@ -330,7 +332,17 @@ export class CatalogProcessor extends WorkerHost implements OnModuleInit {
       }
 
       // Upsert with latest data from Kinguin
-      await this.catalogService.upsertProduct(product);
+      const upsertedProduct = await this.catalogService.upsertProduct(product);
+      
+      // Invalidate cache for updated product
+      if (upsertedProduct !== null && upsertedProduct !== undefined) {
+        await this.cacheService.invalidateProduct(upsertedProduct.slug);
+        // Also invalidate featured if product is featured
+        if (upsertedProduct.isFeatured) {
+          await this.cacheService.invalidateFeaturedProducts();
+          await this.cacheService.invalidateSectionProducts();
+        }
+      }
 
       this.logger.log(
         `✅ Single product sync completed: kinguinId=${kinguinId}, cheapestOfferId=${cheapestOfferId ?? 'N/A'}, updatedAt=${updatedAt}`,
@@ -534,6 +546,13 @@ export class CatalogProcessor extends WorkerHost implements OnModuleInit {
         skippedProducts,
         updatedProducts,
       };
+
+      // Invalidate all catalog caches after sync completes
+      if (updatedCount > 0) {
+        this.logger.log('🔄 Invalidating catalog caches after sync...');
+        const invalidatedKeys = await this.cacheService.invalidateAll();
+        this.logger.log(`✅ Invalidated ${invalidatedKeys} cache keys`);
+      }
 
       this.logger.log(`✅ Sync completed: ${updatedCount} updated, ${errors.length} errors, ${skippedCount} skipped`);
       return result;

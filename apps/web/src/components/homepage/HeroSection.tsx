@@ -4,7 +4,7 @@ import { useState, useCallback, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { motion, AnimatePresence } from 'framer-motion';
+import { m, AnimatePresence } from 'framer-motion';
 import {
     Search,
     Zap,
@@ -36,8 +36,10 @@ const DYNAMIC_TAGLINES = [
 
 function DynamicTagline(): React.ReactElement {
     const [currentIndex, setCurrentIndex] = useState(0);
+    const [hasAnimated, setHasAnimated] = useState(false);
 
     useEffect(() => {
+        setHasAnimated(true);
         const interval = setInterval(() => {
             setCurrentIndex((prev) => (prev + 1) % DYNAMIC_TAGLINES.length);
         }, 3000);
@@ -50,9 +52,9 @@ function DynamicTagline(): React.ReactElement {
     return (
         <div className="h-7 relative overflow-hidden mb-4">
             <AnimatePresence mode="wait">
-                <motion.div
+                <m.div
                     key={currentIndex}
-                    initial={{ opacity: 0, y: 20 }}
+                    initial={hasAnimated ? { opacity: 0, y: 20 } : false}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -20 }}
                     transition={{ duration: 0.3 }}
@@ -60,7 +62,7 @@ function DynamicTagline(): React.ReactElement {
                 >
                     <current.icon className="w-4 h-4" aria-hidden="true" />
                     <span className="text-sm font-semibold">{current.text}</span>
-                </motion.div>
+                </m.div>
             </AnimatePresence>
         </div>
     );
@@ -79,8 +81,11 @@ const HEADLINE_PRODUCTS = [
 
 function DynamicHeadline(): React.ReactElement {
     const [currentIndex, setCurrentIndex] = useState(0);
+    const [hasAnimated, setHasAnimated] = useState(false);
 
     useEffect(() => {
+        // Mark as animated after first render to enable animations for subsequent changes
+        setHasAnimated(true);
         const interval = setInterval(() => {
             setCurrentIndex((prev) => (prev + 1) % HEADLINE_PRODUCTS.length);
         }, 2500);
@@ -93,16 +98,16 @@ function DynamicHeadline(): React.ReactElement {
     return (
         <span className="inline-block min-w-[280px] sm:min-w-[380px] md:min-w-[480px]">
             <AnimatePresence mode="wait">
-                <motion.span
+                <m.span
                     key={currentIndex}
-                    initial={{ opacity: 0, y: 30 }}
+                    initial={hasAnimated ? { opacity: 0, y: 30 } : false}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -30 }}
                     transition={{ duration: 0.4, ease: 'easeOut' }}
                     className={`inline-block text-gradient-primary text-glow-cyan`}
                 >
                     {current.text}
-                </motion.span>
+                </m.span>
             </AnimatePresence>
         </span>
     );
@@ -158,7 +163,7 @@ function FloatingGameCovers(): React.ReactElement {
     return (
         <>
             {FLOATING_GAMES.map((game) => (
-                <motion.div
+                <m.div
                     key={game.id}
                     initial={{ opacity: 0, scale: 0.8, rotate: game.rotate * 1.5 }}
                     animate={{ 
@@ -188,7 +193,7 @@ function FloatingGameCovers(): React.ReactElement {
                         {/* Glow effect on hover */}
                         <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 shadow-glow-cyan" />
                     </div>
-                </motion.div>
+                </m.div>
             ))}
         </>
     );
@@ -207,14 +212,14 @@ const TRUST_ITEMS = [
 
 function TrustBar(): React.ReactElement {
     return (
-        <motion.div
+        <m.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.5 }}
             className="flex flex-wrap items-center justify-center gap-3 md:gap-4 mt-10"
         >
             {TRUST_ITEMS.map((item, index) => (
-                <motion.div
+                <m.div
                     key={item.text}
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
@@ -224,9 +229,9 @@ function TrustBar(): React.ReactElement {
                 >
                     <item.icon className={`w-4 h-4 ${item.color}`} aria-hidden="true" />
                     <span className="text-sm font-medium text-text-primary">{item.text}</span>
-                </motion.div>
+                </m.div>
             ))}
-        </motion.div>
+        </m.div>
     );
 }
 
@@ -261,7 +266,7 @@ export function HeroSection(): React.ReactElement {
             <FloatingGameCovers />
 
             {/* Animated Gradient Orbs */}
-            <motion.div
+            <m.div
                 className="absolute top-1/4 left-1/4 w-96 h-96 rounded-full bg-cyan-glow/10 blur-[120px]"
                 animate={{
                     x: [0, 50, 0],
@@ -275,7 +280,7 @@ export function HeroSection(): React.ReactElement {
                 }}
                 aria-hidden="true"
             />
-            <motion.div
+            <m.div
                 className="absolute bottom-1/4 right-1/4 w-80 h-80 rounded-full bg-purple-neon/10 blur-[100px]"
                 animate={{
                     x: [0, -40, 0],
@@ -291,7 +296,7 @@ export function HeroSection(): React.ReactElement {
             />
             
             {/* Additional accent orb */}
-            <motion.div
+            <m.div
                 className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full bg-gradient-radial from-cyan-glow/5 via-transparent to-transparent blur-[80px]"
                 animate={{
                     scale: [1, 1.1, 1],
@@ -307,21 +312,13 @@ export function HeroSection(): React.ReactElement {
 
             {/* Content */}
             <div className="relative z-10 container mx-auto px-4 md:px-6 py-16 text-center">
-                {/* Dynamic Tagline */}
-                <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ duration: 0.5 }}
-                >
+                {/* Dynamic Tagline - No initial animation for LCP */}
+                <div>
                     <DynamicTagline />
-                </motion.div>
+                </div>
 
-                {/* Badge */}
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5 }}
-                >
+                {/* Badge - Show immediately for LCP */}
+                <div>
                     <Badge
                         variant="secondary"
                         className="mb-6 px-4 py-2 bg-cyan-glow/10 border border-cyan-glow/30 text-cyan-glow backdrop-blur-sm"
@@ -329,36 +326,27 @@ export function HeroSection(): React.ReactElement {
                         <Zap className="w-3.5 h-3.5 mr-2" aria-hidden="true" />
                         Your Digital Marketplace
                     </Badge>
-                </motion.div>
+                </div>
 
-                {/* Headline */}
-                <motion.h1
-                    initial={{ opacity: 0, y: 30 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.6, delay: 0.1 }}
+                {/* Headline - Show immediately for LCP */}
+                <h1
                     className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-display font-bold mb-6 leading-tight"
                 >
                     <span className="text-text-primary">Get Instant</span>
                     <br />
                     <DynamicHeadline />
-                </motion.h1>
+                </h1>
 
-                {/* Subheadline */}
-                <motion.p
-                    initial={{ opacity: 0, y: 30 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.6, delay: 0.2 }}
+                {/* Subheadline - Show immediately for LCP */}
+                <p
                     className="text-lg md:text-xl text-text-secondary max-w-2xl mx-auto mb-10"
                 >
                     Discover hundreds of digital products at unbeatable prices.
                     Keys, accounts, software licenses & subscriptions — delivered instantly.
-                </motion.p>
+                </p>
 
-                {/* Search Bar */}
-                <motion.form
-                    initial={{ opacity: 0, y: 30 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.6, delay: 0.3 }}
+                {/* Search Bar - Show immediately for LCP */}
+                <form
                     onSubmit={handleSearch}
                     className="max-w-xl mx-auto mb-8"
                 >
@@ -392,13 +380,10 @@ export function HeroSection(): React.ReactElement {
                             Search
                         </Button>
                     </div>
-                </motion.form>
+                </form>
 
-                {/* CTA Buttons */}
-                <motion.div
-                    initial={{ opacity: 0, y: 30 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.6, delay: 0.4 }}
+                {/* CTA Buttons - Show immediately for LCP */}
+                <div
                     className="flex flex-col sm:flex-row items-center justify-center gap-4"
                 >
                     <Button
@@ -425,7 +410,7 @@ export function HeroSection(): React.ReactElement {
                             How It Works
                         </a>
                     </Button>
-                </motion.div>
+                </div>
 
                 {/* Trust Bar */}
                 <TrustBar />

@@ -15,7 +15,7 @@
 import { useMemo, useCallback, useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { motion } from 'framer-motion';
+import { m } from 'framer-motion';
 import { useQuery } from '@tanstack/react-query';
 import { CatalogApi, Configuration } from '@bitloot/sdk';
 import type { ProductListResponseDto } from '@bitloot/sdk';
@@ -678,7 +678,7 @@ export function TrendingNowGrid(): React.ReactElement {
 
             <div className="container mx-auto px-4 md:px-6">
                 {/* Section Header */}
-                <motion.div
+                <m.div
                     initial={{ opacity: 0, y: 20 }}
                     whileInView={{ opacity: 1, y: 0 }}
                     viewport={{ once: true }}
@@ -708,12 +708,12 @@ export function TrendingNowGrid(): React.ReactElement {
                             <ArrowRight className="ml-2 h-3.5 w-3.5 transition-transform group-hover:translate-x-1" />
                         </Link>
                     </Button>
-                </motion.div>
+                </m.div>
 
                 {/* 3 Carousels */}
                 <div className="space-y-8">
                     {productGroups.map(({ config, products }, index) => (
-                        <motion.div
+                        <m.div
                             key={config.id}
                             initial={{ opacity: 0, y: 20 }}
                             whileInView={{ opacity: 1, y: 0 }}
@@ -727,7 +727,7 @@ export function TrendingNowGrid(): React.ReactElement {
                                 onToggleWishlist={handleToggleWishlist}
                                 isLoading={isLoading}
                             />
-                        </motion.div>
+                        </m.div>
                     ))}
                 </div>
             </div>

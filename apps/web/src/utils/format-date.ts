@@ -406,7 +406,7 @@ export function getDateRange(
  */
 export function formatDuration(
   startInput: string | Date | number | null | undefined,
-  endInput?: string | Date | number | null | undefined
+  endInput?: string | Date | number | null
 ): string {
   const start = parseDate(startInput);
   const end = endInput !== undefined ? parseDate(endInput) : new Date();

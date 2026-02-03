@@ -1,6 +1,7 @@
 import { Controller, Get, Param, Query, NotFoundException } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags, ApiQuery } from '@nestjs/swagger';
 import { CatalogService } from './catalog.service';
+import { CatalogCacheService } from './catalog-cache.service';
 import { Product } from './entities/product.entity';
 import { ProductResponseDto, ProductListResponseDto } from './dto/product.dto';
 import { CategoriesResponseDto, FiltersResponseDto } from './dto/category-filters.dto';
@@ -72,7 +73,10 @@ function toProductResponseDto(product: Product): ProductResponseDto {
 @ApiTags('Catalog')
 @Controller('catalog')
 export class CatalogController {
-  constructor(private readonly catalogService: CatalogService) {}
+  constructor(
+    private readonly catalogService: CatalogService,
+    private readonly cacheService: CatalogCacheService,
+  ) {}
 
   @Get('categories')
   @ApiOperation({
@@ -86,7 +90,9 @@ export class CatalogController {
     description: 'Categories with product counts and featured collections',
   })
   async getCategories(): Promise<CategoriesResponseDto> {
-    return this.catalogService.getCategories();
+    return this.cacheService.getCategories<CategoriesResponseDto>(
+      () => this.catalogService.getCategories(),
+    );
   }
 
   @Get('filters')
@@ -101,7 +107,9 @@ export class CatalogController {
     description: 'Filter options with counts and price range',
   })
   async getFilters(): Promise<FiltersResponseDto> {
-    return this.catalogService.getFilters();
+    return this.cacheService.getFilters<FiltersResponseDto>(
+      () => this.catalogService.getFilters(),
+    );
   }
 
   @Get('products')
@@ -196,17 +204,19 @@ export class CatalogController {
     const limit = limitParam !== undefined && limitParam !== '' ? parseInt(limitParam, 10) : 8;
     const safeLimit = Number.isNaN(limit) || limit < 1 ? 8 : Math.min(limit, 24);
     
-    const result = await this.catalogService.listProducts(safeLimit, 0, {
-      featured: true,
+    return this.cacheService.getFeaturedProducts<ProductListResponseDto>(safeLimit, async () => {
+      const result = await this.catalogService.listProducts(safeLimit, 0, {
+        featured: true,
+      });
+      
+      return {
+        data: result.data.map(toProductResponseDto),
+        total: result.total,
+        limit: safeLimit,
+        offset: 0,
+        pages: Math.ceil(result.total / safeLimit),
+      };
     });
-    
-    return {
-      data: result.data.map(toProductResponseDto),
-      total: result.total,
-      limit: safeLimit,
-      offset: 0,
-      pages: Math.ceil(result.total / safeLimit),
-    };
   }
 
   @Get('products/:slug')
@@ -214,7 +224,10 @@ export class CatalogController {
   @ApiResponse({ status: 200, type: ProductResponseDto, description: 'Product details' })
   @ApiResponse({ status: 404, description: 'Product not found' })
   async getProduct(@Param('slug') slug: string): Promise<ProductResponseDto> {
-    const product = await this.catalogService.getProductBySlug(slug);
+    const product = await this.cacheService.getProductBySlug<Product | null>(
+      slug,
+      () => this.catalogService.getProductBySlug(slug),
+    );
     if (product === null) {
       throw new NotFoundException(`Product not found: ${slug}`);
     }
@@ -235,14 +248,16 @@ export class CatalogController {
     const limit = limitParam !== undefined && limitParam !== '' ? parseInt(limitParam, 10) : 12;
     const safeLimit = Number.isNaN(limit) || limit < 1 ? 12 : Math.min(limit, 50);
     
-    const result = await this.catalogService.getProductsBySection(sectionKey, safeLimit);
-    
-    return {
-      data: result.data.map(toProductResponseDto),
-      total: result.total,
-      limit: safeLimit,
-      offset: 0,
-      pages: 1,
-    };
+    return this.cacheService.getSectionProducts<ProductListResponseDto>(sectionKey, safeLimit, async () => {
+      const result = await this.catalogService.getProductsBySection(sectionKey, safeLimit);
+      
+      return {
+        data: result.data.map(toProductResponseDto),
+        total: result.total,
+        limit: safeLimit,
+        offset: 0,
+        pages: 1,
+      };
+    });
   }
 }

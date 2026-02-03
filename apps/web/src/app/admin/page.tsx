@@ -860,9 +860,9 @@ export default function AdminDashboardPage(): React.ReactElement | null {
   const revenueChartData = useMemo(() => {
     return (
       stats?.revenueHistory
-        ?.filter((item) => item.date != null)
+        ?.filter((item): item is typeof item & { date: string } => item.date != null)
         ?.map((item) => ({
-          name: formatDate(item.date!, 'short'),
+          name: formatDate(item.date, 'short'),
           revenue: item.revenue,
         })) ?? []
     );

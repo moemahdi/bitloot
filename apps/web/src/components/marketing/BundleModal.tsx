@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { motion } from 'framer-motion';
+import { LazyMotion, domAnimation, m } from 'framer-motion';
 import {
   Dialog,
   DialogContent,
@@ -148,6 +148,7 @@ export function BundleModal({ bundle, isOpen, onClose }: BundleModalProps): Reac
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="glass border-pink-500/30 w-[95vw] max-w-2xl lg:max-w-3xl max-h-[90vh] p-0 overflow-hidden">
+        <LazyMotion features={domAnimation}>
         {/* Hero Section */}
         <div className="relative">
           {bundle.heroImage !== null && bundle.heroImage !== undefined && bundle.heroImage !== '' ? (
@@ -214,7 +215,7 @@ export function BundleModal({ bundle, isOpen, onClose }: BundleModalProps): Reac
                   const productSlug = bp.product?.slug;
                   
                   return (
-                    <motion.div
+                    <m.div
                       key={bp.id}
                       initial={{ opacity: 0, x: -20 }}
                       animate={{ opacity: 1, x: 0 }}
@@ -292,7 +293,7 @@ export function BundleModal({ bundle, isOpen, onClose }: BundleModalProps): Reac
                           </>
                         ) : null}
                       </div>
-                    </motion.div>
+                    </m.div>
                   );
                 })}
 
@@ -304,7 +305,7 @@ export function BundleModal({ bundle, isOpen, onClose }: BundleModalProps): Reac
                       <span className="text-sm font-medium text-yellow-400">Bonus Items</span>
                     </div>
                     {bonusProducts.map((bp, index) => (
-                      <motion.div
+                      <m.div
                         key={bp.id}
                         initial={{ opacity: 0, x: -20 }}
                         animate={{ opacity: 1, x: 0 }}
@@ -361,7 +362,7 @@ export function BundleModal({ bundle, isOpen, onClose }: BundleModalProps): Reac
                           </p>
                           <p className="font-semibold text-yellow-400 whitespace-nowrap">FREE</p>
                         </div>
-                      </motion.div>
+                      </m.div>
                     ))}
                   </>
                 ) : null}
@@ -410,6 +411,7 @@ export function BundleModal({ bundle, isOpen, onClose }: BundleModalProps): Reac
             </Button>
           </div>
         </div>
+        </LazyMotion>
       </DialogContent>
     </Dialog>
   );

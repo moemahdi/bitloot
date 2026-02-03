@@ -3,6 +3,7 @@ import { Inter, Space_Grotesk, JetBrains_Mono } from 'next/font/google';
 
 import '@/design-system/styles/globals.css';
 import { Providers } from '../lib/providers';
+import { OrganizationSchema, WebsiteSchema, OnlineStoreSchema } from '@/components/seo';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -22,12 +23,16 @@ const jetbrainsMono = JetBrains_Mono({
   display: 'swap',
 });
 
+// Site URL for structured data
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://bitloot.com';
+
 export const metadata: Metadata = {
   metadataBase: new URL(
     process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
   ),
   title: {
     default: 'BitLoot — Crypto Gaming Marketplace',
+
     template: '%s | BitLoot',
   },
   description:
@@ -43,6 +48,12 @@ export const metadata: Metadata = {
     'anonymous purchase',
     'digital goods',
     'steam keys',
+    'playstation keys',
+    'xbox keys',
+    'nintendo keys',
+    'software license',
+    'cdkey',
+    'game code',
   ],
   authors: [{ name: 'BitLoot Team', url: 'https://bitloot.com' }],
   creator: 'BitLoot',
@@ -62,6 +73,7 @@ export const metadata: Metadata = {
   icons: {
     icon: [
       { url: '/icon.svg', type: 'image/svg+xml' },
+      { url: '/logo.svg', type: 'image/svg+xml', sizes: '512x512' },
     ],
     apple: [
       { url: '/icon.svg', type: 'image/svg+xml' },
@@ -81,29 +93,42 @@ export const metadata: Metadata = {
     type: 'website',
     locale: 'en_US',
     url: 'https://bitloot.com',
-    title: 'BitLoot — Crypto Gaming Marketplace',
+    title: 'BitLoot — Crypto Gaming Marketplace | Buy Game Keys with Bitcoin',
     description:
-      'Instant delivery of game keys & software via crypto. Pay with Bitcoin, Ethereum, and 300+ cryptocurrencies.',
+      'Instant delivery of game keys & software via crypto. Pay with Bitcoin, Ethereum, and 300+ cryptocurrencies. Steam, PlayStation, Xbox, Nintendo keys.',
     siteName: 'BitLoot',
     images: [
       {
-        url: '/og-image.png',
+        url: '/og-image.svg', // Note: Convert to PNG for better compatibility before launch
         width: 1200,
         height: 630,
-        alt: 'BitLoot - Crypto Gaming Marketplace',
+        alt: 'BitLoot - Crypto Gaming Marketplace - Buy Game Keys with Bitcoin',
+        type: 'image/svg+xml',
       },
     ],
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'BitLoot — Crypto Gaming Marketplace',
+    title: 'BitLoot — Buy Game Keys with Bitcoin & Crypto',
     description:
-      'Instant delivery of game keys & software via crypto. Pay with Bitcoin, Ethereum, and 300+ cryptocurrencies.',
+      'Instant delivery of Steam, PlayStation, Xbox & Nintendo keys. Pay with Bitcoin, Ethereum, and 300+ cryptocurrencies. Anonymous & secure.',
     creator: '@bitloot',
     site: '@bitloot',
-    images: ['/og-image.png'],
+    images: ['/og-image.svg'],
   },
   category: 'technology',
+  // Verification tags - Add your verification codes before launch
+  verification: {
+    google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION ?? '',
+    // yandex: '',
+    // bing: '',
+  },
+  // Additional meta for e-commerce
+  other: {
+    'application-name': 'BitLoot',
+    'msapplication-TileImage': '/logo.svg',
+    'apple-itunes-app': 'app-id=XXXXXX', // Replace with App Store ID if applicable
+  },
 };
 
 export const viewport: Viewport = {
@@ -129,6 +154,19 @@ export default function RootLayout({ children }: { children: React.ReactNode }):
         <meta name="msapplication-TileColor" content="#0A0E1A" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="mobile-web-app-capable" content="yes" />
+        
+        {/* Structured Data for SEO - Rich Snippets */}
+        <OrganizationSchema 
+          name="BitLoot"
+          url={siteUrl}
+          logo={`${siteUrl}/logo.png`}
+          description="Crypto-powered digital gaming marketplace with instant delivery of game keys and software. Pay with Bitcoin, Ethereum, and 300+ cryptocurrencies."
+          sameAs={[
+            // Add social media URLs when available
+          ]}
+        />
+        <WebsiteSchema siteUrl={siteUrl} searchPath="/catalog" />
+        <OnlineStoreSchema />
       </head>
       <body
         className={`

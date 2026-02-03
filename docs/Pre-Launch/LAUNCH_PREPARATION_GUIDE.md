@@ -873,26 +873,121 @@ Check all pages use correct:
   - **Optimization needed:** Reduce client-side JS, defer non-critical scripts, optimize hydration
 
 #### Backend
-- [ ] Database indexes exist on hot paths
-- [ ] Pagination on all list endpoints
-- [ ] Query optimization (no N+1)
-- [ ] Redis caching for catalog
-- [ ] BullMQ for async tasks
+- [x] Database indexes exist on hot paths
+  - ✅ **Products:** 7 indexes (isPublished+price+createdAt, platform+region+isPublished, slug, category+isPublished, businessCategory+isPublished, isFeatured+isPublished, sourceType)
+  - ✅ **Orders:** 3 indexes (userId+createdAt, status+createdAt, sourceType)
+  - ✅ **Payments:** 4 indexes (externalId unique, orderId, status, createdAt)
+  - ✅ **Users:** 2 indexes (email unique, emailConfirmed+createdAt)
+  - ✅ **WebhookLogs:** 3 composite indexes (externalId+webhookType+createdAt, orderId+createdAt, webhookType+processed+createdAt)
+  - ✅ **PromoCodes:** 3 indexes (code unique, isActive+startsAt+expiresAt, scopeType+scopeValue)
+  - ✅ **Keys, OrderItems, Reviews, Watchlist:** All properly indexed
+- [x] Pagination on all list endpoints
+  - ✅ `findAndCount` + `skip`/`take` pattern in catalog.service.ts (L794-800)
+  - ✅ `findUserOrders()` - skip/take with 500 max cap (orders.service.ts L676)
+  - ✅ Admin endpoints: orders, payments, webhooks, promos all use offset/limit
+  - ✅ Reviews, watchlist use PaginationOptions interface (page/limit)
+  - ✅ `limit ≤ 100` enforced in catalog `listProducts()` (L795)
+- [x] Query optimization (no N+1)
+  - ✅ Eager loading via `relations: []` in findOne/findAndCount queries
+  - ✅ `leftJoinAndSelect` used in admin queries (admin.service.ts L244-245)
+  - ✅ `getProductsByIds()` returns Map for O(1) lookup (catalog.service.ts L845)
+  - ✅ Batch loading pattern: load orders, then batch-fetch product titles
+  - ✅ No raw loops with individual DB queries detected
+- [x] Redis caching for catalog ✅ **IMPLEMENTED**
+  - ✅ **CatalogCacheService** created (`catalog-cache.service.ts`) with Redis-backed caching
+  - ✅ **Cached endpoints:** `/catalog/products/featured`, `/catalog/sections/:key`, `/catalog/categories`, `/catalog/filters`, `/catalog/products/:slug`
+  - ✅ **TTL configuration:** Featured/sections: 5 min, Categories/filters: 10 min, Product slugs: 3 min
+  - ✅ **Cache invalidation:** On product update/publish/unpublish/delete, sync completion, feature toggle
+  - ✅ **Admin cache management:** `GET /admin/ops/cache/stats`, `DELETE /admin/ops/cache`, `DELETE /admin/ops/cache/featured`, `DELETE /admin/ops/cache/categories`
+  - ✅ **Disable via env:** `CATALOG_CACHE_ENABLED=false` for testing
+- [x] BullMQ for async tasks
+  - ✅ 3 queue processors: `@Processor('payments-queue')`, `@Processor('fulfillment-queue')`, `@Processor('catalog')`
+  - ✅ Retry strategy: 5 attempts with exponential backoff (1s→2s→4s→8s→16s)
+  - ✅ DLQ: `removeOnFail: false` keeps failed jobs for debugging
+  - ✅ Jobs: payment creation, fulfillment, catalog sync all queued
+  - ✅ Feature flag integration: jobs check `fulfillment_enabled` before processing
 
 #### Infrastructure
-- [ ] CDN configured (Cloudflare)
-- [ ] Gzip compression enabled
-- [ ] HTTP/2 enabled
-- [ ] SSL/TLS configured
+- [ ] CDN configured (Cloudflare) — *Deploy-time configuration*
+- [ ] Gzip compression enabled — *Auto-enabled by Vercel/Cloudflare*
+- [ ] HTTP/2 enabled — *Auto-enabled by Vercel/Cloudflare*
+- [ ] SSL/TLS configured — *Auto-provisioned by hosting provider*
 
-### 6.3 SEO Checklist
+> **Note:** Infrastructure items are deployment-level configurations. Vercel auto-enables gzip/brotli, HTTP/2, and SSL. Cloudflare as proxy adds CDN, WAF, and DDoS protection.
 
-- [ ] Meta titles on all pages
-- [ ] Meta descriptions on all pages
-- [ ] Open Graph tags for sharing
-- [ ] Sitemap generated
-- [ ] Robots.txt configured
-- [ ] Canonical URLs set
+### 6.3 SEO Checklist ✅ FULLY IMPLEMENTED (Top Rankings Ready)
+
+#### Core Metadata ✅
+- [x] Meta titles on all pages
+  - Root layout has `title.template: '%s | BitLoot'` with default
+  - Product pages: Dynamic `generateMetadata()` in `product/[id]/layout.tsx`
+  - Catalog pages: Static metadata in `catalog/layout.tsx`
+  - Category pages: Dynamic `generateMetadata()` in `catalog/[category]/layout.tsx`
+  - Reviews, maintenance pages have explicit metadata
+- [x] Meta descriptions on all pages
+  - Root layout: Global description with gaming/crypto keywords
+  - Dynamic pages fetch product/category data for descriptions
+  - 155-character truncation for optimal SERP display
+- [x] Keywords optimized
+  - Added: `playstation keys`, `xbox keys`, `nintendo keys`, `software license`, `cdkey`, `game code`
+  - Product-specific keywords generated dynamically
+
+#### Social Sharing ✅
+- [x] Open Graph tags for sharing
+  - Complete OG config in root layout (type, locale, url, title, description, siteName, images)
+  - Product pages include product-specific OG images and pricing
+  - OG image placeholder created (`/og-image.svg`) - convert to PNG before launch
+- [x] Twitter cards configured
+  - `summary_large_image` card type
+  - Optimized title/description for Twitter
+
+#### Structured Data (JSON-LD) ✅ - For Rich Snippets
+- [x] **OrganizationSchema** - Business identity in search
+  - Name, URL, logo, description, contact info
+  - `sameAs` array ready for social profiles
+- [x] **WebsiteSchema** - Site-wide search box in Google
+  - `SearchAction` configured for `/catalog?q={query}`
+- [x] **OnlineStoreSchema** - E-commerce identity
+  - Payment methods, price range, currencies accepted
+- [x] **ProductSchema** - Product rich snippets (price, availability, ratings)
+  - Dynamic on each product page via layout.tsx
+  - Includes: name, description, price, SKU, brand, availability
+  - AggregateRating when reviews exist
+- [x] **BreadcrumbSchema** - Navigation breadcrumbs in SERP
+  - Dynamic: Home > Catalog > Category > Product
+- [x] **FAQSchema** - FAQ rich snippets on homepage
+  - 8 common questions with detailed answers
+  - Displays as expandable Q&A in search results
+
+#### Indexing & Crawling ✅
+- [x] Sitemap generated (`/sitemap.xml`)
+  - Static pages: home, catalog, deals, bundles, reviews, terms, privacy, refunds, help
+  - Dynamic category pages from API
+  - Dynamic product pages from API (up to 1000)
+  - Priority/changeFrequency optimized per page type
+- [x] Robots.txt configured (`/robots.txt`)
+  - Allows: `/` (all public pages)
+  - Disallows: `/admin/`, `/api/`, `/auth/`, `/pay/`, `/profile/`, `/checkout/`, `/orders/`, `/maintenance/`, `/_next/`, `/test-*`
+  - Points to sitemap.xml
+- [x] Canonical URLs set
+  - Product pages: `alternates.canonical` in generateMetadata
+  - Catalog/category pages: explicit canonical URLs
+  - Uses `NEXT_PUBLIC_SITE_URL` env var for production base
+
+#### Search Console Ready ✅
+- [x] Google verification placeholder in metadata
+  - Set `NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION` env var before launch
+- [x] Verification placeholders for Bing/Yandex
+
+#### Assets Created ✅
+- [x] `/og-image.svg` - Open Graph image (1200x630) with BitLoot branding
+- [x] `/logo.svg` - Square logo (512x512) for schema.org
+
+> **Pre-Launch Action Items:**
+> 1. Convert `/og-image.svg` to PNG for maximum social media compatibility
+> 2. Set `NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION` after adding site to Google Search Console
+> 3. Add Twitter handle to `sameAs` array in OrganizationSchema when available
+> 4. Submit sitemap to Google Search Console after deployment
 
 ---
 

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import { motion, AnimatePresence } from 'framer-motion';
+import { m, AnimatePresence } from 'framer-motion';
 import { useQuery } from '@tanstack/react-query';
 import { Zap, Clock, X, ArrowRight, Flame, Sparkles } from 'lucide-react';
 import { Button } from '@/design-system/primitives/button';
@@ -101,7 +101,7 @@ function useCountdown(endTime: string) {
 function CountdownUnit({ value, label }: { value: number; label: string }) {
   return (
     <div className="flex flex-col items-center">
-      <motion.div
+      <m.div
         key={value}
         initial={{ y: -10, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
@@ -110,7 +110,7 @@ function CountdownUnit({ value, label }: { value: number; label: string }) {
         <span className="text-lg sm:text-xl font-bold tabular-nums">
           {String(value).padStart(2, '0')}
         </span>
-      </motion.div>
+      </m.div>
       <span className="text-[10px] uppercase tracking-wider opacity-80 mt-1">{label}</span>
     </div>
   );
@@ -153,7 +153,7 @@ export function StickyFlashDealBanner(): React.ReactElement | null {
 
   return (
     <AnimatePresence>
-      <motion.div
+      <m.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: -20 }}
@@ -173,7 +173,7 @@ export function StickyFlashDealBanner(): React.ReactElement | null {
         {/* Animated particles/sparkles effect */}
         <div className="absolute inset-0 overflow-hidden">
           {Array.from({ length: 6 }).map((_, i) => (
-            <motion.div
+            <m.div
               key={i}
               className="absolute w-1 h-1 bg-white/40 rounded-full"
               initial={{ 
@@ -212,7 +212,7 @@ export function StickyFlashDealBanner(): React.ReactElement | null {
             {/* Left Section - Title & Description */}
             <div className="flex-1 text-center lg:text-left">
               <div className="flex items-center justify-center lg:justify-start gap-2 mb-1">
-                <motion.div
+                <m.div
                   animate={{ 
                     rotate: isHovered ? [0, -10, 10, 0] : 0,
                     scale: isHovered ? 1.1 : 1
@@ -220,7 +220,7 @@ export function StickyFlashDealBanner(): React.ReactElement | null {
                   transition={{ duration: 0.3 }}
                 >
                   <Flame className="h-5 w-5 sm:h-6 sm:w-6 text-yellow-300" />
-                </motion.div>
+                </m.div>
                 <span className="text-xs sm:text-sm font-semibold uppercase tracking-wider text-white/90">
                   Flash Sale
                 </span>
@@ -268,7 +268,7 @@ export function StickyFlashDealBanner(): React.ReactElement | null {
             {/* Right Section - CTA */}
             <div className="flex items-center gap-3">
               <Link href="/catalog">
-                <motion.div
+                <m.div
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                 >
@@ -280,7 +280,7 @@ export function StickyFlashDealBanner(): React.ReactElement | null {
                     {flashDeal.ctaText ?? 'Shop Now'}
                     <ArrowRight className="h-4 w-4" />
                   </Button>
-                </motion.div>
+                </m.div>
               </Link>
               
               {/* Dismiss button */}
@@ -296,7 +296,7 @@ export function StickyFlashDealBanner(): React.ReactElement | null {
         </div>
 
         {/* Bottom accent line */}
-        <motion.div 
+        <m.div 
           className="absolute bottom-0 left-0 right-0 h-1"
           style={{
             background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.5), transparent)',
@@ -310,7 +310,7 @@ export function StickyFlashDealBanner(): React.ReactElement | null {
             ease: 'easeInOut'
           }}
         />
-      </motion.div>
+      </m.div>
     </AnimatePresence>
   );
 }

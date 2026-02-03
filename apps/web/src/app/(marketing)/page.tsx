@@ -3,8 +3,10 @@
 /**
  * BitLoot Homepage - 6-Section Architecture + Supporting Sections
  * 
- * Optimized for showcasing 3 product types (Games, Software, Subscriptions)
- * without overwhelming users. Each section serves a specific user intent.
+ * PERFORMANCE OPTIMIZED:
+ * - Uses LazyMotion (domAnimation) for 90% smaller framer-motion bundle
+ * - CSS animations for simple effects (no JS blocking)
+ * - Intersection Observer for scroll animations
  * 
  * Core Product Sections (6-Section Architecture):
  * 1. StickyFlashDealBanner - Persistent urgency (existing)
@@ -24,7 +26,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { motion } from 'framer-motion';
+import { LazyMotion, domAnimation, m } from 'framer-motion';
 import type { LucideIcon } from 'lucide-react';
 
 // Design System Components
@@ -125,7 +127,7 @@ function BenefitsSection(): React.ReactElement {
 
             <div className="container mx-auto px-4 md:px-6 relative z-10">
                 {/* Section Header */}
-                <motion.div
+                <m.div
                     initial={{ opacity: 0, y: 20 }}
                     whileInView={{ opacity: 1, y: 0 }}
                     viewport={{ once: true }}
@@ -146,12 +148,12 @@ function BenefitsSection(): React.ReactElement {
                         Built from the ground up for cryptocurrency payments.
                         Experience gaming commerce the way it should be.
                     </p>
-                </motion.div>
+                </m.div>
 
                 {/* Benefits Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                     {BENEFITS.map((benefit, index) => (
-                        <motion.div
+                        <m.div
                             key={benefit.title}
                             initial={{ opacity: 0, y: 30 }}
                             whileInView={{ opacity: 1, y: 0 }}
@@ -181,7 +183,7 @@ function BenefitsSection(): React.ReactElement {
                                     </p>
                                 </CardContent>
                             </Card>
-                        </motion.div>
+                        </m.div>
                     ))}
                 </div>
             </div>
@@ -204,7 +206,7 @@ function _SocialProofSection(): React.ReactElement {
 
             <div className="container mx-auto px-4 md:px-6">
                 {/* Section Header */}
-                <motion.div
+                <m.div
                     initial={{ opacity: 0, y: 20 }}
                     whileInView={{ opacity: 1, y: 0 }}
                     viewport={{ once: true }}
@@ -225,29 +227,29 @@ function _SocialProofSection(): React.ReactElement {
                         Join our growing community of satisfied customers who trust BitLoot
                         for their gaming needs.
                     </p>
-                </motion.div>
+                </m.div>
 
                 {/* Live Purchase Feed & Trust Badges */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
                     {/* Live Purchases */}
-                    <motion.div
+                    <m.div
                         initial={{ opacity: 0, x: -30 }}
                         whileInView={{ opacity: 1, x: 0 }}
                         viewport={{ once: true }}
                         transition={{ duration: 0.5 }}
                     >
                         <LivePurchaseFeed />
-                    </motion.div>
+                    </m.div>
 
                     {/* Trust Section */}
-                    <motion.div
+                    <m.div
                         initial={{ opacity: 0, x: 30 }}
                         whileInView={{ opacity: 1, x: 0 }}
                         viewport={{ once: true }}
                         transition={{ duration: 0.5, delay: 0.1 }}
                     >
                         <TrustSection />
-                    </motion.div>
+                    </m.div>
                 </div>
             </div>
         </section>
@@ -325,7 +327,7 @@ function FAQSection(): React.ReactElement {
 
             <div className="relative max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
                 {/* Section Header */}
-                <motion.div
+                <m.div
                     initial={{ opacity: 0, y: 20 }}
                     whileInView={{ opacity: 1, y: 0 }}
                     viewport={{ once: true }}
@@ -347,10 +349,10 @@ function FAQSection(): React.ReactElement {
                         Everything you need to know about buying game keys with cryptocurrency.
                         Can&apos;t find your answer? Our support team is here 24/7.
                     </p>
-                </motion.div>
+                </m.div>
 
                 {/* FAQ Accordion */}
-                <motion.div
+                <m.div
                     initial={{ opacity: 0, y: 30 }}
                     whileInView={{ opacity: 1, y: 0 }}
                     viewport={{ once: true }}
@@ -368,7 +370,7 @@ function FAQSection(): React.ReactElement {
                             const isOpen = openItems.includes(item.id);
 
                             return (
-                                <motion.div
+                                <m.div
                                     key={item.id}
                                     initial={{ opacity: 0, y: 20 }}
                                     whileInView={{ opacity: 1, y: 0 }}
@@ -430,14 +432,14 @@ function FAQSection(): React.ReactElement {
                                             </div>
                                         </AccordionContent>
                                     </AccordionItem>
-                                </motion.div>
+                                </m.div>
                             );
                         })}
                     </Accordion>
-                </motion.div>
+                </m.div>
 
                 {/* Still Have Questions CTA */}
-                <motion.div
+                <m.div
                     initial={{ opacity: 0, y: 20 }}
                     whileInView={{ opacity: 1, y: 0 }}
                     viewport={{ once: true }}
@@ -476,7 +478,7 @@ function FAQSection(): React.ReactElement {
                             </Button>
                         </div>
                     </div>
-                </motion.div>
+                </m.div>
             </div>
         </section>
     );
@@ -496,7 +498,7 @@ function CTASection(): React.ReactElement {
             />
 
             {/* Floating Elements */}
-            <motion.div
+            <m.div
                 className="absolute top-10 left-10 w-20 h-20 rounded-full bg-cyan-glow/10 blur-2xl"
                 animate={{
                     y: [0, 20, 0],
@@ -509,7 +511,7 @@ function CTASection(): React.ReactElement {
                 }}
                 aria-hidden="true"
             />
-            <motion.div
+            <m.div
                 className="absolute bottom-10 right-10 w-32 h-32 rounded-full bg-purple-neon/10 blur-3xl"
                 animate={{
                     y: [0, -20, 0],
@@ -525,7 +527,7 @@ function CTASection(): React.ReactElement {
 
             <div className="container mx-auto px-4 md:px-6 relative z-10">
                 <div className="max-w-3xl mx-auto text-center">
-                    <motion.div
+                    <m.div
                         initial={{ opacity: 0, y: 30 }}
                         whileInView={{ opacity: 1, y: 0 }}
                         viewport={{ once: true }}
@@ -569,7 +571,7 @@ function CTASection(): React.ReactElement {
                                 </Link>
                             </Button>
                         </div>
-                    </motion.div>
+                    </m.div>
                 </div>
             </div>
         </section>
@@ -582,43 +584,45 @@ function CTASection(): React.ReactElement {
 
 export default function HomePage(): React.ReactElement {
     return (
-        <main className="min-h-screen bg-bg-primary">
-            {/* Persistent urgency banner at top */}
-            <StickyFlashDealBanner />
-            
-            {/* ===== CORE PRODUCT SECTIONS (6-Section Architecture) ===== */}
-            
-            {/* Section 1: Hero - Value prop + search + trust indicators */}
-            <HeroSection />
-            
-            {/* Section 2: Flash Deals - Urgency with countdown timer */}
-            <FlashDealSection />
-            
-            {/* Section 3: Trending Now - Social proof with sales data */}
-            <TrendingNowGrid />
-            
-            {/* Section 4: Featured by Type - Equal showcase for each product category */}
-            <FeaturedByTypeSection />
-            
-            {/* Section 5: Bundle Deals - Upsell with cross-category bundles */}
-            <BundleDealsSection />
-            
-            {/* Section 6: Shop by Category - Discovery with grouped tiles */}
-            <CategoryBrowser />
-            
-            {/* ===== SUPPORTING SECTIONS ===== */}
-            
-            {/* Benefits - Why choose BitLoot */}
-            <BenefitsSection />
-            
-            {/* Social Proof - Trust badges + live purchases (HIDDEN - component kept for future use) */}
-            {/* <_SocialProofSection /> */}
-            
-            {/* FAQ - Common questions */}
-            <FAQSection />
-            
-            {/* CTA - Final call to action */}
-            <CTASection />
-        </main>
+        <LazyMotion features={domAnimation} strict>
+            <main className="min-h-screen bg-bg-primary">
+                {/* Persistent urgency banner at top */}
+                <StickyFlashDealBanner />
+                
+                {/* ===== CORE PRODUCT SECTIONS (6-Section Architecture) ===== */}
+                
+                {/* Section 1: Hero - Value prop + search + trust indicators */}
+                <HeroSection />
+                
+                {/* Section 2: Flash Deals - Urgency with countdown timer */}
+                <FlashDealSection />
+                
+                {/* Section 3: Trending Now - Social proof with sales data */}
+                <TrendingNowGrid />
+                
+                {/* Section 4: Featured by Type - Equal showcase for each product category */}
+                <FeaturedByTypeSection />
+                
+                {/* Section 5: Bundle Deals - Upsell with cross-category bundles */}
+                <BundleDealsSection />
+                
+                {/* Section 6: Shop by Category - Discovery with grouped tiles */}
+                <CategoryBrowser />
+                
+                {/* ===== SUPPORTING SECTIONS ===== */}
+                
+                {/* Benefits - Why choose BitLoot */}
+                <BenefitsSection />
+                
+                {/* Social Proof - Trust badges + live purchases (HIDDEN - component kept for future use) */}
+                {/* <_SocialProofSection /> */}
+                
+                {/* FAQ - Common questions */}
+                <FAQSection />
+                
+                {/* CTA - Final call to action */}
+                <CTASection />
+            </main>
+        </LazyMotion>
     );
 }

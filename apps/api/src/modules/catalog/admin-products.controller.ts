@@ -25,6 +25,7 @@ import {
 import { JwtAuthGuard } from '../../modules/auth/guards/jwt-auth.guard';
 import { AdminGuard } from '../../common/guards/admin.guard';
 import { CatalogService } from './catalog.service';
+import { CatalogCacheService } from './catalog-cache.service';
 import { AdminOpsService } from '../admin/admin-ops.service';
 import {
   CreateProductDto,
@@ -49,6 +50,7 @@ import { Product } from './entities/product.entity';
 export class AdminProductsController {
   constructor(
     private readonly catalogService: CatalogService,
+    private readonly cacheService: CatalogCacheService,
     @Inject(forwardRef(() => AdminOpsService))
     private readonly adminOpsService: AdminOpsService,
   ) { }
@@ -333,6 +335,14 @@ export class AdminProductsController {
         featuredSections: dto.featuredSections,
         featuredOrder: dto.featuredOrder,
       });
+      
+      // Invalidate caches on product update
+      await this.cacheService.invalidateProduct(product.slug);
+      await this.cacheService.invalidateCategoriesAndFilters();
+      if (product.isFeatured) {
+        await this.cacheService.invalidateFeaturedProducts();
+      }
+      
       return this.toResponseDto(product);
     } catch (error) {
       if (error instanceof NotFoundException) throw error;
@@ -350,6 +360,9 @@ export class AdminProductsController {
   async delete(@Param('id') id: string): Promise<void> {
     try {
       await this.catalogService.deleteProduct(id);
+      
+      // Invalidate all caches on delete (categories/filters change)
+      await this.cacheService.invalidateAll();
     } catch (error) {
       if (error instanceof NotFoundException) throw error;
       throw new HttpException(
@@ -365,6 +378,10 @@ export class AdminProductsController {
   async bulkDelete(@Body() dto: BulkDeleteProductsDto): Promise<BulkDeleteResponseDto> {
     try {
       const result = await this.catalogService.deleteProducts(dto.ids);
+      
+      // Invalidate all caches on bulk delete
+      await this.cacheService.invalidateAll();
+      
       return result;
     } catch (error) {
       throw new HttpException(
@@ -381,6 +398,14 @@ export class AdminProductsController {
   async publish(@Param('id') id: string): Promise<AdminProductResponseDto> {
     try {
       const product = await this.catalogService.publishProduct(id);
+      
+      // Invalidate caches when product is published (visible in catalog)
+      await this.cacheService.invalidateCategoriesAndFilters();
+      if (product.isFeatured) {
+        await this.cacheService.invalidateFeaturedProducts();
+        await this.cacheService.invalidateSectionProducts();
+      }
+      
       return this.toResponseDto(product);
     } catch (error) {
       if (error instanceof NotFoundException) throw error;
@@ -398,6 +423,13 @@ export class AdminProductsController {
   async unpublish(@Param('id') id: string): Promise<AdminProductResponseDto> {
     try {
       const product = await this.catalogService.unpublishProduct(id);
+      
+      // Invalidate caches when product is unpublished (removed from catalog)
+      await this.cacheService.invalidateCategoriesAndFilters();
+      await this.cacheService.invalidateFeaturedProducts();
+      await this.cacheService.invalidateSectionProducts();
+      await this.cacheService.invalidateProduct(product.slug);
+      
       return this.toResponseDto(product);
     } catch (error) {
       if (error instanceof NotFoundException) throw error;
@@ -446,6 +478,10 @@ export class AdminProductsController {
   async bulkPublish(@Body() dto: BulkPublishProductsDto): Promise<BulkPublishResponseDto> {
     try {
       const result = await this.catalogService.bulkPublishProducts(dto.ids);
+      
+      // Invalidate all caches on bulk publish
+      await this.cacheService.invalidateAll();
+      
       return result;
     } catch (error) {
       throw new HttpException(
@@ -461,6 +497,10 @@ export class AdminProductsController {
   async bulkUnpublish(@Body() dto: BulkUnpublishProductsDto): Promise<BulkUnpublishResponseDto> {
     try {
       const result = await this.catalogService.bulkUnpublishProducts(dto.ids);
+      
+      // Invalidate all caches on bulk unpublish
+      await this.cacheService.invalidateAll();
+      
       return result;
     } catch (error) {
       throw new HttpException(
@@ -479,6 +519,11 @@ export class AdminProductsController {
     if (product == null) {
       throw new NotFoundException(`Product with ID ${id} not found`);
     }
+    
+    // Invalidate featured caches
+    await this.cacheService.invalidateFeaturedProducts();
+    await this.cacheService.invalidateSectionProducts();
+    
     return this.toResponseDto(product);
   }
 
@@ -491,6 +536,11 @@ export class AdminProductsController {
     if (product == null) {
       throw new NotFoundException(`Product with ID ${id} not found`);
     }
+    
+    // Invalidate featured caches
+    await this.cacheService.invalidateFeaturedProducts();
+    await this.cacheService.invalidateSectionProducts();
+    
     return this.toResponseDto(product);
   }
 
@@ -500,6 +550,11 @@ export class AdminProductsController {
   async bulkFeature(@Body() dto: BulkPublishProductsDto): Promise<BulkPublishResponseDto> {
     try {
       const result = await this.catalogService.bulkSetFeatured(dto.ids, true);
+      
+      // Invalidate featured caches
+      await this.cacheService.invalidateFeaturedProducts();
+      await this.cacheService.invalidateSectionProducts();
+      
       return result;
     } catch (error) {
       throw new HttpException(
@@ -515,6 +570,10 @@ export class AdminProductsController {
   async bulkUnfeature(@Body() dto: BulkPublishProductsDto): Promise<BulkPublishResponseDto> {
     try {
       const result = await this.catalogService.bulkSetFeatured(dto.ids, false);
+      
+      // Invalidate featured caches
+      await this.cacheService.invalidateFeaturedProducts();
+      await this.cacheService.invalidateSectionProducts();
       return result;
     } catch (error) {
       throw new HttpException(

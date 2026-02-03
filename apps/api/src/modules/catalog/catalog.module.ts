@@ -4,6 +4,7 @@ import { BullModule } from '@nestjs/bullmq';
 
 import { CatalogService } from './catalog.service';
 import { GroupsService } from './groups.service';
+import { CatalogCacheService } from './catalog-cache.service';
 import { CatalogController } from './products.controller';
 import { GroupsController } from './groups.controller';
 import { AdminProductsController } from './admin-products.controller';
@@ -36,7 +37,7 @@ import { ProductGroup } from './entities/product-group.entity';
     BullModule.registerQueue({ name: 'fulfillment' }),
     forwardRef(() => AdminOpsModule),
   ],
-  providers: [CatalogService, GroupsService, KinguinCatalogClient, CatalogProcessor],
+  providers: [CatalogService, GroupsService, CatalogCacheService, KinguinCatalogClient, CatalogProcessor],
   controllers: [
     CatalogController,
     GroupsController,
@@ -48,6 +49,6 @@ import { ProductGroup } from './entities/product-group.entity';
     AdminKinguinController,
     KinguinWebhooksController,
   ],
-  exports: [CatalogService, GroupsService, KinguinCatalogClient],
+  exports: [CatalogService, GroupsService, CatalogCacheService, KinguinCatalogClient],
 })
 export class CatalogModule {}

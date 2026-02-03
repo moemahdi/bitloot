@@ -56,7 +56,7 @@ import {
 import type { PaginatedAuditLogsDto, AuditLogResponseDto } from '@bitloot/sdk';
 import { AuditLogsApi } from '@bitloot/sdk';
 import { apiConfig } from '@/lib/api-config';
-import { formatDate, formatRelativeTime, formatDateForExport } from '@/utils/format-date';
+import { formatDate, formatRelativeTime } from '@/utils/format-date';
 
 const auditLogsApi = new AuditLogsApi(apiConfig);
 

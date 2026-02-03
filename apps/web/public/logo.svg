@@ -1,0 +1,21 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="512" height="512" rx="64" fill="#0A0E1A"/>
+  
+  <!-- Gradient overlay -->
+  <defs>
+    <linearGradient id="logoGradient" x1="0" y1="0" x2="512" y2="512">
+      <stop offset="0%" stop-color="#00D9FF"/>
+      <stop offset="100%" stop-color="#9D4EDD"/>
+    </linearGradient>
+  </defs>
+  
+  <!-- Glow effect -->
+  <circle cx="256" cy="256" r="180" fill="#00D9FF" fill-opacity="0.1" filter="blur(40px)"/>
+  
+  <!-- Letter B stylized -->
+  <text x="256" y="340" font-family="system-ui, -apple-system, sans-serif" font-size="280" font-weight="800" text-anchor="middle" fill="url(#logoGradient)">B</text>
+  
+  <!-- Subtle bottom accent -->
+  <rect x="156" y="420" width="200" height="8" rx="4" fill="#00D9FF" fill-opacity="0.6"/>
+</svg>

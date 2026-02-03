@@ -38,7 +38,7 @@ import {
   Settings,
   RotateCcw,
 } from 'lucide-react';
-import { formatDate, formatRelativeTime as formatRelativeTimeUtil, formatDuration as formatDurationUtil } from '@/utils/format-date';
+import { formatDate, formatRelativeTime as formatRelativeTimeUtil } from '@/utils/format-date';
 
 // ============ TYPES ============
 

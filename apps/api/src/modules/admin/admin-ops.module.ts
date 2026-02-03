@@ -13,6 +13,7 @@ import { UserDeletionCleanupService } from '../../jobs/user-deletion-cleanup.pro
 import { AuthModule } from '../auth/auth.module';
 import { EmailsModule } from '../emails/emails.module';
 import { AuditModule } from '../audit/audit.module';
+import { CatalogModule } from '../catalog/catalog.module';
 
 /**
  * Admin Ops Module - Feature Flags, System Configuration, Ops Panels
@@ -34,6 +35,7 @@ import { AuditModule } from '../audit/audit.module';
     ),
     forwardRef(() => AuthModule),
     forwardRef(() => EmailsModule),
+    forwardRef(() => CatalogModule),
     AuditModule,
   ],
   providers: [

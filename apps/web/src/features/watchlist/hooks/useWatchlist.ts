@@ -65,7 +65,7 @@ export function useWatchlist(
   enabled?: boolean
 ): UseQueryResult<PaginatedWatchlistResponseDto> {
   // Use provided enabled value, or fall back to internal auth check
-  const isEnabled = enabled !== undefined ? enabled : isAuthenticated();
+  const isEnabled = enabled ?? isAuthenticated();
   
   return useQuery<PaginatedWatchlistResponseDto>({
     queryKey: watchlistKeys.list(page, limit),

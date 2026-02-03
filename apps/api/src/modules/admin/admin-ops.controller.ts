@@ -1,9 +1,10 @@
-import { Controller, Get, Post, Patch, Param, Body, UseGuards, Query, HttpCode, HttpStatus } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Param, Body, UseGuards, Query, HttpCode, HttpStatus } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiResponse, ApiQuery } from '@nestjs/swagger';
 import { AdminOpsService } from './admin-ops.service';
 import { AdminGuard } from '../../common/guards/admin.guard';
 import { JwtAuthGuard } from '../../modules/auth/guards/jwt-auth.guard';
 import { UserDeletionCleanupService } from '../../jobs/user-deletion-cleanup.processor';
+import { CatalogCacheService } from '../catalog/catalog-cache.service';
 import { AuditLog } from '../../common/decorators/audit-log.decorator';
 
 /**
@@ -18,6 +19,7 @@ export class AdminOpsController {
   constructor(
     private readonly adminOpsService: AdminOpsService,
     private readonly userDeletionCleanupService: UserDeletionCleanupService,
+    private readonly catalogCacheService: CatalogCacheService,
   ) {}
 
   // ============ FEATURE FLAGS ============
@@ -406,5 +408,96 @@ export class AdminOpsController {
     failed: number;
   }> {
     return this.userDeletionCleanupService.triggerManualCleanup();
+  }
+
+  // ============ CATALOG CACHE MANAGEMENT ============
+
+  @Get('cache/stats')
+  @ApiOperation({ summary: 'Get catalog cache statistics' })
+  @ApiResponse({
+    status: 200,
+    description: 'Cache statistics',
+    schema: {
+      properties: {
+        enabled: { type: 'boolean', description: 'Whether caching is enabled' },
+        connected: { type: 'boolean', description: 'Whether Redis connection is active' },
+        keyCount: { type: 'number', description: 'Number of catalog cache keys' },
+      },
+    },
+  })
+  async getCacheStats(): Promise<{
+    enabled: boolean;
+    connected: boolean;
+    keyCount: number;
+  }> {
+    return this.catalogCacheService.getStats();
+  }
+
+  @Delete('cache')
+  @AuditLog({
+    action: 'cache.invalidate.all',
+    target: 'catalog-cache',
+    details: 'All catalog caches invalidated',
+  })
+  @ApiOperation({ summary: 'Invalidate all catalog caches' })
+  @ApiResponse({
+    status: 200,
+    description: 'Cache invalidation result',
+    schema: {
+      properties: {
+        success: { type: 'boolean' },
+        keysInvalidated: { type: 'number' },
+      },
+    },
+  })
+  async invalidateAllCache(): Promise<{
+    success: boolean;
+    keysInvalidated: number;
+  }> {
+    const keysInvalidated = await this.catalogCacheService.invalidateAll();
+    return { success: true, keysInvalidated };
+  }
+
+  @Delete('cache/featured')
+  @AuditLog({
+    action: 'cache.invalidate.featured',
+    target: 'catalog-cache-featured',
+    details: 'Featured products cache invalidated',
+  })
+  @ApiOperation({ summary: 'Invalidate featured products cache' })
+  @ApiResponse({
+    status: 200,
+    description: 'Cache invalidation result',
+    schema: {
+      properties: {
+        success: { type: 'boolean' },
+      },
+    },
+  })
+  async invalidateFeaturedCache(): Promise<{ success: boolean }> {
+    await this.catalogCacheService.invalidateFeaturedProducts();
+    await this.catalogCacheService.invalidateSectionProducts();
+    return { success: true };
+  }
+
+  @Delete('cache/categories')
+  @AuditLog({
+    action: 'cache.invalidate.categories',
+    target: 'catalog-cache-categories',
+    details: 'Categories and filters cache invalidated',
+  })
+  @ApiOperation({ summary: 'Invalidate categories and filters cache' })
+  @ApiResponse({
+    status: 200,
+    description: 'Cache invalidation result',
+    schema: {
+      properties: {
+        success: { type: 'boolean' },
+      },
+    },
+  })
+  async invalidateCategoriesCache(): Promise<{ success: boolean }> {
+    await this.catalogCacheService.invalidateCategoriesAndFilters();
+    return { success: true };
   }
 }

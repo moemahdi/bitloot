@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { motion } from 'framer-motion';
+import { m } from 'framer-motion';
 import { useQuery } from '@tanstack/react-query';
 import { Gift, Package, ChevronRight, TrendingDown, Sparkles } from 'lucide-react';
 import { Button } from '@/design-system/primitives/button';
@@ -78,7 +78,7 @@ function BundleCard({ bundle, onSelect, isPriority = false }: { bundle: BundleDe
   const savings = originalPrice - bundlePrice;
 
   return (
-    <motion.div
+    <m.div
       whileHover={{ scale: 1.02, y: -8 }}
       transition={{ duration: 0.3 }}
       className="h-full"
@@ -200,7 +200,7 @@ function BundleCard({ bundle, onSelect, isPriority = false }: { bundle: BundleDe
           </CardContent>
         </Card>
       </button>
-    </motion.div>
+    </m.div>
   );
 }
 
@@ -263,7 +263,7 @@ export function BundleDealsSection(): React.ReactElement | null {
         {/* Header */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-10">
           <div className="flex items-center gap-4">
-            <motion.div
+            <m.div
               animate={{ 
                 rotate: [0, 10, -10, 0],
               }}
@@ -275,7 +275,7 @@ export function BundleDealsSection(): React.ReactElement | null {
               className="p-3 rounded-xl bg-pink-500/20 border border-pink-500/30"
             >
               <Gift className="h-8 w-8 text-pink-400" />
-            </motion.div>
+            </m.div>
             <div>
               <h2 className="text-3xl font-bold text-text-primary flex items-center gap-2">
                 Bundle Deals
@@ -302,20 +302,20 @@ export function BundleDealsSection(): React.ReactElement | null {
         {/* Bundles Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {bundles.slice(0, 6).map((bundle, index) => (
-            <motion.div
+            <m.div
               key={bundle.id}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.1 }}
             >
               <BundleCard bundle={bundle} onSelect={setSelectedBundle} isPriority={index < 3} />
-            </motion.div>
+            </m.div>
           ))}
         </div>
 
         {/* Stats Bar */}
         {bundles.length > 0 ? (
-          <motion.div
+          <m.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.5 }}
@@ -341,7 +341,7 @@ export function BundleDealsSection(): React.ReactElement | null {
               <div className="text-2xl font-bold text-cyan-400">Instant</div>
               <div className="text-sm text-text-muted">Key Delivery</div>
             </div>
-          </motion.div>
+          </m.div>
         ) : null}
       </div>
 

@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { motion, AnimatePresence } from 'framer-motion';
+import { m, AnimatePresence } from 'framer-motion';
 import { useQuery } from '@tanstack/react-query';
 import { Zap, ShoppingCart, ChevronRight, ChevronLeft, Flame, TrendingUp, Sparkles, Timer } from 'lucide-react';
 import { Button } from '@/design-system/primitives/button';
@@ -96,7 +96,7 @@ function useCountdown(endTime: string) {
 // Time unit component - Enhanced with glow and animation
 function TimeUnit({ value, label, isUrgent }: { value: number; label: string; isUrgent?: boolean }) {
   return (
-    <motion.div 
+    <m.div 
       className="flex flex-col items-center"
       animate={isUrgent === true ? { scale: [1, 1.05, 1] } : {}}
       transition={{ duration: 0.5, repeat: isUrgent === true ? Infinity : 0 }}
@@ -109,7 +109,7 @@ function TimeUnit({ value, label, isUrgent }: { value: number; label: string; is
         <div className={`absolute inset-0 rounded-xl ${isUrgent === true ? 'bg-red-500/5' : 'bg-yellow-500/5'} blur-sm -z-10`} />
       </div>
       <span className="text-xs text-text-muted mt-2 uppercase tracking-widest font-medium">{label}</span>
-    </motion.div>
+    </m.div>
   );
 }
 
@@ -121,7 +121,7 @@ function FireParticles() {
   return (
     <div className="absolute inset-0 overflow-hidden pointer-events-none">
       {Array.from({ length: 6 }).map((_, i) => (
-        <motion.div
+        <m.div
           key={i}
           className="absolute w-2 h-2 rounded-full bg-gradient-to-t from-orange-500 to-yellow-300"
           initial={{ 
@@ -188,7 +188,7 @@ function FlashDealProductCard({ product, onAddToCart, index, isPriority = false 
   }, [product, onAddToCart]);
 
   return (
-    <motion.div
+    <m.div
       whileHover={{ scale: 1.03, y: -8 }}
       whileTap={{ scale: 0.98 }}
       transition={{ type: 'spring', stiffness: 400, damping: 25 }}
@@ -222,7 +222,7 @@ function FlashDealProductCard({ product, onAddToCart, index, isPriority = false 
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
               
               {/* Discount Badge - Enhanced */}
-              <motion.div
+              <m.div
                 initial={{ rotate: -12 }}
                 whileHover={{ rotate: 0, scale: 1.1 }}
                 className="absolute top-3 left-3"
@@ -231,7 +231,7 @@ function FlashDealProductCard({ product, onAddToCart, index, isPriority = false 
                   <Flame className="h-3.5 w-3.5" fill={isHotDeal ? 'white' : 'currentColor'} />
                   -{Math.round(discountPercent)}%
                 </Badge>
-              </motion.div>
+              </m.div>
 
               {/* Hot Deal indicator */}
               {isHotDeal && (
@@ -249,7 +249,7 @@ function FlashDealProductCard({ product, onAddToCart, index, isPriority = false 
               ) : null}
 
               {/* Quick add button - always visible */}
-              <motion.div
+              <m.div
                 whileHover={{ scale: 1.1 }}
                 whileTap={{ scale: 0.95 }}
                 className="absolute bottom-3 right-3"
@@ -261,7 +261,7 @@ function FlashDealProductCard({ product, onAddToCart, index, isPriority = false 
                 >
                   <ShoppingCart className="h-5 w-5" />
                 </Button>
-              </motion.div>
+              </m.div>
             </div>
 
             {/* Content */}
@@ -298,7 +298,7 @@ function FlashDealProductCard({ product, onAddToCart, index, isPriority = false 
           </CardContent>
         </Card>
       </Link>
-    </motion.div>
+    </m.div>
   );
 }
 
@@ -435,7 +435,7 @@ export function FlashDealSection(): React.ReactElement | null {
         <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-8 mb-10">
           <div className="flex items-center gap-5">
             {/* Animated icon container */}
-            <motion.div
+            <m.div
               animate={{ 
                 scale: [1, 1.1, 1],
                 rotate: [0, 5, -5, 0],
@@ -450,7 +450,7 @@ export function FlashDealSection(): React.ReactElement | null {
               <Zap className="h-10 w-10 text-yellow-400" fill="currentColor" />
               {/* Glow effect */}
               <div className="absolute inset-0 bg-yellow-500/20 rounded-2xl blur-xl -z-10" />
-            </motion.div>
+            </m.div>
             
             <div>
               <div className="flex items-center gap-3 mb-1">
@@ -491,7 +491,7 @@ export function FlashDealSection(): React.ReactElement | null {
 
         {/* Products Grid with Animation */}
         <AnimatePresence mode="wait">
-          <motion.div
+          <m.div
             key={currentPage}
             initial={{ opacity: 0, x: 30 }}
             animate={{ opacity: 1, x: 0 }}
@@ -500,21 +500,21 @@ export function FlashDealSection(): React.ReactElement | null {
             className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4 md:gap-6"
           >
             {currentProducts.map((product, index) => (
-              <motion.div
+              <m.div
                 key={product.id}
                 initial={{ opacity: 0, y: 30 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: index * 0.05, duration: 0.4 }}
               >
                 <FlashDealProductCard product={product} onAddToCart={handleAddToCart} index={index} isPriority={index < 4} />
-              </motion.div>
+              </m.div>
             ))}
-          </motion.div>
+          </m.div>
         </AnimatePresence>
 
         {/* Pagination Controls - Enhanced */}
         {totalPages > 1 && (
-          <motion.div 
+          <m.div 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
@@ -534,7 +534,7 @@ export function FlashDealSection(): React.ReactElement | null {
             {/* Page indicators - Enhanced */}
             <div className="flex items-center gap-3">
               {Array.from({ length: totalPages }).map((_, index) => (
-                <motion.button
+                <m.button
                   key={index}
                   onClick={() => setCurrentPage(index)}
                   whileHover={{ scale: 1.2 }}
@@ -547,12 +547,12 @@ export function FlashDealSection(): React.ReactElement | null {
                   aria-label={`Go to page ${index + 1}`}
                 >
                   {index === currentPage && (
-                    <motion.div 
+                    <m.div 
                       layoutId="activePage"
                       className="absolute inset-0 bg-gradient-to-r from-yellow-400 to-orange-400 rounded-full"
                     />
                   )}
-                </motion.button>
+                </m.button>
               ))}
             </div>
 
@@ -566,11 +566,11 @@ export function FlashDealSection(): React.ReactElement | null {
               <span className="hidden sm:inline">Next</span>
               <ChevronRight className="h-5 w-5" />
             </Button>
-          </motion.div>
+          </m.div>
         )}
 
         {/* Total products info - Enhanced */}
-        <motion.div 
+        <m.div 
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.4 }}
@@ -580,7 +580,7 @@ export function FlashDealSection(): React.ReactElement | null {
             <Sparkles className="h-4 w-4 text-yellow-400" />
             Showing {startIndex + 1}-{Math.min(endIndex, totalProducts)} of {totalProducts} exclusive deals
           </span>
-        </motion.div>
+        </m.div>
       </div>
     </section>
   );
