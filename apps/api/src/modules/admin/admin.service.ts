@@ -6,6 +6,7 @@ import { Payment } from '../payments/payment.entity';
 import { WebhookLog } from '../../database/entities/webhook-log.entity';
 import { Key } from '../orders/key.entity';
 import { User } from '../../database/entities/user.entity';
+import { Product } from '../catalog/entities/product.entity';
 import { DashboardStatsDto } from './dto/dashboard-stats.dto';
 import { EmailsService } from '../emails/emails.service';
 import { StorageService } from '../storage/storage.service';
@@ -38,11 +39,41 @@ export class AdminService {
     @InjectRepository(WebhookLog) private readonly webhookLogsRepo: Repository<WebhookLog>,
     @InjectRepository(Key) private readonly keysRepo: Repository<Key>,
     @InjectRepository(User) private readonly usersRepo: Repository<User>,
+    @InjectRepository(Product) private readonly productRepo: Repository<Product>,
     private readonly emailsService: EmailsService,
     private readonly storageService: StorageService,
     private readonly r2StorageClient: R2StorageClient,
     private readonly fulfillmentService: FulfillmentService,
   ) { }
+
+  /**
+   * Build items array for order completion email
+   * Fetches product titles from the catalog and maps to email format
+   */
+  private async buildEmailItems(order: Order): Promise<{ items: Array<{ name: string; quantity: number; price: string }>; total: string }> {
+    const items = order.items ?? [];
+    const productIds = items.map((item) => item.productId);
+    
+    // Fetch product titles in batch
+    const products = await this.productRepo
+      .createQueryBuilder('p')
+      .select(['p.id', 'p.title'])
+      .where('p.id IN (:...ids)', { ids: productIds.length > 0 ? productIds : [''] })
+      .getMany();
+    
+    const productMap = new Map(products.map((p) => [p.id, p.title]));
+    
+    const emailItems = items.map((item) => ({
+      name: productMap.get(item.productId) ?? 'Digital Product',
+      quantity: item.quantity ?? 1,
+      price: item.unitPrice ?? '0.00',
+    }));
+    
+    return {
+      items: emailItems,
+      total: order.totalCrypto ?? '0.00',
+    };
+  }
 
   /**
    * Get dashboard statistics
@@ -898,17 +929,15 @@ export class AdminService {
       throw new BadRequestException(`Order ${orderId} has no keys to resend.`);
     }
 
-    // Generate new success page URL (where customer can view keys)
-    const frontendUrl = process.env.FRONTEND_URL ?? 'http://localhost:3000';
-    const successUrl = `${frontendUrl}/orders/${orderId}/success`;
-
     // Send email via EmailsService
     try {
+      // Build items array with real product titles and prices
+      const { items, total } = await this.buildEmailItems(order);
+      
       await this.emailsService.sendOrderCompleted(order.email, {
         orderId: order.id,
-        productName: 'Your Digital Product',
-        downloadUrl: successUrl,
-        expiresIn: '24 hours',
+        items,
+        total,
       });
 
       this.logger.log(`[ADMIN] Keys email resent for order ${orderId} to ${order.email}`);

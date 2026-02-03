@@ -59,9 +59,14 @@ export class OrdersController {
         await this.emailsService.sendOrderConfirmation(email, {
           orderId: order.id,
           total: order.total,
-          currency: 'EUR', // Placeholder - will be set per order in Level 6
-          items: order.items?.map((item) => ({ name: `Product ${item.productId}` })) ?? [],
+          currency: 'EUR',
+          items: order.items?.map((item) => ({ 
+            name: item.productTitle ?? 'Digital Product',
+            price: item.unitPrice,
+            quantity: item.quantity ?? 1,
+          })) ?? [],
           paymentLink: `${process.env.FRONTEND_URL ?? 'http://localhost:3000'}/orders/${order.id}`,
+          createdAt: order.createdAt,
         });
       }
     } catch (emailError) {

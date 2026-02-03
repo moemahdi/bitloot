@@ -188,7 +188,7 @@ const ALL_FAQS: FAQItemData[] = [
   {
     id: 'how-to-buy',
     question: 'How do I buy a game key?',
-    answer: 'Simply browse our catalog, add products to your cart, and proceed to checkout. Enter your email address (or log in if you have an account), select your preferred cryptocurrency, and complete the payment. Your keys will be delivered instantly to your email and account dashboard once payment is confirmed.',
+    answer: 'Simply browse our catalog, add products to your cart, and proceed to checkout. Enter your email address (or log in if you have an account), select your preferred cryptocurrency, and complete the payment. Your products will be delivered instantly to your email and account dashboard once payment is confirmed.',
     category: 'getting-started',
   },
   {
@@ -200,7 +200,7 @@ const ALL_FAQS: FAQItemData[] = [
   {
     id: 'account-benefits',
     question: 'What are the benefits of creating an account?',
-    answer: 'With a free BitLoot account, you get: permanent access to all your purchased keys, order history and status tracking, a watchlist to save products for later, faster checkout with saved preferences, and email notifications for price drops on watchlisted items. Your keys are always safely stored and accessible anytime.',
+    answer: 'With a free BitLoot account, you get: permanent access to all your purchased products, order history and status tracking, a watchlist to save products for later, faster checkout with saved preferences, and email notifications for price drops on watchlisted items. Your products are always safely stored and accessible anytime.',
     category: 'getting-started',
   },
   
@@ -252,7 +252,7 @@ const ALL_FAQS: FAQItemData[] = [
   {
     id: 'key-access',
     question: 'How do I access my purchased keys?',
-    answer: 'After successful payment, your keys are instantly available in your account\'s Purchases tab. Click on any order to expand it and reveal your product keys. You can copy them individually to redeem on your platform. Keys are also sent to your email address for backup access.',
+    answer: 'After successful payment, your products are instantly available in your account\'s Purchases tab. Click on any order to expand it and reveal your product codes. You can copy them individually to redeem on your platform. Codes are also sent to your email address for backup access.',
     category: 'orders',
   },
   {
@@ -264,7 +264,7 @@ const ALL_FAQS: FAQItemData[] = [
   {
     id: 'order-history',
     question: 'Can I see my order history?',
-    answer: 'Yes! All your past orders are visible in your account\'s Purchases tab. You can view order details, payment status, and re-access keys for fulfilled orders anytime. Your keys are permanently stored in your account and never expire.',
+    answer: 'Yes! All your past orders are visible in your account\'s Purchases tab. You can view order details, payment status, and re-access products for fulfilled orders anytime. Your products are permanently stored in your account and never expire.',
     category: 'orders',
   },
   {

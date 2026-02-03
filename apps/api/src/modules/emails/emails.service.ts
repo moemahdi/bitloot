@@ -12,10 +12,8 @@ import { randomUUID } from 'crypto';
 import {
   EmailTemplates,
   type OtpEmailParams,
-  type WelcomeEmailParams,
   type OrderConfirmationParams,
   type KeyDeliveryParams,
-  type PasswordResetParams,
   type UnderpaymentParams,
   type PaymentFailedParams,
   type PaymentExpiredParams,
@@ -223,23 +221,6 @@ export class EmailsService {
       maxRetries: 5,
     });
   }
-
-  /**
-   * Send welcome email to new users
-   * @param to Customer email address
-   * @param userName User's name or display name
-   */
-  async sendWelcomeEmail(to: string, userName: string): Promise<void> {
-    const displayName = userName.length > 0 ? userName : 'there';
-    const params: WelcomeEmailParams = { displayName, email: to };
-    const { subject, html } = EmailTemplates.welcome(params);
-    
-    await this.sendViaResend(to, subject, html, {
-      emailType: 'welcome',
-      priority: 'high',
-    });
-  }
-
   /**
    * Send order confirmation email
    * @param to Customer email address
@@ -251,8 +232,9 @@ export class EmailsService {
       orderId: string;
       total: string;
       currency: string;
-      items: Array<{ name: string; price?: string }>;
+      items: Array<{ name: string; price?: string; quantity?: number }>;
       paymentLink: string;
+      createdAt?: string;
     },
   ): Promise<void> {
     // Feature flag check
@@ -261,7 +243,7 @@ export class EmailsService {
       return;
     }
 
-    const { orderId, total, currency, items, paymentLink } = data;
+    const { orderId, total, currency, items, paymentLink, createdAt } = data;
     
     // Email deduplication check
     const dedupeKey = `order-confirmation:${orderId}`;
@@ -276,13 +258,14 @@ export class EmailsService {
       orderId,
       items: items.map(item => ({
         name: item.name,
-        quantity: 1,
+        quantity: item.quantity ?? 1,
         price: item.price ?? total,
       })),
       total,
       currency,
       paymentLink,
       email: to,
+      createdAt,
     };
     const { subject, html } = EmailTemplates.orderConfirmation(params);
     
@@ -296,17 +279,16 @@ export class EmailsService {
   }
 
   /**
-   * Send order completion/fulfillment email with key delivery link
+   * Send order completion/fulfillment email with link to view purchased products
    * @param to Customer email address
-   * @param data Order and download details
+   * @param data Order details with items
    */
   async sendOrderCompleted(
     to: string,
     data: {
       orderId: string;
-      productName: string;
-      downloadUrl: string;
-      expiresIn?: string;
+      items: Array<{ name: string; quantity: number; price: string }>;
+      total: string;
     },
   ): Promise<void> {
     // Feature flag check
@@ -315,35 +297,21 @@ export class EmailsService {
       return;
     }
 
-    const { orderId, productName, downloadUrl, expiresIn = '3 hours' } = data;
+    const { orderId, items, total } = data;
+    const frontendUrl = process.env.FRONTEND_URL ?? 'http://localhost:3000';
+    const successPageUrl = `${frontendUrl}/orders/${orderId}/success`;
 
     const params: KeyDeliveryParams = {
       orderId,
-      productName,
-      downloadUrl,
-      expiresIn,
+      items,
+      total,
+      successPageUrl,
       email: to,
     };
     const { subject, html } = EmailTemplates.keyDelivery(params);
     
     await this.sendViaResend(to, subject, html, {
       emailType: 'payment_completed',
-      priority: 'high',
-    });
-  }
-
-  /**
-   * Send password reset email
-   * @param to Customer email address
-   * @param resetToken Password reset token
-   * @param resetLink Full reset link URL
-   */
-  async sendPasswordResetEmail(to: string, resetToken: string, resetLink: string): Promise<void> {
-    const params: PasswordResetParams = { resetLink, email: to };
-    const { subject, html } = EmailTemplates.passwordReset(params);
-    
-    await this.sendViaResend(to, subject, html, {
-      emailType: 'password_reset',
       priority: 'high',
     });
   }

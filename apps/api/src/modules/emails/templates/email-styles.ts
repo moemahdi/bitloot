@@ -253,7 +253,7 @@ export function wrapEmailTemplate(content: string, options: WrapperOptions = {})
         <span style="color: ${EmailColors.primary};">Bit</span><span style="color: ${EmailColors.textPrimary};">Loot</span>
       </h1>
       <p style="margin: 8px 0 0 0; color: ${EmailColors.textMuted}; font-size: 13px; letter-spacing: 2px; text-transform: uppercase;">
-        Crypto Gaming Marketplace
+        Crypto Gaming Store
       </p>
     </div>
   `;
@@ -262,9 +262,9 @@ export function wrapEmailTemplate(content: string, options: WrapperOptions = {})
     ? `
     <div style="text-align: center; padding: 24px 0; border-top: 1px solid ${EmailColors.borderSubtle}; margin-top: 32px;">
       <p style="color: ${EmailColors.textMuted}; font-size: 13px; margin: 0 0 8px 0;">
-        <a href="${frontendUrl}/support" style="color: ${EmailColors.primary}; text-decoration: none;">Support</a>
+        <a href="${frontendUrl}/help" style="color: ${EmailColors.primary}; text-decoration: none;">Support</a>
         &nbsp;&nbsp;•&nbsp;&nbsp;
-        <a href="${frontendUrl}/faq" style="color: ${EmailColors.primary}; text-decoration: none;">FAQ</a>
+        <a href="${frontendUrl}/terms" style="color: ${EmailColors.primary}; text-decoration: none;">Terms</a>
         &nbsp;&nbsp;•&nbsp;&nbsp;
         <a href="${frontendUrl}/privacy" style="color: ${EmailColors.primary}; text-decoration: none;">Privacy</a>
       </p>

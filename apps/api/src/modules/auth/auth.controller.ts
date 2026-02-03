@@ -153,16 +153,6 @@ export class AuthController {
       if (user === null || user === undefined) {
         user = await this.userService.create(dto.email);
         this.logger.log(`✨ New user created: ${dto.email}`);
-
-        // Send welcome email to new users
-        try {
-          const userName = dto.email.split('@')[0] ?? dto.email;
-          await this.emailsService.sendWelcomeEmail(dto.email, userName);
-          this.logger.debug(`📬 Welcome email queued for ${dto.email}`);
-        } catch (emailError) {
-          const msg = emailError instanceof Error ? emailError.message : 'Unknown error';
-          this.logger.warn(`⚠️  Failed to send welcome email: ${msg}`);
-        }
       }
 
       // Mark email as confirmed
@@ -306,10 +296,13 @@ export class AuthController {
       // Build reset link (frontend should consume this)
       const resetLink = `${process.env.FRONTEND_URL ?? 'http://localhost:3000'}/auth/reset-password?token=${resetToken}`;
 
-      // Send reset email
-      await this.emailsService.sendPasswordResetEmail(user.email, resetToken, resetLink);
+      // Password reset not implemented - log for now
+      this.logger.log(`🔐 Password reset requested for ${user.email} (reset link: ${resetLink})`);
 
-      this.logger.log(`✅ Password reset email sent to ${user.email}`);
+      // TODO: Implement password reset flow if needed in future
+      // For now, users use OTP-based authentication
+
+      this.logger.log(`✅ Password reset request processed for ${user.email}`);
 
       return {
         success: true,

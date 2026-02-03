@@ -93,13 +93,13 @@ const BENEFITS: BenefitCard[] = [
     {
         icon: Zap,
         title: 'Instant Delivery',
-        description: 'Receive your keys and accounts within seconds. Our automated system ensures lightning-fast delivery.',
+        description: 'Receive your products within seconds. Our automated system ensures lightning-fast delivery.',
         gradient: 'from-green-success/20 to-cyan-glow/20',
     },
     {
         icon: Shield,
         title: '100% Secure',
-        description: 'Bank-grade encryption protects your transactions. Keys are verified and guaranteed authentic.',
+        description: 'Bank-grade encryption protects your transactions. All products are verified and guaranteed authentic.',
         gradient: 'from-purple-neon/20 to-pink-featured/20',
     },
     {

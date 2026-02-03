@@ -126,7 +126,7 @@ export default function OrderCancelPage(): React.ReactElement {
                   <p className="text-sm font-medium text-purple-neon">Need assistance?</p>
                   <p className="text-xs text-text-muted mt-1">
                     If you sent a payment but it shows as cancelled, please{' '}
-                    <Link href="/support" className="text-cyan-glow hover:underline">
+                    <Link href="/help" className="text-cyan-glow hover:underline">
                       contact support
                     </Link>{' '}
                     with your order ID.

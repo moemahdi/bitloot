@@ -78,7 +78,7 @@ export default function OrderLookupPage(): React.ReactElement {
 
                         <p className="text-lg text-text-secondary max-w-xl mx-auto">
                             Enter your order ID to view your order status,
-                            download your keys, or check delivery progress.
+                            access your products, or check delivery progress.
                         </p>
                     </motion.div>
 

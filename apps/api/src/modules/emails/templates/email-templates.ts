@@ -11,17 +11,16 @@
  * TEMPLATE INDEX:
  * ---------------
  * 1.  OTP Verification         - otpVerificationEmail()
- * 2.  Welcome                  - welcomeEmail()
- * 3.  Order Confirmation       - orderConfirmationEmail()
- * 4.  Key Delivery             - keyDeliveryEmail()
- * 5.  Underpayment Notice      - underpaymentNoticeEmail()
- * 6.  Payment Failed           - paymentFailedEmail()
- * 7.  Payment Expired          - paymentExpiredEmail()
- * 8.  Email Changed (Old)      - emailChangedOldEmail()
- * 9.  Email Changed (New)      - emailChangedNewEmail()
- * 10. Deletion Scheduled       - deletionScheduledEmail()
- * 11. Deletion Cancelled       - deletionCancelledEmail()
- * 12. Generic Email            - genericEmail()
+ * 2.  Order Confirmation       - orderConfirmationEmail()
+ * 3.  Products Delivery        - keyDeliveryEmail()
+ * 4.  Underpayment Notice      - underpaymentNoticeEmail()
+ * 5.  Payment Failed           - paymentFailedEmail()
+ * 6.  Payment Expired          - paymentExpiredEmail()
+ * 7.  Email Changed (Old)      - emailChangedOldEmail()
+ * 8.  Email Changed (New)      - emailChangedNewEmail()
+ * 9.  Deletion Scheduled       - deletionScheduledEmail()
+ * 10. Deletion Cancelled       - deletionCancelledEmail()
+ * 11. Generic Email            - genericEmail()
  */
 
 import { EmailStyles, EmailColors, wrapEmailTemplate } from './email-styles';
@@ -48,10 +47,10 @@ export function otpVerificationEmail(params: OtpEmailParams): EmailTemplate {
   const { code } = params;
 
   const content = `
-    <h2 style="${EmailStyles.heading2}">🔐 Verification Code</h2>
+    <h2 style="${EmailStyles.heading2}">🎮 Welcome to BitLoot!</h2>
 
     <p style="${EmailStyles.paragraph}">
-      Use this code to verify your identity:
+      Enter this code to verify your email and start shopping:
     </p>
 
     <div style="text-align: center; margin: 32px 0;">
@@ -65,12 +64,11 @@ export function otpVerificationEmail(params: OtpEmailParams): EmailTemplate {
     </div>
 
     <p style="${EmailStyles.paragraph}">
-      If you didn't request this code, you can safely ignore this email.
-      Someone may have entered your email address by mistake.
+      Your free account unlocks <strong>purchase history</strong>, <strong>wishlists</strong>, and <strong>instant access to all your purchases</strong> — no more digging through emails.
     </p>
 
     <p style="${EmailStyles.paragraph}">
-      For security, never share this code with anyone. BitLoot staff will never ask for your verification code.
+      Didn't request this? You can safely ignore this email.
     </p>
   `;
 
@@ -81,74 +79,7 @@ export function otpVerificationEmail(params: OtpEmailParams): EmailTemplate {
 }
 
 // ============================================================
-// 2. WELCOME EMAIL
-// ============================================================
-
-export interface WelcomeEmailParams {
-  displayName: string;
-  email: string;
-}
-
-export function welcomeEmail(params: WelcomeEmailParams): EmailTemplate {
-  const { displayName } = params;
-  const frontendUrl = process.env.FRONTEND_URL ?? 'https://bitloot.io';
-
-  const content = `
-    <h2 style="${EmailStyles.heading2}">
-      🎉 Welcome to BitLoot, ${displayName}!
-    </h2>
-
-    <p style="${EmailStyles.paragraph}">
-      You've joined the <strong>crypto-first digital marketplace</strong> for instant key delivery!
-    </p>
-
-    <div style="${EmailStyles.successBox}">
-      <p style="margin: 0; color: ${EmailColors.success};">
-        ✅ Your account is now <strong>active and ready to shop</strong>
-      </p>
-    </div>
-
-    <h3 style="${EmailStyles.heading2}">What You Can Do on BitLoot</h3>
-
-    <ul style="${EmailStyles.list}">
-      <li style="${EmailStyles.listItem}">🎮 Browse verified game keys and software licenses</li>
-      <li style="${EmailStyles.listItem}">💳 Pay with <strong>100+ cryptocurrencies</strong> (BTC, ETH, XRP, USDT, etc.)</li>
-      <li style="${EmailStyles.listItem}">⚡ Receive your digital products <strong>instantly</strong> — no waiting</li>
-      <li style="${EmailStyles.listItem}">🔒 Secure, encrypted storage with time-limited download links</li>
-    </ul>
-
-    <h3 style="${EmailStyles.heading2}">Getting Started</h3>
-
-    <ol style="${EmailStyles.list}">
-      <li style="${EmailStyles.listItem}">Browse our catalog</li>
-      <li style="${EmailStyles.listItem}">Add items to your cart</li>
-      <li style="${EmailStyles.listItem}">Checkout with your preferred cryptocurrency</li>
-      <li style="${EmailStyles.listItem}">Receive your keys instantly via secure email link</li>
-    </ol>
-
-    <div style="text-align: center; margin: 32px 0;">
-      <a href="${frontendUrl}" style="${EmailStyles.buttonPrimary}">
-        🛒 Start Shopping
-      </a>
-    </div>
-
-    <hr style="${EmailStyles.divider}">
-
-    <p style="${EmailStyles.smallText}">
-      <strong>Quick Tips:</strong> All payments are processed via secure blockchain transactions.
-      Keys are encrypted and never stored in plaintext. Need help? Visit our
-      <a href="${frontendUrl}/help" style="color: ${EmailColors.primary};">Help Center</a>.
-    </p>
-  `;
-
-  return {
-    subject: `Welcome to BitLoot, ${displayName}!`,
-    html: wrapEmailTemplate(content, { showUnsubscribe: true, unsubscribeEmail: params.email }),
-  };
-}
-
-// ============================================================
-// 3. ORDER CONFIRMATION EMAIL
+// 2. ORDER CONFIRMATION EMAIL
 // ============================================================
 
 export interface OrderConfirmationParams {
@@ -158,15 +89,60 @@ export interface OrderConfirmationParams {
   currency: string;
   paymentLink: string;
   email: string;
+  createdAt?: string; // ISO date string
+}
+
+/**
+ * Format price to €XX.XX format
+ */
+function formatEuroPrice(value: string | number): string {
+  const numValue = typeof value === 'string' ? parseFloat(value) : value;
+  if (isNaN(numValue)) return `€0.00`;
+  return `€${numValue.toFixed(2)}`;
+}
+
+/**
+ * Format individual item price
+ */
+function formatItemPrice(price: string, quantity: number): string {
+  const numValue = parseFloat(price);
+  if (isNaN(numValue)) return `€0.00`;
+  const total = numValue * quantity;
+  return `€${total.toFixed(2)}`;
 }
 
 export function orderConfirmationEmail(params: OrderConfirmationParams): EmailTemplate {
-  const { orderId, items, total, currency, paymentLink } = params;
+  const { orderId, items, total, paymentLink, createdAt } = params;
   const shortOrderId = orderId.substring(0, 8).toUpperCase();
   const frontendUrl = process.env.FRONTEND_URL ?? 'https://bitloot.io';
+  
+  // Format the order date
+  const dateFormatOptions: Intl.DateTimeFormatOptions = { 
+    year: 'numeric', 
+    month: 'long', 
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  };
+  const orderDate = createdAt !== undefined && createdAt !== null && createdAt.length > 0
+    ? new Date(createdAt).toLocaleDateString('en-US', dateFormatOptions)
+    : new Date().toLocaleDateString('en-US', dateFormatOptions);
 
-  const itemsList = items
-    .map(item => `<li style="${EmailStyles.listItem}">${item.name} x${item.quantity} — ${item.price}</li>`)
+  // Build items table rows
+  const itemsTableRows = items
+    .map(item => `
+      <tr>
+        <td style="padding: 12px 16px; border-bottom: 1px solid ${EmailColors.borderSubtle}; color: ${EmailColors.textPrimary}; font-size: 15px;">
+          ${item.name}
+        </td>
+        <td style="padding: 12px 16px; border-bottom: 1px solid ${EmailColors.borderSubtle}; color: ${EmailColors.textSecondary}; text-align: center; font-size: 15px;">
+          ${item.quantity}
+        </td>
+        <td style="padding: 12px 16px; border-bottom: 1px solid ${EmailColors.borderSubtle}; color: ${EmailColors.primary}; text-align: right; font-weight: 600; font-size: 15px;">
+          ${formatItemPrice(item.price, item.quantity)}
+        </td>
+      </tr>
+    `)
     .join('');
 
   const content = `
@@ -176,122 +152,312 @@ export function orderConfirmationEmail(params: OrderConfirmationParams): EmailTe
       Thank you for your order! Your BitLoot purchase is ready for payment.
     </p>
 
-    <div style="${EmailStyles.infoBox}">
-      <p style="margin: 0 0 8px 0;"><strong>Order ID:</strong> #${shortOrderId}</p>
-      <p style="margin: 0;"><strong>Total:</strong> ${total} ${currency}</p>
+    <!-- Order Summary Card -->
+    <div style="background: ${EmailColors.bgTertiary}; border: 1px solid ${EmailColors.borderAccent}; border-radius: 12px; padding: 20px; margin: 24px 0;">
+      <table style="width: 100%; border-collapse: collapse;">
+        <tr>
+          <td style="padding: 8px 0; color: ${EmailColors.textSecondary}; font-size: 14px;">Order ID</td>
+          <td style="padding: 8px 0; color: ${EmailColors.textPrimary}; text-align: right; font-weight: 600; font-size: 14px; font-family: 'SF Mono', 'Monaco', monospace;">
+            #${shortOrderId}
+          </td>
+        </tr>
+        <tr>
+          <td style="padding: 8px 0; color: ${EmailColors.textSecondary}; font-size: 14px;">Full Reference</td>
+          <td style="padding: 8px 0; color: ${EmailColors.textMuted}; text-align: right; font-size: 12px; font-family: 'SF Mono', 'Monaco', monospace; word-break: break-all;">
+            ${orderId}
+          </td>
+        </tr>
+        <tr>
+          <td style="padding: 8px 0; color: ${EmailColors.textSecondary}; font-size: 14px;">Date</td>
+          <td style="padding: 8px 0; color: ${EmailColors.textPrimary}; text-align: right; font-size: 14px;">
+            ${orderDate}
+          </td>
+        </tr>
+        <tr>
+          <td style="padding: 8px 0; color: ${EmailColors.textSecondary}; font-size: 14px;">Status</td>
+          <td style="padding: 8px 0; text-align: right;">
+            <span style="display: inline-block; background: rgba(255, 107, 0, 0.15); color: ${EmailColors.warning}; font-size: 12px; font-weight: 600; padding: 4px 12px; border-radius: 20px;">
+              ⏳ Awaiting Payment
+            </span>
+          </td>
+        </tr>
+      </table>
     </div>
 
-    <h3 style="${EmailStyles.heading2}">Order Items</h3>
-    <ul style="${EmailStyles.list}">
-      ${itemsList}
-    </ul>
+    <!-- Order Items Table -->
+    <h3 style="${EmailStyles.heading2}">🛒 Order Items</h3>
+    
+    <div style="background: ${EmailColors.bgSecondary}; border: 1px solid ${EmailColors.borderSubtle}; border-radius: 12px; overflow: hidden; margin: 16px 0;">
+      <table style="width: 100%; border-collapse: collapse;">
+        <thead>
+          <tr style="background: ${EmailColors.bgTertiary};">
+            <th style="padding: 12px 16px; text-align: left; color: ${EmailColors.textSecondary}; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">
+              Product
+            </th>
+            <th style="padding: 12px 16px; text-align: center; color: ${EmailColors.textSecondary}; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">
+              Qty
+            </th>
+            <th style="padding: 12px 16px; text-align: right; color: ${EmailColors.textSecondary}; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">
+              Price
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          ${itemsTableRows}
+        </tbody>
+        <tfoot>
+          <tr style="background: ${EmailColors.bgTertiary};">
+            <td colspan="2" style="padding: 16px; color: ${EmailColors.textPrimary}; font-size: 16px; font-weight: 600;">
+              Total
+            </td>
+            <td style="padding: 16px; text-align: right; color: ${EmailColors.primary}; font-size: 20px; font-weight: 700;">
+              ${formatEuroPrice(total)}
+            </td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
 
+    <!-- Payment CTA -->
     <div style="text-align: center; margin: 32px 0;">
       <a href="${paymentLink}" style="${EmailStyles.buttonPrimary}">
         💳 Pay Now with Crypto
       </a>
     </div>
 
+    <!-- Payment Timer Warning -->
     <div style="${EmailStyles.warningBox}">
-      <p style="margin: 0 0 8px 0; color: ${EmailColors.warning};">
-        <strong>⏰ Payment window expires in 20 minutes</strong>
-      </p>
-      <p style="margin: 0; color: ${EmailColors.textSecondary}; font-size: 14px;">
-        ⚠️ Underpayments are <strong>non-refundable</strong> due to blockchain immutability.
-        Please send the exact amount shown.
+      <p style="margin: 0; color: ${EmailColors.warning}; font-size: 15px;">
+        <strong>⏰ Payment window expires in 1 hour.</strong><br>
+        <span style="color: ${EmailColors.textSecondary}; font-size: 14px;">Please send the exact amount shown on the payment page.</span>
       </p>
     </div>
 
-    <h3 style="${EmailStyles.heading2}">What Happens Next?</h3>
-    <ol style="${EmailStyles.list}">
-      <li style="${EmailStyles.listItem}">Click the payment button above</li>
-      <li style="${EmailStyles.listItem}">Select your preferred cryptocurrency and send the exact amount</li>
-      <li style="${EmailStyles.listItem}">Wait for blockchain confirmation (typically 1-10 minutes)</li>
-      <li style="${EmailStyles.listItem}">Receive your products instantly via a secure link</li>
-    </ol>
+    <!-- Next Steps -->
+    <h3 style="${EmailStyles.heading2}">📋 What Happens Next?</h3>
+    
+    <div style="background: ${EmailColors.bgSecondary}; border: 1px solid ${EmailColors.borderSubtle}; border-radius: 12px; padding: 20px; margin: 16px 0;">
+      <table style="width: 100%; border-collapse: collapse;">
+        <tr>
+          <td style="padding: 10px 16px 10px 0; vertical-align: top; width: 32px;">
+            <span style="display: inline-block; width: 28px; height: 28px; background: linear-gradient(135deg, ${EmailColors.primary} 0%, ${EmailColors.secondary} 100%); color: #000; font-weight: 700; font-size: 14px; line-height: 28px; text-align: center; border-radius: 50%;">1</span>
+          </td>
+          <td style="padding: 10px 0; color: ${EmailColors.textSecondary}; font-size: 15px;">
+            Click the <strong style="color: ${EmailColors.textPrimary};">Pay Now</strong> button above
+          </td>
+        </tr>
+        <tr>
+          <td style="padding: 10px 16px 10px 0; vertical-align: top;">
+            <span style="display: inline-block; width: 28px; height: 28px; background: linear-gradient(135deg, ${EmailColors.primary} 0%, ${EmailColors.secondary} 100%); color: #000; font-weight: 700; font-size: 14px; line-height: 28px; text-align: center; border-radius: 50%;">2</span>
+          </td>
+          <td style="padding: 10px 0; color: ${EmailColors.textSecondary}; font-size: 15px;">
+            Select your <strong style="color: ${EmailColors.textPrimary};">preferred cryptocurrency</strong> and send the exact amount
+          </td>
+        </tr>
+        <tr>
+          <td style="padding: 10px 16px 10px 0; vertical-align: top;">
+            <span style="display: inline-block; width: 28px; height: 28px; background: linear-gradient(135deg, ${EmailColors.primary} 0%, ${EmailColors.secondary} 100%); color: #000; font-weight: 700; font-size: 14px; line-height: 28px; text-align: center; border-radius: 50%;">3</span>
+          </td>
+          <td style="padding: 10px 0; color: ${EmailColors.textSecondary}; font-size: 15px;">
+            Wait for <strong style="color: ${EmailColors.textPrimary};">blockchain confirmation</strong> (typically 1-10 minutes)
+          </td>
+        </tr>
+        <tr>
+          <td style="padding: 10px 16px 10px 0; vertical-align: top;">
+            <span style="display: inline-block; width: 28px; height: 28px; background: ${EmailColors.success}; color: #000; font-weight: 700; font-size: 14px; line-height: 28px; text-align: center; border-radius: 50%;">✓</span>
+          </td>
+          <td style="padding: 10px 0; color: ${EmailColors.textSecondary}; font-size: 15px;">
+            Receive your <strong style="color: ${EmailColors.success};">products instantly.</strong>
+          </td>
+        </tr>
+      </table>
+    </div>
 
-    <p style="${EmailStyles.paragraph}">
-      Questions? Visit our <a href="${frontendUrl}/help" style="color: ${EmailColors.primary};">Help Center</a>.
+    <hr style="${EmailStyles.divider}">
+
+    <p style="${EmailStyles.smallText}; text-align: center;">
+      Need help? Visit our <a href="${frontendUrl}/help" style="color: ${EmailColors.primary};">Help Center</a> or reply to this email.
     </p>
   `;
 
   return {
-    subject: `Order Confirmation #${shortOrderId} — BitLoot`,
+    subject: `Order #${shortOrderId} — Order Confirmation — BitLoot`,
     html: wrapEmailTemplate(content),
   };
 }
 
 // ============================================================
-// 4. KEY DELIVERY EMAIL
+// 4. PRODUCTS DELIVERY EMAIL
 // ============================================================
 
 export interface KeyDeliveryParams {
   orderId: string;
-  productName: string;
-  downloadUrl: string;
-  expiresIn: string;
+  items: Array<{ name: string; quantity: number; price: string }>;
+  total: string;
+  successPageUrl: string; // URL to the order success page
   email: string;
 }
 
 export function keyDeliveryEmail(params: KeyDeliveryParams): EmailTemplate {
-  const { orderId, productName, downloadUrl, expiresIn } = params;
+  const { orderId, items, total, successPageUrl } = params;
   const shortOrderId = orderId.substring(0, 8).toUpperCase();
   const frontendUrl = process.env.FRONTEND_URL ?? 'https://bitloot.io';
 
-  const content = `
-    <h2 style="${EmailStyles.heading2}">🎉 Your Key is Ready!</h2>
+  // Build items table rows
+  const itemsTableRows = items
+    .map(item => `
+      <tr>
+        <td style="padding: 12px 16px; border-bottom: 1px solid ${EmailColors.borderSubtle}; color: ${EmailColors.textPrimary}; font-size: 15px;">
+          ${item.name}
+        </td>
+        <td style="padding: 12px 16px; border-bottom: 1px solid ${EmailColors.borderSubtle}; color: ${EmailColors.textSecondary}; text-align: center; font-size: 15px;">
+          ${item.quantity}
+        </td>
+        <td style="padding: 12px 16px; border-bottom: 1px solid ${EmailColors.borderSubtle}; color: ${EmailColors.primary}; text-align: right; font-weight: 600; font-size: 15px;">
+          ${formatItemPrice(item.price, item.quantity)}
+        </td>
+      </tr>
+    `)
+    .join('');
 
-    <div style="${EmailStyles.successBox}">
-      <p style="margin: 0; color: ${EmailColors.success};">
-        ✅ Order <strong>#${shortOrderId}</strong> has been fulfilled successfully!
+  const content = `
+    <h2 style="${EmailStyles.heading2}">🎉 Your Purchase is Ready!</h2>
+
+    <!-- Success Banner -->
+    <div style="background: rgba(57, 255, 20, 0.1); border: 1px solid ${EmailColors.success}; border-radius: 12px; padding: 20px; margin: 24px 0; text-align: center;">
+      <p style="margin: 0; color: ${EmailColors.success}; font-size: 18px; font-weight: 600;">
+        ✅ Order Fulfilled Successfully!
       </p>
     </div>
 
     <p style="${EmailStyles.paragraph}">
-      Your purchase of <strong>${productName}</strong> is ready to download.
+      Great news! Your purchase has been processed and your products are ready to view.
     </p>
 
+    <!-- Order Details Card -->
+    <div style="background: ${EmailColors.bgTertiary}; border: 1px solid ${EmailColors.borderAccent}; border-radius: 12px; padding: 20px; margin: 24px 0;">
+      <table style="width: 100%; border-collapse: collapse;">
+        <tr>
+          <td style="padding: 8px 0; color: ${EmailColors.textSecondary}; font-size: 14px;">Order ID</td>
+          <td style="padding: 8px 0; color: ${EmailColors.textPrimary}; text-align: right; font-weight: 600; font-size: 14px; font-family: 'SF Mono', 'Monaco', monospace;">
+            #${shortOrderId}
+          </td>
+        </tr>
+        <tr>
+          <td style="padding: 8px 0; color: ${EmailColors.textSecondary}; font-size: 14px;">Full Reference</td>
+          <td style="padding: 8px 0; color: ${EmailColors.textMuted}; text-align: right; font-size: 12px; font-family: 'SF Mono', 'Monaco', monospace; word-break: break-all;">
+            ${orderId}
+          </td>
+        </tr>
+        <tr>
+          <td style="padding: 8px 0; color: ${EmailColors.textSecondary}; font-size: 14px;">Status</td>
+          <td style="padding: 8px 0; text-align: right;">
+            <span style="display: inline-block; background: rgba(57, 255, 20, 0.15); color: ${EmailColors.success}; font-size: 12px; font-weight: 600; padding: 4px 12px; border-radius: 20px;">
+              ✅ Completed
+            </span>
+          </td>
+        </tr>
+      </table>
+    </div>
+
+    <!-- Order Items Table -->
+    <h3 style="${EmailStyles.heading2}">🎮 Your Products</h3>
+    
+    <div style="background: ${EmailColors.bgSecondary}; border: 1px solid ${EmailColors.borderSubtle}; border-radius: 12px; overflow: hidden; margin: 16px 0;">
+      <table style="width: 100%; border-collapse: collapse;">
+        <thead>
+          <tr style="background: ${EmailColors.bgTertiary};">
+            <th style="padding: 12px 16px; text-align: left; color: ${EmailColors.textSecondary}; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">
+              Product
+            </th>
+            <th style="padding: 12px 16px; text-align: center; color: ${EmailColors.textSecondary}; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">
+              Qty
+            </th>
+            <th style="padding: 12px 16px; text-align: right; color: ${EmailColors.textSecondary}; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">
+              Price
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          ${itemsTableRows}
+        </tbody>
+        <tfoot>
+          <tr style="background: ${EmailColors.bgTertiary};">
+            <td colspan="2" style="padding: 16px; color: ${EmailColors.textPrimary}; font-size: 16px; font-weight: 600;">
+              Total Paid
+            </td>
+            <td style="padding: 16px; text-align: right; color: ${EmailColors.success}; font-size: 20px; font-weight: 700;">
+              ${formatEuroPrice(total)}
+            </td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+
+    <!-- View Products CTA -->
     <div style="text-align: center; margin: 32px 0;">
-      <a href="${downloadUrl}" style="${EmailStyles.buttonSuccess}">
-        🔑 Download Your Key
+      <a href="${successPageUrl}" style="${EmailStyles.buttonSuccess}">
+        🔑 View & Reveal Your Products
       </a>
     </div>
 
-    <div style="${EmailStyles.infoBox}">
-      <p style="margin: 0 0 8px 0;"><strong>Order ID:</strong> #${shortOrderId}</p>
-      <p style="margin: 0 0 8px 0;"><strong>Product:</strong> ${productName}</p>
-      <p style="margin: 0;"><strong>Status:</strong> ✅ Completed</p>
+    <!-- How to Access -->
+    <h3 style="${EmailStyles.heading2}">📋 How to Access Your Products</h3>
+    
+    <div style="background: ${EmailColors.bgSecondary}; border: 1px solid ${EmailColors.borderSubtle}; border-radius: 12px; padding: 20px; margin: 16px 0;">
+      <table style="width: 100%; border-collapse: collapse;">
+        <tr>
+          <td style="padding: 10px 16px 10px 0; vertical-align: top; width: 32px;">
+            <span style="display: inline-block; width: 28px; height: 28px; background: linear-gradient(135deg, ${EmailColors.primary} 0%, ${EmailColors.secondary} 100%); color: #000; font-weight: 700; font-size: 14px; line-height: 28px; text-align: center; border-radius: 50%;">1</span>
+          </td>
+          <td style="padding: 10px 0; color: ${EmailColors.textSecondary}; font-size: 15px;">
+            Click <strong style="color: ${EmailColors.success};">View & Reveal Your Products</strong> above
+          </td>
+        </tr>
+        <tr>
+          <td style="padding: 10px 16px 10px 0; vertical-align: top;">
+            <span style="display: inline-block; width: 28px; height: 28px; background: linear-gradient(135deg, ${EmailColors.primary} 0%, ${EmailColors.secondary} 100%); color: #000; font-weight: 700; font-size: 14px; line-height: 28px; text-align: center; border-radius: 50%;">2</span>
+          </td>
+          <td style="padding: 10px 0; color: ${EmailColors.textSecondary}; font-size: 15px;">
+            Click <strong style="color: ${EmailColors.textPrimary};">Reveal</strong> to view your product keys or codes
+          </td>
+        </tr>
+        <tr>
+          <td style="padding: 10px 16px 10px 0; vertical-align: top;">
+            <span style="display: inline-block; width: 28px; height: 28px; background: ${EmailColors.success}; color: #000; font-weight: 700; font-size: 14px; line-height: 28px; text-align: center; border-radius: 50%;">✓</span>
+          </td>
+          <td style="padding: 10px 0; color: ${EmailColors.textSecondary}; font-size: 15px;">
+            <strong style="color: ${EmailColors.success};">Activate</strong> your products using the provided instructions
+          </td>
+        </tr>
+      </table>
     </div>
 
-    <h3 style="${EmailStyles.heading2}">⚠️ Important Security Notice</h3>
-
-    <ul style="${EmailStyles.list}">
-      <li style="${EmailStyles.listItem}">🔗 Download available for <strong>${expiresIn}</strong> — after that, sign in to get a new link</li>
-      <li style="${EmailStyles.listItem}">🔒 The link is encrypted and only accessible by you</li>
-      <li style="${EmailStyles.listItem}">📝 We never email plaintext keys — always use the secure link</li>
-      <li style="${EmailStyles.listItem}">🚫 Do not share this link with others</li>
-      <li style="${EmailStyles.listItem}">💾 Save your key immediately after downloading</li>
-    </ul>
-
-    <h3 style="${EmailStyles.heading2}">Next Steps</h3>
-
-    <ol style="${EmailStyles.list}">
-      <li style="${EmailStyles.listItem}">Click the button above to download your key</li>
-      <li style="${EmailStyles.listItem}">Save the key file in a secure location</li>
-      <li style="${EmailStyles.listItem}">Activate your product using the provided instructions</li>
-    </ol>
+    <!-- Access Anytime Info -->
+    <div style="background: rgba(0, 217, 255, 0.08); border: 1px solid ${EmailColors.primary}; border-radius: 12px; padding: 16px; margin: 24px 0;">
+      <table style="width: 100%; border-collapse: collapse;">
+        <tr>
+          <td style="vertical-align: top; width: 32px; padding-right: 12px;">
+            <span style="font-size: 24px;">💡</span>
+          </td>
+          <td style="color: ${EmailColors.textSecondary}; font-size: 14px; line-height: 1.5;">
+            <strong style="color: ${EmailColors.textPrimary};">Access anytime:</strong> Your purchases are saved to your account. 
+            Visit <a href="${frontendUrl}/profile" style="color: ${EmailColors.primary}; text-decoration: none; font-weight: 500;">your profile</a> 
+            and go to the <strong style="color: ${EmailColors.textPrimary};">Purchases</strong> tab to view all your orders.
+          </td>
+        </tr>
+      </table>
+    </div>
 
     <hr style="${EmailStyles.divider}">
 
-    <p style="${EmailStyles.smallText}">
-      <strong>Link expired?</strong> <a href="${frontendUrl}/login" style="color: ${EmailColors.primary};">Sign in</a>
-      and visit your <a href="${frontendUrl}/profile?tab=purchases" style="color: ${EmailColors.primary};">order history</a>
-      to get a fresh download link.
+    <p style="color: ${EmailColors.textMuted}; font-size: 13px; text-align: center; margin: 0;">
+      Need help? Visit our <a href="${frontendUrl}/help" style="color: ${EmailColors.primary}; text-decoration: none;">Help Center</a> or reply to this email.
     </p>
   `;
 
   return {
-    subject: `Your BitLoot Key is Ready — Order #${shortOrderId}`,
+    subject: `Your BitLoot Purchase is Ready — Order #${shortOrderId}`,
     html: wrapEmailTemplate(content, { showUnsubscribe: true, unsubscribeEmail: params.email }),
   };
 }
@@ -316,37 +482,101 @@ export function underpaymentNoticeEmail(params: UnderpaymentParams): EmailTempla
   const content = `
     <h2 style="${EmailStyles.heading2}">⚠️ Payment Underpaid</h2>
 
+    <!-- Error Banner -->
     <div style="${EmailStyles.errorBox}">
-      <p style="margin: 0; color: ${EmailColors.error};">
+      <p style="margin: 0; color: ${EmailColors.error}; font-size: 16px;">
         <strong>Payment Status: FAILED — NON-REFUNDABLE</strong>
       </p>
     </div>
 
     <p style="${EmailStyles.paragraph}">
-      We received your payment for order <strong>#${shortOrderId}</strong>,
-      but the amount was insufficient.
+      We received your payment for the order below, but the amount was insufficient.
     </p>
 
-    <div style="${EmailStyles.infoBox}">
-      <p style="margin: 0 0 8px 0;"><strong>Amount Sent:</strong> ${amountSent}</p>
-      <p style="margin: 0;"><strong>Amount Required:</strong> ${amountRequired}</p>
+    <!-- Order Details Card -->
+    <div style="background: ${EmailColors.bgTertiary}; border: 1px solid ${EmailColors.borderAccent}; border-radius: 12px; padding: 20px; margin: 24px 0;">
+      <table style="width: 100%; border-collapse: collapse;">
+        <tr>
+          <td style="padding: 8px 0; color: ${EmailColors.textSecondary}; font-size: 14px;">Order ID</td>
+          <td style="padding: 8px 0; color: ${EmailColors.textPrimary}; text-align: right; font-weight: 600; font-size: 14px; font-family: 'SF Mono', 'Monaco', monospace;">
+            #${shortOrderId}
+          </td>
+        </tr>
+        <tr>
+          <td style="padding: 8px 0; color: ${EmailColors.textSecondary}; font-size: 14px;">Full Reference</td>
+          <td style="padding: 8px 0; color: ${EmailColors.textMuted}; text-align: right; font-size: 12px; font-family: 'SF Mono', 'Monaco', monospace; word-break: break-all;">
+            ${orderId}
+          </td>
+        </tr>
+        <tr>
+          <td style="padding: 8px 0; color: ${EmailColors.textSecondary}; font-size: 14px;">Status</td>
+          <td style="padding: 8px 0; text-align: right;">
+            <span style="display: inline-block; background: rgba(255, 107, 0, 0.15); color: ${EmailColors.warning}; font-size: 12px; font-weight: 600; padding: 4px 12px; border-radius: 20px;">
+              ❌ Failed
+            </span>
+          </td>
+        </tr>
+      </table>
     </div>
 
-    <h3 style="${EmailStyles.heading2}">Why Is This Non-Refundable?</h3>
+    <!-- Payment Details -->
+    <div style="background: ${EmailColors.bgSecondary}; border: 1px solid ${EmailColors.borderSubtle}; border-radius: 12px; overflow: hidden; margin: 16px 0;">
+      <table style="width: 100%; border-collapse: collapse;">
+        <tr>
+          <td style="padding: 16px; color: ${EmailColors.textSecondary}; font-size: 15px; border-bottom: 1px solid ${EmailColors.borderSubtle};">
+            Amount Sent
+          </td>
+          <td style="padding: 16px; color: ${EmailColors.warning}; text-align: right; font-weight: 600; font-size: 16px; border-bottom: 1px solid ${EmailColors.borderSubtle};">
+            ${amountSent}
+          </td>
+        </tr>
+        <tr>
+          <td style="padding: 16px; color: ${EmailColors.textSecondary}; font-size: 15px;">
+            Amount Required
+          </td>
+          <td style="padding: 16px; color: ${EmailColors.success}; text-align: right; font-weight: 600; font-size: 16px;">
+            ${amountRequired}
+          </td>
+        </tr>
+      </table>
+    </div>
+
+    <h3 style="${EmailStyles.heading2}">❓ Why Is This Non-Refundable?</h3>
 
     <p style="${EmailStyles.paragraph}">
-      Blockchain transactions are <strong>irreversible</strong>. Our payment processor
-      (NOWPayments) cannot refund underpaid amounts due to the immutable nature of
-      cryptocurrency transactions.
+      Blockchain transactions are <strong style="color: ${EmailColors.textPrimary};">irreversible</strong>. Once sent, funds cannot be returned.
     </p>
 
-    <h3 style="${EmailStyles.heading2}">What Can You Do?</h3>
-
-    <ol style="${EmailStyles.list}">
-      <li style="${EmailStyles.listItem}">Check your wallet for the transaction confirmation</li>
-      <li style="${EmailStyles.listItem}">If you need assistance, please contact our support team</li>
-      <li style="${EmailStyles.listItem}">To place a new order, please start fresh and send the <strong>exact amount</strong></li>
-    </ol>
+    <h3 style="${EmailStyles.heading2}">📋 What Can You Do?</h3>
+    
+    <div style="background: ${EmailColors.bgSecondary}; border: 1px solid ${EmailColors.borderSubtle}; border-radius: 12px; padding: 20px; margin: 16px 0;">
+      <table style="width: 100%; border-collapse: collapse;">
+        <tr>
+          <td style="padding: 10px 16px 10px 0; vertical-align: top; width: 32px;">
+            <span style="display: inline-block; width: 28px; height: 28px; background: ${EmailColors.bgTertiary}; border: 1px solid ${EmailColors.borderAccent}; color: ${EmailColors.textSecondary}; font-weight: 700; font-size: 14px; line-height: 28px; text-align: center; border-radius: 50%;">1</span>
+          </td>
+          <td style="padding: 10px 0; color: ${EmailColors.textSecondary}; font-size: 15px;">
+            Check your <strong style="color: ${EmailColors.textPrimary};">wallet</strong> for the transaction confirmation
+          </td>
+        </tr>
+        <tr>
+          <td style="padding: 10px 16px 10px 0; vertical-align: top;">
+            <span style="display: inline-block; width: 28px; height: 28px; background: ${EmailColors.bgTertiary}; border: 1px solid ${EmailColors.borderAccent}; color: ${EmailColors.textSecondary}; font-weight: 700; font-size: 14px; line-height: 28px; text-align: center; border-radius: 50%;">2</span>
+          </td>
+          <td style="padding: 10px 0; color: ${EmailColors.textSecondary}; font-size: 15px;">
+            If you need assistance, please <strong style="color: ${EmailColors.textPrimary};">contact our support team</strong>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding: 10px 16px 10px 0; vertical-align: top;">
+            <span style="display: inline-block; width: 28px; height: 28px; background: ${EmailColors.bgTertiary}; border: 1px solid ${EmailColors.borderAccent}; color: ${EmailColors.textSecondary}; font-weight: 700; font-size: 14px; line-height: 28px; text-align: center; border-radius: 50%;">3</span>
+          </td>
+          <td style="padding: 10px 0; color: ${EmailColors.textSecondary}; font-size: 15px;">
+            To place a new order, start fresh and send the <strong style="color: ${EmailColors.success};">exact amount</strong>
+          </td>
+        </tr>
+      </table>
+    </div>
 
     <div style="text-align: center; margin: 32px 0;">
       <a href="${orderStatusUrl}" style="${EmailStyles.buttonDanger}">
@@ -354,10 +584,11 @@ export function underpaymentNoticeEmail(params: UnderpaymentParams): EmailTempla
       </a>
     </div>
 
-    <p style="${EmailStyles.paragraph}">
-      We're sorry we couldn't complete this order. Visit our
-      <a href="${frontendUrl}/help" style="color: ${EmailColors.primary};">Help Center</a>
-      if you have questions.
+    <hr style="${EmailStyles.divider}">
+
+    <p style="color: ${EmailColors.textMuted}; font-size: 13px; text-align: center; margin: 0;">
+      We're sorry we couldn't complete this order. Need help?
+      <a href="${frontendUrl}/help" style="color: ${EmailColors.primary}; text-decoration: none;">Visit our Help Center</a>
     </p>
   `;
 
@@ -386,26 +617,74 @@ export function paymentFailedEmail(params: PaymentFailedParams): EmailTemplate {
   const content = `
     <h2 style="${EmailStyles.heading2}">❌ Payment Failed</h2>
 
+    <!-- Error Banner -->
     <div style="${EmailStyles.errorBox}">
-      <p style="margin: 0; color: ${EmailColors.error};">
-        Your payment for order <strong>#${shortOrderId}</strong> could not be processed.
+      <p style="margin: 0; color: ${EmailColors.error}; font-size: 16px;">
+        Your payment could not be processed.
       </p>
     </div>
 
-    <div style="${EmailStyles.infoBox}">
-      <p style="margin: 0;"><strong>Reason:</strong> ${reason ?? 'Payment processing error'}</p>
+    <!-- Order Details Card -->
+    <div style="background: ${EmailColors.bgTertiary}; border: 1px solid ${EmailColors.borderAccent}; border-radius: 12px; padding: 20px; margin: 24px 0;">
+      <table style="width: 100%; border-collapse: collapse;">
+        <tr>
+          <td style="padding: 8px 0; color: ${EmailColors.textSecondary}; font-size: 14px;">Order ID</td>
+          <td style="padding: 8px 0; color: ${EmailColors.textPrimary}; text-align: right; font-weight: 600; font-size: 14px; font-family: 'SF Mono', 'Monaco', monospace;">
+            #${shortOrderId}
+          </td>
+        </tr>
+        <tr>
+          <td style="padding: 8px 0; color: ${EmailColors.textSecondary}; font-size: 14px;">Full Reference</td>
+          <td style="padding: 8px 0; color: ${EmailColors.textMuted}; text-align: right; font-size: 12px; font-family: 'SF Mono', 'Monaco', monospace; word-break: break-all;">
+            ${orderId}
+          </td>
+        </tr>
+        <tr>
+          <td style="padding: 8px 0; color: ${EmailColors.textSecondary}; font-size: 14px;">Status</td>
+          <td style="padding: 8px 0; text-align: right;">
+            <span style="display: inline-block; background: rgba(255, 107, 0, 0.15); color: ${EmailColors.warning}; font-size: 12px; font-weight: 600; padding: 4px 12px; border-radius: 20px;">
+              ❌ Failed
+            </span>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding: 8px 0; color: ${EmailColors.textSecondary}; font-size: 14px;">Reason</td>
+          <td style="padding: 8px 0; color: ${EmailColors.textPrimary}; text-align: right; font-size: 14px;">
+            ${reason ?? 'Payment processing error'}
+          </td>
+        </tr>
+      </table>
     </div>
 
-    <h3 style="${EmailStyles.heading2}">What Happens Next?</h3>
+    <h3 style="${EmailStyles.heading2}">📋 What Happens Next?</h3>
 
-    <p style="${EmailStyles.paragraph}">
-      Your order has been cancelled and <strong>no funds have been charged</strong>. You can:
-    </p>
-
-    <ul style="${EmailStyles.list}">
-      <li style="${EmailStyles.listItem}">Place a new order and try a different cryptocurrency</li>
-      <li style="${EmailStyles.listItem}">Visit our Help Center for troubleshooting tips</li>
-    </ul>
+    <!-- Info Box -->
+    <div style="background: rgba(0, 217, 255, 0.08); border: 1px solid ${EmailColors.primary}; border-radius: 12px; padding: 16px; margin: 16px 0;">
+      <p style="margin: 0; color: ${EmailColors.textSecondary}; font-size: 15px;">
+        Your order has been cancelled and <strong style="color: ${EmailColors.success};">no funds have been charged</strong>.
+      </p>
+    </div>
+    
+    <div style="background: ${EmailColors.bgSecondary}; border: 1px solid ${EmailColors.borderSubtle}; border-radius: 12px; padding: 20px; margin: 16px 0;">
+      <table style="width: 100%; border-collapse: collapse;">
+        <tr>
+          <td style="padding: 10px 16px 10px 0; vertical-align: top; width: 32px;">
+            <span style="display: inline-block; width: 28px; height: 28px; background: linear-gradient(135deg, ${EmailColors.primary} 0%, ${EmailColors.secondary} 100%); color: #000; font-weight: 700; font-size: 14px; line-height: 28px; text-align: center; border-radius: 50%;">1</span>
+          </td>
+          <td style="padding: 10px 0; color: ${EmailColors.textSecondary}; font-size: 15px;">
+            Place a <strong style="color: ${EmailColors.textPrimary};">new order</strong> and try a different cryptocurrency
+          </td>
+        </tr>
+        <tr>
+          <td style="padding: 10px 16px 10px 0; vertical-align: top;">
+            <span style="display: inline-block; width: 28px; height: 28px; background: linear-gradient(135deg, ${EmailColors.primary} 0%, ${EmailColors.secondary} 100%); color: #000; font-weight: 700; font-size: 14px; line-height: 28px; text-align: center; border-radius: 50%;">2</span>
+          </td>
+          <td style="padding: 10px 0; color: ${EmailColors.textSecondary}; font-size: 15px;">
+            Visit our <a href="${frontendUrl}/help" style="color: ${EmailColors.primary}; text-decoration: none; font-weight: 500;">Help Center</a> for troubleshooting tips
+          </td>
+        </tr>
+      </table>
+    </div>
 
     <div style="text-align: center; margin: 32px 0;">
       <a href="${orderStatusUrl}" style="${EmailStyles.buttonDanger}">
@@ -413,10 +692,11 @@ export function paymentFailedEmail(params: PaymentFailedParams): EmailTemplate {
       </a>
     </div>
 
-    <p style="${EmailStyles.paragraph}">
-      We apologize for the inconvenience. Visit our
-      <a href="${frontendUrl}/help" style="color: ${EmailColors.primary};">Help Center</a>
-      if you need assistance.
+    <hr style="${EmailStyles.divider}">
+
+    <p style="color: ${EmailColors.textMuted}; font-size: 13px; text-align: center; margin: 0;">
+      We apologize for the inconvenience. Need help?
+      <a href="${frontendUrl}/help" style="color: ${EmailColors.primary}; text-decoration: none;">Contact Support</a>
     </p>
   `;
 
@@ -445,37 +725,100 @@ export function paymentExpiredEmail(params: PaymentExpiredParams): EmailTemplate
   const content = `
     <h2 style="${EmailStyles.heading2}">⏰ Payment Expired</h2>
 
+    <!-- Warning Banner -->
     <div style="${EmailStyles.warningBox}">
-      <p style="margin: 0; color: ${EmailColors.warning};">
-        The payment window for order <strong>#${shortOrderId}</strong> has expired.
+      <p style="margin: 0; color: ${EmailColors.warning}; font-size: 16px;">
+        The payment window has expired.
       </p>
     </div>
 
-    <div style="${EmailStyles.infoBox}">
-      <p style="margin: 0;"><strong>Reason:</strong> ${reason ?? 'Payment window timed out (20 minutes)'}</p>
+    <!-- Order Details Card -->
+    <div style="background: ${EmailColors.bgTertiary}; border: 1px solid ${EmailColors.borderAccent}; border-radius: 12px; padding: 20px; margin: 24px 0;">
+      <table style="width: 100%; border-collapse: collapse;">
+        <tr>
+          <td style="padding: 8px 0; color: ${EmailColors.textSecondary}; font-size: 14px;">Order ID</td>
+          <td style="padding: 8px 0; color: ${EmailColors.textPrimary}; text-align: right; font-weight: 600; font-size: 14px; font-family: 'SF Mono', 'Monaco', monospace;">
+            #${shortOrderId}
+          </td>
+        </tr>
+        <tr>
+          <td style="padding: 8px 0; color: ${EmailColors.textSecondary}; font-size: 14px;">Full Reference</td>
+          <td style="padding: 8px 0; color: ${EmailColors.textMuted}; text-align: right; font-size: 12px; font-family: 'SF Mono', 'Monaco', monospace; word-break: break-all;">
+            ${orderId}
+          </td>
+        </tr>
+        <tr>
+          <td style="padding: 8px 0; color: ${EmailColors.textSecondary}; font-size: 14px;">Status</td>
+          <td style="padding: 8px 0; text-align: right;">
+            <span style="display: inline-block; background: rgba(255, 107, 0, 0.15); color: ${EmailColors.warning}; font-size: 12px; font-weight: 600; padding: 4px 12px; border-radius: 20px;">
+              ⏰ Expired
+            </span>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding: 8px 0; color: ${EmailColors.textSecondary}; font-size: 14px;">Reason</td>
+          <td style="padding: 8px 0; color: ${EmailColors.textPrimary}; text-align: right; font-size: 14px;">
+            ${reason ?? 'Payment window timed out (1 hour)'}
+          </td>
+        </tr>
+      </table>
     </div>
 
-    <p style="${EmailStyles.paragraph}">
-      <strong>Don't worry!</strong> No funds have been charged. You have 20 minutes to complete payment after checkout.
-    </p>
+    <!-- Info Box -->
+    <div style="background: rgba(0, 217, 255, 0.08); border: 1px solid ${EmailColors.primary}; border-radius: 12px; padding: 16px; margin: 16px 0;">
+      <table style="width: 100%; border-collapse: collapse;">
+        <tr>
+          <td style="vertical-align: top; width: 32px; padding-right: 12px;">
+            <span style="font-size: 24px;">💡</span>
+          </td>
+          <td style="color: ${EmailColors.textSecondary}; font-size: 15px; line-height: 1.5;">
+            <strong style="color: ${EmailColors.success};">Don't worry!</strong> No funds have been charged.
+          </td>
+        </tr>
+      </table>
+    </div>
 
-    <h3 style="${EmailStyles.heading2}">What Can You Do?</h3>
-
-    <ul style="${EmailStyles.list}">
-      <li style="${EmailStyles.listItem}">Start a new order when you're ready to pay</li>
-      <li style="${EmailStyles.listItem}">Have your crypto wallet ready before checkout</li>
-      <li style="${EmailStyles.listItem}">Complete the transfer as soon as you see the payment address</li>
-    </ul>
+    <h3 style="${EmailStyles.heading2}">📋 Tips for Next Time</h3>
+    
+    <div style="background: ${EmailColors.bgSecondary}; border: 1px solid ${EmailColors.borderSubtle}; border-radius: 12px; padding: 20px; margin: 16px 0;">
+      <table style="width: 100%; border-collapse: collapse;">
+        <tr>
+          <td style="padding: 10px 16px 10px 0; vertical-align: top; width: 32px;">
+            <span style="display: inline-block; width: 28px; height: 28px; background: linear-gradient(135deg, ${EmailColors.primary} 0%, ${EmailColors.secondary} 100%); color: #000; font-weight: 700; font-size: 14px; line-height: 28px; text-align: center; border-radius: 50%;">1</span>
+          </td>
+          <td style="padding: 10px 0; color: ${EmailColors.textSecondary}; font-size: 15px;">
+            Have your <strong style="color: ${EmailColors.textPrimary};">crypto wallet ready</strong> before checkout
+          </td>
+        </tr>
+        <tr>
+          <td style="padding: 10px 16px 10px 0; vertical-align: top;">
+            <span style="display: inline-block; width: 28px; height: 28px; background: linear-gradient(135deg, ${EmailColors.primary} 0%, ${EmailColors.secondary} 100%); color: #000; font-weight: 700; font-size: 14px; line-height: 28px; text-align: center; border-radius: 50%;">2</span>
+          </td>
+          <td style="padding: 10px 0; color: ${EmailColors.textSecondary}; font-size: 15px;">
+            Complete the <strong style="color: ${EmailColors.textPrimary};">transfer promptly</strong> when you see the payment address
+          </td>
+        </tr>
+        <tr>
+          <td style="padding: 10px 16px 10px 0; vertical-align: top;">
+            <span style="display: inline-block; width: 28px; height: 28px; background: ${EmailColors.success}; color: #000; font-weight: 700; font-size: 14px; line-height: 28px; text-align: center; border-radius: 50%;">✓</span>
+          </td>
+          <td style="padding: 10px 0; color: ${EmailColors.textSecondary}; font-size: 15px;">
+            <strong style="color: ${EmailColors.success};">Ready?</strong> Start a new order when you're prepared to pay
+          </td>
+        </tr>
+      </table>
+    </div>
 
     <div style="text-align: center; margin: 32px 0;">
-      <a href="${retryUrl}" style="${EmailStyles.buttonSecondary}">
+      <a href="${retryUrl}" style="${EmailStyles.buttonPrimary}">
         🛒 Shop Again
       </a>
     </div>
 
-    <p style="${EmailStyles.paragraph}">
-      Need help? Visit our
-      <a href="${frontendUrl}/help" style="color: ${EmailColors.primary};">Help Center</a>.
+    <hr style="${EmailStyles.divider}">
+
+    <p style="color: ${EmailColors.textMuted}; font-size: 13px; text-align: center; margin: 0;">
+      Need help? Visit our <a href="${frontendUrl}/help" style="color: ${EmailColors.primary}; text-decoration: none;">Help Center</a>
     </p>
   `;
 
@@ -496,14 +839,18 @@ export interface EmailChangedOldParams {
 
 export function emailChangedOldEmail(params: EmailChangedOldParams): EmailTemplate {
   const { newEmail } = params;
-  const _frontendUrl = process.env.FRONTEND_URL ?? 'https://bitloot.io';
+  const frontendUrl = process.env.FRONTEND_URL ?? 'https://bitloot.io';
 
   const content = `
     <h2 style="${EmailStyles.heading2}">📧 Email Changed Successfully</h2>
 
-    <div style="${EmailStyles.infoBox}">
-      <p style="margin: 0;">
-        Your BitLoot account email has been changed to: <strong>${newEmail}</strong>
+    <!-- Info Box with explicit colors -->
+    <div style="background: rgba(0, 217, 255, 0.08); border: 1px solid ${EmailColors.primary}; border-radius: 12px; padding: 16px; margin: 16px 0;">
+      <p style="margin: 0; color: ${EmailColors.textSecondary}; font-size: 15px;">
+        Your BitLoot account email has been changed to:
+      </p>
+      <p style="margin: 8px 0 0 0; color: ${EmailColors.primary}; font-size: 16px; font-weight: 600;">
+        ${newEmail}
       </p>
     </div>
 
@@ -511,17 +858,15 @@ export function emailChangedOldEmail(params: EmailChangedOldParams): EmailTempla
       This email address will no longer be associated with your BitLoot account.
     </p>
 
+    <!-- Warning Box -->
     <div style="${EmailStyles.warningBox}">
-      <p style="margin: 0; color: ${EmailColors.warning};">
-        <strong>Didn't make this change?</strong><br>
-        Contact support immediately at
-        <a href="mailto:support@bitloot.io" style="color: ${EmailColors.primary};">support@bitloot.io</a>
+      <p style="margin: 0; color: ${EmailColors.warning}; font-size: 15px;">
+        <strong>⚠️ Didn't make this change?</strong>
+      </p>
+      <p style="margin: 8px 0 0 0; color: ${EmailColors.textSecondary}; font-size: 14px;">
+        <a href="${frontendUrl}/help" style="color: ${EmailColors.primary}; text-decoration: none; font-weight: 500;">Contact support immediately</a> to secure your account.
       </p>
     </div>
-
-    <p style="${EmailStyles.paragraph}">
-      This is a security notification — no action is needed if you initiated this change.
-    </p>
   `;
 
   return {
@@ -715,7 +1060,6 @@ export function genericEmail(params: GenericEmailParams): EmailTemplate {
 
 export const EmailTemplates = {
   otpVerification: otpVerificationEmail,
-  welcome: welcomeEmail,
   orderConfirmation: orderConfirmationEmail,
   keyDelivery: keyDeliveryEmail,
   underpaymentNotice: underpaymentNoticeEmail,

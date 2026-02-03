@@ -40,7 +40,7 @@ export function LivePurchaseFeed(): React.ReactElement {
                 newPurchases.unshift({
                     id: Date.now().toString(),
                     initial: String.fromCharCode(65 + getRandomInt(26)),
-                    product: GAME_NAMES[getRandomInt(GAME_NAMES.length)] ?? 'Game Key',
+                    product: GAME_NAMES[getRandomInt(GAME_NAMES.length)] ?? 'Digital Product',
                     timeAgo: 'Just now',
                     isNew: true,
                 });
@@ -232,13 +232,13 @@ export function TrustSection(): React.ReactElement {
                 <TrustBadge
                     icon={Zap}
                     title="Instant Delivery"
-                    description="Keys delivered in under 30 seconds"
+                    description="Products delivered in under 30 seconds"
                     accentColor="cyan"
                 />
                 <TrustBadge
                     icon={CheckCircle}
-                    title="Verified Keys"
-                    description="100% authentic from official sources"
+                    title="100% Authentic"
+                    description="Verified from official sources"
                     accentColor="green"
                 />
             </CardContent>

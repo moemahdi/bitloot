@@ -194,8 +194,8 @@ function OrderStatusCard({
           bgClass: 'from-cyan-glow/20 to-cyan-glow/10',
           borderClass: 'border-cyan-glow/30',
           title: 'Payment Confirmed!',
-          subtitle: 'Preparing your keys for delivery',
-          message: 'Your order is being processed. Keys will be delivered shortly.',
+          subtitle: 'Preparing your products for delivery',
+          message: 'Your order is being processed. Your products will be ready shortly.',
         };
       case 'failed':
         return {

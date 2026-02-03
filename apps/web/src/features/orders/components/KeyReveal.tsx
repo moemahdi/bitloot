@@ -145,7 +145,7 @@ export function KeyReveal({
                 Login Required
               </CardTitle>
               <CardDescription className={variant === 'compact' ? 'text-xs' : undefined}>
-                Sign in to access your product keys
+                Sign in to access your products
               </CardDescription>
             </div>
           </div>
@@ -155,14 +155,14 @@ export function KeyReveal({
             <div className="flex items-center gap-3 text-amber-400">
               <Lock className="h-4 w-4 shrink-0" />
               <span className="text-sm">
-                Your keys are secure. Login with the email you used for this order to reveal them.
+                Your products are secure. Login with the email you used for this order to access them.
               </span>
             </div>
           </div>
           <Button asChild className="w-full bg-amber-400 text-black hover:bg-amber-500">
             <Link href={loginUrl}>
               <LogIn className="mr-2 h-4 w-4" />
-              Login to Access Keys
+              Login to Access Products
             </Link>
           </Button>
         </CardContent>
@@ -206,7 +206,7 @@ export function KeyReveal({
               <span className="text-sm">
                 {isGuestOrder 
                   ? 'This order was placed as a guest. If you used a different email, try logging in with that email address.'
-                  : 'You do not have permission to view the keys for this order.'}
+                  : 'You do not have permission to access this order.'}
               </span>
             </div>
           </div>
@@ -232,7 +232,7 @@ export function KeyReveal({
             </div>
             <div>
               <CardTitle className={variant === 'compact' ? 'text-base' : 'text-lg'}>
-                Preparing Your Keys
+                Preparing Your Products
               </CardTitle>
               <CardDescription className={variant === 'compact' ? 'text-xs' : undefined}>
                 This usually takes just a few moments
@@ -245,7 +245,7 @@ export function KeyReveal({
             <div className="flex items-center gap-3">
               <div className="h-2 w-2 rounded-full bg-[hsl(var(--orange-warning))] animate-pulse" />
               <span className="text-sm text-muted-foreground">
-                Fetching your product keys from the supplier...
+                Preparing your digital products...
               </span>
             </div>
           </div>
@@ -282,10 +282,10 @@ export function KeyReveal({
           </div>
           <div>
             <CardTitle className={variant === 'compact' ? 'text-base' : 'text-lg'}>
-              Your Digital Keys
+              Your Digital Products
             </CardTitle>
             <CardDescription className={variant === 'compact' ? 'text-xs' : undefined}>
-              Click to reveal and copy your product keys
+              Click to reveal your product codes
             </CardDescription>
           </div>
         </div>
@@ -324,7 +324,7 @@ export function KeyReveal({
                       "font-medium",
                       variant === 'compact' ? 'text-xs' : 'text-sm'
                     )}>
-                      {item.productTitle ?? 'Product Key'}
+                      {item.productTitle ?? 'Digital Product'}
                     </p>
                     <p className={cn(
                       "text-muted-foreground",
@@ -358,12 +358,12 @@ export function KeyReveal({
                   {isRevealing ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Revealing Key...
+                      Revealing...
                     </>
                   ) : (
                     <>
                       <Eye className="mr-2 h-4 w-4" />
-                      Reveal Key
+                      Reveal Product
                     </>
                   )}
                 </Button>
@@ -379,7 +379,7 @@ export function KeyReveal({
                         {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img 
                           src={`data:${revealedKey.contentType};base64,${revealedKey.plainKey}`}
-                          alt="Product Key"
+                          alt="Product Code"
                           className="max-w-full"
                         />
                       </div>

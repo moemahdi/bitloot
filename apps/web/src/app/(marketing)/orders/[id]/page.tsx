@@ -968,11 +968,11 @@ export default function OrderStatusPage(): React.ReactElement {
                       className="h-14 px-8 text-base font-bold bg-amber-500 text-bg-primary hover:shadow-[0_0_15px_rgba(245,158,11,0.4)] transition-all"
                     >
                       <LogIn className="h-5 w-5 mr-2" />
-                      Login to Access Keys
+                      Login to Access Products
                     </Button>
                   </Link>
                   <p className="text-xs text-text-muted text-center max-w-xs">
-                    Sign in to verify ownership and reveal your product keys
+                    Sign in to verify ownership and access your products
                   </p>
                 </motion.div>
               )}
@@ -987,7 +987,7 @@ export default function OrderStatusPage(): React.ReactElement {
                     </span>
                   </div>
                   <p className="text-xs text-text-muted text-center max-w-xs">
-                    {orderAccess.message ?? 'You do not have permission to access these keys.'}
+                    {orderAccess.message ?? 'You do not have permission to access this order.'}
                   </p>
                 </div>
               )}
@@ -1047,7 +1047,7 @@ export default function OrderStatusPage(): React.ReactElement {
           {/* Underpaid - Contact Support */}
           {orderStatus === 'underpaid' && (
             <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-              <Link href="/support">
+              <Link href="/help">
                 <Button className="h-14 px-8 text-base font-bold bg-orange-warning text-bg-primary hover:shadow-glow-error transition-all">
                   <AlertCircle className="h-5 w-5 mr-2" />
                   Contact Support
@@ -1059,7 +1059,7 @@ export default function OrderStatusPage(): React.ReactElement {
           {/* Always show support link (except underpaid) */}
           {orderStatus !== 'underpaid' && (
             <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-              <Link href="/support">
+              <Link href="/help">
                 <Button 
                   variant="outline" 
                   className="h-14 px-8 text-base border-border-subtle hover:border-cyan-glow/50 hover:shadow-glow-cyan-sm transition-all"

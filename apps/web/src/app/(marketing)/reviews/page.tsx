@@ -619,7 +619,7 @@ export default function AllReviewsPage() {
                 </div>
                 <h3 className="text-2xl font-bold mb-2 text-text-primary">Your Opinion Matters</h3>
                 <p className="text-text-secondary max-w-md mx-auto">
-                  Already a BitLoot customer? After receiving your digital keys, you can leave a review to help fellow gamers discover the best deals. Every verified review builds our trusted community.
+                  Already a BitLoot customer? After receiving your products, you can leave a review to help fellow gamers discover the best deals. Every verified review builds our trusted community.
                 </p>
               </CardContent>
             </Card>

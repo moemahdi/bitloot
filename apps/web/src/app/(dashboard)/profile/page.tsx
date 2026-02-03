@@ -1553,7 +1553,7 @@ export default function ProfilePage(): React.ReactElement {
             <h1 className="font-display text-3xl font-bold text-text-primary text-glow-cyan">
               Welcome back, <span className="text-gradient-primary">{user.email.split('@')[0]}</span>
             </h1>
-            <p className="text-text-secondary">Manage your profile, security, and digital keys all in one place.</p>
+            <p className="text-text-secondary">Manage your profile, security, and purchases all in one place.</p>
           </div>
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2 rounded-full border border-green-success/30 bg-green-success/10 px-4 py-1.5 backdrop-blur-sm">
@@ -2451,9 +2451,9 @@ export default function ProfilePage(): React.ReactElement {
                                         <Key className="h-5 w-5 text-cyan-glow" />
                                       </div>
                                       <div>
-                                        <p className="font-medium text-text-primary">Keys Ready to Retrieve</p>
-                                        <p className="text-sm text-cyan-glow">Your payment was confirmed. Click the button to fetch your keys.</p>
-                                        <p className="text-xs text-text-muted mt-1">If retrieval fails, keys may still be processing or there may be a temporary issue.</p>
+                                        <p className="font-medium text-text-primary">Products Ready to Retrieve</p>
+                                        <p className="text-sm text-cyan-glow">Your payment was confirmed. Click the button to retrieve your products.</p>
+                                        <p className="text-xs text-text-muted mt-1">If retrieval fails, products may still be processing or there may be a temporary issue.</p>
                                       </div>
                                     </div>
                                     <Button
@@ -2465,7 +2465,7 @@ export default function ProfilePage(): React.ReactElement {
                                       {recoveringOrder === order.id ? (
                                         <><Loader2 className="h-4 w-4 mr-1 animate-spin" />Retrieving...</>
                                       ) : (
-                                        <><Key className="h-4 w-4 mr-1" />Retrieve Keys Now</>
+                                        <><Key className="h-4 w-4 mr-1" />Retrieve Products</>
                                       )}
                                     </Button>
                                   </div>
@@ -3062,7 +3062,7 @@ export default function ProfilePage(): React.ReactElement {
                       <ul className="text-sm text-text-muted space-y-1 ml-4">
                         <li>• Your account and profile</li>
                         <li>• All purchase history</li>
-                        <li>• Downloaded product keys</li>
+                        <li>• Purchased product codes</li>
                         <li>• Watchlist and preferences</li>
                       </ul>
                     </div>

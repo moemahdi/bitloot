@@ -120,7 +120,7 @@ export default function OrderSuccessPage(): React.ReactElement {
                 Go Back
               </Button>
               <Button asChild>
-                <Link href="/support">Get Help</Link>
+                <Link href="/help">Get Help</Link>
               </Button>
             </CardContent>
           </Card>
@@ -208,7 +208,7 @@ export default function OrderSuccessPage(): React.ReactElement {
                   <div className="flex gap-2">
                     <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
                       <Button variant="outline" size="sm" asChild className="bg-background hover:shadow-glow-cyan transition-shadow">
-                        <Link href="/support">
+                        <Link href="/help">
                           <HelpCircle className="mr-2 h-4 w-4" />
                           Contact Support
                         </Link>
@@ -236,7 +236,7 @@ export default function OrderSuccessPage(): React.ReactElement {
                     <div>
                       <AlertTitle className="text-orange-warning">Preparing Your Order</AlertTitle>
                       <AlertDescription className="text-orange-warning/70">
-                        Your payment is confirmed! We&apos;re now preparing your digital keys. This usually takes less than a minute.
+                        Your payment is confirmed! We&apos;re now preparing your digital products. This usually takes less than a minute.
                       </AlertDescription>
                     </div>
                   </div>
@@ -262,9 +262,9 @@ export default function OrderSuccessPage(): React.ReactElement {
               {orderAccess.canAccess && (
               <Alert className="border-cyan-glow/20 bg-cyan-glow/5">
                 <ShieldCheck className="h-4 w-4 text-cyan-glow" />
-                <AlertTitle className="text-cyan-glow">Keep Your Keys Secure</AlertTitle>
+                <AlertTitle className="text-cyan-glow">Keep Your Products Secure</AlertTitle>
                 <AlertDescription className="text-cyan-glow/70">
-                  Save your keys in a secure location. Don&apos;t share them with anyone. 
+                  Save your product codes in a secure location. Don&apos;t share them with anyone. 
                   You can always access them from your order history.
                 </AlertDescription>
               </Alert>
@@ -349,7 +349,7 @@ export default function OrderSuccessPage(): React.ReactElement {
                       <div className="mt-0.5 h-5 w-5 rounded-full bg-cyan-glow/10 border border-cyan-glow/30 flex items-center justify-center shrink-0">
                         <span className="text-xs font-bold text-cyan-glow">1</span>
                       </div>
-                      <span className="text-text-muted">Reveal your product keys above</span>
+                      <span className="text-text-muted">Reveal your product codes above</span>
                     </motion.li>
                     <motion.li 
                       className="flex items-start gap-3 text-sm"

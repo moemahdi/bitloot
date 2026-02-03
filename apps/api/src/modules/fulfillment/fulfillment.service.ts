@@ -57,6 +57,35 @@ export class FulfillmentService {
   ) { }
 
   /**
+   * Build items array for order completion email
+   * Fetches product titles from the catalog and maps to email format
+   */
+  private async buildEmailItems(order: Order): Promise<{ items: Array<{ name: string; quantity: number; price: string }>; total: string }> {
+    const items = order.items ?? [];
+    const productIds = items.map((item) => item.productId);
+    
+    // Fetch product titles in batch
+    const products = await this.productRepo
+      .createQueryBuilder('p')
+      .select(['p.id', 'p.title'])
+      .where('p.id IN (:...ids)', { ids: productIds.length > 0 ? productIds : [''] })
+      .getMany();
+    
+    const productMap = new Map(products.map((p) => [p.id, p.title]));
+    
+    const emailItems = items.map((item) => ({
+      name: productMap.get(item.productId) ?? 'Digital Product',
+      quantity: item.quantity ?? 1,
+      price: item.unitPrice ?? '0.00',
+    }));
+    
+    return {
+      items: emailItems,
+      total: order.totalCrypto ?? '0.00',
+    };
+  }
+
+  /**
    * DISPATCHER: Route fulfillment based on order sourceType
    *
    * This is the main entry point for fulfillment. It checks the order's
@@ -481,15 +510,13 @@ export class FulfillmentService {
 
       const primary = results[0];
       if (primary !== undefined && typeof order.email === 'string' && order.email.length > 0) {
-        const productName = 'Your Digital Product';
-        // Link to order success page where customer can view and download keys
-        const frontendUrl = process.env.FRONTEND_URL ?? 'http://localhost:3000';
-        const successUrl = `${frontendUrl}/orders/${order.id}/success`;
+        // Build items array with real product titles and prices
+        const { items, total } = await this.buildEmailItems(order);
+        
         await this.emailsService.sendOrderCompleted(order.email, {
           orderId: order.id,
-          productName,
-          downloadUrl: successUrl,
-          expiresIn: '24 hours',
+          items,
+          total,
         });
         
         // Mark email as sent AFTER successful send (idempotency)
@@ -710,14 +737,13 @@ export class FulfillmentService {
 
     try {
       if (order.email !== undefined && order.email !== '') {
-        // Link to order success page where customer can view and download keys
-        const frontendUrl = process.env.FRONTEND_URL ?? 'http://localhost:3000';
-        const successUrl = `${frontendUrl}/orders/${order.id}/success`;
+        // Build items array with real product titles and prices
+        const { items, total } = await this.buildEmailItems(order);
+        
         await this.emailsService.sendOrderCompleted(order.email, {
           orderId: order.id,
-          productName: 'Your Digital Product',
-          downloadUrl: successUrl,
-          expiresIn: '24 hours',
+          items,
+          total,
         });
       }
     } catch (e) {
@@ -889,12 +915,13 @@ export class FulfillmentService {
           relations: ['items'],
         });
         if (freshOrder !== null && freshOrder !== undefined) {
-          const firstSignedUrl = freshOrder.items.find(i => i.signedUrl !== null && i.signedUrl.length > 0)?.signedUrl ?? '';
+          // Build items array with real product titles and prices
+          const { items, total } = await this.buildEmailItems(freshOrder);
+          
           await this.emailsService.sendOrderCompleted(freshOrder.email, {
             orderId,
-            productName: freshOrder.items.map(i => i.productId).join(', '),
-            downloadUrl: firstSignedUrl,
-            expiresIn: '3 hours',
+            items,
+            total,
           });
           this.logger.log(`[RECOVERY] Delivery email sent for order ${orderId}`);
         }
