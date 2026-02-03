@@ -251,7 +251,7 @@ export default function AdminLayout({ children }: { children: ReactNode }): Reac
       <div className="sticky top-0 z-50 border-b border-border-subtle glass-strong shadow-card-md">
         <div className="mx-auto max-w-[1920px] px-4 lg:px-6">
           <nav
-            className="flex gap-1 overflow-x-auto py-2 scrollbar-thin scrollbar-thumb-cyan-glow/30 scrollbar-track-transparent hover:scrollbar-thumb-cyan-glow/50"
+            className="flex justify-center gap-1 overflow-x-auto py-2 scrollbar-thin scrollbar-thumb-cyan-glow/30 scrollbar-track-transparent hover:scrollbar-thumb-cyan-glow/50"
             role="navigation"
             aria-label="Admin navigation"
           >
