@@ -178,6 +178,9 @@ export class AuthController {
         ipAddress,
       });
 
+      // Update last login timestamp
+      await this.userService.updateLastLogin(user.id);
+
       this.logger.log(`✅ Session created for user ${user.id} (session: ${session.id})`);
 
       return {

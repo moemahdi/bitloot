@@ -33,6 +33,7 @@ import {
   Timer,
   Gift,
   Ticket,
+  Users,
 } from 'lucide-react';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
@@ -50,7 +51,9 @@ const ADMIN_NAV = {
   // Always visible - most frequently accessed
   primary: [
     { href: '/admin', label: 'Dashboard', icon: LayoutDashboard },
+    { href: '/admin/users', label: 'Users', icon: Users },
     { href: '/admin/orders', label: 'Orders', icon: Package },
+
   ],
   // Financial operations grouped together
   finance: {

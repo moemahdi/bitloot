@@ -18,12 +18,15 @@ import type {
   AdminOpsControllerCreateFeatureFlag201Response,
   AdminOpsControllerGetBalance200Response,
   AdminOpsControllerGetBalanceDetails200Response,
+  AdminOpsControllerGetCacheStats200Response,
   AdminOpsControllerGetFailedJobs200Response,
   AdminOpsControllerGetFeatureFlag200Response,
   AdminOpsControllerGetFeatureFlags200ResponseInner,
   AdminOpsControllerGetQueueDetails200Response,
   AdminOpsControllerGetQueueStats200ResponseValue,
   AdminOpsControllerGetSystemHealth200Response,
+  AdminOpsControllerInvalidateAllCache200Response,
+  AdminOpsControllerInvalidateFeaturedCache200Response,
   AdminOpsControllerTriggerUserDeletionCleanup200Response,
 } from '../models/index';
 import {
@@ -33,6 +36,8 @@ import {
     AdminOpsControllerGetBalance200ResponseToJSON,
     AdminOpsControllerGetBalanceDetails200ResponseFromJSON,
     AdminOpsControllerGetBalanceDetails200ResponseToJSON,
+    AdminOpsControllerGetCacheStats200ResponseFromJSON,
+    AdminOpsControllerGetCacheStats200ResponseToJSON,
     AdminOpsControllerGetFailedJobs200ResponseFromJSON,
     AdminOpsControllerGetFailedJobs200ResponseToJSON,
     AdminOpsControllerGetFeatureFlag200ResponseFromJSON,
@@ -45,6 +50,10 @@ import {
     AdminOpsControllerGetQueueStats200ResponseValueToJSON,
     AdminOpsControllerGetSystemHealth200ResponseFromJSON,
     AdminOpsControllerGetSystemHealth200ResponseToJSON,
+    AdminOpsControllerInvalidateAllCache200ResponseFromJSON,
+    AdminOpsControllerInvalidateAllCache200ResponseToJSON,
+    AdminOpsControllerInvalidateFeaturedCache200ResponseFromJSON,
+    AdminOpsControllerInvalidateFeaturedCache200ResponseToJSON,
     AdminOpsControllerTriggerUserDeletionCleanup200ResponseFromJSON,
     AdminOpsControllerTriggerUserDeletionCleanup200ResponseToJSON,
 } from '../models/index';
@@ -233,6 +242,43 @@ export class AdminOperationsApi extends runtime.BaseAPI {
      */
     async adminOpsControllerGetBalanceDetails(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<AdminOpsControllerGetBalanceDetails200Response> {
         const response = await this.adminOpsControllerGetBalanceDetailsRaw(initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Get catalog cache statistics
+     */
+    async adminOpsControllerGetCacheStatsRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<AdminOpsControllerGetCacheStats200Response>> {
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("JWT-auth", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/admin/ops/cache/stats`;
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => AdminOpsControllerGetCacheStats200ResponseFromJSON(jsonValue));
+    }
+
+    /**
+     * Get catalog cache statistics
+     */
+    async adminOpsControllerGetCacheStats(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<AdminOpsControllerGetCacheStats200Response> {
+        const response = await this.adminOpsControllerGetCacheStatsRaw(initOverrides);
         return await response.value();
     }
 
@@ -487,6 +533,117 @@ export class AdminOperationsApi extends runtime.BaseAPI {
      */
     async adminOpsControllerGetSystemHealth(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<AdminOpsControllerGetSystemHealth200Response> {
         const response = await this.adminOpsControllerGetSystemHealthRaw(initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Invalidate all catalog caches
+     */
+    async adminOpsControllerInvalidateAllCacheRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<AdminOpsControllerInvalidateAllCache200Response>> {
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("JWT-auth", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/admin/ops/cache`;
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'DELETE',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => AdminOpsControllerInvalidateAllCache200ResponseFromJSON(jsonValue));
+    }
+
+    /**
+     * Invalidate all catalog caches
+     */
+    async adminOpsControllerInvalidateAllCache(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<AdminOpsControllerInvalidateAllCache200Response> {
+        const response = await this.adminOpsControllerInvalidateAllCacheRaw(initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Invalidate categories and filters cache
+     */
+    async adminOpsControllerInvalidateCategoriesCacheRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<AdminOpsControllerInvalidateFeaturedCache200Response>> {
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("JWT-auth", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/admin/ops/cache/categories`;
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'DELETE',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => AdminOpsControllerInvalidateFeaturedCache200ResponseFromJSON(jsonValue));
+    }
+
+    /**
+     * Invalidate categories and filters cache
+     */
+    async adminOpsControllerInvalidateCategoriesCache(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<AdminOpsControllerInvalidateFeaturedCache200Response> {
+        const response = await this.adminOpsControllerInvalidateCategoriesCacheRaw(initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Invalidate featured products cache
+     */
+    async adminOpsControllerInvalidateFeaturedCacheRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<AdminOpsControllerInvalidateFeaturedCache200Response>> {
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("JWT-auth", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/admin/ops/cache/featured`;
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'DELETE',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => AdminOpsControllerInvalidateFeaturedCache200ResponseFromJSON(jsonValue));
+    }
+
+    /**
+     * Invalidate featured products cache
+     */
+    async adminOpsControllerInvalidateFeaturedCache(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<AdminOpsControllerInvalidateFeaturedCache200Response> {
+        const response = await this.adminOpsControllerInvalidateFeaturedCacheRaw(initOverrides);
         return await response.value();
     }
 

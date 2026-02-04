@@ -14,7 +14,7 @@ export * from './AdminOperationsApi';
 export * from './AdminProductGroupsApi';
 export * from './AdminPromosApi';
 export * from './AdminReviewsApi';
-export * from './AdminSystemConfigurationApi';
+export * from './AdminUsersApi';
 export * from './AuditLogsApi';
 export * from './AuthenticationApi';
 export * from './CatalogApi';

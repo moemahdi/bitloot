@@ -44,6 +44,9 @@ _⚠️ MANDATORY: Always use sdk-first for all frontend-backend interactions._
 **Backend & SDK Development:** 
 - **[sdk.md](../docs/sdk.md)** — SDK design rationale, structure, and integration guide. Covers why SDK-first is essential for security and how to use typed clients instead of direct third-party API calls.
 
+**Production Launch & Deployment:**
+- LAUNCH_PREPARATION_GUIDE.md: `docs/Pre-Launch/LAUNCH_PREPARATION_GUIDE.md` — Comprehensive 8-phase production launch checklist covering database cleanup, production API setup (NOWPayments, Kinguin, Resend), product catalog strategy, frontend polish, admin dashboard review, security audit, pre-launch testing, and deployment. Reference when preparing for production deployment.
+
 
 ## Development Workflow — Vertical Slices & Level-Based Architecture
 
@@ -137,6 +140,7 @@ _Detailed level documentation available in `docs/developer-workflow/`_
 | Admin Orders Enhancement | ✅ | `/admin/orders` with bulk ops |
 | Webhook Logs Dashboard | ✅ | `/admin/webhooks` |
 | Payment/Fulfillment Fixes | ✅ | 8 critical fixes for race conditions |
+| Admin Users Management | ✅ | `admin-users.service.ts`, `/admin/users` |
 
 ---
 
@@ -352,7 +356,33 @@ if (item.productSourceType === 'kinguin') {
 
 ---
 
-## 13. Order System Reference
+## 13. Admin Users Management
+
+**Purpose:** Complete user administration dashboard for managing registered users.
+
+**Location:** `/admin/users` and `/admin/users/[id]`
+
+**Documentation:** See [UsersManagment.md](../docs/developer-workflow/Users/UsersManagment.md) for full implementation details.
+
+**Features:**
+- Paginated user list with search by email, filter by role/status, sort by date/orders/spending
+- User detail view with profile info, order history, spending stats, activity timeline
+- User actions: Edit, soft-delete, restore, promote/demote role, suspend/unsuspend
+- Session management: View sessions, force logout, revoke individual sessions
+- Activity logs: User-specific audit trail filtered from existing audit_logs
+- Tabs: Orders, Sessions, Activity, Reviews, Watchlist, Promos
+
+**Key Files:**
+- `admin-users.controller.ts` — 17 admin endpoints
+- `admin-users.service.ts` — Business logic
+- `/admin/users/page.tsx` — Users list page
+- `/admin/users/[id]/page.tsx` — User detail page
+
+**Note:** No "Create User" or "Reset Password" features — BitLoot uses passwordless OTP-only authentication.
+
+---
+
+## 14. Order System Reference
 
 **Guest Checkout Flow:**
 1. Create order → Get `orderSessionToken` (JWT, 1hr)

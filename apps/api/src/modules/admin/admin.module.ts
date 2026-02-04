@@ -4,6 +4,8 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { AdminController } from './admin.controller';
 import { AdminService } from './admin.service';
 import { AdminOpsModule } from './admin-ops.module';
+import { AdminUsersController } from './admin-users.controller';
+import { AdminUsersService } from './admin-users.service';
 // AdminOpsController is provided by AdminOpsModule (no direct import needed)
 import { Order } from '../orders/order.entity';
 import { Payment } from '../payments/payment.entity';
@@ -11,6 +13,11 @@ import { WebhookLog } from '../../database/entities/webhook-log.entity';
 import { Key } from '../orders/key.entity';
 import { User } from '../../database/entities/user.entity';
 import { Product } from '../catalog/entities/product.entity';
+import { Session } from '../../database/entities/session.entity';
+import { Review } from '../../database/entities/review.entity';
+import { WatchlistItem } from '../../database/entities/watchlist-item.entity';
+import { PromoRedemption } from '../promos/entities/promoredemption.entity';
+import { AuditLog } from '../../database/entities/audit-log.entity';
 import { EmailsModule } from '../emails/emails.module';
 import { StorageService } from '../storage/storage.service';
 import { FulfillmentModule } from '../fulfillment/fulfillment.module';
@@ -26,13 +33,26 @@ import { AuditLogInterceptor } from '../../common/interceptors/audit-log.interce
  * - Webhook log viewer with replay capability
  * - Order status and fulfillment tracking
  * - Feature flags, queue stats, balance monitoring (Phase 3)
+ * - User management (list, detail, suspend, delete, etc.)
  * - Admin-only operations
  *
  * All endpoints require JWT authentication + admin role
  */
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Order, Payment, WebhookLog, Key, User, Product]),
+    TypeOrmModule.forFeature([
+      Order,
+      Payment,
+      WebhookLog,
+      Key,
+      User,
+      Product,
+      Session,
+      Review,
+      WatchlistItem,
+      PromoRedemption,
+      AuditLog,
+    ]),
     AdminOpsModule,
     EmailsModule,
     FulfillmentModule, // Provides R2StorageClient and FulfillmentService
@@ -40,6 +60,7 @@ import { AuditLogInterceptor } from '../../common/interceptors/audit-log.interce
   ],
   providers: [
     AdminService,
+    AdminUsersService,
     StorageService,
     // Apply AuditLogInterceptor to all admin endpoints
     {
@@ -47,7 +68,7 @@ import { AuditLogInterceptor } from '../../common/interceptors/audit-log.interce
       useClass: AuditLogInterceptor,
     },
   ],
-  controllers: [AdminController],
-  exports: [AdminService],
+  controllers: [AdminController, AdminUsersController],
+  exports: [AdminService, AdminUsersService],
 })
 export class AdminModule { }

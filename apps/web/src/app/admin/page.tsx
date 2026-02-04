@@ -1083,6 +1083,7 @@ export default function AdminDashboardPage(): React.ReactElement | null {
           subtitle="Registered accounts"
           icon={Users}
           color="purple"
+          href="/admin/users"
           loading={isStatsLoading}
         />
         <StatCard
@@ -1492,6 +1493,7 @@ export default function AdminDashboardPage(): React.ReactElement | null {
         <CardContent>
           <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
             {[
+              { title: 'Users', icon: Users, href: '/admin/users', color: 'purple' as const },
               { title: 'Orders', icon: ShoppingCart, href: '/admin/orders', color: 'cyan' as const },
               { title: 'Payments', icon: CreditCard, href: '/admin/payments', color: 'green' as const },
               { title: 'Reservations', icon: ClipboardList, href: '/admin/reservations', color: 'purple' as const },

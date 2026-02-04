@@ -1,6 +1,6 @@
 import { Injectable, Logger, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Between } from 'typeorm';
+import { Repository, Between, IsNull } from 'typeorm';
 import { Order, type OrderStatus } from '../orders/order.entity';
 import { Payment } from '../payments/payment.entity';
 import { WebhookLog } from '../../database/entities/webhook-log.entity';
@@ -105,12 +105,10 @@ export class AdminService {
     }
     const totalOrders = await ordersQuery.getCount();
 
-    // 3. Total Users (for time range - users created in range)
-    const usersQuery = this.usersRepo.createQueryBuilder('u');
-    if (startDate !== null) {
-      usersQuery.where('u.createdAt >= :startDate', { startDate });
-    }
-    const totalUsers = await usersQuery.getCount();
+    // 3. Total Users (always all users, not filtered by time range)
+    const totalUsers = await this.usersRepo.count({
+      where: { deletedAt: IsNull() },
+    });
 
     // 4. Active Orders (waiting/confirming/paid) - always current state
     const activeOrders = await this.ordersRepo.count({

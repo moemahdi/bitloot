@@ -107,6 +107,16 @@ export class UserService {
   }
 
   /**
+   * Update user's lastLoginAt timestamp
+   * Called after successful OTP verification
+   * @param userId User ID
+   */
+  async updateLastLogin(userId: string): Promise<void> {
+    await this.userRepo.update(userId, { lastLoginAt: new Date() });
+    this.logger.log(`🕐 Last login updated for user ${userId}`);
+  }
+
+  /**
    * Convert user entity to response DTO (excludes sensitive fields)
    * @param user User entity
    * @returns UserResponseDto (safe for API response)

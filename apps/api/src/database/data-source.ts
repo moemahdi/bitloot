@@ -63,6 +63,7 @@ import { RemoveSystemConfigs1769400000000 } from './migrations/1769400000000-Rem
 import { AddBusinessCategory1770000000000 } from './migrations/1770000000000-AddBusinessCategory';
 import { NormalizePlatformNames1780000000000 } from './migrations/1780000000000-NormalizePlatformNames';
 import { AddCostRangeToPricingRules1780100000000 } from './migrations/1780100000000-AddCostRangeToPricingRules';
+import { AddUserSuspendFields1780200000000 } from './migrations/1780200000000-AddUserSuspendFields';
 
 dotenv.config({ path: path.resolve(__dirname, '../../../../.env') });
 
@@ -110,6 +111,7 @@ export default new DataSource({
     AddBusinessCategory1770000000000,
     NormalizePlatformNames1780000000000,
     AddCostRangeToPricingRules1780100000000,
+    AddUserSuspendFields1780200000000,
   ],
   logging: true,
   synchronize: false,

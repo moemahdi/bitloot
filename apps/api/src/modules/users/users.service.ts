@@ -51,6 +51,14 @@ export class UsersService {
     await this.repo.save(user);
   }
 
+  /**
+   * Update user's lastLoginAt timestamp
+   * Called after successful OTP verification
+   */
+  async updateLastLogin(userId: string): Promise<void> {
+    await this.repo.update(userId, { lastLoginAt: new Date() });
+  }
+
   private async findByIdOrThrow(id: string): Promise<User> {
     const user = await this.findById(id);
     if (user === null) throw new NotFoundException('User not found');

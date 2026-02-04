@@ -8,12 +8,16 @@ All URIs are relative to *http://localhost*
 | [**adminOpsControllerCreateFeatureFlag**](AdminOperationsApi.md#adminopscontrollercreatefeatureflag) | **POST** /admin/ops/feature-flags | Create new feature flag |
 | [**adminOpsControllerGetBalance**](AdminOperationsApi.md#adminopscontrollergetbalance) | **GET** /admin/ops/balance | Get current balance and account status |
 | [**adminOpsControllerGetBalanceDetails**](AdminOperationsApi.md#adminopscontrollergetbalancedetails) | **GET** /admin/ops/balance/details | Get detailed balance by currency |
+| [**adminOpsControllerGetCacheStats**](AdminOperationsApi.md#adminopscontrollergetcachestats) | **GET** /admin/ops/cache/stats | Get catalog cache statistics |
 | [**adminOpsControllerGetFailedJobs**](AdminOperationsApi.md#adminopscontrollergetfailedjobs) | **GET** /admin/ops/queues/{name}/failed | Get failed jobs with error details |
 | [**adminOpsControllerGetFeatureFlag**](AdminOperationsApi.md#adminopscontrollergetfeatureflag) | **GET** /admin/ops/feature-flags/{name} | Get single feature flag |
 | [**adminOpsControllerGetFeatureFlags**](AdminOperationsApi.md#adminopscontrollergetfeatureflags) | **GET** /admin/ops/feature-flags | Get all feature flags |
 | [**adminOpsControllerGetQueueDetails**](AdminOperationsApi.md#adminopscontrollergetqueuedetails) | **GET** /admin/ops/queues/{name}/details | Get detailed queue information |
 | [**adminOpsControllerGetQueueStats**](AdminOperationsApi.md#adminopscontrollergetqueuestats) | **GET** /admin/ops/queues/stats | Get BullMQ queue statistics |
 | [**adminOpsControllerGetSystemHealth**](AdminOperationsApi.md#adminopscontrollergetsystemhealth) | **GET** /admin/ops/health | Get system health status |
+| [**adminOpsControllerInvalidateAllCache**](AdminOperationsApi.md#adminopscontrollerinvalidateallcache) | **DELETE** /admin/ops/cache | Invalidate all catalog caches |
+| [**adminOpsControllerInvalidateCategoriesCache**](AdminOperationsApi.md#adminopscontrollerinvalidatecategoriescache) | **DELETE** /admin/ops/cache/categories | Invalidate categories and filters cache |
+| [**adminOpsControllerInvalidateFeaturedCache**](AdminOperationsApi.md#adminopscontrollerinvalidatefeaturedcache) | **DELETE** /admin/ops/cache/featured | Invalidate featured products cache |
 | [**adminOpsControllerRetryFailedJob**](AdminOperationsApi.md#adminopscontrollerretryfailedjob) | **POST** /admin/ops/queues/{name}/failed/{jobId}/retry | Retry a specific failed job |
 | [**adminOpsControllerTriggerUserDeletionCleanup**](AdminOperationsApi.md#adminopscontrollertriggeruserdeletioncleanup) | **POST** /admin/ops/user-deletion-cleanup | Manually trigger user deletion cleanup (30-day grace period expired) |
 | [**adminOpsControllerUpdateFeatureFlag**](AdminOperationsApi.md#adminopscontrollerupdatefeatureflag) | **PATCH** /admin/ops/feature-flags/{name} | Update feature flag |
@@ -268,6 +272,67 @@ This endpoint does not need any parameter.
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
 | **200** | Detailed balance information |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## adminOpsControllerGetCacheStats
+
+> AdminOpsControllerGetCacheStats200Response adminOpsControllerGetCacheStats()
+
+Get catalog cache statistics
+
+### Example
+
+```ts
+import {
+  Configuration,
+  AdminOperationsApi,
+} from '';
+import type { AdminOpsControllerGetCacheStatsRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const config = new Configuration({ 
+    // Configure HTTP bearer authorization: JWT-auth
+    accessToken: "YOUR BEARER TOKEN",
+  });
+  const api = new AdminOperationsApi(config);
+
+  try {
+    const data = await api.adminOpsControllerGetCacheStats();
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+This endpoint does not need any parameter.
+
+### Return type
+
+[**AdminOpsControllerGetCacheStats200Response**](AdminOpsControllerGetCacheStats200Response.md)
+
+### Authorization
+
+[JWT-auth](../README.md#JWT-auth)
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Cache statistics |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
@@ -664,6 +729,189 @@ This endpoint does not need any parameter.
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
 | **200** | System health check results |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## adminOpsControllerInvalidateAllCache
+
+> AdminOpsControllerInvalidateAllCache200Response adminOpsControllerInvalidateAllCache()
+
+Invalidate all catalog caches
+
+### Example
+
+```ts
+import {
+  Configuration,
+  AdminOperationsApi,
+} from '';
+import type { AdminOpsControllerInvalidateAllCacheRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const config = new Configuration({ 
+    // Configure HTTP bearer authorization: JWT-auth
+    accessToken: "YOUR BEARER TOKEN",
+  });
+  const api = new AdminOperationsApi(config);
+
+  try {
+    const data = await api.adminOpsControllerInvalidateAllCache();
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+This endpoint does not need any parameter.
+
+### Return type
+
+[**AdminOpsControllerInvalidateAllCache200Response**](AdminOpsControllerInvalidateAllCache200Response.md)
+
+### Authorization
+
+[JWT-auth](../README.md#JWT-auth)
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Cache invalidation result |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## adminOpsControllerInvalidateCategoriesCache
+
+> AdminOpsControllerInvalidateFeaturedCache200Response adminOpsControllerInvalidateCategoriesCache()
+
+Invalidate categories and filters cache
+
+### Example
+
+```ts
+import {
+  Configuration,
+  AdminOperationsApi,
+} from '';
+import type { AdminOpsControllerInvalidateCategoriesCacheRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const config = new Configuration({ 
+    // Configure HTTP bearer authorization: JWT-auth
+    accessToken: "YOUR BEARER TOKEN",
+  });
+  const api = new AdminOperationsApi(config);
+
+  try {
+    const data = await api.adminOpsControllerInvalidateCategoriesCache();
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+This endpoint does not need any parameter.
+
+### Return type
+
+[**AdminOpsControllerInvalidateFeaturedCache200Response**](AdminOpsControllerInvalidateFeaturedCache200Response.md)
+
+### Authorization
+
+[JWT-auth](../README.md#JWT-auth)
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Cache invalidation result |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## adminOpsControllerInvalidateFeaturedCache
+
+> AdminOpsControllerInvalidateFeaturedCache200Response adminOpsControllerInvalidateFeaturedCache()
+
+Invalidate featured products cache
+
+### Example
+
+```ts
+import {
+  Configuration,
+  AdminOperationsApi,
+} from '';
+import type { AdminOpsControllerInvalidateFeaturedCacheRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const config = new Configuration({ 
+    // Configure HTTP bearer authorization: JWT-auth
+    accessToken: "YOUR BEARER TOKEN",
+  });
+  const api = new AdminOperationsApi(config);
+
+  try {
+    const data = await api.adminOpsControllerInvalidateFeaturedCache();
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+This endpoint does not need any parameter.
+
+### Return type
+
+[**AdminOpsControllerInvalidateFeaturedCache200Response**](AdminOpsControllerInvalidateFeaturedCache200Response.md)
+
+### Authorization
+
+[JWT-auth](../README.md#JWT-auth)
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Cache invalidation result |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 

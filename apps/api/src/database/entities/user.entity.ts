@@ -57,6 +57,32 @@ export class User {
   @Column({ type: 'timestamptz', nullable: true })
   deletionRequestedAt?: Date | null;
 
+  /**
+   * Whether this user account is suspended/locked
+   * Suspended users cannot login until unsuspended by an admin
+   */
+  @Column({ type: 'boolean', default: false })
+  isSuspended!: boolean;
+
+  /**
+   * Timestamp when the user was suspended
+   */
+  @Column({ type: 'timestamptz', nullable: true })
+  suspendedAt?: Date | null;
+
+  /**
+   * Admin-provided reason for suspension
+   */
+  @Column({ type: 'varchar', length: 500, nullable: true })
+  suspendedReason?: string | null;
+
+  /**
+   * Timestamp of user's last login
+   * Updated on successful authentication
+   */
+  @Column({ type: 'timestamptz', nullable: true })
+  lastLoginAt?: Date | null;
+
   @CreateDateColumn()
   createdAt!: Date;
 
