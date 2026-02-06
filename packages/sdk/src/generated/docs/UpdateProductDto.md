@@ -7,6 +7,7 @@
 Name | Type
 ------------ | -------------
 `sourceType` | string
+`deliveryType` | string
 `kinguinOfferId` | string
 `title` | string
 `subtitle` | string
@@ -32,6 +33,7 @@ import type { UpdateProductDto } from ''
 // TODO: Update the object below with actual values
 const example = {
   "sourceType": custom,
+  "deliveryType": key,
   "kinguinOfferId": 5c9b5e6b-89f6-4b3d-8f4e-abcdef123456,
   "title": null,
   "subtitle": null,

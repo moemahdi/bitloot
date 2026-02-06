@@ -7,6 +7,7 @@ import { usePathname } from 'next/navigation';
 import {
   Copy,
   Eye,
+  EyeOff,
   Loader2,
   Check,
   Image as ImageIcon,
@@ -16,9 +17,18 @@ import {
   Lock,
   LogIn,
   AlertCircle,
+  User,
+  KeyRound,
+  CreditCard,
+  FileText,
+  Layers,
+  Settings2,
+  ExternalLink,
+  Info,
+  Gift,
 } from 'lucide-react';
 import { FulfillmentApi } from '@bitloot/sdk';
-import type { RevealedKeyDto } from '@bitloot/sdk';
+import type { RevealedKeyDto, DeliveryContentDto, DeliveryContentItemDto } from '@bitloot/sdk';
 import {
   Card,
   CardContent,
@@ -28,12 +38,46 @@ import {
 } from '@/design-system/primitives/card';
 import { Button } from '@/design-system/primitives/button';
 import { Badge } from '@/design-system/primitives/badge';
+import {
+  Alert,
+  AlertDescription,
+} from '@/design-system/primitives/alert';
 import { toast } from 'sonner';
 import { apiConfig } from '@/lib/api-config';
 import { cn } from '@/design-system/utils/utils';
 
 // Initialize SDK client
 const fulfillmentClient = new FulfillmentApi(apiConfig);
+
+// Icons for different delivery types
+const deliveryTypeIcons: Record<string, React.ElementType> = {
+  key: KeyRound,
+  account: User,
+  code: CreditCard,
+  license: FileText,
+  bundle: Layers,
+  custom: Settings2,
+};
+
+// Labels for delivery types
+const deliveryTypeLabels: Record<string, string> = {
+  key: 'Activation Key',
+  account: 'Account Credentials',
+  code: 'Gift Card / Code',
+  license: 'Software License',
+  bundle: 'Product Bundle',
+  custom: 'Digital Product',
+};
+
+// Icons for content item types
+const contentItemIcons: Record<string, React.ElementType> = {
+  key: KeyRound,
+  credential: User,
+  code: CreditCard,
+  license: FileText,
+  info: Info,
+  custom: Gift,
+};
 
 export interface OrderItem {
   id: string;
@@ -295,7 +339,7 @@ export function KeyReveal({
           const itemId = item.id;
           const revealedKey = revealedKeys[itemId];
           const isRevealing = revealingItemId === itemId;
-          const isImage = revealedKey?.contentType?.startsWith('image/');
+          const _isImage = revealedKey?.contentType?.startsWith('image/');
           
           return (
             <div 
@@ -368,59 +412,290 @@ export function KeyReveal({
                   )}
                 </Button>
               ) : (
-                <div className="space-y-3">
-                  {isImage === true ? (
-                    <div className="space-y-3">
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <ImageIcon className="h-4 w-4" />
-                        <span>Image Code ({revealedKey.contentType})</span>
-                      </div>
-                      <div className="relative rounded-lg overflow-hidden border bg-muted/30">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img 
-                          src={`data:${revealedKey.contentType};base64,${revealedKey.plainKey}`}
-                          alt="Product Code"
-                          className="max-w-full"
-                        />
-                      </div>
-                      <Button variant="outline" size="sm" className="w-full">
-                        <Download className="mr-2 h-4 w-4" />
-                        Download Image
-                      </Button>
-                    </div>
-                  ) : (
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between rounded-lg bg-muted/50 p-1">
-                        <code className={cn(
-                          "flex-1 px-3 py-2 font-mono break-all select-all",
-                          variant === 'compact' ? 'text-xs' : 'text-sm'
-                        )}>
-                          {revealedKey.plainKey}
-                        </code>
-                        <Button
-                          variant={copiedKey === revealedKey.plainKey ? "default" : "ghost"}
-                          size="icon"
-                          onClick={() => copyToClipboard(revealedKey.plainKey)}
-                          className={cn(
-                            "shrink-0 transition-all",
-                            copiedKey === revealedKey.plainKey && "bg-[hsl(var(--green-success))] hover:bg-[hsl(var(--green-success))]/80"
-                          )}
-                        >
-                          {copiedKey === revealedKey.plainKey ? (
-                            <Check className="h-4 w-4 text-white" />
-                          ) : (
-                            <Copy className="h-4 w-4" />
-                          )}
-                        </Button>
-                      </div>
-                    </div>
-                  )}
-                </div>
+                <RevealedContent
+                  revealedKey={revealedKey}
+                  variant={variant}
+                  copiedKey={copiedKey}
+                  onCopy={copyToClipboard}
+                />
               )}
             </div>
           );
         })}
       </CardContent>
     </Card>
+  );
+}
+
+// ============================================
+// REVEALED CONTENT COMPONENT
+// ============================================
+
+interface RevealedContentProps {
+  revealedKey: RevealedKeyDto;
+  variant: 'default' | 'compact';
+  copiedKey: string | null;
+  onCopy: (text: string) => void;
+}
+
+function RevealedContent({ revealedKey, variant, copiedKey, onCopy }: RevealedContentProps): React.ReactElement {
+  const [hiddenFields, setHiddenFields] = useState<Set<string>>(new Set());
+  const isImage = revealedKey.contentType?.startsWith('image/');
+  const deliveryContent = revealedKey.deliveryContent;
+
+  const toggleFieldVisibility = (fieldId: string): void => {
+    setHiddenFields(prev => {
+      const next = new Set(prev);
+      if (next.has(fieldId)) {
+        next.delete(fieldId);
+      } else {
+        next.add(fieldId);
+      }
+      return next;
+    });
+  };
+
+  // If we have structured delivery content, render it
+  if (deliveryContent !== null && deliveryContent !== undefined) {
+    return (
+      <StructuredDeliveryContent
+        content={deliveryContent}
+        variant={variant}
+        copiedKey={copiedKey}
+        hiddenFields={hiddenFields}
+        onCopy={onCopy}
+        onToggleVisibility={toggleFieldVisibility}
+      />
+    );
+  }
+
+  // Legacy: Image content
+  if (isImage === true) {
+    return (
+      <div className="space-y-3">
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <ImageIcon className="h-4 w-4" />
+          <span>Image Code ({revealedKey.contentType})</span>
+        </div>
+        <div className="relative rounded-lg overflow-hidden border bg-muted/30">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img 
+            src={`data:${revealedKey.contentType};base64,${revealedKey.plainKey}`}
+            alt="Product Code"
+            className="max-w-full"
+          />
+        </div>
+        <Button variant="outline" size="sm" className="w-full">
+          <Download className="mr-2 h-4 w-4" />
+          Download Image
+        </Button>
+      </div>
+    );
+  }
+
+  // Legacy: Plain text key
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between rounded-lg bg-muted/50 p-1">
+        <code className={cn(
+          "flex-1 px-3 py-2 font-mono break-all select-all",
+          variant === 'compact' ? 'text-xs' : 'text-sm'
+        )}>
+          {revealedKey.plainKey}
+        </code>
+        <Button
+          variant={copiedKey === revealedKey.plainKey ? "default" : "ghost"}
+          size="icon"
+          onClick={() => onCopy(revealedKey.plainKey)}
+          className={cn(
+            "shrink-0 transition-all",
+            copiedKey === revealedKey.plainKey && "bg-[hsl(var(--green-success))] hover:bg-[hsl(var(--green-success))]/80"
+          )}
+        >
+          {copiedKey === revealedKey.plainKey ? (
+            <Check className="h-4 w-4 text-white" />
+          ) : (
+            <Copy className="h-4 w-4" />
+          )}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+// ============================================
+// STRUCTURED DELIVERY CONTENT COMPONENT
+// ============================================
+
+interface StructuredDeliveryContentProps {
+  content: DeliveryContentDto;
+  variant: 'default' | 'compact';
+  copiedKey: string | null;
+  hiddenFields: Set<string>;
+  onCopy: (text: string) => void;
+  onToggleVisibility: (fieldId: string) => void;
+}
+
+function StructuredDeliveryContent({ 
+  content, 
+  variant, 
+  copiedKey, 
+  hiddenFields,
+  onCopy,
+  onToggleVisibility,
+}: StructuredDeliveryContentProps): React.ReactElement {
+  const DeliveryIcon = deliveryTypeIcons[content.deliveryType] ?? Package;
+  const deliveryLabel = deliveryTypeLabels[content.deliveryType] ?? 'Digital Product';
+
+  return (
+    <div className="space-y-4">
+      {/* Delivery Type Header */}
+      <div className="flex items-center gap-2 text-sm">
+        <DeliveryIcon className="h-4 w-4 text-primary" />
+        <span className="font-medium">{deliveryLabel}</span>
+        {content.faceValue !== null && content.faceValue !== undefined && (
+          <Badge variant="secondary" className="ml-auto">
+            {content.currency ?? 'EUR'} {content.faceValue}
+          </Badge>
+        )}
+      </div>
+
+      {/* Delivery Instructions */}
+      {content.deliveryInstructions !== null && content.deliveryInstructions !== undefined && content.deliveryInstructions.length > 0 && (
+        <Alert className="border-primary/20 bg-primary/5">
+          <Info className="h-4 w-4" />
+          <AlertDescription className="text-sm">
+            {content.deliveryInstructions}
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {/* Content Items */}
+      <div className="space-y-3">
+        {content.items.map((item, index) => (
+          <DeliveryContentItemRow
+            key={`${item.type}-${index}`}
+            item={item}
+            index={index}
+            variant={variant}
+            copiedKey={copiedKey}
+            isHidden={hiddenFields.has(`${item.type}-${index}`)}
+            onCopy={onCopy}
+            onToggleVisibility={() => onToggleVisibility(`${item.type}-${index}`)}
+          />
+        ))}
+      </div>
+
+      {/* Activation URL */}
+      {content.activationUrl !== null && content.activationUrl !== undefined && content.activationUrl.length > 0 && (
+        <Button variant="outline" size="sm" className="w-full" asChild>
+          <a href={content.activationUrl} target="_blank" rel="noopener noreferrer">
+            <ExternalLink className="mr-2 h-4 w-4" />
+            Activate Product
+          </a>
+        </Button>
+      )}
+
+      {/* Notes */}
+      {content.notes !== null && content.notes !== undefined && content.notes.length > 0 && (
+        <div className="rounded-lg bg-muted/30 p-3 text-xs text-muted-foreground">
+          <span className="font-medium">Note:</span> {content.notes}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ============================================
+// DELIVERY CONTENT ITEM ROW
+// ============================================
+
+interface DeliveryContentItemRowProps {
+  item: DeliveryContentItemDto;
+  index: number;
+  variant: 'default' | 'compact';
+  copiedKey: string | null;
+  isHidden: boolean;
+  onCopy: (text: string) => void;
+  onToggleVisibility: () => void;
+}
+
+function DeliveryContentItemRow({
+  item,
+  variant,
+  copiedKey,
+  isHidden,
+  onCopy,
+  onToggleVisibility,
+}: DeliveryContentItemRowProps): React.ReactElement {
+  const ItemIcon = contentItemIcons[item.type] ?? Info;
+  const isSensitive = item.sensitive === true;
+  const displayValue = isSensitive && isHidden ? '••••••••••••' : item.value;
+  const isCopied = copiedKey === item.value;
+
+  return (
+    <div className="rounded-lg border bg-card p-3 space-y-2">
+      {/* Label Row */}
+      <div className="flex items-center gap-2">
+        <ItemIcon className="h-3.5 w-3.5 text-muted-foreground" />
+        <span className={cn(
+          "font-medium text-muted-foreground",
+          variant === 'compact' ? 'text-xs' : 'text-sm'
+        )}>
+          {item.label}
+        </span>
+        {isSensitive && (
+          <Badge variant="outline" className="ml-auto text-[10px] py-0">
+            Sensitive
+          </Badge>
+        )}
+      </div>
+
+      {/* Value Row */}
+      <div className="flex items-center gap-2 rounded-lg bg-muted/50 p-1">
+        <code className={cn(
+          "flex-1 px-2 py-1.5 font-mono break-all",
+          variant === 'compact' ? 'text-xs' : 'text-sm',
+          isSensitive && isHidden && 'tracking-widest'
+        )}>
+          {displayValue}
+        </code>
+        
+        {/* Visibility Toggle for Sensitive Fields */}
+        {isSensitive && (
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onToggleVisibility}
+            className="shrink-0 h-8 w-8"
+            title={isHidden ? 'Show' : 'Hide'}
+          >
+            {isHidden ? (
+              <Eye className="h-4 w-4" />
+            ) : (
+              <EyeOff className="h-4 w-4" />
+            )}
+          </Button>
+        )}
+        
+        {/* Copy Button */}
+        <Button
+          variant={isCopied ? "default" : "ghost"}
+          size="icon"
+          onClick={() => onCopy(item.value)}
+          className={cn(
+            "shrink-0 h-8 w-8 transition-all",
+            isCopied && "bg-[hsl(var(--green-success))] hover:bg-[hsl(var(--green-success))]/80"
+          )}
+          title="Copy to clipboard"
+        >
+          {isCopied ? (
+            <Check className="h-4 w-4 text-white" />
+          ) : (
+            <Copy className="h-4 w-4" />
+          )}
+        </Button>
+      </div>
+    </div>
   );
 }

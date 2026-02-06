@@ -5,7 +5,6 @@ All URIs are relative to *http://localhost*
 | Method | HTTP request | Description |
 |------------- | ------------- | -------------|
 | [**adminUsersControllerChangeRole**](AdminUsersApi.md#adminuserscontrollerchangerole) | **PATCH** /admin/users/{id}/role | Change user role |
-| [**adminUsersControllerCreateUser**](AdminUsersApi.md#adminuserscontrollercreateuser) | **POST** /admin/users | Create a new user |
 | [**adminUsersControllerDeleteUser**](AdminUsersApi.md#adminuserscontrollerdeleteuser) | **DELETE** /admin/users/{id} | Soft delete a user |
 | [**adminUsersControllerExportUsers**](AdminUsersApi.md#adminuserscontrollerexportusers) | **GET** /admin/users/export | Export users as CSV |
 | [**adminUsersControllerForceLogout**](AdminUsersApi.md#adminuserscontrollerforcelogout) | **POST** /admin/users/{id}/force-logout | Force logout user from all sessions |
@@ -19,7 +18,6 @@ All URIs are relative to *http://localhost*
 | [**adminUsersControllerGetUserWatchlist**](AdminUsersApi.md#adminuserscontrollergetuserwatchlist) | **GET** /admin/users/{id}/watchlist | Get user watchlist |
 | [**adminUsersControllerHardDeleteUser**](AdminUsersApi.md#adminuserscontrollerharddeleteuser) | **DELETE** /admin/users/{id}/permanent | Permanently delete a user (GDPR) |
 | [**adminUsersControllerListUsers**](AdminUsersApi.md#adminuserscontrollerlistusers) | **GET** /admin/users | List all users with filtering and pagination |
-| [**adminUsersControllerResetPassword**](AdminUsersApi.md#adminuserscontrollerresetpassword) | **POST** /admin/users/{id}/reset-password | Initiate password reset for user |
 | [**adminUsersControllerRestoreUser**](AdminUsersApi.md#adminuserscontrollerrestoreuser) | **POST** /admin/users/{id}/restore | Restore a soft-deleted user |
 | [**adminUsersControllerRevokeSession**](AdminUsersApi.md#adminuserscontrollerrevokesession) | **DELETE** /admin/users/{id}/sessions/{sessionId} | Revoke a specific user session |
 | [**adminUsersControllerSuspendUser**](AdminUsersApi.md#adminuserscontrollersuspenduser) | **POST** /admin/users/{id}/suspend | Suspend a user |
@@ -97,76 +95,6 @@ example().catch(console.error);
 |-------------|-------------|------------------|
 | **200** |  |  -  |
 | **404** | User not found |  -  |
-
-[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
-
-
-## adminUsersControllerCreateUser
-
-> AdminUsersControllerCreateUser201Response adminUsersControllerCreateUser(createAdminUserDto)
-
-Create a new user
-
-### Example
-
-```ts
-import {
-  Configuration,
-  AdminUsersApi,
-} from '';
-import type { AdminUsersControllerCreateUserRequest } from '';
-
-async function example() {
-  console.log("🚀 Testing  SDK...");
-  const config = new Configuration({ 
-    // Configure HTTP bearer authorization: JWT-auth
-    accessToken: "YOUR BEARER TOKEN",
-  });
-  const api = new AdminUsersApi(config);
-
-  const body = {
-    // CreateAdminUserDto
-    createAdminUserDto: ...,
-  } satisfies AdminUsersControllerCreateUserRequest;
-
-  try {
-    const data = await api.adminUsersControllerCreateUser(body);
-    console.log(data);
-  } catch (error) {
-    console.error(error);
-  }
-}
-
-// Run the test
-example().catch(console.error);
-```
-
-### Parameters
-
-
-| Name | Type | Description  | Notes |
-|------------- | ------------- | ------------- | -------------|
-| **createAdminUserDto** | [CreateAdminUserDto](CreateAdminUserDto.md) |  | |
-
-### Return type
-
-[**AdminUsersControllerCreateUser201Response**](AdminUsersControllerCreateUser201Response.md)
-
-### Authorization
-
-[JWT-auth](../README.md#JWT-auth)
-
-### HTTP request headers
-
-- **Content-Type**: `application/json`
-- **Accept**: `application/json`
-
-
-### HTTP response details
-| Status code | Description | Response headers |
-|-------------|-------------|------------------|
-| **201** | User created |  -  |
-| **409** | Email already registered |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
@@ -1126,76 +1054,6 @@ example().catch(console.error);
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
 | **200** |  |  -  |
-
-[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
-
-
-## adminUsersControllerResetPassword
-
-> AdminUsersControllerDeleteUser200Response adminUsersControllerResetPassword(id)
-
-Initiate password reset for user
-
-### Example
-
-```ts
-import {
-  Configuration,
-  AdminUsersApi,
-} from '';
-import type { AdminUsersControllerResetPasswordRequest } from '';
-
-async function example() {
-  console.log("🚀 Testing  SDK...");
-  const config = new Configuration({ 
-    // Configure HTTP bearer authorization: JWT-auth
-    accessToken: "YOUR BEARER TOKEN",
-  });
-  const api = new AdminUsersApi(config);
-
-  const body = {
-    // string
-    id: 38400000-8cf0-11bd-b23e-10b96e4ef00d,
-  } satisfies AdminUsersControllerResetPasswordRequest;
-
-  try {
-    const data = await api.adminUsersControllerResetPassword(body);
-    console.log(data);
-  } catch (error) {
-    console.error(error);
-  }
-}
-
-// Run the test
-example().catch(console.error);
-```
-
-### Parameters
-
-
-| Name | Type | Description  | Notes |
-|------------- | ------------- | ------------- | -------------|
-| **id** | `string` |  | [Defaults to `undefined`] |
-
-### Return type
-
-[**AdminUsersControllerDeleteUser200Response**](AdminUsersControllerDeleteUser200Response.md)
-
-### Authorization
-
-[JWT-auth](../README.md#JWT-auth)
-
-### HTTP request headers
-
-- **Content-Type**: Not defined
-- **Accept**: `application/json`
-
-
-### HTTP response details
-| Status code | Description | Response headers |
-|-------------|-------------|------------------|
-| **200** |  |  -  |
-| **404** | User not found |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 

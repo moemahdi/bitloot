@@ -1,4 +1,4 @@
-import { Injectable, Logger, BadRequestException, ForbiddenException } from '@nestjs/common';
+import { Injectable, Logger, BadRequestException, ForbiddenException, Inject, forwardRef } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { InjectQueue } from '@nestjs/bullmq';
@@ -14,6 +14,11 @@ import { Key } from '../orders/key.entity';
 import { OrdersService, invalidateOrderCache } from '../orders/orders.service';
 import { Product, type ProductSourceType } from '../catalog/entities/product.entity';
 import { AdminOpsService } from '../admin/admin-ops.service';
+import { AdminInventoryService } from '../catalog/services/admin-inventory.service';
+import {
+  ProductDeliveryType,
+  DeliveryContent,
+} from '../catalog/types/product-delivery.types';
 
 /**
  * Fulfillment orchestration service
@@ -54,6 +59,8 @@ export class FulfillmentService {
     private readonly emailsService: EmailsService,
     private readonly ordersService: OrdersService,
     private readonly adminOpsService: AdminOpsService,
+    @Inject(forwardRef(() => AdminInventoryService))
+    private readonly inventoryService: AdminInventoryService,
   ) { }
 
   /**
@@ -198,28 +205,119 @@ export class FulfillmentService {
 
   /**
    * Fulfill a single CUSTOM order item
-   * Key should already exist in R2 (uploaded by admin)
+   * 
+   * NEW INVENTORY SYSTEM:
+   * 1. Reserve item from product_inventory table (FIFO)
+   * 2. Get decrypted item data
+   * 3. Build delivery content based on delivery type
+   * 4. Upload delivery content to R2
+   * 5. Generate signed URL
+   * 6. Mark item as sold
+   * 
+   * LEGACY FALLBACK (if no inventory items):
+   * Falls back to checking for key.json in R2 (old system)
    */
   private async fulfillCustomItem(orderId: string, item: OrderItem): Promise<ItemFulfillmentResult> {
-    // For custom products, the key is already in R2
-    // Just generate a signed URL for download
-    const storageRef = `products/${item.productId}/key.json`;
+    this.logger.debug(`[FULFILLMENT:CUSTOM] Processing item: ${item.id} for order: ${orderId}`);
 
-    // Check if key exists in R2
-    const keyExists = await this.r2StorageClient.exists(storageRef);
+    // Get product to check delivery type
+    const product = await this.productRepo.findOne({ where: { id: item.productId } });
+    if (product === null) {
+      throw new BadRequestException(`Product ${item.productId} not found`);
+    }
+
+    // Try NEW inventory system first
+    const inventoryItem = await this.inventoryService.reserveItem(item.productId, orderId);
+
+    if (inventoryItem !== null) {
+      // NEW INVENTORY SYSTEM: Item reserved from inventory
+      this.logger.debug(`[FULFILLMENT:CUSTOM:INVENTORY] Reserved item ${inventoryItem.id} for order ${orderId}`);
+
+      try {
+        // Get decrypted item data
+        const { data: itemData } = await this.inventoryService.getItemDataForDelivery(inventoryItem.id);
+
+        // Build delivery content based on type
+        const deliveryContent = this.buildDeliveryContent(itemData, product);
+
+        // Upload delivery content to R2 (unique path per order item)
+        const storageRef = `orders/${orderId}/items/${item.id}/delivery.json`;
+        await this.r2StorageClient.uploadToPath({
+          path: storageRef,
+          data: deliveryContent as unknown as Record<string, unknown>,
+          metadata: {
+            'order-id': orderId,
+            'order-item-id': item.id,
+            'product-id': item.productId,
+            'delivery-type': product.deliveryType ?? 'key',
+            'inventory-item-id': inventoryItem.id,
+          },
+        });
+        this.logger.debug(`[FULFILLMENT:CUSTOM:INVENTORY] Uploaded delivery content to ${storageRef}`);
+
+        // Generate signed URL (3 hour expiry)
+        const signedUrl = await this.r2StorageClient.generateSignedUrlForPath({
+          path: storageRef,
+          expiresInSeconds: 3 * 60 * 60, // 3 hours
+        });
+
+        // Mark inventory item as sold
+        const unitPrice = item.unitPrice ?? product.price ?? '0';
+        await this.inventoryService.markAsSold(inventoryItem.id, orderId, unitPrice);
+        this.logger.debug(`[FULFILLMENT:CUSTOM:INVENTORY] Marked item ${inventoryItem.id} as sold`);
+
+        // Update order item with signed URL and inventory reference
+        await this.orderItemRepo.update(
+          { id: item.id },
+          {
+            signedUrl,
+            inventoryItemId: inventoryItem.id,
+            updatedAt: new Date(),
+          },
+        );
+
+        // Create Key record for audit
+        const keyEntity = this.keyRepo.create({
+          orderItemId: item.id,
+          storageRef,
+          encryptionKey: `inventory:${inventoryItem.id}`,
+        });
+        await this.keyRepo.save(keyEntity);
+
+        return {
+          itemId: item.id,
+          productId: item.productId,
+          signedUrl,
+          encryptionKeySize: 256,
+          status: 'fulfilled',
+        };
+      } catch (error) {
+        // If fulfillment fails, release the reservation
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        this.logger.error(`[FULFILLMENT:CUSTOM:INVENTORY] Failed, releasing reservation: ${errorMessage}`);
+        await this.inventoryService.releaseReservation(inventoryItem.id);
+        throw error;
+      }
+    }
+
+    // LEGACY FALLBACK: Check old R2 path (single key per product)
+    this.logger.debug(`[FULFILLMENT:CUSTOM:LEGACY] No inventory items, trying legacy R2 path`);
+    const legacyStorageRef = `products/${item.productId}/key.json`;
+
+    const keyExists = await this.r2StorageClient.exists(legacyStorageRef);
     if (!keyExists) {
       throw new BadRequestException(
-        `Key not found for custom product ${item.productId}. Admin must upload key first.`
+        `No inventory available for product ${item.productId}. Out of stock.`
       );
     }
 
-    // Generate signed URL (3 hour expiry)
+    // Generate signed URL for legacy path (3 hour expiry)
     const signedUrl = await this.r2StorageClient.generateSignedUrlForPath({
-      path: storageRef,
+      path: legacyStorageRef,
       expiresInSeconds: 3 * 60 * 60, // 3 hours
     });
 
-    this.logger.debug(`[FULFILLMENT:CUSTOM] Generated signed URL for ${storageRef}`);
+    this.logger.debug(`[FULFILLMENT:CUSTOM:LEGACY] Generated signed URL for ${legacyStorageRef}`);
 
     // Update order item with signed URL
     await this.orderItemRepo.update(
@@ -969,6 +1067,232 @@ export class FulfillmentService {
         error: message,
       };
     }
+  }
+
+  /**
+   * Build delivery content from inventory item data
+   * Converts internal item data format to customer-facing delivery content
+   */
+  private buildDeliveryContent(
+    itemData: {
+      type: string;
+      key?: string;
+      username?: string;
+      password?: string;
+      email?: string;
+      recoveryEmail?: string;
+      securityAnswers?: Record<string, string>;
+      notes?: string;
+      code?: string;
+      pin?: string;
+      value?: number;
+      currency?: string;
+      licenseKey?: string;
+      licensedTo?: string;
+      seats?: number;
+      expiresAt?: string;
+      activationUrl?: string;
+      downloadUrl?: string;
+      items?: Array<{
+        type: string;
+        label?: string;
+        value: string;
+        username?: string;
+        password?: string;
+        pin?: string;
+      }>;
+      fields?: Array<{
+        label: string;
+        value: string;
+        sensitive?: boolean;
+      }>;
+    },
+    product: Product,
+  ): DeliveryContent {
+    const baseContent: DeliveryContent = {
+      productTitle: product.title,
+      deliveryType: product.deliveryType ?? ProductDeliveryType.KEY,
+      deliveredAt: new Date().toISOString(),
+      deliveryInstructions: product.deliveryInstructions ?? undefined,
+      items: [],
+    };
+
+    switch (itemData.type) {
+      case 'key':
+        baseContent.items.push({
+          type: 'key',
+          label: 'Activation Key',
+          value: itemData.key ?? '',
+        });
+        break;
+
+      case 'account':
+        baseContent.items.push({
+          type: 'credential',
+          label: 'Username/Email',
+          value: itemData.username ?? '',
+        });
+        baseContent.items.push({
+          type: 'credential',
+          label: 'Password',
+          value: itemData.password ?? '',
+          sensitive: true,
+        });
+        if (itemData.email !== undefined && itemData.email !== '') {
+          baseContent.items.push({
+            type: 'info',
+            label: 'Account Email',
+            value: itemData.email,
+          });
+        }
+        if (itemData.recoveryEmail !== undefined && itemData.recoveryEmail !== '') {
+          baseContent.items.push({
+            type: 'info',
+            label: 'Recovery Email',
+            value: itemData.recoveryEmail,
+          });
+        }
+        if (itemData.securityAnswers !== undefined && itemData.securityAnswers !== null) {
+          for (const [question, answer] of Object.entries(itemData.securityAnswers)) {
+            baseContent.items.push({
+              type: 'info',
+              label: `Security Q: ${question}`,
+              value: answer,
+              sensitive: true,
+            });
+          }
+        }
+        if (itemData.notes !== undefined && itemData.notes !== '') {
+          baseContent.items.push({
+            type: 'info',
+            label: 'Important Notes',
+            value: itemData.notes,
+          });
+        }
+        break;
+
+      case 'code':
+        baseContent.items.push({
+          type: 'key',
+          label: itemData.value !== undefined ? `Gift Card (${itemData.value} ${itemData.currency ?? ''})` : 'Code',
+          value: itemData.code ?? '',
+        });
+        if (itemData.pin !== undefined && itemData.pin !== '') {
+          baseContent.items.push({
+            type: 'key',
+            label: 'PIN',
+            value: itemData.pin,
+            sensitive: true,
+          });
+        }
+        break;
+
+      case 'license':
+        baseContent.items.push({
+          type: 'key',
+          label: 'License Key',
+          value: itemData.licenseKey ?? '',
+        });
+        if (itemData.licensedTo !== undefined && itemData.licensedTo !== '') {
+          baseContent.items.push({
+            type: 'info',
+            label: 'Licensed To',
+            value: itemData.licensedTo,
+          });
+        }
+        if (itemData.seats !== undefined && itemData.seats !== null) {
+          baseContent.items.push({
+            type: 'info',
+            label: 'Seats/Activations',
+            value: String(itemData.seats),
+          });
+        }
+        if (itemData.expiresAt !== undefined && itemData.expiresAt !== '') {
+          baseContent.items.push({
+            type: 'info',
+            label: 'Expires',
+            value: itemData.expiresAt,
+          });
+        }
+        if (itemData.activationUrl !== undefined && itemData.activationUrl !== '') {
+          baseContent.items.push({
+            type: 'info',
+            label: 'Activation URL',
+            value: itemData.activationUrl,
+          });
+          baseContent.activationUrl = itemData.activationUrl;
+        }
+        if (itemData.downloadUrl !== undefined && itemData.downloadUrl !== '') {
+          baseContent.items.push({
+            type: 'info',
+            label: 'Download URL',
+            value: itemData.downloadUrl,
+          });
+        }
+        break;
+
+      case 'bundle':
+        if (itemData.items !== undefined && itemData.items !== null && itemData.items.length > 0) {
+          for (let i = 0; i < itemData.items.length; i++) {
+            const bundleItem = itemData.items[i]!;
+            const prefix = bundleItem.label ?? `Item ${i + 1}`;
+            
+            if (bundleItem.type === 'account') {
+              baseContent.items.push({
+                type: 'credential',
+                label: `${prefix} - Username`,
+                value: bundleItem.username ?? bundleItem.value,
+              });
+              if (bundleItem.password !== undefined && bundleItem.password !== '') {
+                baseContent.items.push({
+                  type: 'credential',
+                  label: `${prefix} - Password`,
+                  value: bundleItem.password,
+                  sensitive: true,
+                });
+              }
+            } else {
+              baseContent.items.push({
+                type: 'key',
+                label: prefix,
+                value: bundleItem.value,
+              });
+              if (bundleItem.pin !== undefined && bundleItem.pin !== '') {
+                baseContent.items.push({
+                  type: 'key',
+                  label: `${prefix} - PIN`,
+                  value: bundleItem.pin,
+                  sensitive: true,
+                });
+              }
+            }
+          }
+        }
+        break;
+
+      case 'custom':
+        if (itemData.fields !== undefined && itemData.fields !== null && itemData.fields.length > 0) {
+          for (const field of itemData.fields) {
+            baseContent.items.push({
+              type: field.sensitive === true ? 'credential' : 'info',
+              label: field.label,
+              value: field.value,
+              sensitive: field.sensitive,
+            });
+          }
+        }
+        break;
+
+      default:
+        // Fallback: try to put the data as-is
+        baseContent.items.push({
+          type: 'info',
+          label: 'Content',
+          value: JSON.stringify(itemData),
+        });
+    }
+
+    return baseContent;
   }
 }
 

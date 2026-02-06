@@ -846,7 +846,7 @@ export default function AdminUsersPage(): React.ReactElement {
               </Button>
               <Button 
                 onClick={() => {
-                  if (selectedUserId) {
+                  if (selectedUserId !== null && selectedUserId !== '') {
                     void forceLogout(selectedUserId).then(() => {
                       setForceLogoutDialogOpen(false);
                       setSelectedUserId(null);
@@ -894,7 +894,7 @@ export default function AdminUsersPage(): React.ReactElement {
               </Button>
               <Button 
                 onClick={() => {
-                  if (selectedUserId) {
+                  if (selectedUserId !== null && selectedUserId !== '') {
                     void changeRole(selectedUserId, selectedNewRole).then(() => {
                       void refetch();
                       void refetchStats();
@@ -932,7 +932,7 @@ export default function AdminUsersPage(): React.ReactElement {
               </Button>
               <Button 
                 onClick={() => {
-                  if (selectedUserId) {
+                  if (selectedUserId !== null && selectedUserId !== '') {
                     void unsuspendUser(selectedUserId).then(() => {
                       void refetch();
                       void refetchStats();
@@ -970,7 +970,7 @@ export default function AdminUsersPage(): React.ReactElement {
               </Button>
               <Button 
                 onClick={() => {
-                  if (selectedUserId) {
+                  if (selectedUserId !== null && selectedUserId !== '') {
                     void restoreUser(selectedUserId).then(() => {
                       void refetch();
                       void refetchStats();

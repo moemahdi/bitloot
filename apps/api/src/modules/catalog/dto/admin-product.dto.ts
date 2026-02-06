@@ -14,6 +14,7 @@ import {
   IsInt,
   Min,
 } from 'class-validator';
+import { ProductDeliveryType } from '../types/product-delivery.types';
 
 /**
  * Product source type for fulfillment routing
@@ -21,6 +22,9 @@ import {
  * - 'kinguin': Automatic fulfillment via Kinguin API
  */
 export type ProductSourceType = 'custom' | 'kinguin';
+
+// Re-export for convenience
+export { ProductDeliveryType };
 
 /**
  * Business category for BitLoot store organization
@@ -53,6 +57,16 @@ export class CreateProductDto {
   @IsOptional()
   @IsIn(['custom', 'kinguin'])
   sourceType?: ProductSourceType;
+
+  @ApiProperty({
+    description: 'Type of digital delivery content',
+    enum: ['key', 'account', 'code', 'license', 'bundle', 'custom'],
+    default: 'key',
+    example: 'key',
+  })
+  @IsOptional()
+  @IsEnum(ProductDeliveryType)
+  deliveryType?: ProductDeliveryType;
 
   @ApiProperty({
     description: 'Kinguin offer ID (required when sourceType is kinguin)',
@@ -162,6 +176,16 @@ export class UpdateProductDto {
   @IsOptional()
   @IsIn(['custom', 'kinguin'])
   sourceType?: ProductSourceType;
+
+  @ApiProperty({
+    description: 'Type of digital delivery content',
+    enum: ['key', 'account', 'code', 'license', 'bundle', 'custom'],
+    required: false,
+    example: 'key',
+  })
+  @IsOptional()
+  @IsEnum(ProductDeliveryType)
+  deliveryType?: ProductDeliveryType;
 
   @ApiProperty({
     description: 'Kinguin offer ID (required when sourceType is kinguin)',
@@ -348,6 +372,13 @@ export class AdminProductResponseDto {
     example: 'custom',
   })
   sourceType!: 'custom' | 'kinguin';
+
+  @ApiProperty({
+    description: 'Type of digital delivery content',
+    enum: ['key', 'account', 'code', 'license', 'bundle', 'custom'],
+    example: 'key',
+  })
+  deliveryType!: ProductDeliveryType;
 
   @ApiProperty({
     description: 'Kinguin offer ID (present when sourceType is kinguin)',

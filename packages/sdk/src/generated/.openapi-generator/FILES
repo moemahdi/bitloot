@@ -5,6 +5,8 @@ apis/AdminCatalogProductsApi.ts
 apis/AdminCatalogRepricingApi.ts
 apis/AdminCatalogSyncApi.ts
 apis/AdminFeatureFlagsApi.ts
+apis/AdminInventoryApi.ts
+apis/AdminInventoryGlobalApi.ts
 apis/AdminKinguinBalanceApi.ts
 apis/AdminKinguinProfitAnalyticsApi.ts
 apis/AdminMarketingApi.ts
@@ -12,6 +14,7 @@ apis/AdminOperationsApi.ts
 apis/AdminProductGroupsApi.ts
 apis/AdminPromosApi.ts
 apis/AdminReviewsApi.ts
+apis/AdminStockSyncApi.ts
 apis/AdminUsersApi.ts
 apis/AuditLogsApi.ts
 apis/AuthenticationApi.ts
@@ -36,6 +39,7 @@ apis/WebhooksApi.ts
 apis/index.ts
 docs/AddBundleProductDto.md
 docs/AddFlashDealProductDto.md
+docs/AddInventoryItemDto.md
 docs/AddToWatchlistDto.md
 docs/AdminApi.md
 docs/AdminCatalogKinguinApi.md
@@ -68,6 +72,11 @@ docs/AdminControllerRetryFulfillmentRequest.md
 docs/AdminControllerUpdateOrderStatus200Response.md
 docs/AdminCreateReviewDto.md
 docs/AdminFeatureFlagsApi.md
+docs/AdminInventoryApi.md
+docs/AdminInventoryGlobalApi.md
+docs/AdminInventoryGlobalControllerExpireItems200Response.md
+docs/AdminInventoryGlobalControllerGetLowStock200ResponseInner.md
+docs/AdminInventoryGlobalControllerReleaseReservations200Response.md
 docs/AdminKinguinBalanceApi.md
 docs/AdminKinguinProfitAnalyticsApi.md
 docs/AdminMarketingApi.md
@@ -103,6 +112,11 @@ docs/AdminPromosApi.md
 docs/AdminReviewResponseDto.md
 docs/AdminReviewsApi.md
 docs/AdminReviewsControllerBulkApprove200Response.md
+docs/AdminStockSyncApi.md
+docs/AdminStockSyncControllerCheckLowStock200ResponseInner.md
+docs/AdminStockSyncControllerExpireItems200Response.md
+docs/AdminStockSyncControllerReleaseReservations200Response.md
+docs/AdminStockSyncControllerSyncStockCounts200Response.md
 docs/AdminUpdateReviewDto.md
 docs/AdminUserActivityDto.md
 docs/AdminUserDetailDto.md
@@ -114,7 +128,6 @@ docs/AdminUserSessionDto.md
 docs/AdminUserStatsDto.md
 docs/AdminUserWatchlistItemDto.md
 docs/AdminUsersApi.md
-docs/AdminUsersControllerCreateUser201Response.md
 docs/AdminUsersControllerDeleteUser200Response.md
 docs/AdminUsersControllerForceLogout200Response.md
 docs/AssignProductsToGroupDto.md
@@ -127,6 +140,8 @@ docs/BalanceAlertDto.md
 docs/BalanceHistoryPointDto.md
 docs/BulkDeleteProductsDto.md
 docs/BulkDeleteResponseDto.md
+docs/BulkImportInventoryDto.md
+docs/BulkImportResultDto.md
 docs/BulkPublishProductsDto.md
 docs/BulkPublishResponseDto.md
 docs/BulkRepriceProductsDto.md
@@ -145,7 +160,6 @@ docs/CategoriesResponseDto.md
 docs/CategoryDto.md
 docs/ChangeUserRoleDto.md
 docs/CheckWatchlistResponseDto.md
-docs/CreateAdminUserDto.md
 docs/CreateAuditLogDto.md
 docs/CreateBundleDealDto.md
 docs/CreateFeatureFlagDto.md
@@ -162,6 +176,8 @@ docs/DailyVolumeDto.md
 docs/DashboardStatsDto.md
 docs/DashboardStatsDtoRevenueHistoryInner.md
 docs/DeletionResponseDto.md
+docs/DeliveryContentDto.md
+docs/DeliveryContentItemDto.md
 docs/DeliveryLinkDto.md
 docs/EffectivePriceResponseDto.md
 docs/EmailChangeResponseDto.md
@@ -184,6 +200,8 @@ docs/GroupProductVariantDto.md
 docs/GroupedFeatureFlagsResponseDto.md
 docs/HealthApi.md
 docs/HealthCheckResultDto.md
+docs/InventoryItemResponseDto.md
+docs/InventoryStatsDto.md
 docs/IpnHandlerControllerAdminListWebhooks200Response.md
 docs/IpnHandlerControllerAdminListWebhooks200ResponseDataInner.md
 docs/IpnRequestDto.md
@@ -223,6 +241,7 @@ docs/OtpResponseDto.md
 docs/PaginatedAdminReviewsDto.md
 docs/PaginatedAdminUsersDto.md
 docs/PaginatedAuditLogsDto.md
+docs/PaginatedInventoryDto.md
 docs/PaginatedPromoCodesDto.md
 docs/PaginatedRedemptionsDto.md
 docs/PaginatedReviewsDto.md
@@ -301,6 +320,7 @@ docs/UpdateBundleProductDto.md
 docs/UpdateFeatureFlagDto.md
 docs/UpdateFlashDealDto.md
 docs/UpdateFlashDealProductDto.md
+docs/UpdateItemStatusDto.md
 docs/UpdateOrderStatusDto.md
 docs/UpdatePasswordDto.md
 docs/UpdatePaymentStatusDto.md
@@ -334,6 +354,7 @@ docs/WebhooksApi.md
 index.ts
 models/AddBundleProductDto.ts
 models/AddFlashDealProductDto.ts
+models/AddInventoryItemDto.ts
 models/AddToWatchlistDto.ts
 models/AdminControllerAdminRevealKey200Response.ts
 models/AdminControllerBulkReplayWebhooksRequest.ts
@@ -359,6 +380,9 @@ models/AdminControllerRetryFulfillment200Response.ts
 models/AdminControllerRetryFulfillmentRequest.ts
 models/AdminControllerUpdateOrderStatus200Response.ts
 models/AdminCreateReviewDto.ts
+models/AdminInventoryGlobalControllerExpireItems200Response.ts
+models/AdminInventoryGlobalControllerGetLowStock200ResponseInner.ts
+models/AdminInventoryGlobalControllerReleaseReservations200Response.ts
 models/AdminOpsControllerCreateFeatureFlag201Response.ts
 models/AdminOpsControllerGetBalance200Response.ts
 models/AdminOpsControllerGetBalance200ResponseNowpayments.ts
@@ -387,6 +411,10 @@ models/AdminProductResponseDto.ts
 models/AdminProductsListResponseDto.ts
 models/AdminReviewResponseDto.ts
 models/AdminReviewsControllerBulkApprove200Response.ts
+models/AdminStockSyncControllerCheckLowStock200ResponseInner.ts
+models/AdminStockSyncControllerExpireItems200Response.ts
+models/AdminStockSyncControllerReleaseReservations200Response.ts
+models/AdminStockSyncControllerSyncStockCounts200Response.ts
 models/AdminUpdateReviewDto.ts
 models/AdminUserActivityDto.ts
 models/AdminUserDetailDto.ts
@@ -397,7 +425,6 @@ models/AdminUserReviewDto.ts
 models/AdminUserSessionDto.ts
 models/AdminUserStatsDto.ts
 models/AdminUserWatchlistItemDto.ts
-models/AdminUsersControllerCreateUser201Response.ts
 models/AdminUsersControllerDeleteUser200Response.ts
 models/AdminUsersControllerForceLogout200Response.ts
 models/AssignProductsToGroupDto.ts
@@ -408,6 +435,8 @@ models/BalanceAlertDto.ts
 models/BalanceHistoryPointDto.ts
 models/BulkDeleteProductsDto.ts
 models/BulkDeleteResponseDto.ts
+models/BulkImportInventoryDto.ts
+models/BulkImportResultDto.ts
 models/BulkPublishProductsDto.ts
 models/BulkPublishResponseDto.ts
 models/BulkRepriceProductsDto.ts
@@ -424,7 +453,6 @@ models/CategoriesResponseDto.ts
 models/CategoryDto.ts
 models/ChangeUserRoleDto.ts
 models/CheckWatchlistResponseDto.ts
-models/CreateAdminUserDto.ts
 models/CreateAuditLogDto.ts
 models/CreateBundleDealDto.ts
 models/CreateFeatureFlagDto.ts
@@ -441,6 +469,8 @@ models/DailyVolumeDto.ts
 models/DashboardStatsDto.ts
 models/DashboardStatsDtoRevenueHistoryInner.ts
 models/DeletionResponseDto.ts
+models/DeliveryContentDto.ts
+models/DeliveryContentItemDto.ts
 models/DeliveryLinkDto.ts
 models/EffectivePriceResponseDto.ts
 models/EmailChangeResponseDto.ts
@@ -460,6 +490,8 @@ models/GetEffectivePricesResponseDto.ts
 models/GroupProductVariantDto.ts
 models/GroupedFeatureFlagsResponseDto.ts
 models/HealthCheckResultDto.ts
+models/InventoryItemResponseDto.ts
+models/InventoryStatsDto.ts
 models/IpnHandlerControllerAdminListWebhooks200Response.ts
 models/IpnHandlerControllerAdminListWebhooks200ResponseDataInner.ts
 models/IpnRequestDto.ts
@@ -495,6 +527,7 @@ models/OtpResponseDto.ts
 models/PaginatedAdminReviewsDto.ts
 models/PaginatedAdminUsersDto.ts
 models/PaginatedAuditLogsDto.ts
+models/PaginatedInventoryDto.ts
 models/PaginatedPromoCodesDto.ts
 models/PaginatedRedemptionsDto.ts
 models/PaginatedReviewsDto.ts
@@ -567,6 +600,7 @@ models/UpdateBundleProductDto.ts
 models/UpdateFeatureFlagDto.ts
 models/UpdateFlashDealDto.ts
 models/UpdateFlashDealProductDto.ts
+models/UpdateItemStatusDto.ts
 models/UpdateOrderStatusDto.ts
 models/UpdatePasswordDto.ts
 models/UpdatePaymentStatusDto.ts

@@ -49,8 +49,8 @@ import {
     Shield,
     Package,
 } from 'lucide-react';
-import type { CreateProductDto, CreateProductDtoSourceTypeEnum } from '@bitloot/sdk';
-import { AdminCatalogProductsApi } from '@bitloot/sdk';
+import type { CreateProductDto, CreateProductDtoSourceTypeEnum, CreateProductDtoDeliveryTypeEnum } from '@bitloot/sdk';
+import { AdminCatalogProductsApi, CreateProductDtoDeliveryTypeEnum as DeliveryTypeEnum } from '@bitloot/sdk';
 import { apiConfig } from '@/lib/api-config';
 import { useErrorHandler } from '@/hooks/useErrorHandler';
 import { useNetworkStatus } from '@/hooks/useNetworkStatus';
@@ -98,8 +98,19 @@ const CURRENCIES = [
     { value: 'GBP', label: 'GBP (£)' },
 ] as const;
 
+// Delivery type options
+const DELIVERY_TYPES = [
+    { value: DeliveryTypeEnum.Key, label: 'Product Key', description: 'Simple activation key' },
+    { value: DeliveryTypeEnum.Account, label: 'Account', description: 'Username/password credentials' },
+    { value: DeliveryTypeEnum.Code, label: 'Code', description: 'Redemption code with optional PIN' },
+    { value: DeliveryTypeEnum.License, label: 'License', description: 'License key with instructions' },
+    { value: DeliveryTypeEnum.Bundle, label: 'Bundle', description: 'Multiple keys/items' },
+    { value: DeliveryTypeEnum.Custom, label: 'Custom', description: 'Custom format' },
+] as const;
+
 interface FormData {
     sourceType: CreateProductDtoSourceTypeEnum;
+    deliveryType: CreateProductDtoDeliveryTypeEnum;
     kinguinOfferId: string;
     title: string;
     subtitle: string;
@@ -119,6 +130,7 @@ interface FormData {
 
 const initialFormData: FormData = {
     sourceType: 'custom',
+    deliveryType: DeliveryTypeEnum.Key,
     kinguinOfferId: '',
     title: '',
     subtitle: '',
@@ -213,6 +225,7 @@ export default function AdminCreateProductPage(): React.JSX.Element {
 
         const productData: CreateProductDto = {
             sourceType: formData.sourceType,
+            deliveryType: formData.deliveryType,
             kinguinOfferId: formData.sourceType === 'kinguin' ? formData.kinguinOfferId : undefined,
             title: formData.title,
             subtitle: formData.subtitle.length > 0 ? formData.subtitle : undefined,
@@ -419,6 +432,53 @@ export default function AdminCreateProductPage(): React.JSX.Element {
                                 )}
                             </CardContent>
                         </Card>
+
+                        {/* Delivery Type Card - Only show for custom products */}
+                        {!isKinguin && (
+                            <Card className="border-border-subtle bg-bg-secondary/80 backdrop-blur-sm hover:border-border-accent transition-colors duration-250">
+                                <CardHeader className="pb-4">
+                                    <div className="flex items-center gap-3">
+                                        <div className="p-2 rounded-lg bg-green-success/10">
+                                            <Package className="h-4 w-4 text-green-success" />
+                                        </div>
+                                        <div>
+                                            <CardTitle className="text-text-primary text-lg">Delivery Type</CardTitle>
+                                            <CardDescription className="text-text-muted text-sm">
+                                                How will the product content be delivered to customers
+                                            </CardDescription>
+                                        </div>
+                                    </div>
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                                        {DELIVERY_TYPES.map((type) => (
+                                            <motion.div
+                                                key={type.value}
+                                                whileHover={{ scale: 1.02 }}
+                                                whileTap={{ scale: 0.98 }}
+                                            >
+                                                <button
+                                                    type="button"
+                                                    onClick={() => updateField('deliveryType', type.value)}
+                                                    className={`w-full p-3 rounded-lg border-2 transition-all duration-250 text-left ${formData.deliveryType === type.value
+                                                            ? 'border-green-success bg-green-success/10 shadow-[0_0_10px_rgba(57,255,20,0.15)]'
+                                                            : 'border-border-subtle bg-bg-tertiary/50 hover:border-green-success/40 hover:bg-bg-tertiary'
+                                                        }`}
+                                                >
+                                                    <p className={`font-medium text-sm transition-colors duration-250 ${formData.deliveryType === type.value ? 'text-green-success' : 'text-text-primary'
+                                                        }`}>
+                                                        {type.label}
+                                                    </p>
+                                                    <p className="text-xs text-text-muted mt-0.5">
+                                                        {type.description}
+                                                    </p>
+                                                </button>
+                                            </motion.div>
+                                        ))}
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        )}
 
                         {/* Basic Info Card */}
                         <Card className="border-border-subtle bg-bg-secondary/80 backdrop-blur-sm hover:border-border-accent transition-colors duration-250">

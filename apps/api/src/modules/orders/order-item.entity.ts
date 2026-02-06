@@ -14,6 +14,7 @@ import type { ProductSourceType } from '../catalog/entities/product.entity';
 
 @Entity('order_items')
 @Index(['productSourceType'])
+@Index(['inventoryItemId'])
 export class OrderItem {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
@@ -51,6 +52,13 @@ export class OrderItem {
 
   @Column({ type: 'text', nullable: true })
   signedUrl!: string | null;
+
+  /**
+   * Reference to the inventory item used for fulfillment (for custom products)
+   * Links to product_inventory.id when fulfilled from inventory system
+   */
+  @Column({ type: 'uuid', nullable: true })
+  inventoryItemId!: string | null;
 
   /**
    * Keys delivered for this specific order item

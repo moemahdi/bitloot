@@ -610,6 +610,7 @@ export default function AdminCatalogProductsPage(): React.JSX.Element {
         'Cost (EUR)',
         'Price (EUR)',
         'Source',
+        'Delivery Type',
         'Published',
         'Featured',
         'Kinguin ID',
@@ -637,6 +638,7 @@ export default function AdminCatalogProductsPage(): React.JSX.Element {
         escapeCSV(product.cost),
         escapeCSV(product.price),
         escapeCSV(product.sourceType),
+        escapeCSV(product.deliveryType ?? 'key'),
         escapeCSV(product.isPublished),
         escapeCSV(product.isFeatured),
         escapeCSV(product.kinguinId),
@@ -1561,6 +1563,11 @@ export default function AdminCatalogProductsPage(): React.JSX.Element {
                         <Store className="h-4 w-4 text-cyan-glow shrink-0" />
                         <span className="text-text-secondary">Business Category:</span>
                         <span className="text-text-primary font-medium capitalize">{selectedProduct.businessCategory ?? 'games'}</span>
+                      </div>
+                      <div className="flex items-center gap-2 p-2 rounded bg-bg-primary border border-cyan-glow/10">
+                        <Package className="h-4 w-4 text-cyan-glow shrink-0" />
+                        <span className="text-text-secondary">Delivery Type:</span>
+                        <span className="text-text-primary font-medium capitalize">{selectedProduct.deliveryType ?? 'key'}</span>
                       </div>
                       <div className="flex items-center gap-2 p-2 rounded bg-bg-primary border border-cyan-glow/10">
                         <Shield className="h-4 w-4 text-cyan-glow shrink-0" />

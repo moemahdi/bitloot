@@ -13,6 +13,14 @@
  */
 
 import { mapValues } from '../runtime';
+import type { DeliveryContentDto } from './DeliveryContentDto';
+import {
+    DeliveryContentDtoFromJSON,
+    DeliveryContentDtoFromJSONTyped,
+    DeliveryContentDtoToJSON,
+    DeliveryContentDtoToJSONTyped,
+} from './DeliveryContentDto';
+
 /**
  * 
  * @export
@@ -67,6 +75,12 @@ export interface RevealedKeyDto {
      * @memberof RevealedKeyDto
      */
     accessInfo: object;
+    /**
+     * Structured delivery content for custom products
+     * @type {DeliveryContentDto}
+     * @memberof RevealedKeyDto
+     */
+    deliveryContent?: DeliveryContentDto;
 }
 
 /**
@@ -102,6 +116,7 @@ export function RevealedKeyDtoFromJSONTyped(json: any, ignoreDiscriminator: bool
         'expiresAt': (new Date(json['expiresAt'])),
         'downloadCount': json['downloadCount'],
         'accessInfo': json['accessInfo'],
+        'deliveryContent': json['deliveryContent'] == null ? undefined : DeliveryContentDtoFromJSON(json['deliveryContent']),
     };
 }
 
@@ -124,6 +139,7 @@ export function RevealedKeyDtoToJSONTyped(value?: RevealedKeyDto | null, ignoreD
         'expiresAt': value['expiresAt'].toISOString(),
         'downloadCount': value['downloadCount'],
         'accessInfo': value['accessInfo'],
+        'deliveryContent': DeliveryContentDtoToJSON(value['deliveryContent']),
     };
 }
 

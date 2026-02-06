@@ -5,7 +5,7 @@ import { Product } from './entities/product.entity';
 import { ProductOffer } from './entities/product-offer.entity';
 import { DynamicPricingRule } from './entities/dynamic-pricing-rule.entity';
 import { KinguinProductRaw } from './kinguin-catalog.client';
-import { BITLOOT_CATEGORIES, type BusinessCategory } from './dto/admin-product.dto';
+import { BITLOOT_CATEGORIES, type BusinessCategory, ProductDeliveryType } from './dto/admin-product.dto';
 import { normalizePlatform } from './utils/platform-normalizer';
 
 // Internal interface for pricing rule calculations
@@ -1078,8 +1078,11 @@ export class CatalogService {
     currency?: string;
     isPublished?: boolean;
     sourceType?: 'custom' | 'kinguin';
+    deliveryType?: ProductDeliveryType;
     kinguinOfferId?: string;
   }): Promise<Product> {
+    // Generate externalId first so we can use it for slug
+    const externalId = `custom-${Date.now()}`;
     const product = this.productRepo.create({
       title: data.title,
       subtitle: data.subtitle,
@@ -1095,9 +1098,10 @@ export class CatalogService {
       isPublished: data.isPublished ?? false,
       isCustom: data.sourceType !== 'kinguin',
       sourceType: data.sourceType ?? 'custom',
+      deliveryType: data.deliveryType ?? ProductDeliveryType.KEY,
       kinguinOfferId: data.kinguinOfferId,
-      slug: this.slugify(data.title, data.title),
-      externalId: `custom-${Date.now()}`,
+      slug: this.slugify(data.title, externalId),
+      externalId,
     });
 
     return this.productRepo.save(product);
@@ -1122,6 +1126,7 @@ export class CatalogService {
       price: string;
       currency: string;
       sourceType: 'custom' | 'kinguin';
+      deliveryType: ProductDeliveryType;
       kinguinOfferId: string;
       featuredSections: string[];
       featuredOrder: number;
@@ -1149,6 +1154,7 @@ export class CatalogService {
       product.sourceType = data.sourceType;
       product.isCustom = data.sourceType !== 'kinguin';
     }
+    if (data.deliveryType !== undefined) product.deliveryType = data.deliveryType;
     if (typeof data.kinguinOfferId === 'string') product.kinguinOfferId = data.kinguinOfferId;
     if (Array.isArray(data.featuredSections)) product.featuredSections = data.featuredSections;
     if (typeof data.featuredOrder === 'number') product.featuredOrder = data.featuredOrder;

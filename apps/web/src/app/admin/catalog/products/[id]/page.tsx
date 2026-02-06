@@ -52,9 +52,23 @@ import {
     Shield,
     Package,
     RefreshCw,
+    Boxes,
 } from 'lucide-react';
 import type { UpdateProductDto, AdminProductResponseDto } from '@bitloot/sdk';
-import { AdminCatalogProductsApi } from '@bitloot/sdk';
+import { AdminCatalogProductsApi, UpdateProductDtoDeliveryTypeEnum } from '@bitloot/sdk';
+
+// Delivery Type enum for internal use (matching SDK)
+const DeliveryTypeEnum = UpdateProductDtoDeliveryTypeEnum;
+
+// Delivery type options for custom products
+const DELIVERY_TYPES = [
+    { value: DeliveryTypeEnum.Key, label: 'Product Key', description: 'Simple activation key (Steam, Epic, etc.)' },
+    { value: DeliveryTypeEnum.Account, label: 'Account', description: 'Full account with credentials' },
+    { value: DeliveryTypeEnum.Code, label: 'Code', description: 'Redemption code with optional PIN' },
+    { value: DeliveryTypeEnum.License, label: 'License', description: 'Software license key with instructions' },
+    { value: DeliveryTypeEnum.Bundle, label: 'Bundle', description: 'Multiple keys or items packaged together' },
+    { value: DeliveryTypeEnum.Custom, label: 'Custom', description: 'Custom format with flexible fields' },
+] as const;
 import { apiConfig } from '@/lib/api-config';
 import { useErrorHandler } from '@/hooks/useErrorHandler';
 import { useNetworkStatus } from '@/hooks/useNetworkStatus';
@@ -193,6 +207,7 @@ interface FormData {
     price: string;
     currency: string;
     isPublished: boolean;
+    deliveryType: UpdateProductDtoDeliveryTypeEnum;
 }
 
 const initialFormData: FormData = {
@@ -210,6 +225,7 @@ const initialFormData: FormData = {
     price: '',
     currency: 'EUR',
     isPublished: false,
+    deliveryType: DeliveryTypeEnum.Key,
 };
 
 export default function AdminEditProductPage(): React.JSX.Element {
@@ -271,6 +287,7 @@ export default function AdminEditProductPage(): React.JSX.Element {
             price: formatPrice(product.price),
             currency: product.currency ?? 'EUR',
             isPublished: product.isPublished ?? false,
+            deliveryType: (product.deliveryType as UpdateProductDtoDeliveryTypeEnum) ?? DeliveryTypeEnum.Key,
         });
         setHasChanges(false);
     }, []);
@@ -450,6 +467,7 @@ export default function AdminEditProductPage(): React.JSX.Element {
             cost: formattedCost,
             price: formattedPrice,
             currency: formData.currency,
+            deliveryType: formData.deliveryType,
             // Note: isPublished is handled separately via publish/unpublish endpoints
         };
 
@@ -767,6 +785,72 @@ export default function AdminEditProductPage(): React.JSX.Element {
                                 )}
                             </CardContent>
                         </Card>
+
+                        {/* Delivery Type Card (Custom products only) */}
+                        {!isKinguin && (
+                            <Card className="border-border-subtle bg-bg-secondary/80 backdrop-blur-sm hover:border-border-accent transition-all duration-250">
+                                <CardHeader>
+                                    <div className="flex items-center gap-3">
+                                        <div className="p-2 rounded-lg bg-purple-neon/10 border border-purple-neon/20">
+                                            <Boxes className="h-5 w-5 text-purple-neon" />
+                                        </div>
+                                        <div>
+                                            <CardTitle className="text-text-primary">Delivery Type</CardTitle>
+                                            <CardDescription className="text-text-secondary">
+                                                Type of digital content being delivered. This determines what fields are required when adding inventory items.
+                                            </CardDescription>
+                                        </div>
+                                    </div>
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                                        {DELIVERY_TYPES.map((type) => (
+                                            <motion.button
+                                                key={type.value}
+                                                type="button"
+                                                onClick={() => updateField('deliveryType', type.value)}
+                                                className={`relative p-4 rounded-lg border-2 text-left transition-all duration-250 ${formData.deliveryType === type.value
+                                                        ? 'border-purple-neon/50 bg-purple-neon/10 shadow-glow-purple-sm'
+                                                        : 'border-border-subtle bg-bg-tertiary/30 hover:border-border-accent hover:bg-bg-tertiary/50'
+                                                    }`}
+                                                whileHover={{ scale: 1.02 }}
+                                                whileTap={{ scale: 0.98 }}
+                                            >
+                                                <div className="flex items-start gap-3">
+                                                    <div className={`w-4 h-4 rounded-full border-2 flex-shrink-0 mt-0.5 transition-all duration-250 ${formData.deliveryType === type.value
+                                                            ? 'border-purple-neon bg-purple-neon shadow-glow-purple-sm'
+                                                            : 'border-text-muted'
+                                                        }`}>
+                                                        {formData.deliveryType === type.value && (
+                                                            <motion.div
+                                                                initial={{ scale: 0 }}
+                                                                animate={{ scale: 1 }}
+                                                                className="w-full h-full rounded-full bg-white scale-50"
+                                                            />
+                                                        )}
+                                                    </div>
+                                                    <div className="flex-1 min-w-0">
+                                                        <p className={`font-medium transition-colors ${formData.deliveryType === type.value
+                                                                ? 'text-purple-neon'
+                                                                : 'text-text-primary'
+                                                            }`}>
+                                                            {type.label}
+                                                        </p>
+                                                        <p className="text-xs text-text-muted mt-1 line-clamp-2">
+                                                            {type.description}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </motion.button>
+                                        ))}
+                                    </div>
+                                    <p className="text-xs text-text-muted mt-4">
+                                        <AlertTriangle className="h-3 w-3 inline mr-1" />
+                                        Changing the delivery type will affect what fields are shown when adding inventory items.
+                                    </p>
+                                </CardContent>
+                            </Card>
+                        )}
 
                         {/* Basic Info Card */}
                         <Card className="border-border-subtle bg-bg-secondary/80 backdrop-blur-sm hover:border-border-accent transition-all duration-250">
@@ -1092,6 +1176,40 @@ export default function AdminEditProductPage(): React.JSX.Element {
                                 </div>
                             </CardContent>
                         </Card>
+
+                        {/* Inventory Management Card - Only for Custom Products */}
+                        {!isKinguin && (
+                            <Card className="border-border-subtle bg-bg-secondary/80 backdrop-blur-sm hover:border-cyan-glow/30 transition-all duration-250">
+                                <CardHeader>
+                                    <div className="flex items-center gap-3">
+                                        <div className="p-2 rounded-lg bg-cyan-glow/10 border border-cyan-glow/20">
+                                            <Boxes className="h-5 w-5 text-cyan-glow" />
+                                        </div>
+                                        <div>
+                                            <CardTitle className="text-text-primary">Inventory</CardTitle>
+                                            <CardDescription className="text-text-secondary">
+                                                Manage digital inventory for this product
+                                            </CardDescription>
+                                        </div>
+                                    </div>
+                                </CardHeader>
+                                <CardContent>
+                                    <p className="text-sm text-text-secondary mb-4">
+                                        Upload and manage product keys, accounts, or codes that will be delivered to customers upon purchase.
+                                    </p>
+                                    <Link href={`/admin/catalog/products/${productId}/inventory`}>
+                                        <GlowButton
+                                            type="button"
+                                            className="w-full"
+                                            glowColor="cyan"
+                                        >
+                                            <Boxes className="mr-2 h-4 w-4" />
+                                            Manage Inventory
+                                        </GlowButton>
+                                    </Link>
+                                </CardContent>
+                            </Card>
+                        )}
 
                         {/* Action Buttons */}
                         <div className="space-y-3 pt-4 border-t border-border-subtle">

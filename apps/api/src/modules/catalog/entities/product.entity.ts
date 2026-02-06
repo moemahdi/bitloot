@@ -12,6 +12,10 @@ import {
 import { ProductOffer } from './product-offer.entity';
 import { DynamicPricingRule } from './dynamic-pricing-rule.entity';
 import { ProductGroup } from './product-group.entity';
+import {
+  ProductDeliveryType,
+  type CustomFieldDefinition,
+} from '../types/product-delivery.types';
 
 /**
  * Product source type for hybrid fulfillment model
@@ -19,6 +23,9 @@ import { ProductGroup } from './product-group.entity';
  * - 'kinguin': Fulfilled automatically via Kinguin API
  */
 export type ProductSourceType = 'custom' | 'kinguin';
+
+// Re-export for convenience
+export { ProductDeliveryType };
 
 /**
  * Video object from Kinguin API
@@ -291,6 +298,65 @@ export class Product {
 
   @UpdateDateColumn()
   updatedAt!: Date;
+
+  // ============================================
+  // CUSTOM PRODUCT INVENTORY FIELDS
+  // ============================================
+
+  /**
+   * Type of digital item this product delivers
+   * Determines the form fields and delivery format
+   */
+  @Column({
+    type: 'varchar',
+    length: 20,
+    default: ProductDeliveryType.KEY,
+  })
+  deliveryType!: ProductDeliveryType;
+
+  /**
+   * Custom field definitions for 'custom' delivery type
+   * Defines what fields admin needs to provide per item
+   */
+  @Column({ type: 'jsonb', nullable: true })
+  customFieldDefinitions?: CustomFieldDefinition[];
+
+  /**
+   * Instructions shown to customer after purchase
+   * e.g., "Redeem at store.steampowered.com"
+   */
+  @Column({ type: 'text', nullable: true })
+  deliveryInstructions?: string;
+
+  /**
+   * Number of items available for sale
+   */
+  @Column({ type: 'int', default: 0 })
+  stockAvailable!: number;
+
+  /**
+   * Number of items reserved during payment
+   */
+  @Column({ type: 'int', default: 0 })
+  stockReserved!: number;
+
+  /**
+   * Number of items sold
+   */
+  @Column({ type: 'int', default: 0 })
+  stockSold!: number;
+
+  /**
+   * Alert admin when stock falls below this number
+   */
+  @Column({ type: 'int', nullable: true })
+  lowStockThreshold?: number;
+
+  /**
+   * Automatically unpublish when out of stock
+   */
+  @Column({ type: 'boolean', default: false })
+  autoUnpublishWhenOutOfStock!: boolean;
 
   // ============================================
   // PRODUCT GROUP (for variant grouping)

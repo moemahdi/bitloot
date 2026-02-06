@@ -729,6 +729,50 @@ export class R2StorageClient {
   }
 
   /**
+   * Fetch JSON content from arbitrary path in R2
+   *
+   * Generic method for retrieving JSON files from any path.
+   * Used for delivery content retrieval from inventory system.
+   *
+   * @param path Full path to the file
+   * @returns Parsed JSON object
+   *
+   * @example
+   * const data = await client.fetchFromPath('orders/order-123/items/item-456/delivery.json');
+   */
+  async fetchFromPath(path: string): Promise<Record<string, unknown>> {
+    if (path === '' || path === null || path === undefined) {
+      throw new Error('Invalid path: must be a non-empty string');
+    }
+
+    try {
+      this.logger.debug(`Fetching from path: ${path}`);
+
+      const input: GetObjectCommandInput = {
+        Bucket: this.bucketName,
+        Key: path,
+      };
+
+      const command = new GetObjectCommand(input);
+      const response = await this.s3.send(command);
+
+      if (response.Body === undefined || response.Body === null) {
+        throw new Error('Empty response body from R2');
+      }
+
+      const bodyString = await response.Body.transformToString('utf-8');
+      const parsed = JSON.parse(bodyString) as Record<string, unknown>;
+
+      this.logger.log(`✅ File fetched from R2: ${path}`);
+      return parsed;
+    } catch (error) {
+      const message = this.extractErrorMessage(error);
+      this.logger.error(`❌ Failed to fetch from path: ${message}`);
+      throw new Error(`R2 fetch failed: ${message}`);
+    }
+  }
+
+  /**
    * Health check for R2 connection
    *
    * Attempts a simple operation to verify R2 connectivity.

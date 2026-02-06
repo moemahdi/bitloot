@@ -73,6 +73,7 @@ export class AdminProductsController {
       id: product.id,
       externalId: product.externalId ?? undefined,
       sourceType: product.sourceType ?? 'custom',
+      deliveryType: product.deliveryType ?? 'key',
       kinguinOfferId: product.kinguinOfferId ?? undefined,
       slug: product.slug,
       
@@ -296,6 +297,7 @@ export class AdminProductsController {
         currency: dto.currency,
         isPublished: dto.isPublished,
         sourceType: dto.sourceType,
+        deliveryType: dto.deliveryType,
         kinguinOfferId: dto.kinguinOfferId,
       });
       return this.toResponseDto(product);
@@ -331,6 +333,7 @@ export class AdminProductsController {
         price: dto.price,
         currency: dto.currency,
         sourceType: dto.sourceType,
+        deliveryType: dto.deliveryType,
         kinguinOfferId: dto.kinguinOfferId,
         featuredSections: dto.featuredSections,
         featuredOrder: dto.featuredOrder,

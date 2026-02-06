@@ -1,4 +1,4 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   IsString,
   IsISO8601,
@@ -7,7 +7,124 @@ import {
   IsEnum,
   IsObject,
   IsOptional,
+  IsArray,
+  IsBoolean,
+  ValidateNested,
 } from 'class-validator';
+import { Type } from 'class-transformer';
+
+// ============================================
+// DELIVERY CONTENT DTOs (for structured delivery)
+// ============================================
+
+/**
+ * A single item in the delivery content
+ * Displayed to customer after purchase
+ */
+export class DeliveryContentItemDto {
+  @ApiProperty({
+    description: 'Type of delivery item',
+    enum: ['key', 'credential', 'code', 'license', 'info', 'custom'],
+    example: 'key',
+  })
+  @IsString()
+  type!: 'key' | 'credential' | 'code' | 'license' | 'info' | 'custom';
+
+  @ApiProperty({
+    description: 'Label for the item (displayed to customer)',
+    example: 'Activation Key',
+  })
+  @IsString()
+  label!: string;
+
+  @ApiProperty({
+    description: 'Value of the item',
+    example: 'XXXXX-XXXXX-XXXXX-XXXXX',
+  })
+  @IsString()
+  value!: string;
+
+  @ApiPropertyOptional({
+    description: 'Whether this item is sensitive (should be masked by default)',
+    example: false,
+  })
+  @IsOptional()
+  @IsBoolean()
+  sensitive?: boolean;
+}
+
+/**
+ * Complete structured delivery content for an order item
+ */
+export class DeliveryContentDto {
+  @ApiProperty({
+    description: 'Product title',
+    example: 'Game Title - Steam Key',
+  })
+  @IsString()
+  productTitle!: string;
+
+  @ApiProperty({
+    description: 'Delivery type',
+    enum: ['key', 'account', 'code', 'license', 'bundle', 'custom'],
+    example: 'key',
+  })
+  @IsString()
+  deliveryType!: 'key' | 'account' | 'code' | 'license' | 'bundle' | 'custom';
+
+  @ApiPropertyOptional({
+    description: 'Special instructions for using the product',
+    example: 'Redeem on Steam client > Games > Activate a Product',
+  })
+  @IsOptional()
+  @IsString()
+  deliveryInstructions?: string;
+
+  @ApiProperty({
+    description: 'When the item was delivered (ISO date)',
+    example: '2026-02-04T12:00:00Z',
+  })
+  @IsString()
+  deliveredAt!: string;
+
+  @ApiProperty({
+    description: 'Array of delivery items (keys, credentials, etc.)',
+    type: [DeliveryContentItemDto],
+  })
+  @IsArray()
+  items!: DeliveryContentItemDto[];
+
+  @ApiPropertyOptional({
+    description: 'Additional notes for the customer',
+  })
+  @IsOptional()
+  @IsString()
+  notes?: string;
+
+  @ApiPropertyOptional({
+    description: 'Face value for gift cards/codes',
+    example: 50,
+  })
+  @IsOptional()
+  @IsNumber()
+  faceValue?: number;
+
+  @ApiPropertyOptional({
+    description: 'Currency for face value',
+    example: 'USD',
+  })
+  @IsOptional()
+  @IsString()
+  currency?: string;
+
+  @ApiPropertyOptional({
+    description: 'URL for activating the product',
+    example: 'https://store.steampowered.com/account/registerkey',
+  })
+  @IsOptional()
+  @IsString()
+  activationUrl?: string;
+}
 
 /**
  * DTO for delivery link response
@@ -209,6 +326,21 @@ export class RevealedKeyDto {
     },
   })
   accessInfo!: { ipAddress: string; userAgent: string };
+
+  /**
+   * Structured delivery content for custom products
+   *
+   * Present when the delivery contains structured data (accounts, codes, bundles)
+   * instead of a simple key string. When present, `plainKey` will contain
+   * the JSON-stringified version for backward compatibility.
+   */
+  @ApiPropertyOptional({
+    description: 'Structured delivery content for custom products',
+    type: () => DeliveryContentDto,
+  })
+  @ValidateNested()
+  @Type(() => DeliveryContentDto)
+  deliveryContent?: DeliveryContentDto;
 }
 
 /**

@@ -209,6 +209,28 @@ export class MockR2StorageClient {
   }
 
   /**
+   * Mock: Fetch JSON content from arbitrary path
+   *
+   * @param path Full path to the file
+   * @returns Parsed JSON object or throws if not found
+   */
+  // eslint-disable-next-line @typescript-eslint/require-await
+  async fetchFromPath(path: string): Promise<Record<string, unknown>> {
+    if (path === '' || path === null || path === undefined) {
+      throw new Error('Invalid path: must be a non-empty string');
+    }
+
+    const stored = this.storage.get(path);
+    if (stored === undefined || stored === null) {
+      throw new Error(`R2 fetch failed: Key not found at path: ${path}`);
+    }
+
+    const bodyString = stored.key.toString('utf-8');
+    console.warn(`[MockR2] fetchFromPath(${path}): found`);
+    return JSON.parse(bodyString) as Record<string, unknown>;
+  }
+
+  /**
    * Mock: Verify key exists for order
    *
    * @param orderId Order ID

@@ -72,6 +72,12 @@ export interface AdminProductResponseDto {
      */
     sourceType: AdminProductResponseDtoSourceTypeEnum;
     /**
+     * Type of digital delivery content
+     * @type {string}
+     * @memberof AdminProductResponseDto
+     */
+    deliveryType: AdminProductResponseDtoDeliveryTypeEnum;
+    /**
      * Kinguin offer ID (present when sourceType is kinguin)
      * @type {string}
      * @memberof AdminProductResponseDto
@@ -380,6 +386,19 @@ export type AdminProductResponseDtoSourceTypeEnum = typeof AdminProductResponseD
 /**
  * @export
  */
+export const AdminProductResponseDtoDeliveryTypeEnum = {
+    Key: 'key',
+    Account: 'account',
+    Code: 'code',
+    License: 'license',
+    Bundle: 'bundle',
+    Custom: 'custom'
+} as const;
+export type AdminProductResponseDtoDeliveryTypeEnum = typeof AdminProductResponseDtoDeliveryTypeEnum[keyof typeof AdminProductResponseDtoDeliveryTypeEnum];
+
+/**
+ * @export
+ */
 export const AdminProductResponseDtoBusinessCategoryEnum = {
     Games: 'games',
     Software: 'software',
@@ -394,6 +413,7 @@ export type AdminProductResponseDtoBusinessCategoryEnum = typeof AdminProductRes
 export function instanceOfAdminProductResponseDto(value: object): value is AdminProductResponseDto {
     if (!('id' in value) || value['id'] === undefined) return false;
     if (!('sourceType' in value) || value['sourceType'] === undefined) return false;
+    if (!('deliveryType' in value) || value['deliveryType'] === undefined) return false;
     if (!('slug' in value) || value['slug'] === undefined) return false;
     if (!('title' in value) || value['title'] === undefined) return false;
     if (!('name' in value) || value['name'] === undefined) return false;
@@ -425,6 +445,7 @@ export function AdminProductResponseDtoFromJSONTyped(json: any, ignoreDiscrimina
         'kinguinId': json['kinguinId'] == null ? undefined : json['kinguinId'],
         'kinguinProductId': json['kinguinProductId'] == null ? undefined : json['kinguinProductId'],
         'sourceType': json['sourceType'],
+        'deliveryType': json['deliveryType'],
         'kinguinOfferId': json['kinguinOfferId'] == null ? undefined : json['kinguinOfferId'],
         'slug': json['slug'],
         'title': json['title'],
@@ -493,6 +514,7 @@ export function AdminProductResponseDtoToJSONTyped(value?: AdminProductResponseD
         'kinguinId': value['kinguinId'],
         'kinguinProductId': value['kinguinProductId'],
         'sourceType': value['sourceType'],
+        'deliveryType': value['deliveryType'],
         'kinguinOfferId': value['kinguinOfferId'],
         'slug': value['slug'],
         'title': value['title'],

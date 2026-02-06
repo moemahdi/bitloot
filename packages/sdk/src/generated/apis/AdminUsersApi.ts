@@ -17,11 +17,9 @@ import * as runtime from '../runtime';
 import type {
   AdminUserDetailDto,
   AdminUserStatsDto,
-  AdminUsersControllerCreateUser201Response,
   AdminUsersControllerDeleteUser200Response,
   AdminUsersControllerForceLogout200Response,
   ChangeUserRoleDto,
-  CreateAdminUserDto,
   PaginatedAdminUsersDto,
   PaginatedUserActivityDto,
   PaginatedUserOrdersDto,
@@ -37,16 +35,12 @@ import {
     AdminUserDetailDtoToJSON,
     AdminUserStatsDtoFromJSON,
     AdminUserStatsDtoToJSON,
-    AdminUsersControllerCreateUser201ResponseFromJSON,
-    AdminUsersControllerCreateUser201ResponseToJSON,
     AdminUsersControllerDeleteUser200ResponseFromJSON,
     AdminUsersControllerDeleteUser200ResponseToJSON,
     AdminUsersControllerForceLogout200ResponseFromJSON,
     AdminUsersControllerForceLogout200ResponseToJSON,
     ChangeUserRoleDtoFromJSON,
     ChangeUserRoleDtoToJSON,
-    CreateAdminUserDtoFromJSON,
-    CreateAdminUserDtoToJSON,
     PaginatedAdminUsersDtoFromJSON,
     PaginatedAdminUsersDtoToJSON,
     PaginatedUserActivityDtoFromJSON,
@@ -70,10 +64,6 @@ import {
 export interface AdminUsersControllerChangeRoleRequest {
     id: string;
     changeUserRoleDto: ChangeUserRoleDto;
-}
-
-export interface AdminUsersControllerCreateUserRequest {
-    createAdminUserDto: CreateAdminUserDto;
 }
 
 export interface AdminUsersControllerDeleteUserRequest {
@@ -142,10 +132,6 @@ export interface AdminUsersControllerListUsersRequest {
     emailConfirmed?: boolean;
     sortBy?: AdminUsersControllerListUsersSortByEnum;
     sortOrder?: AdminUsersControllerListUsersSortOrderEnum;
-}
-
-export interface AdminUsersControllerResetPasswordRequest {
-    id: string;
 }
 
 export interface AdminUsersControllerRestoreUserRequest {
@@ -228,53 +214,6 @@ export class AdminUsersApi extends runtime.BaseAPI {
      */
     async adminUsersControllerChangeRole(requestParameters: AdminUsersControllerChangeRoleRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<AdminUserDetailDto> {
         const response = await this.adminUsersControllerChangeRoleRaw(requestParameters, initOverrides);
-        return await response.value();
-    }
-
-    /**
-     * Create a new user
-     */
-    async adminUsersControllerCreateUserRaw(requestParameters: AdminUsersControllerCreateUserRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<AdminUsersControllerCreateUser201Response>> {
-        if (requestParameters['createAdminUserDto'] == null) {
-            throw new runtime.RequiredError(
-                'createAdminUserDto',
-                'Required parameter "createAdminUserDto" was null or undefined when calling adminUsersControllerCreateUser().'
-            );
-        }
-
-        const queryParameters: any = {};
-
-        const headerParameters: runtime.HTTPHeaders = {};
-
-        headerParameters['Content-Type'] = 'application/json';
-
-        if (this.configuration && this.configuration.accessToken) {
-            const token = this.configuration.accessToken;
-            const tokenString = await token("JWT-auth", []);
-
-            if (tokenString) {
-                headerParameters["Authorization"] = `Bearer ${tokenString}`;
-            }
-        }
-
-        let urlPath = `/admin/users`;
-
-        const response = await this.request({
-            path: urlPath,
-            method: 'POST',
-            headers: headerParameters,
-            query: queryParameters,
-            body: CreateAdminUserDtoToJSON(requestParameters['createAdminUserDto']),
-        }, initOverrides);
-
-        return new runtime.JSONApiResponse(response, (jsonValue) => AdminUsersControllerCreateUser201ResponseFromJSON(jsonValue));
-    }
-
-    /**
-     * Create a new user
-     */
-    async adminUsersControllerCreateUser(requestParameters: AdminUsersControllerCreateUserRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<AdminUsersControllerCreateUser201Response> {
-        const response = await this.adminUsersControllerCreateUserRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
@@ -923,51 +862,6 @@ export class AdminUsersApi extends runtime.BaseAPI {
      */
     async adminUsersControllerListUsers(requestParameters: AdminUsersControllerListUsersRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PaginatedAdminUsersDto> {
         const response = await this.adminUsersControllerListUsersRaw(requestParameters, initOverrides);
-        return await response.value();
-    }
-
-    /**
-     * Initiate password reset for user
-     */
-    async adminUsersControllerResetPasswordRaw(requestParameters: AdminUsersControllerResetPasswordRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<AdminUsersControllerDeleteUser200Response>> {
-        if (requestParameters['id'] == null) {
-            throw new runtime.RequiredError(
-                'id',
-                'Required parameter "id" was null or undefined when calling adminUsersControllerResetPassword().'
-            );
-        }
-
-        const queryParameters: any = {};
-
-        const headerParameters: runtime.HTTPHeaders = {};
-
-        if (this.configuration && this.configuration.accessToken) {
-            const token = this.configuration.accessToken;
-            const tokenString = await token("JWT-auth", []);
-
-            if (tokenString) {
-                headerParameters["Authorization"] = `Bearer ${tokenString}`;
-            }
-        }
-
-        let urlPath = `/admin/users/{id}/reset-password`;
-        urlPath = urlPath.replace(`{${"id"}}`, encodeURIComponent(String(requestParameters['id'])));
-
-        const response = await this.request({
-            path: urlPath,
-            method: 'POST',
-            headers: headerParameters,
-            query: queryParameters,
-        }, initOverrides);
-
-        return new runtime.JSONApiResponse(response, (jsonValue) => AdminUsersControllerDeleteUser200ResponseFromJSON(jsonValue));
-    }
-
-    /**
-     * Initiate password reset for user
-     */
-    async adminUsersControllerResetPassword(requestParameters: AdminUsersControllerResetPasswordRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<AdminUsersControllerDeleteUser200Response> {
-        const response = await this.adminUsersControllerResetPasswordRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

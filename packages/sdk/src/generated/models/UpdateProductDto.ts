@@ -26,6 +26,12 @@ export interface UpdateProductDto {
      */
     sourceType?: UpdateProductDtoSourceTypeEnum;
     /**
+     * Type of digital delivery content
+     * @type {string}
+     * @memberof UpdateProductDto
+     */
+    deliveryType?: UpdateProductDtoDeliveryTypeEnum;
+    /**
      * Kinguin offer ID (required when sourceType is kinguin)
      * @type {string}
      * @memberof UpdateProductDto
@@ -136,6 +142,19 @@ export type UpdateProductDtoSourceTypeEnum = typeof UpdateProductDtoSourceTypeEn
 /**
  * @export
  */
+export const UpdateProductDtoDeliveryTypeEnum = {
+    Key: 'key',
+    Account: 'account',
+    Code: 'code',
+    License: 'license',
+    Bundle: 'bundle',
+    Custom: 'custom'
+} as const;
+export type UpdateProductDtoDeliveryTypeEnum = typeof UpdateProductDtoDeliveryTypeEnum[keyof typeof UpdateProductDtoDeliveryTypeEnum];
+
+/**
+ * @export
+ */
 export const UpdateProductDtoBusinessCategoryEnum = {
     Games: 'games',
     Software: 'software',
@@ -162,6 +181,7 @@ export function UpdateProductDtoFromJSONTyped(json: any, ignoreDiscriminator: bo
     return {
         
         'sourceType': json['sourceType'] == null ? undefined : json['sourceType'],
+        'deliveryType': json['deliveryType'] == null ? undefined : json['deliveryType'],
         'kinguinOfferId': json['kinguinOfferId'] == null ? undefined : json['kinguinOfferId'],
         'title': json['title'] == null ? undefined : json['title'],
         'subtitle': json['subtitle'] == null ? undefined : json['subtitle'],
@@ -193,6 +213,7 @@ export function UpdateProductDtoToJSONTyped(value?: UpdateProductDto | null, ign
     return {
         
         'sourceType': value['sourceType'],
+        'deliveryType': value['deliveryType'],
         'kinguinOfferId': value['kinguinOfferId'],
         'title': value['title'],
         'subtitle': value['subtitle'],

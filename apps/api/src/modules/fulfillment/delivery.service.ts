@@ -6,6 +6,7 @@ import { OrderItem } from '../orders/order-item.entity';
 import { Key } from '../orders/key.entity';
 import { R2StorageClient } from '../storage/r2.client';
 import { decryptKey } from '../storage/encryption.util';
+import type { DeliveryContent } from '../catalog/types/product-delivery.types';
 
 /**
  * Delivery Integration Service
@@ -263,6 +264,31 @@ export class DeliveryService {
         });
 
         this.logger.debug(`[DELIVERY] Raw key fetched successfully (base64: ${isBase64})`);
+      } else if (keyEntity.encryptionKey.startsWith('inventory:')) {
+        // ===== INVENTORY ITEM (Custom products from inventory system) =====
+        this.logger.debug(`[DELIVERY] Detected inventory item key, using storageRef: ${keyEntity.storageRef}`);
+        contentType = 'application/json';
+
+        // Fetch delivery content from R2 using the storageRef path
+        if (keyEntity.storageRef === undefined || keyEntity.storageRef === null || keyEntity.storageRef === '') {
+          throw new Error(`Storage reference not found for inventory item: ${itemId}`);
+        }
+
+        try {
+          const response = await this.r2StorageClient.fetchFromPath(keyEntity.storageRef);
+          plainKey = JSON.stringify(response);
+          this.logger.debug(`[DELIVERY] Inventory delivery content fetched from ${keyEntity.storageRef}`);
+        } catch (fetchError) {
+          const message = fetchError instanceof Error ? fetchError.message : String(fetchError);
+          this.logger.error(`[DELIVERY] Failed to fetch inventory key from R2: ${message}`);
+          throw new Error(`Failed to retrieve delivery content: ${message}`);
+        }
+
+        // Generate a fresh signed URL for the delivery content (3 hours)
+        signedUrl = await this.r2StorageClient.generateSignedUrlForPath({
+          path: keyEntity.storageRef,
+          expiresInSeconds: 3 * 60 * 60, // 3 hours
+        });
       } else {
         // ===== ENCRYPTED KEY (Legacy format) =====
         this.logger.debug(`[DELIVERY] Detected encrypted key, using decryption flow`);
@@ -320,6 +346,18 @@ export class DeliveryService {
         `✅ [DELIVERY] Key revealed for order ${orderId}, item ${itemId} from ${accessInfo.ipAddress} (type: ${contentType}, raw: ${keyEntity.encryptionKey.startsWith('raw:')})`,
       );
 
+      // Parse structured delivery content for JSON content type
+      let deliveryContent: DeliveryContent | undefined;
+      if (contentType === 'application/json') {
+        try {
+          deliveryContent = JSON.parse(plainKey) as DeliveryContent;
+          this.logger.debug(`[DELIVERY] Parsed structured delivery content: ${deliveryContent.deliveryType}`);
+        } catch (parseError) {
+          this.logger.warn(`[DELIVERY] Failed to parse JSON delivery content: ${parseError instanceof Error ? parseError.message : String(parseError)}`);
+          // Continue without structured content - plainKey still has the raw JSON
+        }
+      }
+
       return {
         orderId,
         itemId,
@@ -327,6 +365,7 @@ export class DeliveryService {
         contentType,
         isBase64,
         signedUrl,
+        deliveryContent,
         revealedAt,
         expiresAt,
         downloadCount: keyEntity.downloadCount,
@@ -529,6 +568,7 @@ export interface RevealedKeyResult {
   /**
    * For text keys: the actual key content
    * For image keys: base64-encoded image data (when isBase64 is true)
+   * For JSON delivery content: JSON-stringified delivery data
    * May be empty if signedUrl is provided for direct download
    */
   plainKey: string;
@@ -538,6 +578,7 @@ export interface RevealedKeyResult {
    * - 'image/jpeg' - JPEG image (plainKey contains base64 image)
    * - 'image/png' - PNG image (plainKey contains base64 image)
    * - 'image/gif' - GIF image (plainKey contains base64 image)
+   * - 'application/json' - Structured delivery content
    */
   contentType: string;
   /**
@@ -549,6 +590,12 @@ export interface RevealedKeyResult {
    * When provided, clients can use this for direct file download
    */
   signedUrl?: string;
+  /**
+   * Structured delivery content for custom products
+   * Present when contentType is 'application/json'
+   * Contains parsed delivery data (accounts, codes, bundles, etc.)
+   */
+  deliveryContent?: DeliveryContent;
   revealedAt: Date;
   expiresAt: Date;
   downloadCount: number;

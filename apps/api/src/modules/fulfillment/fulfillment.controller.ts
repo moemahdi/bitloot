@@ -242,6 +242,7 @@ export class FulfillmentController {
         expiresAt: revealed.expiresAt,
         downloadCount: revealed.downloadCount,
         accessInfo: revealed.accessInfo,
+        deliveryContent: revealed.deliveryContent,
       };
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to reveal key';
@@ -296,6 +297,7 @@ export class FulfillmentController {
         expiresAt: revealed.expiresAt,
         downloadCount: revealed.downloadCount,
         accessInfo: revealed.accessInfo,
+        deliveryContent: revealed.deliveryContent,
       };
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to reveal key';

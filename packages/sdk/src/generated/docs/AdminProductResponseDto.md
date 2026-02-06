@@ -11,6 +11,7 @@ Name | Type
 `kinguinId` | number
 `kinguinProductId` | string
 `sourceType` | string
+`deliveryType` | string
 `kinguinOfferId` | string
 `slug` | string
 `title` | string
@@ -73,6 +74,7 @@ const example = {
   "kinguinId": 20443,
   "kinguinProductId": 5c9b5e6b-89f6-4b3d-8f4e-abcdef123456,
   "sourceType": custom,
+  "deliveryType": key,
   "kinguinOfferId": 5c9b5e6b-89f6-4b3d-8f4e-abcdef123456,
   "slug": null,
   "title": null,

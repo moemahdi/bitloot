@@ -14,6 +14,7 @@ Name | Type
 `expiresAt` | Date
 `downloadCount` | number
 `accessInfo` | object
+`deliveryContent` | [DeliveryContentDto](DeliveryContentDto.md)
 
 ## Example
 
@@ -30,6 +31,7 @@ const example = {
   "expiresAt": 2025-11-08T14:15Z,
   "downloadCount": 1,
   "accessInfo": {"ipAddress":"192.168.1.100","userAgent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64)"},
+  "deliveryContent": null,
 } satisfies RevealedKeyDto
 
 console.log(example)

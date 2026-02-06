@@ -26,6 +26,12 @@ export interface CreateProductDto {
      */
     sourceType: CreateProductDtoSourceTypeEnum;
     /**
+     * Type of digital delivery content
+     * @type {string}
+     * @memberof CreateProductDto
+     */
+    deliveryType: CreateProductDtoDeliveryTypeEnum;
+    /**
      * Kinguin offer ID (required when sourceType is kinguin)
      * @type {string}
      * @memberof CreateProductDto
@@ -130,6 +136,19 @@ export type CreateProductDtoSourceTypeEnum = typeof CreateProductDtoSourceTypeEn
 /**
  * @export
  */
+export const CreateProductDtoDeliveryTypeEnum = {
+    Key: 'key',
+    Account: 'account',
+    Code: 'code',
+    License: 'license',
+    Bundle: 'bundle',
+    Custom: 'custom'
+} as const;
+export type CreateProductDtoDeliveryTypeEnum = typeof CreateProductDtoDeliveryTypeEnum[keyof typeof CreateProductDtoDeliveryTypeEnum];
+
+/**
+ * @export
+ */
 export const CreateProductDtoBusinessCategoryEnum = {
     Games: 'games',
     Software: 'software',
@@ -143,6 +162,7 @@ export type CreateProductDtoBusinessCategoryEnum = typeof CreateProductDtoBusine
  */
 export function instanceOfCreateProductDto(value: object): value is CreateProductDto {
     if (!('sourceType' in value) || value['sourceType'] === undefined) return false;
+    if (!('deliveryType' in value) || value['deliveryType'] === undefined) return false;
     if (!('title' in value) || value['title'] === undefined) return false;
     if (!('businessCategory' in value) || value['businessCategory'] === undefined) return false;
     if (!('isFeatured' in value) || value['isFeatured'] === undefined) return false;
@@ -164,6 +184,7 @@ export function CreateProductDtoFromJSONTyped(json: any, ignoreDiscriminator: bo
     return {
         
         'sourceType': json['sourceType'],
+        'deliveryType': json['deliveryType'],
         'kinguinOfferId': json['kinguinOfferId'] == null ? undefined : json['kinguinOfferId'],
         'title': json['title'],
         'subtitle': json['subtitle'] == null ? undefined : json['subtitle'],
@@ -194,6 +215,7 @@ export function CreateProductDtoToJSONTyped(value?: CreateProductDto | null, ign
     return {
         
         'sourceType': value['sourceType'],
+        'deliveryType': value['deliveryType'],
         'kinguinOfferId': value['kinguinOfferId'],
         'title': value['title'],
         'subtitle': value['subtitle'],
