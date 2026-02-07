@@ -5,6 +5,10 @@ import '@/design-system/styles/globals.css';
 import { Providers } from '../lib/providers';
 import { OrganizationSchema, WebsiteSchema, OnlineStoreSchema } from '@/components/seo';
 
+// Force dynamic rendering for all pages - Providers use React context
+// which fails during static prerendering on Railway
+export const dynamic = 'force-dynamic';
+
 const inter = Inter({
   subsets: ['latin'],
   variable: '--font-sans',
