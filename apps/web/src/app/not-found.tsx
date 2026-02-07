@@ -1,7 +1,5 @@
-// Server component — not-found.tsx is prerendered and cannot use hooks
-// Using minimal dependencies to avoid useContext errors during build
-
-import Link from 'next/link';
+// Server component — not-found.tsx is prerendered and cannot use hooks or context
+// Using only native HTML elements to avoid any React context dependencies
 
 export default function NotFound(): React.ReactElement {
   return (
@@ -117,7 +115,7 @@ export default function NotFound(): React.ReactElement {
 
           {/* Buttons */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-            <Link
+            <a
               href="/catalog"
               style={{
                 display: 'inline-flex',
@@ -136,8 +134,8 @@ export default function NotFound(): React.ReactElement {
               }}
             >
               🔍 Browse Catalog
-            </Link>
-            <Link
+            </a>
+            <a
               href="/"
               style={{
                 display: 'inline-flex',
@@ -156,7 +154,7 @@ export default function NotFound(): React.ReactElement {
               }}
             >
               🏠 Back to Home
-            </Link>
+            </a>
           </div>
         </div>
 
