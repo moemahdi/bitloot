@@ -46,7 +46,7 @@ import { AddKeyAuditFields1768200000000 } from './migrations/1768200000000-AddKe
 import { CreateMarketingSections1768300000000 } from './migrations/1768300000000-CreateMarketingSections';
 import { AddFlashDealDisplayType1768400000000 } from './migrations/1768400000000-AddFlashDealDisplayType';
 import { AddBundleDealColumns1768600000000 } from './migrations/1768600000000-AddBundleDealColumns';
-import { AddBundleProductDiscountPercent1737052800000 } from './migrations/1737052800000-AddBundleProductDiscountPercent';
+import { AddBundleProductDiscountPercent1768700000000 } from './migrations/1768700000000-AddBundleProductDiscountPercent';
 import { FlashDeal } from '../modules/marketing/entities/flash-deal.entity';
 import { FlashDealProduct } from '../modules/marketing/entities/flash-deal-product.entity';
 import { BundleDeal } from '../modules/marketing/entities/bundle-deal.entity';
@@ -103,7 +103,7 @@ export default new DataSource({
     CreateMarketingSections1768300000000,
     AddFlashDealDisplayType1768400000000,
     AddBundleDealColumns1768600000000,
-    AddBundleProductDiscountPercent1737052800000,
+    AddBundleProductDiscountPercent1768700000000,
     CreatePromoCodes1769000000000,
     AddPromoFieldsToOrders1769100000000,
     AddProductFeaturedSections1769200000000,

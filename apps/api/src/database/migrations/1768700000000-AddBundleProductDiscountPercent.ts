@@ -1,7 +1,7 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-export class AddBundleProductDiscountPercent1737052800000 implements MigrationInterface {
-  name = 'AddBundleProductDiscountPercent1737052800000';
+export class AddBundleProductDiscountPercent1768700000000 implements MigrationInterface {
+  name = 'AddBundleProductDiscountPercent1768700000000';
 
   public async up(queryRunner: QueryRunner): Promise<void> {
     // Add discount_percent column to bundle_products table
