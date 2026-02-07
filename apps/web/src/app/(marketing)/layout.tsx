@@ -3,6 +3,9 @@ import { Footer } from '@/components/layout/Footer';
 import { RecommendedSection } from '@/components/layout/RecommendedSection';
 import { FAQSchema } from '@/components/seo';
 
+// Force dynamic rendering — child pages use client hooks (useAuth, useRouter)
+export const dynamic = 'force-dynamic';
+
 // FAQ items for structured data (mirrored from homepage)
 const FAQ_ITEMS_FOR_SCHEMA = [
   {

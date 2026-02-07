@@ -1,7 +1,8 @@
-'use client';
-
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
+
+// Force dynamic rendering — child pages use useAuth and other client hooks
+export const dynamic = 'force-dynamic';
 
 /**
  * Dashboard Layout - Header + Footer
