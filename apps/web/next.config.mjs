@@ -3,6 +3,10 @@ const nextConfig = {
   // Disable React Compiler for now - causes prerender issues on Railway
   // reactCompiler: true,
   output: 'standalone',
+  eslint: {
+    // Ignore ESLint during builds - lint is run separately in CI
+    ignoreDuringBuilds: true,
+  },
   images: {
     remotePatterns: [
       // ============================================
