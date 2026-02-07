@@ -1,9 +1,7 @@
 'use client';
 
-import { useEffect } from 'react';
-
-// Prevent static prerendering — global-error needs browser context
-export const dynamic = 'force-dynamic';
+// Global error boundary - must be a pure render without hooks
+// This file is prerendered by Next.js and cannot use useEffect/useState/useContext
 
 export default function GlobalError({
   error,
@@ -12,9 +10,10 @@ export default function GlobalError({
   error: Error & { digest?: string };
   reset: () => void;
 }): React.ReactElement {
-  useEffect(() => {
-    console.error(error);
-  }, [error]);
+  // Log error to console directly (not in useEffect to avoid prerender issues)
+  if (typeof window !== 'undefined') {
+    console.error('Global error:', error);
+  }
 
   return (
     <html lang="en">
