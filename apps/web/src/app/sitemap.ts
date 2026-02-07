@@ -1,5 +1,8 @@
 import type { MetadataRoute } from 'next';
 
+// Generate sitemap at runtime only (not during build)
+export const dynamic = 'force-dynamic';
+
 /**
  * Dynamic sitemap generation for BitLoot
  * 
