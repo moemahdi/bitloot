@@ -59,7 +59,6 @@ import { AddPromoFieldsToOrders1769100000000 } from './migrations/1769100000000-
 import { AddProductFeaturedSections1769200000000 } from './migrations/1769200000000-AddProductFeaturedSections';
 import { FeatureFlag } from './entities/feature-flag.entity';
 import { CreateFeatureFlagsAndConfig1769300000000 } from './migrations/1769300000000-CreateFeatureFlagsAndConfig';
-import { RemoveSystemConfigs1769400000000 } from './migrations/1769400000000-RemoveSystemConfigs';
 import { AddBusinessCategory1770000000000 } from './migrations/1770000000000-AddBusinessCategory';
 import { NormalizePlatformNames1780000000000 } from './migrations/1780000000000-NormalizePlatformNames';
 import { AddCostRangeToPricingRules1780100000000 } from './migrations/1780100000000-AddCostRangeToPricingRules';
@@ -108,7 +107,6 @@ export default new DataSource({
     AddPromoFieldsToOrders1769100000000,
     AddProductFeaturedSections1769200000000,
     CreateFeatureFlagsAndConfig1769300000000,
-    RemoveSystemConfigs1769400000000,
     AddBusinessCategory1770000000000,
     NormalizePlatformNames1780000000000,
     AddCostRangeToPricingRules1780100000000,
