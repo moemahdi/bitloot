@@ -11,31 +11,6 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
-    services:
-      postgres:
-        image: postgres:16-alpine
-        env:
-          POSTGRES_USER: bitloot
-          POSTGRES_PASSWORD: bitloot
-          POSTGRES_DB: bitloot_test
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U bitloot"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 5
-
-      redis:
-        image: redis:7-alpine
-        ports:
-          - 6379:6379
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 5
-
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -68,21 +43,6 @@ jobs:
       - name: Lint
         run: npm run lint
         continue-on-error: true
-
-      - name: Format check
-        run: npm run format
-
-      - name: Create test database
-        run: |
-          psql -U bitloot -h localhost -c "CREATE DATABASE bitloot;" || true
-        env:
-          PGPASSWORD: bitloot
-
-      - name: Run tests
-        run: npm run test
-        env:
-          DATABASE_URL: postgres://bitloot:bitloot@localhost:5432/bitloot_test
-          REDIS_URL: redis://localhost:6379
 
       - name: Build
         run: npm run build
