@@ -38,6 +38,9 @@ export default tseslint.config(
       'src/design-system/primitives/**',
       'src/design-system/hooks/**',
       'src/design-system/lib/**',
+      // Error boundary pages - require <a> tags for safety when React fails
+      'src/app/not-found.tsx',
+      'src/app/global-error.tsx',
     ],
   },
 
