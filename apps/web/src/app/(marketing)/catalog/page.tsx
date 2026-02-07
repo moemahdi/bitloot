@@ -32,7 +32,7 @@ import {
 } from '@/features/catalog/components';
 import { PLATFORMS, REGIONS, GENRES } from '@/features/catalog/types';
 import type { FilterPreset, CatalogProduct } from '@/features/catalog/types';
-import { CatalogGroupsApi, Configuration, type ProductGroupResponseDto } from '@bitloot/sdk';
+import { CatalogGroupsApi, Configuration, type ProductGroupResponseDto, type WatchlistItemResponseDto } from '@bitloot/sdk';
 
 export default function CatalogPage(): React.ReactElement {
   const router = useRouter();
@@ -87,7 +87,7 @@ export default function CatalogPage(): React.ReactElement {
   // Populate wishlistIds from API when watchlist data loads
   useEffect(() => {
     if (watchlistData?.data !== undefined) {
-      const ids = new Set(watchlistData.data.map((item) => item.product.id));
+      const ids = new Set(watchlistData.data.map((item: WatchlistItemResponseDto) => item.product.id));
       setWishlistIds(ids);
     }
   }, [watchlistData]);

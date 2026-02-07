@@ -784,7 +784,7 @@ export default function ProfilePage(): React.ReactElement {
           order.id.slice(-8).toLowerCase().includes(query);
         
         // Match product titles in order items
-        const matchesProductTitle = order.items?.some((item) => 
+        const matchesProductTitle = order.items?.some((item: OrderItemResponseDto) => 
           item.productTitle?.toLowerCase().includes(query)
         ) ?? false;
         
@@ -857,7 +857,7 @@ export default function ProfilePage(): React.ReactElement {
       // Check if recovery was successful
       if (response.recovered) {
         // Count successful recoveries
-        const successfulItems = response.items.filter(item => item.signedUrl !== null).length;
+        const successfulItems = response.items.filter((item) => item.signedUrl !== null).length;
         const totalItems = response.items.length;
         
         if (successfulItems === totalItems) {
@@ -1378,7 +1378,7 @@ export default function ProfilePage(): React.ReactElement {
                     {allOrders.slice(0, 5).map((order: OrderResponseDto, index: number) => {
                       // Extract order items info
                       const items = order.items ?? [];
-                      const totalItems = items.reduce((sum, item) => sum + (item.quantity ?? 1), 0);
+                      const totalItems = items.reduce((sum: number, item: OrderItemResponseDto) => sum + (item.quantity ?? 1), 0);
                       const firstItem = items[0];
                       const hasMultipleItems = items.length > 1;
                       
@@ -1841,7 +1841,7 @@ export default function ProfilePage(): React.ReactElement {
                                   <div className="mt-3 pt-3 border-t border-cyan-glow/20">
                                     <h4 className="text-sm font-medium text-text-secondary mb-2">Items in this order:</h4>
                                     <div className="space-y-2">
-                                      {order.items.map((item: OrderItemResponseDto, idx) => (
+                                      {order.items.map((item: OrderItemResponseDto, idx: number) => (
                                         <div key={item.id} className="flex items-center gap-2 text-sm">
                                           <div className="h-6 w-6 rounded bg-cyan-glow/20 flex items-center justify-center text-xs text-cyan-glow font-bold">{idx + 1}</div>
                                           <span className="text-text-primary">{item.productTitle ?? 'Digital Product'}</span>
@@ -1860,7 +1860,7 @@ export default function ProfilePage(): React.ReactElement {
                                     Order Items
                                   </h4>
                                   <div className="space-y-2">
-                                    {order.items.map((item: OrderItemResponseDto, itemIndex) => (
+                                    {order.items.map((item: OrderItemResponseDto, itemIndex: number) => (
                                       <div
                                         key={item.id}
                                         className="flex items-center justify-between p-3 rounded-lg bg-bg-primary/50 border border-border-subtle"
