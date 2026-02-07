@@ -33,7 +33,7 @@ export class RefactorProductPrice1763647677731 implements MigrationInterface {
         await queryRunner.query(`CREATE TABLE "product_offers" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "productId" uuid NOT NULL, "provider" character varying(30) NOT NULL, "providerSku" character varying(100) NOT NULL, "stock" integer, "costMinor" bigint NOT NULL, "currency" character(3) NOT NULL, "isActive" boolean NOT NULL DEFAULT true, "lastSeenAt" TIMESTAMP NOT NULL DEFAULT now(), CONSTRAINT "PK_5acf99c4c02b2a7129c80278971" PRIMARY KEY ("id"))`);
         await queryRunner.query(`CREATE UNIQUE INDEX IF NOT EXISTS "IDX_4b6427e4ef8acb2e39c797c170" ON "product_offers" ("provider", "providerSku") `);
         await queryRunner.query(`CREATE INDEX IF NOT EXISTS "IDX_2014aa7948a514d4e967d1c1c6" ON "product_offers" ("productId", "isActive", "costMinor") `);
-        await queryRunner.query(`CREATE TYPE "public"."dynamic_pricing_rules_rule_type_enum" AS ENUM('margin_percent', 'fixed_markup', 'floor_cap', 'dynamic_adjust')`);
+        await queryRunner.query(`DO $$ BEGIN CREATE TYPE "public"."dynamic_pricing_rules_rule_type_enum" AS ENUM('margin_percent', 'fixed_markup', 'floor_cap', 'dynamic_adjust'); EXCEPTION WHEN duplicate_object THEN null; END $$;`);
         await queryRunner.query(`CREATE TABLE "dynamic_pricing_rules" ("id" uuid NOT NULL DEFAULT uuid_generate_v4(), "productId" uuid NOT NULL, "rule_type" "public"."dynamic_pricing_rules_rule_type_enum" NOT NULL, "marginPercent" numeric(5,2), "fixedMarkupMinor" bigint, "floorMinor" bigint, "capMinor" bigint, "priority" integer NOT NULL DEFAULT '0', "isActive" boolean NOT NULL DEFAULT true, "createdAt" TIMESTAMP NOT NULL DEFAULT now(), "updatedAt" TIMESTAMP NOT NULL DEFAULT now(), CONSTRAINT "PK_e29278876ae21cd70285a7edb15" PRIMARY KEY ("id"))`);
         await queryRunner.query(`CREATE INDEX IF NOT EXISTS "IDX_1ad8fa39b15d035f6861032258" ON "dynamic_pricing_rules" ("rule_type", "createdAt") `);
         await queryRunner.query(`CREATE INDEX IF NOT EXISTS "IDX_bd617fb4f443059204ccc4bf35" ON "dynamic_pricing_rules" ("productId", "priority", "isActive") `);
@@ -80,9 +80,16 @@ export class RefactorProductPrice1763647677731 implements MigrationInterface {
         await queryRunner.query(`ALTER TABLE "orders" ADD "status" character varying(20) NOT NULL DEFAULT 'created'`);
         await queryRunner.query(`COMMENT ON COLUMN "orders"."kinguinReservationId" IS NULL`);
         await queryRunner.query(`ALTER TABLE "audit_logs" ALTER COLUMN "createdAt" SET DEFAULT now()`);
-        await queryRunner.query(`ALTER TABLE "email_bounces" DROP COLUMN "type"`);
-        await queryRunner.query(`CREATE TYPE "public"."email_bounces_type_enum" AS ENUM('hard', 'soft', 'complaint')`);
-        await queryRunner.query(`ALTER TABLE "email_bounces" ADD "type" "public"."email_bounces_type_enum" NOT NULL`);
+        // Safely handle email_bounces type column
+        const typeColumnResult = await queryRunner.query(`
+          SELECT data_type FROM information_schema.columns 
+          WHERE table_name = 'email_bounces' AND column_name = 'type'
+        `);
+        if (typeColumnResult.length === 0 || typeColumnResult[0].data_type !== 'USER-DEFINED') {
+          await queryRunner.query(`ALTER TABLE "email_bounces" DROP COLUMN IF EXISTS "type"`);
+          await queryRunner.query(`DO $$ BEGIN CREATE TYPE "public"."email_bounces_type_enum" AS ENUM('hard', 'soft', 'complaint'); EXCEPTION WHEN duplicate_object THEN null; END $$;`);
+          await queryRunner.query(`ALTER TABLE "email_bounces" ADD "type" "public"."email_bounces_type_enum" NOT NULL DEFAULT 'hard'`);
+        }
         await queryRunner.query(`ALTER TABLE "email_bounces" ALTER COLUMN "bouncedAt" SET DEFAULT now()`);
         await queryRunner.query(`CREATE INDEX IF NOT EXISTS "IDX_5f05cb8b95b8cce77494136d84" ON "keys" ("createdAt") `);
         await queryRunner.query(`CREATE INDEX IF NOT EXISTS "IDX_5620a12090f73a75e95b805a35" ON "keys" ("orderItemId") `);
