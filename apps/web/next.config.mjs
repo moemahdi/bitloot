@@ -1,6 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  reactCompiler: true,
+  // Disable React Compiler for now - causes prerender issues on Railway
+  // reactCompiler: true,
+  output: 'standalone',
   images: {
     remotePatterns: [
       // ============================================
