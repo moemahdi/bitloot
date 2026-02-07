@@ -1,7 +1,7 @@
 import type { MigrationInterface, QueryRunner } from 'typeorm';
 import { Table, TableIndex } from 'typeorm';
 
-export class CreateUsers1735000000000 implements MigrationInterface {
+export class CreateUsers1729000000000 implements MigrationInterface {
   public async up(queryRunner: QueryRunner): Promise<void> {
     // Check if users table already exists (skip if it does)
     const usersTableExists = await queryRunner.hasTable('users');

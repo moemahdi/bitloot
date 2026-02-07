@@ -21,7 +21,7 @@ import { AddKeysReservation1720000000000 } from './migrations/1720000000000-add-
 import { CreatePayments1730000000001 } from './migrations/1730000000001-CreatePayments';
 import { CreateWebhookLogs1730000000002 } from './migrations/1730000000002-CreateWebhookLogs';
 import { UpdateOrdersStatusEnum1730000000003 } from './migrations/1730000000003-UpdateOrdersStatusEnum';
-import { CreateUsers1730000000004 } from './migrations/1730000000004-CreateUsers';
+import { CreateUsers1729000000000 } from './migrations/1729000000000-CreateUsers';
 import { CreateAuditLogs1731700000000 } from './migrations/1731700000000-CreateAuditLogs';
 import { CreateEmailBounces1735604400000 } from './migrations/1735604400000-CreateEmailBounces';
 import { RefactorProductPrice1763647677731 } from './migrations/1763647677731-RefactorProductPrice';
@@ -78,7 +78,7 @@ export default new DataSource({
     CreatePayments1730000000001,
     CreateWebhookLogs1730000000002,
     UpdateOrdersStatusEnum1730000000003,
-    CreateUsers1730000000004,
+    CreateUsers1729000000000,
     CreateAuditLogs1731700000000,
     CreateEmailBounces1735604400000,
     RefactorProductPrice1763647677731,
