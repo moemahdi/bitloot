@@ -59,9 +59,16 @@ export class RefactorProductPrice1763647677731 implements MigrationInterface {
         await queryRunner.query(`ALTER TABLE "payments" ADD "payCurrency" character varying`);
         await queryRunner.query(`ALTER TABLE "users" DROP CONSTRAINT IF EXISTS "users_email_key"`);
         await queryRunner.query(`ALTER TABLE "users" ALTER COLUMN "emailConfirmed" SET NOT NULL`);
-        await queryRunner.query(`ALTER TABLE "users" DROP COLUMN "role"`);
-        await queryRunner.query(`CREATE TYPE "public"."users_role_enum" AS ENUM('user', 'admin')`);
-        await queryRunner.query(`ALTER TABLE "users" ADD "role" "public"."users_role_enum" NOT NULL DEFAULT 'user'`);
+        // Check if role column needs to be recreated with enum type
+        const roleColumnResult = await queryRunner.query(`
+          SELECT data_type FROM information_schema.columns 
+          WHERE table_name = 'users' AND column_name = 'role'
+        `);
+        if (roleColumnResult.length === 0 || roleColumnResult[0].data_type !== 'USER-DEFINED') {
+          await queryRunner.query(`ALTER TABLE "users" DROP COLUMN IF EXISTS "role"`);
+          await queryRunner.query(`DO $$ BEGIN CREATE TYPE "public"."users_role_enum" AS ENUM('user', 'admin'); EXCEPTION WHEN duplicate_object THEN null; END $$;`);
+          await queryRunner.query(`ALTER TABLE "users" ADD "role" "public"."users_role_enum" NOT NULL DEFAULT 'user'`);
+        }
         await queryRunner.query(`ALTER TABLE "users" ALTER COLUMN "createdAt" SET NOT NULL`);
         await queryRunner.query(`ALTER TABLE "users" ALTER COLUMN "createdAt" SET DEFAULT now()`);
         await queryRunner.query(`ALTER TABLE "users" ALTER COLUMN "updatedAt" SET NOT NULL`);
