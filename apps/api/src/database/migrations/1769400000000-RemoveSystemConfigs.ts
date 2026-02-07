@@ -19,27 +19,35 @@ export class RemoveSystemConfigs1769400000000 implements MigrationInterface {
     // Check if table exists before dropping
     const tableExists = await queryRunner.hasTable('system_configs');
     
-    if (tableExists) {
-      // Drop foreign key first
+    if (!tableExists) {
+      // Table was never created - nothing to do
+      console.log('system_configs table does not exist, skipping removal');
+      return;
+    }
+
+    // Drop foreign key first (ignore errors if it doesn't exist)
+    try {
       await queryRunner.query(`
         ALTER TABLE system_configs 
         DROP CONSTRAINT IF EXISTS "FK_system_configs_updatedBy"
       `);
+    } catch { /* ignore */ }
 
-      // Drop indexes
-      await queryRunner.query(`
-        DROP INDEX IF EXISTS "IDX_system_configs_provider_key_env"
-      `);
-      await queryRunner.query(`
-        DROP INDEX IF EXISTS "IDX_system_configs_provider_env"
-      `);
-      await queryRunner.query(`
-        DROP INDEX IF EXISTS "IDX_system_configs_isActive"
-      `);
+    // Drop indexes (ignore errors if they don't exist)
+    try {
+      await queryRunner.query(`DROP INDEX IF EXISTS "IDX_system_configs_provider_key_env"`);
+    } catch { /* ignore */ }
+    try {
+      await queryRunner.query(`DROP INDEX IF EXISTS "IDX_system_configs_provider_env"`);
+    } catch { /* ignore */ }
+    try {
+      await queryRunner.query(`DROP INDEX IF EXISTS "IDX_system_configs_isActive"`);
+    } catch { /* ignore */ }
 
-      // Drop the table
+    // Drop the table
+    try {
       await queryRunner.dropTable('system_configs');
-    }
+    } catch { /* ignore */ }
   }
 
   public async down(queryRunner: QueryRunner): Promise<void> {
