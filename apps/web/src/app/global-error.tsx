@@ -2,6 +2,9 @@
 
 import { useEffect } from 'react';
 
+// Prevent static prerendering — global-error needs browser context
+export const dynamic = 'force-dynamic';
+
 export default function GlobalError({
   error,
   reset,
