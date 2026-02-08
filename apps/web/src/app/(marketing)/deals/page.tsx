@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { LazyMotion, domAnimation, m } from 'framer-motion';
 import { Flame, Clock, Zap, Package, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 
@@ -111,6 +111,7 @@ export default function DealsPage(): React.ReactElement {
     const { maxDiscount } = useMaxDealsDiscount();
 
     return (
+        <LazyMotion features={domAnimation}>
         <main className="min-h-screen bg-bg-primary">
             {/* Hero Section */}
             <section className="relative py-16 sm:py-24 overflow-hidden">
@@ -120,7 +121,7 @@ export default function DealsPage(): React.ReactElement {
                 <div className="absolute top-1/3 right-1/4 w-80 h-80 bg-pink-featured/10 rounded-full blur-3xl" />
 
                 <div className="relative container mx-auto px-4 md:px-6 text-center">
-                    <motion.div
+                    <m.div
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.5 }}
@@ -158,7 +159,7 @@ export default function DealsPage(): React.ReactElement {
                                 <span className="text-sm">Instant Delivery</span>
                             </div>
                         </div>
-                    </motion.div>
+                    </m.div>
                 </div>
             </section>
 
@@ -171,7 +172,7 @@ export default function DealsPage(): React.ReactElement {
             {/* CTA Section */}
             <section className="py-16 sm:py-24 bg-bg-secondary">
                 <div className="container mx-auto px-4 md:px-6 text-center">
-                    <motion.div
+                    <m.div
                         initial={{ opacity: 0, y: 20 }}
                         whileInView={{ opacity: 1, y: 0 }}
                         viewport={{ once: true }}
@@ -190,9 +191,10 @@ export default function DealsPage(): React.ReactElement {
                                 <ArrowRight className="w-5 h-5 ml-2" />
                             </Link>
                         </Button>
-                    </motion.div>
+                    </m.div>
                 </div>
             </section>
         </main>
+        </LazyMotion>
     );
 }
