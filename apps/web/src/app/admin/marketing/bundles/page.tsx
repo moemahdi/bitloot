@@ -242,8 +242,6 @@ async function removeProductFromBundle(bundleId: string, productId: string): Pro
 
 async function searchProducts(query: string): Promise<CatalogProduct[]> {
   const token = getCookie('accessToken');
-  // eslint-disable-next-line no-console
-  console.log('[Bundle Search] Searching for:', query ?? '(empty - loading all)');
   
   // Build URL - search param is optional, will return all products if empty
   const params = new URLSearchParams({ limit: '20' });
@@ -252,8 +250,6 @@ async function searchProducts(query: string): Promise<CatalogProduct[]> {
   }
   
   const url = `${apiConfig.basePath}/admin/catalog/products?${params.toString()}`;
-  // eslint-disable-next-line no-console
-  console.log('[Bundle Search] URL:', url);
   
   try {
     const response = await fetch(url, { 
@@ -262,8 +258,6 @@ async function searchProducts(query: string): Promise<CatalogProduct[]> {
         'Content-Type': 'application/json',
       } 
     });
-    // eslint-disable-next-line no-console
-    console.log('[Bundle Search] Response status:', response.status);
     
     if (!response.ok) {
       const errorText = await response.text();
@@ -272,13 +266,9 @@ async function searchProducts(query: string): Promise<CatalogProduct[]> {
     }
     
     const data = await response.json() as CatalogProduct[] | { products: CatalogProduct[] };
-    // eslint-disable-next-line no-console
-    console.log('[Bundle Search] Response data:', data);
     
     // Handle both array response and paginated response
     const products = Array.isArray(data) ? data : (data.products ?? []);
-    // eslint-disable-next-line no-console
-    console.log('[Bundle Search] Products found:', products.length);
     return products;
   } catch (error) {
     console.error('[Bundle Search] Error:', error);
@@ -682,7 +672,7 @@ export default function AdminBundlesPage(): React.ReactElement {
 
       {/* Create Bundle Dialog */}
       <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="w-[95vw] max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Gift className="h-5 w-5 text-pink-500" />
@@ -762,7 +752,7 @@ export default function AdminBundlesPage(): React.ReactElement {
 
       {/* Edit Bundle Dialog */}
       <Dialog open={editingBundle !== null} onOpenChange={() => setEditingBundle(null)}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="w-[95vw] max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Edit className="h-5 w-5" />
@@ -846,7 +836,7 @@ export default function AdminBundlesPage(): React.ReactElement {
 
       {/* Manage Products Dialog */}
       <Dialog open={managingBundle !== null} onOpenChange={() => setManagingBundle(null)}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
+        <DialogContent className="w-[95vw] max-w-3xl max-h-[90vh] overflow-hidden flex flex-col p-4 sm:p-6">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Package className="h-5 w-5 text-pink-500" />
@@ -926,15 +916,15 @@ export default function AdminBundlesPage(): React.ReactElement {
 
                 {/* Selected Product + Discount */}
                 {selectedProduct !== null && selectedProduct !== undefined && (
-                  <div className="flex items-center gap-3 p-3 bg-muted rounded-lg">
-                    <div className="flex-1">
-                      <p className="font-medium">{selectedProduct.title}</p>
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-3 p-3 bg-muted rounded-lg">
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium truncate">{selectedProduct.title}</p>
                       <p className="text-sm text-muted-foreground">
                         Original: {formatPrice(selectedProduct.price)} → 
                         Discounted: {formatPrice(calcDiscountedPrice(selectedProduct.price, discountInput))}
                       </p>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <div className="flex items-center gap-1">
                         <Input
                           type="number"
@@ -982,9 +972,9 @@ export default function AdminBundlesPage(): React.ReactElement {
             {/* Bundle Products List */}
             <Card className="flex-1 overflow-hidden flex flex-col">
               <CardHeader className="pb-3">
-                <CardTitle className="text-sm font-medium flex items-center justify-between">
+                <CardTitle className="text-sm font-medium flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                   <span>Bundle Items ({managingBundle?.products?.length ?? 0})</span>
-                  <div className="flex items-center gap-4 text-base">
+                  <div className="flex items-center gap-2 sm:gap-4 text-sm sm:text-base flex-wrap">
                     <span className="text-muted-foreground line-through">
                       {formatPrice(bundleTotals.original)}
                     </span>
@@ -1013,37 +1003,39 @@ export default function AdminBundlesPage(): React.ReactElement {
                         return (
                         <div
                           key={bp.id}
-                          className="flex items-center gap-3 p-3 border rounded-lg"
+                          className="flex flex-col sm:flex-row sm:items-center gap-3 p-3 border rounded-lg"
                         >
-                          {hasImage ? (
-                            <div className="relative w-12 h-12 rounded overflow-hidden">
-                              <NextImage
-                                src={bp.product?.coverImageUrl ?? ''}
-                                alt=""
-                                fill
-                                sizes="48px"
-                                className="object-cover"
-                              />
-                            </div>
-                          ) : (
-                            <div className="w-12 h-12 rounded bg-muted flex items-center justify-center">
-                              <Package className="h-6 w-6 text-muted-foreground" />
-                            </div>
-                          )}
-                          <div className="flex-1 min-w-0">
-                            <p className="font-medium truncate">
-                              {bp.product?.title ?? 'Unknown Product'}
-                            </p>
-                            <div className="flex items-center gap-2 text-sm">
-                              <span className="text-muted-foreground line-through">
-                                {formatPrice(bp.product?.price ?? '0')}
-                              </span>
-                              <span className="text-green-600 font-semibold">
-                                {formatPrice(calcDiscountedPrice(bp.product?.price ?? '0', bp.discountPercent))}
-                              </span>
+                          <div className="flex items-center gap-3 flex-1 min-w-0">
+                            {hasImage ? (
+                              <div className="relative w-10 h-10 sm:w-12 sm:h-12 rounded overflow-hidden shrink-0">
+                                <NextImage
+                                  src={bp.product?.coverImageUrl ?? ''}
+                                  alt=""
+                                  fill
+                                  sizes="48px"
+                                  className="object-cover"
+                                />
+                              </div>
+                            ) : (
+                              <div className="w-10 h-10 sm:w-12 sm:h-12 rounded bg-muted flex items-center justify-center shrink-0">
+                                <Package className="h-5 w-5 sm:h-6 sm:w-6 text-muted-foreground" />
+                              </div>
+                            )}
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium truncate text-sm sm:text-base">
+                                {bp.product?.title ?? 'Unknown Product'}
+                              </p>
+                              <div className="flex items-center gap-2 text-xs sm:text-sm">
+                                <span className="text-muted-foreground line-through">
+                                  {formatPrice(bp.product?.price ?? '0')}
+                                </span>
+                                <span className="text-green-600 font-semibold">
+                                  {formatPrice(calcDiscountedPrice(bp.product?.price ?? '0', bp.discountPercent))}
+                                </span>
+                              </div>
                             </div>
                           </div>
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 pl-13 sm:pl-0">
                             <div className="flex items-center gap-1">
                               <Input
                                 type="number"
@@ -1057,13 +1049,13 @@ export default function AdminBundlesPage(): React.ReactElement {
                                     });
                                   }
                                 }}
-                                className="w-16 text-center"
+                                className="w-14 sm:w-16 text-center"
                                 min={0}
                                 max={100}
                               />
                               <Percent className="h-4 w-4 text-muted-foreground" />
                             </div>
-                            <Badge variant="secondary" className="bg-pink-500/10 text-pink-600">
+                            <Badge variant="secondary" className="bg-pink-500/10 text-pink-600 text-xs">
                               -{parseFloat(bp.discountPercent).toFixed(0)}%
                             </Badge>
                             <Button

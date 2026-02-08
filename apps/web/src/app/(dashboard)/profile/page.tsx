@@ -2894,9 +2894,10 @@ export default function ProfilePage(): React.ReactElement {
                   variant="default" 
                   size="sm"
                   className="bg-gradient-to-r from-cyan-glow to-purple-neon hover:opacity-90"
+                  onClick={() => TawkChat.maximize()}
                 >
                   <MessageSquare className="h-4 w-4 mr-2" />
-                  Open Support Ticket
+                  Start Chat
                 </Button>
                 <Button 
                   variant="outline" 
