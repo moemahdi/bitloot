@@ -353,7 +353,7 @@ export function Footer(): React.ReactElement {
                                     <span className="text-xs text-text-secondary font-medium">USDT</span>
                                 </div>
                                 <div className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-bg-secondary border border-border-subtle text-cyan-glow">
-                                    <span className="text-xs font-medium">+300</span>
+                                    <span className="text-xs font-medium">+100</span>
                                 </div>
                             </div>
                         </div>

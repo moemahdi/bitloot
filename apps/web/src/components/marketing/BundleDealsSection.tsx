@@ -292,7 +292,7 @@ export function BundleDealsSection(): React.ReactElement | null {
             className="gap-2 border-pink-500/50 text-pink-400 hover:bg-pink-500/10"
             asChild
           >
-            <Link href="/bundles">
+            <Link href="/deals">
               View All Bundles
               <ChevronRight className="h-4 w-4" />
             </Link>
