@@ -388,7 +388,7 @@ const ALL_FAQS: FAQItemData[] = [
   {
     id: 'support',
     question: 'How can I contact customer support?',
-    answer: 'Our support team is available 24/7 via live chat on the website (click the chat icon in the bottom-right corner) or email at support@bitloot.com. For order-related issues, please have your order ID ready. Most inquiries are resolved within a few hours.',
+    answer: 'Our support team is available 24/7 via live chat on the website (click the chat icon in the bottom-right corner) or email at support@bitloot.io. For order-related issues, please have your order ID ready. Most inquiries are resolved within a few hours.',
     category: 'support',
   },
   {
@@ -923,10 +923,10 @@ export default function HelpCenterPage(): React.ReactElement {
                         </p>
                         <Button
                           className="w-full bg-purple-neon/10 text-purple-neon hover:bg-purple-neon/20 border border-purple-neon/30"
-                          onClick={() => (window.location.href = 'mailto:support@bitloot.com')}
+                          onClick={() => (window.location.href = 'mailto:support@bitloot.io')}
                         >
                           <Mail className="h-4 w-4 mr-2" />
-                          support@bitloot.com
+                          support@bitloot.io
                         </Button>
                       </CardContent>
                     </Card>
@@ -1042,7 +1042,7 @@ export default function HelpCenterPage(): React.ReactElement {
                 <MessageCircle className="h-4 w-4 mr-2" />
                 Start Live Chat
               </Button>
-              <Button variant="outline" className="border-border-subtle hover:border-green-success/50" onClick={() => (window.location.href = 'mailto:support@bitloot.com')}>
+              <Button variant="outline" className="border-border-subtle hover:border-green-success/50" onClick={() => (window.location.href = 'mailto:support@bitloot.io')}>
                 <Mail className="h-4 w-4 mr-2" />
                 Email Us
               </Button>

@@ -2754,7 +2754,7 @@ export default function ProfilePage(): React.ReactElement {
                   variant="outline" 
                   size="sm" 
                   className="border-purple-neon/30 text-purple-neon hover:bg-purple-neon/10"
-                  onClick={() => window.location.href = 'mailto:support@bitloot.com'}
+                  onClick={() => window.location.href = 'mailto:support@bitloot.io'}
                 >
                   Send Email
                 </Button>

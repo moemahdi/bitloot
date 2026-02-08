@@ -75,7 +75,7 @@ export class UserDeletionCleanupService {
                 <hr>
                 <p style="color: #666; font-size: 12px;">
                   This is an automated message. If you did not request this deletion, 
-                  please contact support immediately at support@bitloot.com
+                  please contact support immediately at support@bitloot.io
                 </p>
               `,
             });

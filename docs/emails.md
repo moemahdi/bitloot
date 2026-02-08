@@ -296,7 +296,7 @@ Here are **ALL 12 email types** currently being sent to users in the BitLoot sys
 ```html
 <h2>Email Changed Successfully</h2>
 <p>Your BitLoot account email has been changed to <strong>${pendingEmail}</strong>.</p>
-<p>If you did not make this change, please contact support immediately at support@bitloot.com</p>
+<p>If you did not make this change, please contact support immediately at support@bitloot.io</p>
 <p>This is a security notification - no action is needed if you initiated this change.</p>
 ```
 

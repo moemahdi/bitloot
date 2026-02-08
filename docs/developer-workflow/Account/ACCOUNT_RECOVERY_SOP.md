@@ -12,7 +12,7 @@ User has lost access to their email and cannot receive OTP codes to log in.
 
 ## Recovery Flow
 
-1. **User contacts support** via support@bitloot.com or live chat
+1. **User contacts support** via support@bitloot.io or live chat
 2. **Verify identity** (require 2-3 of the following):
    - Recent order ID(s)
    - Product names from order history

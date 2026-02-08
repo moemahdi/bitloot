@@ -53,8 +53,8 @@ interface WebsiteSearchSchemaProps {
 
 export function OrganizationSchema({
   name = 'BitLoot',
-  url = 'https://bitloot.com',
-  logo = 'https://bitloot.com/logo.png',
+  url = 'https://bitloot.io',
+  logo = 'https://bitloot.io/logo.png',
   description = 'Crypto-powered digital gaming marketplace with instant delivery of game keys and software.',
   sameAs = [],
 }: OrganizationSchemaProps) {
@@ -69,6 +69,7 @@ export function OrganizationSchema({
     contactPoint: {
       '@type': 'ContactPoint',
       contactType: 'customer service',
+      email: 'support@bitloot.io',
       availableLanguage: ['English'],
     },
     potentialAction: {

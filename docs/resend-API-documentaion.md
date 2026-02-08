@@ -157,7 +157,7 @@ Both approaches are acceptable; just ensure the token is sufficiently long/unpre
 
 ### Reset Token Email Delivery
 
-Use Resend to send the reset email similarly to OTP emails, via REST API call. The “from” address should likely be something like `support@bitloot.com` or `no-reply@bitloot.com` (and ensure your domain is verified on Resend – see section 5). The subject could be “Reset Your BitLoot Password”. Include contextual info in the email, but do not include the user’s password or overly sensitive data. Only the reset link or code.
+Use Resend to send the reset email similarly to OTP emails, via REST API call. The "from" address should likely be something like `support@bitloot.io` or `no-reply@bitloot.io` (and ensure your domain is verified on Resend – see section 5). The subject could be "Reset Your BitLoot Password". Include contextual info in the email, but do not include the user's password or overly sensitive data. Only the reset link or code.
 
 ### Password Update
 
@@ -545,7 +545,7 @@ During development, you could use a test API key from Resend (if available) or a
 ```ts
 async sendPasswordResetEmail(to: string, resetLink: string) {
   const payload = {
-    from: 'BitLoot Support <support@bitloot.com>',
+    from: 'BitLoot Support <support@bitloot.io>',
     to: [to],
     subject: 'Reset Your BitLoot Password',
     template: {

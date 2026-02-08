@@ -599,7 +599,7 @@ export default function TermsOfServicePage(): React.ReactElement {
                   <div className="space-y-3">
                     <div className="flex items-center gap-3">
                       <Mail className="w-5 h-5 text-cyan-glow" />
-                      <span className="text-text-primary">support@bitloot.com</span>
+                      <span className="text-text-primary">support@bitloot.io</span>
                     </div>
                     <div className="flex items-center gap-3">
                       <Globe className="w-5 h-5 text-cyan-glow" />
