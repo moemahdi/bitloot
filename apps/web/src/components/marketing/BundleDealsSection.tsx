@@ -55,11 +55,16 @@ interface BundleDeal {
 
 // Fetch active bundles
 async function fetchActiveBundles(): Promise<BundleDeal[]> {
+  console.log('🎁 Fetching bundles from:', `${apiConfig.basePath}/public/marketing/bundles`);
   const response = await fetch(`${apiConfig.basePath}/public/marketing/bundles`);
+  console.log('🎁 Bundles fetch response:', response.status, response.ok);
   if (!response.ok) {
+    console.error('🎁 Bundles fetch failed:', response.status, response.statusText);
     throw new Error('Failed to fetch bundles');
   }
-  return response.json() as Promise<BundleDeal[]>;
+  const data = await response.json() as Promise<BundleDeal[]>;
+  console.log('🎁 Bundles fetched:', data);
+  return data;
 }
 
 // Format price in Euro (BitLoot uses Euro only)
@@ -243,19 +248,32 @@ export function BundleDealsSection(): React.ReactElement | null {
     staleTime: 5 * 60_000, // 5 minutes
   });
 
+  // Debug logging
+  console.log('🎁 BundleDealsSection render:', {
+    isLoading,
+    error: error?.toString(),
+    bundlesCount: bundles?.length ?? 0,
+    bundles: bundles?.map(b => ({ id: b.id, name: b.name, isActive: b.isActive })),
+  });
+
   // Don't render if loading
   if (isLoading === true) {
+    console.log('🎁 Showing skeleton (loading)');
     return <BundleSkeleton />;
   }
 
   // Don't render if no bundles or error
   if (error !== null && error !== undefined) {
+    console.log('🎁 Not rendering (error):', error);
     return null;
   }
 
   if (bundles === null || bundles === undefined || bundles.length === 0) {
+    console.log('🎁 Not rendering (no bundles)');
     return null;
   }
+
+  console.log('🎁 Rendering bundles section with', bundles.length, 'bundles');
 
   return (
     <section className="py-16 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-transparent via-pink-500/5 to-transparent">
