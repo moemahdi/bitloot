@@ -76,6 +76,13 @@ function formatPrice(price: string | number): string {
 
 // Bundle card component
 function BundleCard({ bundle, onSelect, isPriority = false }: { bundle: BundleDeal; onSelect: (bundle: BundleDeal) => void; isPriority?: boolean }) {
+  console.log('🎁 BundleCard rendering:', bundle.name, {
+    hasHeroImage: !!bundle.heroImage,
+    productsCount: bundle.products.length,
+    originalPrice: bundle.originalPrice,
+    bundlePrice: bundle.bundlePrice,
+  });
+  
   const originalPriceRaw = parseFloat(bundle.originalPrice);
   const bundlePriceRaw = parseFloat(bundle.bundlePrice);
   const originalPrice = Number.isNaN(originalPriceRaw) ? 0 : originalPriceRaw;
@@ -319,15 +326,23 @@ export function BundleDealsSection(): React.ReactElement | null {
 
         {/* Bundles Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {bundles.slice(0, 6).map((bundle, index) => (
-            <m.div
-              key={bundle.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1 }}
-            >
-              <BundleCard bundle={bundle} onSelect={setSelectedBundle} isPriority={index < 3} />
-            </m.div>
+          {(() => {
+            const bundlesToRender = bundles.slice(0, 6);
+            console.log('🎁 Bundle cards to render:', bundlesToRender.length, bundlesToRender.map(b => b.name));
+            return bundlesToRender.map((bundle, index) => {
+              console.log(`🎁 Rendering card ${index}:`, bundle.name, bundle.id);
+              return (
+                <m.div
+                  key={bundle.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.1 }}
+                >
+                  <BundleCard bundle={bundle} onSelect={setSelectedBundle} isPriority={index < 3} />
+                </m.div>
+              );
+            });
+          })()}
           ))}
         </div>
 
