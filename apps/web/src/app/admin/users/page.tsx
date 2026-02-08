@@ -271,23 +271,24 @@ export default function AdminUsersPage(): React.ReactElement {
 
   return (
     <TooltipProvider>
-      <div className="container mx-auto py-8 space-y-8">
+      <div className="container mx-auto px-3 sm:px-4 lg:px-6 py-4 sm:py-6 lg:py-8 space-y-4 sm:space-y-6 lg:space-y-8">
         {/* Page Header */}
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div className="flex flex-col gap-3 sm:gap-4 md:flex-row md:items-center md:justify-between">
           <div>
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-cyan-glow/10 border border-cyan-glow/20">
-                <Users className="h-6 w-6 text-cyan-glow" />
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="p-1.5 sm:p-2 rounded-lg bg-cyan-glow/10 border border-cyan-glow/20">
+                <Users className="h-5 w-5 sm:h-6 sm:w-6 text-cyan-glow" />
               </div>
               <div>
-                <h1 className="text-3xl font-bold text-text-primary tracking-tight">User Management</h1>
-                <p className="text-text-secondary">View and manage all platform users.</p>
+                <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-text-primary tracking-tight">User Management</h1>
+                <p className="text-xs sm:text-sm text-text-secondary">View and manage all platform users.</p>
               </div>
             </div>
           </div>
           <div className="flex gap-2">
             <Button 
               variant="outline" 
+              size="sm"
               onClick={() => {
                 setIsRefreshingAll(true);
                 void Promise.all([refetch(), Promise.resolve(refetchStats())]).finally(() => {
@@ -295,84 +296,85 @@ export default function AdminUsersPage(): React.ReactElement {
                 });
               }}
               disabled={isRefreshingAll}
-              className="border-border-accent hover:border-cyan-glow/50 hover:shadow-glow-cyan-sm transition-all"
+              className="border-border-accent hover:border-cyan-glow/50 hover:shadow-glow-cyan-sm transition-all text-xs sm:text-sm"
             >
-              <RefreshCw className={`mr-2 h-4 w-4 ${isRefreshingAll ? 'animate-spin' : ''}`} />
-              Refresh
+              <RefreshCw className={`h-3.5 w-3.5 sm:h-4 sm:w-4 sm:mr-2 ${isRefreshingAll ? 'animate-spin' : ''}`} />
+              <span className="hidden sm:inline">Refresh</span>
             </Button>
             <Button 
               variant="outline" 
+              size="sm"
               onClick={() => void handleExport()}
               disabled={isExporting}
-              className="border-border-accent hover:border-cyan-glow/50 hover:shadow-glow-cyan-sm transition-all"
+              className="border-border-accent hover:border-cyan-glow/50 hover:shadow-glow-cyan-sm transition-all text-xs sm:text-sm"
             >
-              <Download className={`mr-2 h-4 w-4 ${isExporting ? 'animate-spin' : ''}`} />
-              Export
+              <Download className={`h-3.5 w-3.5 sm:h-4 sm:w-4 sm:mr-2 ${isExporting ? 'animate-spin' : ''}`} />
+              <span className="hidden sm:inline">Export</span>
             </Button>
           </div>
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-4">
           <Card className="bg-bg-secondary border-border-subtle hover:border-cyan-glow/30 transition-all">
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
+            <CardContent className="p-3 sm:pt-6 sm:p-6">
+              <div className="flex items-center justify-between gap-2">
                 <div>
-                  <p className="text-sm text-text-secondary">Total Users</p>
-                  <p className="text-2xl font-bold text-text-primary">
-                    {statsLoading ? <Loader2 className="h-6 w-6 animate-spin" /> : stats?.totalUsers ?? 0}
+                  <p className="text-xs sm:text-sm text-text-secondary">Total Users</p>
+                  <p className="text-lg sm:text-2xl font-bold text-text-primary">
+                    {statsLoading ? <Loader2 className="h-5 w-5 sm:h-6 sm:w-6 animate-spin" /> : stats?.totalUsers ?? 0}
                   </p>
                 </div>
-                <div className="p-3 rounded-lg bg-cyan-glow/10">
-                  <Users className="h-5 w-5 text-cyan-glow" />
+                <div className="p-2 sm:p-3 rounded-lg bg-cyan-glow/10">
+                  <Users className="h-4 w-4 sm:h-5 sm:w-5 text-cyan-glow" />
                 </div>
               </div>
             </CardContent>
           </Card>
 
           <Card className="bg-bg-secondary border-border-subtle hover:border-green-success/30 transition-all">
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
+            <CardContent className="p-3 sm:pt-6 sm:p-6">
+              <div className="flex items-center justify-between gap-2">
                 <div>
-                  <p className="text-sm text-text-secondary">Active Today</p>
-                  <p className="text-2xl font-bold text-text-primary">
-                    {statsLoading ? <Loader2 className="h-6 w-6 animate-spin" /> : stats?.activeToday ?? 0}
+                  <p className="text-xs sm:text-sm text-text-secondary">Active Today</p>
+                  <p className="text-lg sm:text-2xl font-bold text-text-primary">
+                    {statsLoading ? <Loader2 className="h-5 w-5 sm:h-6 sm:w-6 animate-spin" /> : stats?.activeToday ?? 0}
                   </p>
                 </div>
-                <div className="p-3 rounded-lg bg-green-success/10">
-                  <CheckCircle2 className="h-5 w-5 text-green-success" />
+                <div className="p-2 sm:p-3 rounded-lg bg-green-success/10">
+                  <CheckCircle2 className="h-4 w-4 sm:h-5 sm:w-5 text-green-success" />
                 </div>
               </div>
             </CardContent>
           </Card>
 
           <Card className="bg-bg-secondary border-border-subtle hover:border-destructive/30 transition-all">
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
+            <CardContent className="p-3 sm:pt-6 sm:p-6">
+              <div className="flex items-center justify-between gap-2">
                 <div>
-                  <p className="text-sm text-text-secondary">Suspended</p>
-                  <p className="text-2xl font-bold text-text-primary">
-                    {statsLoading ? <Loader2 className="h-6 w-6 animate-spin" /> : stats?.suspendedCount ?? 0}
+                  <p className="text-xs sm:text-sm text-text-secondary">Suspended</p>
+                  <p className="text-lg sm:text-2xl font-bold text-text-primary">
+                    {statsLoading ? <Loader2 className="h-5 w-5 sm:h-6 sm:w-6 animate-spin" /> : stats?.suspendedCount ?? 0}
                   </p>
                 </div>
-                <div className="p-3 rounded-lg bg-destructive/10">
-                  <Ban className="h-5 w-5 text-destructive" />
+                <div className="p-2 sm:p-3 rounded-lg bg-destructive/10">
+                  <Ban className="h-4 w-4 sm:h-5 sm:w-5 text-destructive" />
                 </div>
               </div>
             </CardContent>
           </Card>
 
           <Card className="bg-bg-secondary border-border-subtle hover:border-purple-neon/30 transition-all">
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between">
+            <CardContent className="p-3 sm:pt-6 sm:p-6">
+              <div className="flex items-center justify-between gap-2">
                 <div>
-                  <p className="text-sm text-text-secondary">Admins</p>
-                  <p className="text-2xl font-bold text-text-primary">
-                    {statsLoading ? <Loader2 className="h-6 w-6 animate-spin" /> : stats?.adminCount ?? 0}
+                  <p className="text-xs sm:text-sm text-text-secondary">Admins</p>
+                  <p className="text-lg sm:text-2xl font-bold text-text-primary">
+                    {statsLoading ? <Loader2 className="h-5 w-5 sm:h-6 sm:w-6 animate-spin" /> : stats?.adminCount ?? 0}
                   </p>
                 </div>
-                <div className="p-3 rounded-lg bg-purple-neon/10">
-                  <Crown className="h-5 w-5 text-purple-neon" />
+                <div className="p-2 sm:p-3 rounded-lg bg-purple-neon/10">
+                  <Crown className="h-4 w-4 sm:h-5 sm:w-5 text-purple-neon" />
                 </div>
               </div>
             </CardContent>
@@ -381,94 +383,97 @@ export default function AdminUsersPage(): React.ReactElement {
 
         {/* Filters Card */}
         <Card className="bg-bg-secondary border-border-subtle">
-          <CardContent className="pt-6">
-            <div className="flex flex-col gap-4 md:flex-row md:items-end">
-              {/* Search */}
+          <CardContent className="p-3 sm:p-6">
+            <div className="flex flex-col gap-3 sm:gap-4">
+              {/* Search - always visible */}
               <div className="flex-1">
-                <Label className="text-text-secondary mb-2 block">Search</Label>
+                <Label className="text-xs sm:text-sm text-text-secondary mb-1.5 sm:mb-2 block">Search</Label>
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted" />
                   <Input
                     placeholder="Search by email or ID..."
                     value={(filters.search as string) ?? ''}
                     onChange={(e) => handleFilterChange('search', e.target.value)}
-                    className="pl-10 bg-bg-tertiary border-border-subtle focus:border-cyan-glow/50 focus:shadow-glow-cyan-sm"
+                    className="pl-10 bg-bg-tertiary border-border-subtle focus:border-cyan-glow/50 focus:shadow-glow-cyan-sm text-sm"
                   />
                 </div>
               </div>
 
-              {/* Role Filter */}
-              <div className="w-full md:w-40">
-                <Label className="text-text-secondary mb-2 block">Role</Label>
-                <Select
-                  value={(filters.role as string) ?? 'all'}
-                  onValueChange={(value) => handleFilterChange('role', value)}
-                >
-                  <SelectTrigger className="bg-bg-tertiary border-border-subtle">
-                    <SelectValue placeholder="All roles" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All roles</SelectItem>
-                    <SelectItem value="user">User</SelectItem>
-                    <SelectItem value="admin">Admin</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+              {/* Filters row - responsive grid */}
+              <div className="grid grid-cols-2 sm:flex sm:flex-row gap-2 sm:gap-4">
+                {/* Role Filter */}
+                <div className="w-full sm:w-32 md:w-40">
+                  <Label className="text-xs sm:text-sm text-text-secondary mb-1.5 sm:mb-2 block">Role</Label>
+                  <Select
+                    value={(filters.role as string) ?? 'all'}
+                    onValueChange={(value) => handleFilterChange('role', value)}
+                  >
+                    <SelectTrigger className="bg-bg-tertiary border-border-subtle text-xs sm:text-sm h-9 sm:h-10">
+                      <SelectValue placeholder="All roles" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All roles</SelectItem>
+                      <SelectItem value="user">User</SelectItem>
+                      <SelectItem value="admin">Admin</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
 
-              {/* Status Filter */}
-              <div className="w-full md:w-40">
-                <Label className="text-text-secondary mb-2 block">Status</Label>
-                <Select
-                  value={(filters.status as string) ?? 'all'}
-                  onValueChange={(value) => handleFilterChange('status', value)}
-                >
-                  <SelectTrigger className="bg-bg-tertiary border-border-subtle">
-                    <SelectValue placeholder="All statuses" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All statuses</SelectItem>
-                    <SelectItem value="active">Active</SelectItem>
-                    <SelectItem value="suspended">Suspended</SelectItem>
-                    <SelectItem value="deleted">Deleted</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+                {/* Status Filter */}
+                <div className="w-full sm:w-32 md:w-40">
+                  <Label className="text-xs sm:text-sm text-text-secondary mb-1.5 sm:mb-2 block">Status</Label>
+                  <Select
+                    value={(filters.status as string) ?? 'all'}
+                    onValueChange={(value) => handleFilterChange('status', value)}
+                  >
+                    <SelectTrigger className="bg-bg-tertiary border-border-subtle text-xs sm:text-sm h-9 sm:h-10">
+                      <SelectValue placeholder="All" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All</SelectItem>
+                      <SelectItem value="active">Active</SelectItem>
+                      <SelectItem value="suspended">Suspended</SelectItem>
+                      <SelectItem value="deleted">Deleted</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
 
-              {/* Email Confirmed Filter */}
-              <div className="w-full md:w-44">
-                <Label className="text-text-secondary mb-2 block">Email</Label>
-                <Select
-                  value={(filters.emailConfirmed as string) ?? 'all'}
-                  onValueChange={(value) => handleFilterChange('emailConfirmed', value)}
-                >
-                  <SelectTrigger className="bg-bg-tertiary border-border-subtle">
-                    <SelectValue placeholder="All" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All</SelectItem>
-                    <SelectItem value="true">Confirmed</SelectItem>
-                    <SelectItem value="false">Unconfirmed</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+                {/* Email Confirmed Filter - hidden on very small screens */}
+                <div className="w-full sm:w-32 md:w-44 hidden xs:block">
+                  <Label className="text-xs sm:text-sm text-text-secondary mb-1.5 sm:mb-2 block">Email</Label>
+                  <Select
+                    value={(filters.emailConfirmed as string) ?? 'all'}
+                    onValueChange={(value) => handleFilterChange('emailConfirmed', value)}
+                  >
+                    <SelectTrigger className="bg-bg-tertiary border-border-subtle text-xs sm:text-sm h-9 sm:h-10">
+                      <SelectValue placeholder="All" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All</SelectItem>
+                      <SelectItem value="true">Confirmed</SelectItem>
+                      <SelectItem value="false">Unconfirmed</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
 
-              {/* Page Size */}
-              <div className="w-full md:w-28">
-                <Label className="text-text-secondary mb-2 block">Per page</Label>
-                <Select
-                  value={limit.toString()}
-                  onValueChange={(value) => setLimit(parseInt(value, 10))}
-                >
-                  <SelectTrigger className="bg-bg-tertiary border-border-subtle">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="10">10</SelectItem>
-                    <SelectItem value="25">25</SelectItem>
-                    <SelectItem value="50">50</SelectItem>
-                    <SelectItem value="100">100</SelectItem>
-                  </SelectContent>
-                </Select>
+                {/* Page Size - hidden on mobile */}
+                <div className="w-full sm:w-24 md:w-28 hidden sm:block">
+                  <Label className="text-xs sm:text-sm text-text-secondary mb-1.5 sm:mb-2 block">Per page</Label>
+                  <Select
+                    value={limit.toString()}
+                    onValueChange={(value) => setLimit(parseInt(value, 10))}
+                  >
+                    <SelectTrigger className="bg-bg-tertiary border-border-subtle text-xs sm:text-sm h-9 sm:h-10">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="10">10</SelectItem>
+                      <SelectItem value="25">25</SelectItem>
+                      <SelectItem value="50">50</SelectItem>
+                      <SelectItem value="100">100</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             </div>
           </CardContent>
@@ -477,21 +482,19 @@ export default function AdminUsersPage(): React.ReactElement {
         {/* Bulk Actions Bar */}
         {selectedUsers.length > 0 && (
           <Card className="bg-cyan-glow/5 border-cyan-glow/30 shadow-glow-cyan-sm">
-            <CardContent className="py-3">
+            <CardContent className="py-2 sm:py-3 px-3 sm:px-6">
               <div className="flex items-center justify-between">
-                <span className="text-sm text-text-secondary">
+                <span className="text-xs sm:text-sm text-text-secondary">
                   {selectedUsers.length} user{selectedUsers.length > 1 ? 's' : ''} selected
                 </span>
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setSelectedUsers([])}
-                    className="border-border-accent"
-                  >
-                    Clear Selection
-                  </Button>
-                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setSelectedUsers([])}
+                  className="border-border-accent text-xs h-7 sm:h-8"
+                >
+                  Clear
+                </Button>
               </div>
             </CardContent>
           </Card>
@@ -728,29 +731,29 @@ export default function AdminUsersPage(): React.ReactElement {
 
             {/* Pagination */}
             {totalItems > 0 && (
-              <div className="flex items-center justify-between px-6 py-4 border-t border-border-subtle">
-                <p className="text-sm text-text-secondary">
-                  Showing {(page - 1) * limit + 1} to {Math.min(page * limit, totalItems)} of {totalItems} users
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between px-3 sm:px-6 py-3 sm:py-4 border-t border-border-subtle">
+                <p className="text-xs sm:text-sm text-text-secondary text-center sm:text-left">
+                  <span className="font-medium">{(page - 1) * limit + 1}</span>-<span className="font-medium">{Math.min(page * limit, totalItems)}</span> of <span className="text-cyan-glow font-medium">{totalItems}</span>
                 </p>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center justify-center gap-2">
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={() => setPage(page - 1)}
                     disabled={page <= 1}
-                    className="border-border-accent"
+                    className="border-border-accent h-8"
                   >
                     <ChevronLeft className="h-4 w-4" />
                   </Button>
-                  <span className="text-sm text-text-secondary px-3">
-                    Page {page} of {Math.max(totalPages, 1)}
+                  <span className="text-xs sm:text-sm text-text-secondary px-2 sm:px-3">
+                    {page}/{Math.max(totalPages, 1)}
                   </span>
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={() => setPage(page + 1)}
                     disabled={page >= totalPages || totalPages <= 1}
-                    className="border-border-accent"
+                    className="border-border-accent h-8"
                   >
                     <ChevronRight className="h-4 w-4" />
                   </Button>

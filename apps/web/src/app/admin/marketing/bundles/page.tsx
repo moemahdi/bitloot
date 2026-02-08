@@ -498,85 +498,86 @@ export default function AdminBundlesPage(): React.ReactElement {
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-3 sm:p-4 lg:p-6 space-y-4 sm:space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            <Gift className="h-6 w-6 text-pink-500" />
+          <h1 className="text-xl sm:text-2xl font-bold flex items-center gap-2">
+            <Gift className="h-5 w-5 sm:h-6 sm:w-6 text-pink-500" />
             Bundle Deals
           </h1>
-          <p className="text-muted-foreground">Create and manage product bundles with individual discounts</p>
+          <p className="text-xs sm:text-sm text-muted-foreground">Create and manage product bundles with individual discounts</p>
         </div>
-        <Button onClick={() => setShowCreateDialog(true)} className="gap-2">
-          <Plus className="h-4 w-4" />
-          Create Bundle
+        <Button onClick={() => setShowCreateDialog(true)} className="gap-2 text-xs sm:text-sm" size="sm">
+          <Plus className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+          <span className="hidden xs:inline">Create</span> Bundle
         </Button>
       </div>
 
       {/* Bundles List */}
       <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">All Bundles ({bundles.length})</CardTitle>
+        <CardHeader className="p-3 sm:p-6">
+          <CardTitle className="text-sm sm:text-lg">All Bundles ({bundles.length})</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-0 sm:p-6 sm:pt-0">
           {bundles.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
-              <Gift className="h-12 w-12 mx-auto mb-3 opacity-50" />
-              <p>No bundles created yet</p>
+              <Gift className="h-10 w-10 sm:h-12 sm:w-12 mx-auto mb-3 opacity-50" />
+              <p className="text-sm">No bundles created yet</p>
             </div>
           ) : (
+            <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Bundle</TableHead>
-                  <TableHead>Category</TableHead>
-                  <TableHead>Items</TableHead>
-                  <TableHead>Original</TableHead>
-                  <TableHead>Bundle Price</TableHead>
-                  <TableHead>Savings</TableHead>
-                  <TableHead>Active</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+                  <TableHead className="text-xs sm:text-sm">Bundle</TableHead>
+                  <TableHead className="text-xs sm:text-sm hidden sm:table-cell">Category</TableHead>
+                  <TableHead className="text-xs sm:text-sm">Items</TableHead>
+                  <TableHead className="text-xs sm:text-sm hidden md:table-cell">Original</TableHead>
+                  <TableHead className="text-xs sm:text-sm">Price</TableHead>
+                  <TableHead className="text-xs sm:text-sm hidden sm:table-cell">Savings</TableHead>
+                  <TableHead className="text-xs sm:text-sm">Active</TableHead>
+                  <TableHead className="text-xs sm:text-sm text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {bundles.map((bundle) => (
                   <TableRow key={bundle.id}>
-                    <TableCell>
-                      <div className="flex items-center gap-3">
+                    <TableCell className="p-2 sm:p-4">
+                      <div className="flex items-center gap-2 sm:gap-3">
                         {bundle.heroImage !== null && bundle.heroImage !== '' ? (
-                          <div className="relative w-10 h-10 rounded overflow-hidden">
+                          <div className="relative w-8 h-8 sm:w-10 sm:h-10 rounded overflow-hidden flex-shrink-0">
                             <NextImage src={bundle.heroImage} alt="" fill sizes="40px" className="object-cover" />
                           </div>
                         ) : (
-                          <div className="w-10 h-10 rounded bg-muted flex items-center justify-center">
-                            <Gift className="h-5 w-5 text-muted-foreground" />
+                          <div className="w-8 h-8 sm:w-10 sm:h-10 rounded bg-muted flex items-center justify-center flex-shrink-0">
+                            <Gift className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground" />
                           </div>
                         )}
-                        <div>
-                          <p className="font-medium">{bundle.name}</p>
+                        <div className="min-w-0">
+                          <p className="font-medium text-xs sm:text-sm truncate">{bundle.name}</p>
                           {bundle.description !== null && bundle.description !== undefined && bundle.description !== '' && (
-                            <p className="text-xs text-muted-foreground truncate max-w-[200px]">
+                            <p className="text-[10px] sm:text-xs text-muted-foreground truncate max-w-[120px] sm:max-w-[200px] hidden xs:block">
                               {bundle.description}
                             </p>
                           )}
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className="capitalize">{bundle.category}</Badge>
+                    <TableCell className="hidden sm:table-cell">
+                      <Badge variant="outline" className="capitalize text-xs">{bundle.category}</Badge>
                     </TableCell>
                     <TableCell>
-                      <Badge variant="secondary">{bundle.products?.length ?? 0} items</Badge>
+                      <Badge variant="secondary" className="text-xs">{bundle.products?.length ?? 0}</Badge>
                     </TableCell>
-                    <TableCell className="text-muted-foreground line-through">
+                    <TableCell className="text-muted-foreground line-through text-xs sm:text-sm hidden md:table-cell">
                       {formatPrice(bundle.originalPrice)}
                     </TableCell>
-                    <TableCell className="font-semibold text-green-600">
+                    <TableCell className="font-semibold text-green-600 text-xs sm:text-sm">
                       {formatPrice(bundle.bundlePrice)}
                     </TableCell>
-                    <TableCell>
-                      <Badge className="bg-pink-500">{bundle.savingsPercent}% OFF</Badge>
+                    <TableCell className="hidden sm:table-cell">
+                      <Badge className="bg-pink-500 text-xs">{bundle.savingsPercent}%</Badge>
                     </TableCell>
                     <TableCell>
                       <Switch
@@ -587,31 +588,33 @@ export default function AdminBundlesPage(): React.ReactElement {
                       />
                     </TableCell>
                     <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-1">
+                      <div className="flex items-center justify-end gap-0.5 sm:gap-1">
                         <Button
                           variant="ghost"
                           size="sm"
                           onClick={() => setManagingBundle(bundle)}
                           title="Manage products"
+                          className="h-7 w-7 sm:h-8 sm:w-8 p-0"
                         >
-                          <Package className="h-4 w-4" />
+                          <Package className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                         </Button>
                         <Button
                           variant="ghost"
                           size="sm"
                           onClick={() => openEdit(bundle)}
                           title="Edit bundle"
+                          className="h-7 w-7 sm:h-8 sm:w-8 p-0"
                         >
-                          <Edit className="h-4 w-4" />
+                          <Edit className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                         </Button>
                         <Button
                           variant="ghost"
                           size="sm"
                           onClick={() => setDeletingBundle(bundle)}
-                          className="text-destructive hover:text-destructive"
+                          className="text-destructive hover:text-destructive h-7 w-7 sm:h-8 sm:w-8 p-0"
                           title="Delete bundle"
                         >
-                          <Trash2 className="h-4 w-4" />
+                          <Trash2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                         </Button>
                       </div>
                     </TableCell>
@@ -619,6 +622,7 @@ export default function AdminBundlesPage(): React.ReactElement {
                 ))}
               </TableBody>
             </Table>
+            </div>
           )}
         </CardContent>
       </Card>

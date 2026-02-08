@@ -294,12 +294,12 @@ export default function AdminQueuesPage(): React.ReactElement {
   const HealthIcon = currentHealth.icon;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-center">
         <div>
-          <h1 className="text-3xl font-bold text-text-primary">Job Queues</h1>
-          <p className="text-text-secondary mt-1">
+          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-text-primary">Job Queues</h1>
+          <p className="text-text-secondary text-xs sm:text-sm mt-1 hidden xs:block">
             Monitor BullMQ async job processing in real-time
           </p>
         </div>
@@ -308,23 +308,23 @@ export default function AdminQueuesPage(): React.ReactElement {
             variant={autoRefresh ? 'default' : 'outline'}
             size="sm"
             onClick={() => setAutoRefresh(!autoRefresh)}
-            className={autoRefresh 
+            className={`h-8 text-xs sm:text-sm ${autoRefresh 
               ? 'bg-cyan-glow/20 text-cyan-glow border-cyan-glow/50 hover:bg-cyan-glow/30' 
               : 'border-border-subtle hover:border-cyan-glow/50'
-            }
+            }`}
           >
-            <Activity className={`h-4 w-4 mr-2 ${autoRefresh ? 'animate-pulse' : ''}`} />
-            {autoRefresh ? 'Auto-Refreshing' : 'Auto-Refresh Off'}
+            <Activity className={`h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5 sm:mr-2 ${autoRefresh ? 'animate-pulse' : ''}`} />
+            <span className="hidden xs:inline">{autoRefresh ? 'Auto-Refresh' : 'Auto Off'}</span>
           </Button>
           <Button
             variant="outline"
             size="sm"
             onClick={handleRefresh}
             disabled={isFetching}
-            className="border-border-subtle hover:border-cyan-glow/50 hover:text-cyan-glow"
+            className="border-border-subtle hover:border-cyan-glow/50 hover:text-cyan-glow h-8 text-xs sm:text-sm"
           >
-            <RefreshCw className={`h-4 w-4 mr-2 ${isFetching ? 'animate-spin' : ''}`} />
-            Refresh
+            <RefreshCw className={`h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1.5 sm:mr-2 ${isFetching ? 'animate-spin' : ''}`} />
+            <span className="hidden xs:inline">Refresh</span>
           </Button>
         </div>
       </div>
@@ -366,38 +366,38 @@ export default function AdminQueuesPage(): React.ReactElement {
       </Card>
 
       {/* Statistics Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-2 sm:gap-4">
         <Card className="bg-bg-secondary border-border-subtle hover:border-purple-neon/30 transition-colors">
-          <CardContent className="pt-6">
+          <CardContent className="p-3 sm:pt-6 sm:p-6">
             <div className="text-center">
-              <Clock className="h-6 w-6 mx-auto mb-2 text-purple-neon" />
-              <div className="text-3xl font-bold text-text-primary">{totalsData.waiting}</div>
-              <p className="text-sm text-text-secondary mt-1">Waiting</p>
+              <Clock className="h-5 w-5 sm:h-6 sm:w-6 mx-auto mb-1.5 sm:mb-2 text-purple-neon" />
+              <div className="text-xl sm:text-3xl font-bold text-text-primary">{totalsData.waiting}</div>
+              <p className="text-xs sm:text-sm text-text-secondary mt-1">Waiting</p>
             </div>
           </CardContent>
         </Card>
         <Card className="bg-bg-secondary border-border-subtle hover:border-cyan-glow/30 transition-colors">
-          <CardContent className="pt-6">
+          <CardContent className="p-3 sm:pt-6 sm:p-6">
             <div className="text-center">
-              <Zap className="h-6 w-6 mx-auto mb-2 text-cyan-glow" />
-              <div className="text-3xl font-bold text-text-primary">{totalsData.active}</div>
-              <p className="text-sm text-text-secondary mt-1">Active</p>
+              <Zap className="h-5 w-5 sm:h-6 sm:w-6 mx-auto mb-1.5 sm:mb-2 text-cyan-glow" />
+              <div className="text-xl sm:text-3xl font-bold text-text-primary">{totalsData.active}</div>
+              <p className="text-xs sm:text-sm text-text-secondary mt-1">Active</p>
             </div>
           </CardContent>
         </Card>
         <Card className="bg-bg-secondary border-border-subtle hover:border-green-success/30 transition-colors">
-          <CardContent className="pt-6">
+          <CardContent className="p-3 sm:pt-6 sm:p-6">
             <div className="text-center">
-              <CheckCircle2 className="h-6 w-6 mx-auto mb-2 text-green-success" />
-              <div className="text-3xl font-bold text-text-primary">{totalsData.completed.toLocaleString()}</div>
-              <p className="text-sm text-text-secondary mt-1">Completed</p>
+              <CheckCircle2 className="h-5 w-5 sm:h-6 sm:w-6 mx-auto mb-1.5 sm:mb-2 text-green-success" />
+              <div className="text-xl sm:text-3xl font-bold text-text-primary">{totalsData.completed.toLocaleString()}</div>
+              <p className="text-xs sm:text-sm text-text-secondary mt-1">Completed</p>
             </div>
           </CardContent>
         </Card>
         <Card className={`bg-bg-secondary border-border-subtle ${totalsData.failed > 0 ? 'border-orange-warning/50' : 'hover:border-orange-warning/30'} transition-colors`}>
-          <CardContent className="pt-6">
+          <CardContent className="p-3 sm:pt-6 sm:p-6">
             <div className="text-center">
-              <AlertTriangle className={`h-6 w-6 mx-auto mb-2 ${totalsData.failed > 0 ? 'text-orange-warning animate-pulse' : 'text-text-muted'}`} />
+              <AlertTriangle className={`h-5 w-5 sm:h-6 sm:w-6 mx-auto mb-1.5 sm:mb-2 ${totalsData.failed > 0 ? 'text-orange-warning animate-pulse' : 'text-text-muted'}`} />
               <div className={`text-3xl font-bold ${totalsData.failed > 0 ? 'text-orange-warning' : 'text-text-primary'}`}>
                 {totalsData.failed}
               </div>

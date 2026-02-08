@@ -686,31 +686,32 @@ export default function AdminCatalogProductsPage(): React.JSX.Element {
   const totalProducts = data?.total ?? 0;
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-4 sm:space-y-6 p-3 sm:p-4 lg:p-6">
       {/* Header with gradient accent */}
       <div className="relative">
         <div className="absolute inset-0 bg-gradient-to-r from-cyan-glow/5 via-purple-neon/5 to-transparent rounded-2xl blur-xl" />
-        <div className="relative flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-        <div className="flex items-start gap-4">
-          <div className="p-3 rounded-xl bg-cyan-glow/10 border border-cyan-glow/20 shadow-glow-cyan-sm">
-            <Package className="h-7 w-7 text-cyan-glow" />
+        <div className="relative flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex items-start gap-2 sm:gap-4">
+          <div className="p-2 sm:p-3 rounded-xl bg-cyan-glow/10 border border-cyan-glow/20 shadow-glow-cyan-sm">
+            <Package className="h-5 w-5 sm:h-7 sm:w-7 text-cyan-glow" />
           </div>
           <div>
-            <h1 className="text-3xl font-bold tracking-tight text-text-primary">Catalog Products</h1>
-            <p className="text-text-secondary mt-1">
+            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight text-text-primary">Catalog Products</h1>
+            <p className="text-xs sm:text-sm text-text-secondary mt-0.5 sm:mt-1">
               Manage products from Kinguin sync and custom listings
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
           <Link href="/admin/catalog/products/new">
             <GlowButton
               variant="default"
               size="sm"
               glowColor="cyan"
+              className="text-xs sm:text-sm"
             >
-              <Plus className="mr-2 h-4 w-4" />
-              Create Product
+              <Plus className="h-3.5 w-3.5 sm:h-4 sm:w-4 sm:mr-2" />
+              <span className="hidden sm:inline">Create Product</span>
             </GlowButton>
           </Link>
           <GlowButton
@@ -719,13 +720,14 @@ export default function AdminCatalogProductsPage(): React.JSX.Element {
             variant="secondary"
             size="sm"
             glowColor="purple"
+            className="text-xs sm:text-sm"
           >
             {isExporting ? (
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              <Loader2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 sm:mr-2 animate-spin" />
             ) : (
-              <Download className="mr-2 h-4 w-4" />
+              <Download className="h-3.5 w-3.5 sm:h-4 sm:w-4 sm:mr-2" />
             )}
-            {isExporting ? 'Exporting...' : 'Export CSV'}
+            <span className="hidden sm:inline">{isExporting ? 'Exporting...' : 'Export CSV'}</span>
           </GlowButton>
           <GlowButton
             onClick={handleRefresh}
@@ -733,9 +735,10 @@ export default function AdminCatalogProductsPage(): React.JSX.Element {
             variant="secondary"
             size="sm"
             glowColor="cyan"
+            className="text-xs sm:text-sm"
           >
-            <RefreshCw className={`mr-2 h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-            Refresh
+            <RefreshCw className={`h-3.5 w-3.5 sm:h-4 sm:w-4 sm:mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+            <span className="hidden sm:inline">Refresh</span>
           </GlowButton>
         </div>
       </div>
@@ -751,16 +754,16 @@ export default function AdminCatalogProductsPage(): React.JSX.Element {
             transition={{ duration: 0.2 }}
             className="overflow-hidden"
           >
-            <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-bg-tertiary border border-purple-neon/20 shadow-card-md">
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 sm:py-3 rounded-xl bg-bg-tertiary border border-purple-neon/20 shadow-card-md">
               {/* Selection Counter */}
-              <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-purple-neon/10 border border-purple-neon/30">
-                <CheckCircle className="h-4 w-4 text-purple-neon" />
-                <span className="text-sm font-semibold text-purple-neon">
-                  {selectedProductIds.size} selected
+              <div className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg bg-purple-neon/10 border border-purple-neon/30">
+                <CheckCircle className="h-3 w-3 sm:h-4 sm:w-4 text-purple-neon" />
+                <span className="text-xs sm:text-sm font-semibold text-purple-neon">
+                  {selectedProductIds.size}
                 </span>
               </div>
               
-              <div className="w-px h-6 bg-border-subtle" />
+              <div className="w-px h-5 sm:h-6 bg-border-subtle hidden sm:block" />
               
               {/* Reprice */}
               <GlowButton
@@ -769,13 +772,11 @@ export default function AdminCatalogProductsPage(): React.JSX.Element {
                 variant="secondary"
                 size="sm"
                 glowColor="cyan"
-                className="border-cyan-glow/40 text-cyan-glow hover:bg-cyan-glow/10"
+                className="border-cyan-glow/40 text-cyan-glow hover:bg-cyan-glow/10 text-xs h-7 sm:h-8 px-2 sm:px-3"
               >
-                {bulkRepriceMutation.isPending ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <DollarSign className="mr-1.5 h-4 w-4" />}
-                Reprice
+                {bulkRepriceMutation.isPending ? <Loader2 className="h-3 w-3 sm:h-4 sm:w-4 animate-spin" /> : <DollarSign className="h-3 w-3 sm:h-4 sm:w-4" />}
+                <span className="hidden xs:inline ml-1">Reprice</span>
               </GlowButton>
-              
-              <div className="w-px h-6 bg-border-subtle" />
               
               {/* Publish */}
               <GlowButton
@@ -784,10 +785,10 @@ export default function AdminCatalogProductsPage(): React.JSX.Element {
                 variant="secondary"
                 size="sm"
                 glowColor="green"
-                className="border-green-success/40 text-green-success hover:bg-green-success/10"
+                className="border-green-success/40 text-green-success hover:bg-green-success/10 text-xs h-7 sm:h-8 px-2 sm:px-3"
               >
-                {bulkPublishMutation.isPending ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Eye className="mr-1.5 h-4 w-4" />}
-                Publish
+                {bulkPublishMutation.isPending ? <Loader2 className="h-3 w-3 sm:h-4 sm:w-4 animate-spin" /> : <Eye className="h-3 w-3 sm:h-4 sm:w-4" />}
+                <span className="hidden xs:inline ml-1">Publish</span>
               </GlowButton>
               
               {/* Unpublish */}
@@ -797,41 +798,39 @@ export default function AdminCatalogProductsPage(): React.JSX.Element {
                 variant="secondary"
                 size="sm"
                 glowColor="gray"
-                className="border-border-accent text-text-secondary hover:bg-bg-secondary"
+                className="border-border-accent text-text-secondary hover:bg-bg-secondary text-xs h-7 sm:h-8 px-2 sm:px-3"
               >
-                {bulkUnpublishMutation.isPending ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <XCircle className="mr-1.5 h-4 w-4" />}
-                Unpublish
+                {bulkUnpublishMutation.isPending ? <Loader2 className="h-3 w-3 sm:h-4 sm:w-4 animate-spin" /> : <XCircle className="h-3 w-3 sm:h-4 sm:w-4" />}
+                <span className="hidden sm:inline ml-1">Unpublish</span>
               </GlowButton>
               
-              <div className="w-px h-6 bg-border-subtle" />
+              <div className="w-px h-5 sm:h-6 bg-border-subtle hidden md:block" />
               
-              {/* Feature */}
+              {/* Feature - hidden on mobile */}
               <GlowButton
                 onClick={() => bulkFeatureMutation.mutate(Array.from(selectedProductIds))}
                 disabled={bulkFeatureMutation.isPending || !isOnline}
                 variant="secondary"
                 size="sm"
                 glowColor="pink"
-                className="border-pink-featured/40 text-pink-featured hover:bg-pink-featured/10"
+                className="border-pink-featured/40 text-pink-featured hover:bg-pink-featured/10 text-xs h-7 sm:h-8 px-2 sm:px-3 hidden md:flex"
               >
-                {bulkFeatureMutation.isPending ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Star className="mr-1.5 h-4 w-4" />}
-                Feature
+                {bulkFeatureMutation.isPending ? <Loader2 className="h-3 w-3 sm:h-4 sm:w-4 animate-spin" /> : <Star className="h-3 w-3 sm:h-4 sm:w-4" />}
+                <span className="ml-1">Feature</span>
               </GlowButton>
               
-              {/* Unfeature */}
+              {/* Unfeature - hidden on mobile */}
               <GlowButton
                 onClick={() => bulkUnfeatureMutation.mutate(Array.from(selectedProductIds))}
                 disabled={bulkUnfeatureMutation.isPending || !isOnline}
                 variant="secondary"
                 size="sm"
                 glowColor="gray"
-                className="border-border-accent text-text-muted hover:bg-bg-secondary"
+                className="border-border-accent text-text-muted hover:bg-bg-secondary text-xs h-7 sm:h-8 px-2 sm:px-3 hidden md:flex"
               >
-                {bulkUnfeatureMutation.isPending ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Star className="mr-1.5 h-4 w-4" />}
-                Unfeature
+                {bulkUnfeatureMutation.isPending ? <Loader2 className="h-3 w-3 sm:h-4 sm:w-4 animate-spin" /> : <Star className="h-3 w-3 sm:h-4 sm:w-4" />}
+                <span className="ml-1">Unfeature</span>
               </GlowButton>
-              
-              <div className="w-px h-6 bg-border-subtle" />
               
               {/* Delete */}
               <GlowButton
@@ -840,10 +839,10 @@ export default function AdminCatalogProductsPage(): React.JSX.Element {
                 variant="secondary"
                 size="sm"
                 glowColor="orange"
-                className="border-orange-warning/40 text-orange-warning hover:bg-orange-warning/10"
+                className="border-orange-warning/40 text-orange-warning hover:bg-orange-warning/10 text-xs h-7 sm:h-8 px-2 sm:px-3"
               >
-                {bulkDeleteMutation.isPending ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Trash2 className="mr-1.5 h-4 w-4" />}
-                Delete
+                {bulkDeleteMutation.isPending ? <Loader2 className="h-3 w-3 sm:h-4 sm:w-4 animate-spin" /> : <Trash2 className="h-3 w-3 sm:h-4 sm:w-4" />}
+                <span className="hidden xs:inline ml-1">Delete</span>
               </GlowButton>
               
               {/* Clear */}
@@ -851,10 +850,10 @@ export default function AdminCatalogProductsPage(): React.JSX.Element {
                 onClick={() => setSelectedProductIds(new Set())}
                 variant="ghost"
                 size="sm"
-                className="text-text-muted hover:text-text-primary hover:bg-bg-secondary ml-auto"
+                className="text-text-muted hover:text-text-primary hover:bg-bg-secondary ml-auto text-xs h-7 sm:h-8 px-2"
               >
-                <XCircle className="mr-1.5 h-4 w-4" />
-                Clear
+                <XCircle className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-1.5" />
+                <span className="hidden sm:inline">Clear</span>
               </Button>
             </div>
           </motion.div>
@@ -906,42 +905,42 @@ export default function AdminCatalogProductsPage(): React.JSX.Element {
 
       {/* Filters Card */}
       <Card className="border-border-subtle bg-bg-secondary/80 backdrop-blur-sm hover:border-border-accent transition-colors duration-250">
-        <CardHeader className="pb-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-purple-neon/10">
-              <Search className="h-4 w-4 text-purple-neon" />
+        <CardHeader className="p-3 sm:p-6 pb-2 sm:pb-4">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div className="p-1.5 sm:p-2 rounded-lg bg-purple-neon/10">
+              <Search className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-purple-neon" />
             </div>
             <div>
-              <CardTitle className="text-text-primary text-lg">Filters</CardTitle>
-              <CardDescription className="text-text-muted text-sm">
+              <CardTitle className="text-sm sm:text-lg text-text-primary">Filters</CardTitle>
+              <CardDescription className="text-text-muted text-xs sm:text-sm hidden xs:block">
                 Search and filter products by various criteria
               </CardDescription>
             </div>
           </div>
         </CardHeader>
-        <CardContent>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
+        <CardContent className="p-3 sm:p-6 pt-0">
+          <div className="grid gap-2 sm:gap-4 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7">
             {/* Search Input */}
-            <div className="space-y-2">
-              <Label htmlFor="search" className="text-text-secondary">Search</Label>
+            <div className="space-y-1 sm:space-y-2 col-span-2 sm:col-span-1">
+              <Label htmlFor="search" className="text-xs sm:text-sm text-text-secondary">Search</Label>
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-cyan-glow/50" />
+                <Search className="absolute left-2 sm:left-3 top-1/2 h-3.5 w-3.5 sm:h-4 sm:w-4 -translate-y-1/2 text-cyan-glow/50" />
                 <Input
                   id="search"
-                  placeholder="Search by title..."
+                  placeholder="Search..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9 border-cyan-glow/20 bg-bg-tertiary/50 focus:border-cyan-glow/50 focus:ring-cyan-glow/20"
+                  className="pl-7 sm:pl-9 text-xs sm:text-sm h-8 sm:h-10 border-cyan-glow/20 bg-bg-tertiary/50 focus:border-cyan-glow/50 focus:ring-cyan-glow/20"
                 />
               </div>
             </div>
 
             {/* Source Filter */}
-            <div className="space-y-2">
-              <Label htmlFor="source" className="text-text-secondary">Source</Label>
+            <div className="space-y-1 sm:space-y-2">
+              <Label htmlFor="source" className="text-xs sm:text-sm text-text-secondary">Source</Label>
               <Select value={sourceFilter} onValueChange={setSourceFilter}>
-                <SelectTrigger id="source" className="border-cyan-glow/20 bg-bg-tertiary/50 focus:border-cyan-glow/50 focus:ring-cyan-glow/20">
-                  <SelectValue placeholder="All sources" />
+                <SelectTrigger id="source" className="text-xs sm:text-sm h-8 sm:h-10 border-cyan-glow/20 bg-bg-tertiary/50 focus:border-cyan-glow/50 focus:ring-cyan-glow/20">
+                  <SelectValue placeholder="All" />
                 </SelectTrigger>
                 <SelectContent className="border-cyan-glow/20 bg-bg-secondary/95 backdrop-blur-xl">
                   <SelectItem value="all">All Sources</SelectItem>
@@ -952,14 +951,14 @@ export default function AdminCatalogProductsPage(): React.JSX.Element {
             </div>
 
             {/* Business Category Filter */}
-            <div className="space-y-2">
-              <Label htmlFor="businessCategory" className="text-text-secondary">Category</Label>
+            <div className="space-y-1 sm:space-y-2">
+              <Label htmlFor="businessCategory" className="text-xs sm:text-sm text-text-secondary">Category</Label>
               <Select value={businessCategoryFilter} onValueChange={setBusinessCategoryFilter}>
-                <SelectTrigger id="businessCategory" className="border-cyan-glow/20 bg-bg-tertiary/50 focus:border-cyan-glow/50 focus:ring-cyan-glow/20">
-                  <SelectValue placeholder="All categories" />
+                <SelectTrigger id="businessCategory" className="text-xs sm:text-sm h-8 sm:h-10 border-cyan-glow/20 bg-bg-tertiary/50 focus:border-cyan-glow/50 focus:ring-cyan-glow/20">
+                  <SelectValue placeholder="All" />
                 </SelectTrigger>
                 <SelectContent className="border-cyan-glow/20 bg-bg-secondary/95 backdrop-blur-xl">
-                  <SelectItem value="all">All Categories</SelectItem>
+                  <SelectItem value="all">All</SelectItem>
                   {BUSINESS_CATEGORIES.map((category) => (
                     <SelectItem key={category.value} value={category.value}>
                       {category.label}
@@ -969,12 +968,12 @@ export default function AdminCatalogProductsPage(): React.JSX.Element {
               </Select>
             </div>
 
-            {/* Genre Filter */}
-            <div className="space-y-2">
-              <Label htmlFor="genre" className="text-text-secondary">Genre</Label>
+            {/* Genre Filter - hidden on mobile */}
+            <div className="space-y-1 sm:space-y-2 hidden sm:block">
+              <Label htmlFor="genre" className="text-xs sm:text-sm text-text-secondary">Genre</Label>
               <Select value={genreFilter} onValueChange={setGenreFilter}>
-                <SelectTrigger id="genre" className="border-cyan-glow/20 bg-bg-tertiary/50 focus:border-cyan-glow/50 focus:ring-cyan-glow/20">
-                  <SelectValue placeholder="All genres" />
+                <SelectTrigger id="genre" className="text-xs sm:text-sm h-8 sm:h-10 border-cyan-glow/20 bg-bg-tertiary/50 focus:border-cyan-glow/50 focus:ring-cyan-glow/20">
+                  <SelectValue placeholder="All" />
                 </SelectTrigger>
                 <SelectContent className="border-cyan-glow/20 bg-bg-secondary/95 backdrop-blur-xl max-h-60">
                   <SelectItem value="all">All Genres</SelectItem>
@@ -987,12 +986,12 @@ export default function AdminCatalogProductsPage(): React.JSX.Element {
               </Select>
             </div>
 
-            {/* Platform Filter */}
-            <div className="space-y-2">
-              <Label htmlFor="platform" className="text-text-secondary">Platform</Label>
+            {/* Platform Filter - hidden on mobile */}
+            <div className="space-y-1 sm:space-y-2 hidden md:block">
+              <Label htmlFor="platform" className="text-xs sm:text-sm text-text-secondary">Platform</Label>
               <Select value={platformFilter} onValueChange={setPlatformFilter}>
-                <SelectTrigger id="platform" className="border-cyan-glow/20 bg-bg-tertiary/50 focus:border-cyan-glow/50 focus:ring-cyan-glow/20">
-                  <SelectValue placeholder="All platforms" />
+                <SelectTrigger id="platform" className="text-xs sm:text-sm h-8 sm:h-10 border-cyan-glow/20 bg-bg-tertiary/50 focus:border-cyan-glow/50 focus:ring-cyan-glow/20">
+                  <SelectValue placeholder="All" />
                 </SelectTrigger>
                 <SelectContent className="border-cyan-glow/20 bg-bg-secondary/95 backdrop-blur-xl">
                   <SelectItem value="all">All Platforms</SelectItem>
@@ -1005,12 +1004,12 @@ export default function AdminCatalogProductsPage(): React.JSX.Element {
               </Select>
             </div>
 
-            {/* Region Filter */}
-            <div className="space-y-2">
-              <Label htmlFor="region" className="text-text-secondary">Region</Label>
+            {/* Region Filter - hidden on mobile */}
+            <div className="space-y-1 sm:space-y-2 hidden lg:block">
+              <Label htmlFor="region" className="text-xs sm:text-sm text-text-secondary">Region</Label>
               <Select value={regionFilter} onValueChange={setRegionFilter}>
-                <SelectTrigger id="region" className="border-cyan-glow/20 bg-bg-tertiary/50 focus:border-cyan-glow/50 focus:ring-cyan-glow/20">
-                  <SelectValue placeholder="All regions" />
+                <SelectTrigger id="region" className="text-xs sm:text-sm h-8 sm:h-10 border-cyan-glow/20 bg-bg-tertiary/50 focus:border-cyan-glow/50 focus:ring-cyan-glow/20">
+                  <SelectValue placeholder="All" />
                 </SelectTrigger>
                 <SelectContent className="border-cyan-glow/20 bg-bg-secondary/95 backdrop-blur-xl">
                   <SelectItem value="all">All Regions</SelectItem>
@@ -1024,11 +1023,11 @@ export default function AdminCatalogProductsPage(): React.JSX.Element {
             </div>
 
             {/* Published Status Filter */}
-            <div className="space-y-2">
-              <Label htmlFor="published" className="text-text-secondary">Status</Label>
+            <div className="space-y-1 sm:space-y-2">
+              <Label htmlFor="published" className="text-xs sm:text-sm text-text-secondary">Status</Label>
               <Select value={publishedFilter} onValueChange={setPublishedFilter}>
-                <SelectTrigger id="published" className="border-cyan-glow/20 bg-bg-tertiary/50 focus:border-cyan-glow/50 focus:ring-cyan-glow/20">
-                  <SelectValue placeholder="All statuses" />
+                <SelectTrigger id="published" className="text-xs sm:text-sm h-8 sm:h-10 border-cyan-glow/20 bg-bg-tertiary/50 focus:border-cyan-glow/50 focus:ring-cyan-glow/20">
+                  <SelectValue placeholder="All" />
                 </SelectTrigger>
                 <SelectContent className="border-cyan-glow/20 bg-bg-secondary/95 backdrop-blur-xl">
                   <SelectItem value="all">All Products</SelectItem>
@@ -1043,26 +1042,26 @@ export default function AdminCatalogProductsPage(): React.JSX.Element {
 
       {/* Products Table Card */}
       <Card className="border-border-subtle bg-bg-secondary/80 backdrop-blur-sm hover:border-border-accent transition-colors duration-250 overflow-hidden">
-        <CardHeader className="pb-4">
+        <CardHeader className="p-3 sm:p-6 pb-2 sm:pb-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-cyan-glow/10">
-                <Store className="h-4 w-4 text-cyan-glow" />
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="p-1.5 sm:p-2 rounded-lg bg-cyan-glow/10">
+                <Store className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-cyan-glow" />
               </div>
               <div>
-                <CardTitle className="text-text-primary text-lg">Products</CardTitle>
-                <CardDescription className="text-text-muted text-sm">
+                <CardTitle className="text-sm sm:text-lg text-text-primary">Products</CardTitle>
+                <CardDescription className="text-text-muted text-xs sm:text-sm">
                   {isLoading
                     ? 'Loading products...'
                     : products != null
-                      ? `${totalProducts.toLocaleString()} total product${totalProducts === 1 ? '' : 's'}`
+                      ? `${totalProducts.toLocaleString()} product${totalProducts === 1 ? '' : 's'}`
                       : 'No products'}
                 </CardDescription>
               </div>
             </div>
             {!isLoading && products.length > 0 && (
-              <Badge variant="outline" className="border-cyan-glow/30 text-cyan-glow bg-cyan-glow/5">
-                Page {currentPage} of {totalPages}
+              <Badge variant="outline" className="border-cyan-glow/30 text-cyan-glow bg-cyan-glow/5 text-xs">
+                {currentPage}/{totalPages}
               </Badge>
             )}
           </div>

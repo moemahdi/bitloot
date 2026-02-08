@@ -340,41 +340,43 @@ export default function AdminPaymentsPage(): React.ReactElement {
 
   return (
     <TooltipProvider>
-      <div className="space-y-6 p-6">
+      <div className="space-y-4 sm:space-y-6 p-3 sm:p-4 lg:p-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="p-3 rounded-xl bg-cyan-glow/10 border border-cyan-glow/20">
-              <CreditCard className="h-8 w-8 text-cyan-glow" />
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-2 sm:gap-4">
+            <div className="p-2 sm:p-3 rounded-xl bg-cyan-glow/10 border border-cyan-glow/20">
+              <CreditCard className="h-5 w-5 sm:h-8 sm:w-8 text-cyan-glow" />
             </div>
             <div>
-              <h1 className="text-3xl font-bold tracking-tight text-text-primary">
+              <h1 className="text-xl sm:text-2xl md:text-3xl font-bold tracking-tight text-text-primary">
                 Payments
               </h1>
-              <p className="text-text-secondary">
+              <p className="text-xs sm:text-sm text-text-secondary">
                 Monitor and manage cryptocurrency payments
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             <Button 
               variant="outline" 
+              size="sm"
               onClick={() => void refetch()} 
               disabled={isLoading}
-              className="border-border-subtle hover:border-cyan-glow/50 hover:text-cyan-glow transition-colors"
+              className="border-border-subtle hover:border-cyan-glow/50 hover:text-cyan-glow transition-colors text-xs sm:text-sm"
             >
-              <RefreshCw className={`mr-2 h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-              Refresh
+              <RefreshCw className={`h-3.5 w-3.5 sm:h-4 sm:w-4 sm:mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+              <span className="hidden sm:inline">Refresh</span>
             </Button>
             <Dialog open={isExportDialogOpen} onOpenChange={setIsExportDialogOpen}>
               <DialogTrigger asChild>
                 <Button 
                   variant="outline" 
+                  size="sm"
                   disabled={(payments?.length ?? 0) === 0}
-                  className="border-border-subtle hover:border-green-success/50 hover:text-green-success transition-colors"
+                  className="border-border-subtle hover:border-green-success/50 hover:text-green-success transition-colors text-xs sm:text-sm"
                 >
-                  <Download className="mr-2 h-4 w-4" />
-                  Export CSV
+                  <Download className="h-3.5 w-3.5 sm:h-4 sm:w-4 sm:mr-2" />
+                  <span className="hidden sm:inline">Export CSV</span>
                 </Button>
               </DialogTrigger>
               <DialogContent className="bg-bg-secondary border-border-subtle">
@@ -438,20 +440,20 @@ export default function AdminPaymentsPage(): React.ReactElement {
         </div>
 
         {/* Statistics Cards */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-2 sm:gap-4 grid-cols-2 lg:grid-cols-4">
           {/* Total Payments */}
           <Card className="bg-bg-secondary border-border-subtle hover:border-cyan-glow/30 transition-all duration-300 group">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-text-secondary">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 sm:p-6 pb-1 sm:pb-2">
+              <CardTitle className="text-xs sm:text-sm font-medium text-text-secondary">
                 Total Payments
               </CardTitle>
-              <CreditCard className="h-4 w-4 text-cyan-glow group-hover:scale-110 transition-transform" />
+              <CreditCard className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-cyan-glow group-hover:scale-110 transition-transform" />
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-text-primary">
+            <CardContent className="p-3 sm:p-6 pt-0">
+              <div className="text-lg sm:text-2xl font-bold text-text-primary">
                 {totalPayments.toLocaleString()}
               </div>
-              <p className="text-xs text-text-muted mt-1">
+              <p className="text-[10px] sm:text-xs text-text-muted mt-0.5 sm:mt-1 hidden xs:block">
                 All time payment transactions
               </p>
             </CardContent>
@@ -459,17 +461,17 @@ export default function AdminPaymentsPage(): React.ReactElement {
 
           {/* Successful Payments */}
           <Card className="bg-bg-secondary border-border-subtle hover:border-green-success/30 transition-all duration-300 group">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-text-secondary">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 sm:p-6 pb-1 sm:pb-2">
+              <CardTitle className="text-xs sm:text-sm font-medium text-text-secondary">
                 Successful
               </CardTitle>
-              <CheckCircle2 className="h-4 w-4 text-green-success group-hover:scale-110 transition-transform" />
+              <CheckCircle2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-green-success group-hover:scale-110 transition-transform" />
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-green-success">
+            <CardContent className="p-3 sm:p-6 pt-0">
+              <div className="text-lg sm:text-2xl font-bold text-green-success">
                 {successfulPayments.toLocaleString()}
               </div>
-              <p className="text-xs text-text-muted mt-1">
+              <p className="text-[10px] sm:text-xs text-text-muted mt-0.5 sm:mt-1 hidden xs:block">
                 {successRate.toFixed(1)}% success rate
               </p>
             </CardContent>
@@ -477,17 +479,17 @@ export default function AdminPaymentsPage(): React.ReactElement {
 
           {/* Pending Payments */}
           <Card className="bg-bg-secondary border-border-subtle hover:border-orange-warning/30 transition-all duration-300 group">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-text-secondary">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 sm:p-6 pb-1 sm:pb-2">
+              <CardTitle className="text-xs sm:text-sm font-medium text-text-secondary">
                 Pending
               </CardTitle>
-              <Clock className="h-4 w-4 text-orange-warning group-hover:scale-110 transition-transform" />
+              <Clock className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-orange-warning group-hover:scale-110 transition-transform" />
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-orange-warning">
+            <CardContent className="p-3 sm:p-6 pt-0">
+              <div className="text-lg sm:text-2xl font-bold text-orange-warning">
                 {pendingPayments.toLocaleString()}
               </div>
-              <p className="text-xs text-text-muted mt-1">
+              <p className="text-[10px] sm:text-xs text-text-muted mt-0.5 sm:mt-1 hidden xs:block">
                 Awaiting confirmation
               </p>
             </CardContent>
@@ -495,17 +497,17 @@ export default function AdminPaymentsPage(): React.ReactElement {
 
           {/* Total Revenue */}
           <Card className="bg-bg-secondary border-border-subtle hover:border-purple-neon/30 transition-all duration-300 group">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-text-secondary">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 sm:p-6 pb-1 sm:pb-2">
+              <CardTitle className="text-xs sm:text-sm font-medium text-text-secondary">
                 Revenue
               </CardTitle>
-              <TrendingUp className="h-4 w-4 text-purple-neon group-hover:scale-110 transition-transform" />
+              <TrendingUp className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-purple-neon group-hover:scale-110 transition-transform" />
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-purple-neon">
+            <CardContent className="p-3 sm:p-6 pt-0">
+              <div className="text-lg sm:text-2xl font-bold text-purple-neon">
                 {formatFiatAmount(totalRevenue)}
               </div>
-              <p className="text-xs text-text-muted mt-1">
+              <p className="text-[10px] sm:text-xs text-text-muted mt-0.5 sm:mt-1 hidden xs:block">
                 Total confirmed revenue
               </p>
             </CardContent>
@@ -514,106 +516,109 @@ export default function AdminPaymentsPage(): React.ReactElement {
 
         {/* Main Content Card */}
         <Card className="bg-bg-secondary border-border-subtle">
-          <CardHeader>
-            <div className="flex items-center justify-between">
+          <CardHeader className="p-3 sm:p-6">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <CardTitle className="text-text-primary flex items-center gap-2">
-                  <Bitcoin className="h-5 w-5 text-cyan-glow" />
+                <CardTitle className="text-sm sm:text-base text-text-primary flex items-center gap-2">
+                  <Bitcoin className="h-4 w-4 sm:h-5 sm:w-5 text-cyan-glow" />
                   Payment History
                 </CardTitle>
-                <CardDescription className="text-text-secondary">
+                <CardDescription className="text-xs sm:text-sm text-text-secondary">
                   View and manage all payment transactions
                 </CardDescription>
               </div>
               {selectedPayments.size > 0 && (
-                <Badge className="bg-cyan-glow/20 text-cyan-glow border border-cyan-glow/30">
+                <Badge className="bg-cyan-glow/20 text-cyan-glow border border-cyan-glow/30 text-xs w-fit">
                   {selectedPayments.size} selected
                 </Badge>
               )}
             </div>
           </CardHeader>
-          <CardContent>
-            <div className="flex flex-col gap-4">
+          <CardContent className="p-3 sm:p-6 pt-0">
+            <div className="flex flex-col gap-3 sm:gap-4">
               {/* Filters Row */}
-              <div className="flex flex-wrap gap-4 items-center">
+              <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:gap-4 sm:items-center">
                 {/* Search Input */}
-                <div className="relative flex-1 min-w-[300px]">
+                <div className="relative flex-1 min-w-0 sm:min-w-[200px] md:min-w-[300px]">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-text-muted" />
                   <Input
-                    placeholder="Search by ID, email, txHash, address..."
+                    placeholder="Search by ID, email, txHash..."
                     value={searchQuery}
                     onChange={(e) => handleSearchChange(e.target.value)}
-                    className="pl-10 input-glow bg-bg-tertiary border-border-subtle focus:border-cyan-glow/50"
+                    className="pl-10 input-glow bg-bg-tertiary border-border-subtle focus:border-cyan-glow/50 text-sm h-9 sm:h-10"
                   />
                 </div>
 
-                {/* Status Filter */}
-                <div className="w-[180px]">
-                  <Select
-                    value={state.filters.status as string}
-                    onValueChange={(value) => state.handleFilterChange('status', value)}
-                  >
-                    <SelectTrigger className="bg-bg-tertiary border-border-subtle focus:border-cyan-glow/50">
-                      <Filter className="h-4 w-4 mr-2 text-text-muted" />
-                      <SelectValue placeholder="Status" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-bg-secondary border-border-subtle">
-                      <SelectItem value="all">All Statuses</SelectItem>
-                      <SelectItem value="finished">
-                        <span className="flex items-center gap-2">
-                          <CheckCircle2 className="h-3 w-3 text-green-success" />
-                          Finished
-                        </span>
-                      </SelectItem>
-                      <SelectItem value="confirming">
-                        <span className="flex items-center gap-2">
-                          <Loader2 className="h-3 w-3 text-orange-warning" />
-                          Confirming
-                        </span>
-                      </SelectItem>
-                      <SelectItem value="waiting">
-                        <span className="flex items-center gap-2">
-                          <Clock className="h-3 w-3 text-cyan-glow" />
-                          Waiting
-                        </span>
-                      </SelectItem>
-                      <SelectItem value="failed">
-                        <span className="flex items-center gap-2">
-                          <XCircle className="h-3 w-3 text-destructive" />
-                          Failed
-                        </span>
-                      </SelectItem>
-                      <SelectItem value="expired">
-                        <span className="flex items-center gap-2">
-                          <AlertTriangle className="h-3 w-3 text-destructive" />
-                          Expired
-                        </span>
-                      </SelectItem>
-                      <SelectItem value="refunded">
-                        <span className="flex items-center gap-2">
-                          <DollarSign className="h-3 w-3 text-purple-neon" />
-                          Refunded
-                        </span>
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
+                {/* Filters - hide some on mobile */}
+                <div className="flex gap-2">
+                  {/* Status Filter */}
+                  <div className="w-[120px] sm:w-[180px]">
+                    <Select
+                      value={state.filters.status as string}
+                      onValueChange={(value) => state.handleFilterChange('status', value)}
+                    >
+                      <SelectTrigger className="bg-bg-tertiary border-border-subtle focus:border-cyan-glow/50 text-xs sm:text-sm h-9 sm:h-10">
+                        <Filter className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 sm:mr-2 text-text-muted" />
+                        <SelectValue placeholder="Status" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-bg-secondary border-border-subtle">
+                        <SelectItem value="all">All Statuses</SelectItem>
+                        <SelectItem value="finished">
+                          <span className="flex items-center gap-2">
+                            <CheckCircle2 className="h-3 w-3 text-green-success" />
+                            Finished
+                          </span>
+                        </SelectItem>
+                        <SelectItem value="confirming">
+                          <span className="flex items-center gap-2">
+                            <Loader2 className="h-3 w-3 text-orange-warning" />
+                            Confirming
+                          </span>
+                        </SelectItem>
+                        <SelectItem value="waiting">
+                          <span className="flex items-center gap-2">
+                            <Clock className="h-3 w-3 text-cyan-glow" />
+                            Waiting
+                          </span>
+                        </SelectItem>
+                        <SelectItem value="failed">
+                          <span className="flex items-center gap-2">
+                            <XCircle className="h-3 w-3 text-destructive" />
+                            Failed
+                          </span>
+                        </SelectItem>
+                        <SelectItem value="expired">
+                          <span className="flex items-center gap-2">
+                            <AlertTriangle className="h-3 w-3 text-destructive" />
+                            Expired
+                          </span>
+                        </SelectItem>
+                        <SelectItem value="refunded">
+                          <span className="flex items-center gap-2">
+                            <DollarSign className="h-3 w-3 text-purple-neon" />
+                            Refunded
+                          </span>
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-                {/* Provider Filter */}
-                <div className="w-[180px]">
-                  <Select
-                    value={state.filters.provider as string}
-                    onValueChange={(value) => state.handleFilterChange('provider', value)}
-                  >
-                    <SelectTrigger className="bg-bg-tertiary border-border-subtle focus:border-cyan-glow/50">
-                      <Zap className="h-4 w-4 mr-2 text-text-muted" />
-                      <SelectValue placeholder="Provider" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-bg-secondary border-border-subtle">
-                      <SelectItem value="all">All Providers</SelectItem>
-                      <SelectItem value="nowpayments">NOWPayments</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  {/* Provider Filter - hidden on mobile */}
+                  <div className="w-[120px] sm:w-[180px] hidden sm:block">
+                    <Select
+                      value={state.filters.provider as string}
+                      onValueChange={(value) => state.handleFilterChange('provider', value)}
+                    >
+                      <SelectTrigger className="bg-bg-tertiary border-border-subtle focus:border-cyan-glow/50 text-xs sm:text-sm h-9 sm:h-10">
+                        <Zap className="h-3.5 w-3.5 sm:h-4 sm:w-4 mr-1 sm:mr-2 text-text-muted" />
+                        <SelectValue placeholder="Provider" />
+                      </SelectTrigger>
+                      <SelectContent className="bg-bg-secondary border-border-subtle">
+                        <SelectItem value="all">All Providers</SelectItem>
+                        <SelectItem value="nowpayments">NOWPayments</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
               </div>
 
@@ -806,19 +811,19 @@ export default function AdminPaymentsPage(): React.ReactElement {
               </div>
 
               {/* Pagination */}
-              <div className="flex items-center justify-between pt-2">
-                <div className="text-sm text-text-muted">
-                  Showing <span className="font-medium text-text-secondary">{payments.length}</span> of{' '}
-                  <span className="font-medium text-text-secondary">{total}</span> payments
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between pt-2">
+                <div className="text-xs sm:text-sm text-text-muted text-center sm:text-left">
+                  <span className="font-medium text-text-secondary">{payments.length}</span> of{' '}
+                  <span className="font-medium text-cyan-glow">{total}</span> payments
                 </div>
-                <div className="flex items-center gap-4">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-text-muted">Rows per page</span>
+                <div className="flex flex-col xs:flex-row items-center gap-2 sm:gap-4">
+                  <div className="hidden sm:flex items-center gap-2">
+                    <span className="text-xs sm:text-sm text-text-muted">Rows</span>
                     <Select
                       value={state.limit.toString()}
                       onValueChange={(value) => state.setLimit(Number(value))}
                     >
-                      <SelectTrigger className="w-[70px] bg-bg-tertiary border-border-subtle">
+                      <SelectTrigger className="w-[60px] sm:w-[70px] bg-bg-tertiary border-border-subtle text-xs h-8">
                         <SelectValue placeholder="20" />
                       </SelectTrigger>
                       <SelectContent className="bg-bg-secondary border-border-subtle">
@@ -829,22 +834,21 @@ export default function AdminPaymentsPage(): React.ReactElement {
                       </SelectContent>
                     </Select>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1 sm:gap-2">
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => state.setPage(Math.max(1, state.page - 1))}
                       disabled={state.page <= 1 || isLoading}
-                      className="border-border-subtle hover:border-cyan-glow/50 disabled:opacity-50"
+                      className="border-border-subtle hover:border-cyan-glow/50 disabled:opacity-50 text-xs h-8"
                     >
-                      <ChevronLeft className="h-4 w-4 mr-1" />
-                      Previous
+                      <ChevronLeft className="h-4 w-4 sm:mr-1" />
+                      <span className="hidden sm:inline">Previous</span>
                     </Button>
-                    <div className="flex items-center gap-1 px-3 py-1.5 bg-bg-tertiary rounded-md border border-border-subtle">
-                      <span className="text-sm text-text-secondary">Page</span>
-                      <span className="text-sm font-medium text-cyan-glow">{state.page}</span>
-                      <span className="text-sm text-text-secondary">of</span>
-                      <span className="text-sm font-medium text-text-primary">
+                    <div className="flex items-center gap-1 px-2 sm:px-3 py-1 sm:py-1.5 bg-bg-tertiary rounded-md border border-border-subtle">
+                      <span className="text-xs sm:text-sm font-medium text-cyan-glow">{state.page}</span>
+                      <span className="text-xs sm:text-sm text-text-secondary">/</span>
+                      <span className="text-xs sm:text-sm font-medium text-text-primary">
                         {Math.max(1, Math.ceil(total / state.limit))}
                       </span>
                     </div>
@@ -853,10 +857,10 @@ export default function AdminPaymentsPage(): React.ReactElement {
                       size="sm"
                       onClick={() => state.setPage(Math.min(Math.ceil(total / state.limit), state.page + 1))}
                       disabled={state.page >= Math.ceil(total / state.limit) || isLoading}
-                      className="border-border-subtle hover:border-cyan-glow/50 disabled:opacity-50"
+                      className="border-border-subtle hover:border-cyan-glow/50 disabled:opacity-50 text-xs h-8"
                     >
-                      Next
-                      <ChevronRight className="h-4 w-4 ml-1" />
+                      <span className="hidden sm:inline">Next</span>
+                      <ChevronRight className="h-4 w-4 sm:ml-1" />
                     </Button>
                   </div>
                 </div>

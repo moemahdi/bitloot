@@ -227,66 +227,75 @@ export default function AdminReviewsPage(): React.ReactElement {
   }
 
   return (
-    <div className="container mx-auto py-8 space-y-8">
+    <div className="container mx-auto py-4 sm:py-8 px-3 sm:px-4 space-y-4 sm:space-y-8">
       {/* Header */}
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+      <div className="flex flex-col gap-3 sm:gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Review Management</h1>
-          <p className="text-muted-foreground">Moderate customer reviews and manage homepage display.</p>
+          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold">Review Management</h1>
+          <p className="text-muted-foreground text-xs sm:text-sm hidden xs:block">Moderate customer reviews and manage homepage display.</p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={() => refetch()}>
-            <RefreshCw className="mr-2 h-4 w-4" />
-            Refresh
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" onClick={() => refetch()} size="sm" className="h-8 text-xs sm:text-sm">
+            <RefreshCw className="mr-1.5 sm:mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4" />
+            <span className="hidden xs:inline">Refresh</span>
           </Button>
           <Button
             variant="default"
+            size="sm"
             onClick={() => bulkApprove.mutate()}
             disabled={bulkApprove.isPending}
+            className="h-8 text-xs sm:text-sm"
           >
-            <CheckCircle className="mr-2 h-4 w-4" />
-            Approve All Pending
+            <CheckCircle className="mr-1.5 sm:mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4" />
+            <span className="hidden sm:inline">Approve All</span>
+            <span className="sm:hidden">Approve</span>
           </Button>
           <Button
             variant="destructive"
+            size="sm"
             onClick={() => bulkReject.mutate()}
             disabled={bulkReject.isPending}
+            className="h-8 text-xs sm:text-sm"
           >
-            <XCircle className="mr-2 h-4 w-4" />
-            Reject All Pending
+            <XCircle className="mr-1.5 sm:mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4" />
+            <span className="hidden sm:inline">Reject All</span>
+            <span className="sm:hidden">Reject</span>
           </Button>
           <Button
             variant="secondary"
+            size="sm"
             onClick={() => setCreateDialogOpen(true)}
+            className="h-8 text-xs sm:text-sm"
           >
-            <Plus className="mr-2 h-4 w-4" />
-            Create Review
+            <Plus className="mr-1.5 sm:mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4" />
+            <span className="hidden sm:inline">Create Review</span>
+            <span className="sm:hidden">Create</span>
           </Button>
         </div>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid gap-4 md:grid-cols-4">
+      <div className="grid gap-2 sm:gap-4 grid-cols-2 md:grid-cols-4">
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Reviews</CardTitle>
-            <MessageSquare className="h-4 w-4 text-muted-foreground" />
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 pb-1.5 sm:p-6 sm:pb-2">
+            <CardTitle className="text-xs sm:text-sm font-medium">Total Reviews</CardTitle>
+            <MessageSquare className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-muted-foreground" />
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {statsLoading ? <Loader2 className="h-6 w-6 animate-spin" /> : stats?.totalReviews ?? 0}
+          <CardContent className="p-3 pt-0 sm:p-6 sm:pt-0">
+            <div className="text-lg sm:text-2xl font-bold">
+              {statsLoading ? <Loader2 className="h-5 w-5 sm:h-6 sm:w-6 animate-spin" /> : stats?.totalReviews ?? 0}
             </div>
           </CardContent>
         </Card>
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Average Rating</CardTitle>
-            <Star className="h-4 w-4 text-muted-foreground" />
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 pb-1.5 sm:p-6 sm:pb-2">
+            <CardTitle className="text-xs sm:text-sm font-medium">Average Rating</CardTitle>
+            <Star className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-muted-foreground" />
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
+          <CardContent className="p-3 pt-0 sm:p-6 sm:pt-0">
+            <div className="text-lg sm:text-2xl font-bold">
               {statsLoading ? (
-                <Loader2 className="h-6 w-6 animate-spin" />
+                <Loader2 className="h-5 w-5 sm:h-6 sm:w-6 animate-spin" />
               ) : (
                 (stats?.averageRating ?? 0).toFixed(1)
               )}
@@ -294,24 +303,24 @@ export default function AdminReviewsPage(): React.ReactElement {
           </CardContent>
         </Card>
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pending</CardTitle>
-            <Badge variant="secondary">{(stats?.statusBreakdown as Record<string, number> | undefined)?.pending ?? 0}</Badge>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 pb-1.5 sm:p-6 sm:pb-2">
+            <CardTitle className="text-xs sm:text-sm font-medium">Pending</CardTitle>
+            <Badge variant="secondary" className="text-[10px] sm:text-xs">{(stats?.statusBreakdown as Record<string, number> | undefined)?.pending ?? 0}</Badge>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-yellow-600">
-              {statsLoading ? <Loader2 className="h-6 w-6 animate-spin" /> : (stats?.statusBreakdown as Record<string, number> | undefined)?.pending ?? 0}
+          <CardContent className="p-3 pt-0 sm:p-6 sm:pt-0">
+            <div className="text-lg sm:text-2xl font-bold text-yellow-600">
+              {statsLoading ? <Loader2 className="h-5 w-5 sm:h-6 sm:w-6 animate-spin" /> : (stats?.statusBreakdown as Record<string, number> | undefined)?.pending ?? 0}
             </div>
           </CardContent>
         </Card>
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Approved</CardTitle>
-            <Badge variant="default">{(stats?.statusBreakdown as Record<string, number> | undefined)?.approved ?? 0}</Badge>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 pb-1.5 sm:p-6 sm:pb-2">
+            <CardTitle className="text-xs sm:text-sm font-medium">Approved</CardTitle>
+            <Badge variant="default" className="text-[10px] sm:text-xs">{(stats?.statusBreakdown as Record<string, number> | undefined)?.approved ?? 0}</Badge>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">
-              {statsLoading ? <Loader2 className="h-6 w-6 animate-spin" /> : (stats?.statusBreakdown as Record<string, number> | undefined)?.approved ?? 0}
+          <CardContent className="p-3 pt-0 sm:p-6 sm:pt-0">
+            <div className="text-lg sm:text-2xl font-bold text-green-600">
+              {statsLoading ? <Loader2 className="h-5 w-5 sm:h-6 sm:w-6 animate-spin" /> : (stats?.statusBreakdown as Record<string, number> | undefined)?.approved ?? 0}
             </div>
           </CardContent>
         </Card>

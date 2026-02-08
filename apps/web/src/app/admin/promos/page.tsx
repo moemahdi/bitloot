@@ -58,13 +58,13 @@ interface StatsCardProps {
 function StatsCard({ title, value, description, icon, trend }: StatsCardProps): React.ReactElement {
     return (
         <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">{title}</CardTitle>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 p-3 pb-1.5 sm:p-6 sm:pb-2">
+                <CardTitle className="text-xs sm:text-sm font-medium">{title}</CardTitle>
                 {icon}
             </CardHeader>
-            <CardContent>
-                <div className="text-2xl font-bold">{value}</div>
-                <p className="text-xs text-muted-foreground mt-1">
+            <CardContent className="p-3 pt-0 sm:p-6 sm:pt-0">
+                <div className="text-lg sm:text-2xl font-bold">{value}</div>
+                <p className="text-xs text-muted-foreground mt-1 hidden xs:block">
                     {description}
                 </p>
                 {trend !== undefined && (
@@ -149,28 +149,28 @@ export default function AdminPromosPage(): React.ReactElement {
     };
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-4 sm:space-y-6">
             {/* Page Header */}
-            <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500/10 to-pink-500/10 border border-purple-500/20">
-                        <Tag className="h-6 w-6 text-purple-600 dark:text-purple-400" />
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-center gap-2 sm:gap-3">
+                    <div className="flex h-9 w-9 sm:h-12 sm:w-12 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500/10 to-pink-500/10 border border-purple-500/20">
+                        <Tag className="h-4 w-4 sm:h-6 sm:w-6 text-purple-600 dark:text-purple-400" />
                     </div>
                     <div>
-                        <h1 className="text-2xl font-bold tracking-tight">Promo Codes</h1>
-                        <p className="text-muted-foreground text-sm">
+                        <h1 className="text-xl sm:text-2xl font-bold tracking-tight">Promo Codes</h1>
+                        <p className="text-muted-foreground text-xs sm:text-sm hidden xs:block">
                             Create and manage discount codes for your store
                         </p>
                     </div>
                 </div>
-                <Button onClick={handleCreate} size="default" className="gap-2">
-                    <Plus className="h-4 w-4" />
-                    Create Promo Code
+                <Button onClick={handleCreate} size="sm" className="gap-2 h-8 sm:h-10 sm:size-default">
+                    <Plus className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                    <span className="hidden xs:inline">Create</span> <span className="hidden sm:inline">Promo Code</span>
                 </Button>
             </div>
 
             {/* Stats Cards */}
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <div className="grid grid-cols-2 gap-2 sm:gap-4 lg:grid-cols-4">
                 {statsLoading ? (
                     <>
                         <StatsCardSkeleton />
@@ -211,13 +211,13 @@ export default function AdminPromosPage(): React.ReactElement {
             {/* Main Content with Tabs */}
             <Card>
                 <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as View)} className="w-full">
-                    <CardHeader className="border-b">
-                        <div className="flex items-center justify-between">
+                    <CardHeader className="border-b p-3 sm:p-6">
+                        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                             <div>
-                                <CardTitle>
+                                <CardTitle className="text-base sm:text-lg">
                                     {activeTab === 'list' ? 'All Promo Codes' : `Redemptions for ${viewingRedemptions?.code}`}
                                 </CardTitle>
-                                <CardDescription className="mt-1.5">
+                                <CardDescription className="mt-1 sm:mt-1.5 text-xs sm:text-sm hidden xs:block">
                                     {activeTab === 'list'
                                         ? 'Manage discount codes with usage limits, date constraints, and scoping'
                                         : 'View all redemptions for this promo code'
@@ -225,13 +225,14 @@ export default function AdminPromosPage(): React.ReactElement {
                                 </CardDescription>
                             </div>
                             {activeTab === 'redemptions' && (
-                                <Button variant="outline" size="sm" onClick={handleBackToList}>
-                                    Back to List
+                                <Button variant="outline" size="sm" onClick={handleBackToList} className="h-7 sm:h-8 text-xs sm:text-sm">
+                                    <span className="sm:hidden">Back</span>
+                                    <span className="hidden sm:inline">Back to List</span>
                                 </Button>
                             )}
                         </div>
                         {activeTab === 'list' && (
-                            <TabsList className="mt-4">
+                            <TabsList className="mt-3 sm:mt-4 h-8 sm:h-10">
                                 <TabsTrigger value="list">All Codes</TabsTrigger>
                                 <TabsTrigger value="redemptions" disabled={viewingRedemptions === null}>
                                     Redemptions
@@ -239,7 +240,7 @@ export default function AdminPromosPage(): React.ReactElement {
                             </TabsList>
                         )}
                     </CardHeader>
-                    <CardContent className="pt-6">
+                    <CardContent className="p-3 pt-4 sm:p-6 sm:pt-6">
                         <TabsContent value="list" className="mt-0">
                             <PromoCodesList
                                 onEdit={handleEdit}

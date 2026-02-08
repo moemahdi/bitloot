@@ -328,23 +328,24 @@ export default function AdminOrdersPage(): React.ReactElement {
 
   return (
     <TooltipProvider>
-      <div className="container mx-auto py-8 space-y-8">
+      <div className="container mx-auto py-4 sm:py-8 px-3 sm:px-4 space-y-4 sm:space-y-8">
         {/* Page Header */}
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div className="flex flex-col gap-3 sm:gap-4 md:flex-row md:items-center md:justify-between">
           <div>
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-cyan-glow/10 border border-cyan-glow/20">
-                <Package className="h-6 w-6 text-cyan-glow" />
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="p-1.5 sm:p-2 rounded-lg bg-cyan-glow/10 border border-cyan-glow/20">
+                <Package className="h-5 w-5 sm:h-6 sm:w-6 text-cyan-glow" />
               </div>
               <div>
-                <h1 className="text-3xl font-bold text-text-primary tracking-tight">Order Management</h1>
-                <p className="text-text-secondary">View and manage all customer orders.</p>
+                <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-text-primary tracking-tight">Order Management</h1>
+                <p className="text-text-secondary text-xs sm:text-sm">View and manage all customer orders.</p>
               </div>
             </div>
           </div>
           <div className="flex gap-2">
             <Button 
               variant="outline" 
+              size="sm"
               onClick={() => {
                 setIsRefreshingAll(true);
                 void Promise.all([refetch(), Promise.resolve(refetchAnalytics())]).finally(() => {
@@ -352,10 +353,10 @@ export default function AdminOrdersPage(): React.ReactElement {
                 });
               }}
               disabled={isRefreshingAll || isRefetching}
-              className="border-border-subtle hover:border-cyan-glow/50 hover:shadow-glow-cyan-sm transition-all duration-200"
+              className="border-border-subtle hover:border-cyan-glow/50 hover:shadow-glow-cyan-sm transition-all duration-200 text-xs sm:text-sm"
             >
-              <RefreshCw className={`mr-2 h-4 w-4 ${isRefreshingAll || isRefetching ? 'animate-spin' : ''}`} />
-              {isRefreshingAll || isRefetching ? 'Refreshing...' : 'Refresh'}
+              <RefreshCw className={`mr-1.5 sm:mr-2 h-4 w-4 ${isRefreshingAll || isRefetching ? 'animate-spin' : ''}`} />
+              <span className="hidden xs:inline">{isRefreshingAll || isRefetching ? 'Refreshing...' : 'Refresh'}</span>
             </Button>
             
             {/* Export Dialog */}
@@ -461,72 +462,72 @@ export default function AdminOrdersPage(): React.ReactElement {
         </div>
 
         {/* Analytics Dashboard Widgets */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-4">
           {/* Total Orders Card */}
           <Card className="bg-bg-secondary border-border-subtle hover:border-cyan-glow/30 transition-all duration-300 group">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-text-secondary">Total Orders</CardTitle>
-              <div className="p-2 rounded-lg bg-cyan-glow/10 group-hover:bg-cyan-glow/20 transition-colors">
-                <Package className="h-4 w-4 text-cyan-glow" />
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 sm:pb-2 p-3 sm:p-6">
+              <CardTitle className="text-xs sm:text-sm font-medium text-text-secondary">Total Orders</CardTitle>
+              <div className="p-1.5 sm:p-2 rounded-lg bg-cyan-glow/10 group-hover:bg-cyan-glow/20 transition-colors">
+                <Package className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-cyan-glow" />
               </div>
             </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-text-primary">
+            <CardContent className="p-3 sm:p-6 pt-0 sm:pt-0">
+              <div className="text-xl sm:text-3xl font-bold text-text-primary">
                 {analyticsLoading ? (
-                  <div className="skeleton h-9 w-20 rounded" />
+                  <div className="skeleton h-6 sm:h-9 w-14 sm:w-20 rounded" />
                 ) : (
                   <span className="text-glow-cyan">{analytics?.totalOrders ?? 0}</span>
                 )}
               </div>
               <div className="flex items-center gap-1 mt-1">
                 <ArrowUpRight className="h-3 w-3 text-green-success" />
-                <p className="text-xs text-text-secondary">Last 30 days</p>
+                <p className="text-[10px] sm:text-xs text-text-secondary">Last 30 days</p>
               </div>
             </CardContent>
           </Card>
 
           {/* Total Revenue Card */}
           <Card className="bg-bg-secondary border-border-subtle hover:border-green-success/30 transition-all duration-300 group">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-text-secondary">Total Revenue</CardTitle>
-              <div className="p-2 rounded-lg bg-green-success/10 group-hover:bg-green-success/20 transition-colors">
-                <DollarSign className="h-4 w-4 text-green-success" />
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 sm:pb-2 p-3 sm:p-6">
+              <CardTitle className="text-xs sm:text-sm font-medium text-text-secondary">Total Revenue</CardTitle>
+              <div className="p-1.5 sm:p-2 rounded-lg bg-green-success/10 group-hover:bg-green-success/20 transition-colors">
+                <DollarSign className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-green-success" />
               </div>
             </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-text-primary">
+            <CardContent className="p-3 sm:p-6 pt-0 sm:pt-0">
+              <div className="text-xl sm:text-3xl font-bold text-text-primary">
                 {analyticsLoading ? (
-                  <div className="skeleton h-9 w-28 rounded" />
+                  <div className="skeleton h-6 sm:h-9 w-20 sm:w-28 rounded" />
                 ) : (
                   <span className="crypto-amount">€{(analytics?.totalRevenue ?? 0).toFixed(2)}</span>
                 )}
               </div>
               <div className="flex items-center gap-1 mt-1">
                 <Sparkles className="h-3 w-3 text-green-success" />
-                <p className="text-xs text-text-secondary">Last 30 days</p>
+                <p className="text-[10px] sm:text-xs text-text-secondary">Last 30 days</p>
               </div>
             </CardContent>
           </Card>
 
           {/* Fulfillment Rate Card */}
           <Card className="bg-bg-secondary border-border-subtle hover:border-purple-neon/30 transition-all duration-300 group">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-text-secondary">Fulfillment Rate</CardTitle>
-              <div className="p-2 rounded-lg bg-purple-neon/10 group-hover:bg-purple-neon/20 transition-colors">
-                <TrendingUp className="h-4 w-4 text-purple-neon" />
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 sm:pb-2 p-3 sm:p-6">
+              <CardTitle className="text-xs sm:text-sm font-medium text-text-secondary">Fulfillment Rate</CardTitle>
+              <div className="p-1.5 sm:p-2 rounded-lg bg-purple-neon/10 group-hover:bg-purple-neon/20 transition-colors">
+                <TrendingUp className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-purple-neon" />
               </div>
             </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-text-primary">
+            <CardContent className="p-3 sm:p-6 pt-0 sm:pt-0">
+              <div className="text-xl sm:text-3xl font-bold text-text-primary">
                 {analyticsLoading ? (
-                  <div className="skeleton h-9 w-20 rounded" />
+                  <div className="skeleton h-6 sm:h-9 w-14 sm:w-20 rounded" />
                 ) : (
                   <span>{(analytics?.fulfillmentRate ?? 0).toFixed(1)}%</span>
                 )}
               </div>
-              <div className="w-full bg-bg-tertiary rounded-full h-1.5 mt-2">
+              <div className="w-full bg-bg-tertiary rounded-full h-1 sm:h-1.5 mt-2">
                 <div 
-                  className="bg-purple-neon h-1.5 rounded-full transition-all duration-500"
+                  className="bg-purple-neon h-1 sm:h-1.5 rounded-full transition-all duration-500"
                   style={{ width: `${Math.min(analytics?.fulfillmentRate ?? 0, 100)}%` }}
                 />
               </div>
@@ -535,21 +536,21 @@ export default function AdminOrdersPage(): React.ReactElement {
 
           {/* Avg Order Value Card */}
           <Card className="bg-bg-secondary border-border-subtle hover:border-pink-featured/30 transition-all duration-300 group">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-text-secondary">Avg Order Value</CardTitle>
-              <div className="p-2 rounded-lg bg-pink-featured/10 group-hover:bg-pink-featured/20 transition-colors">
-                <BarChart3 className="h-4 w-4 text-pink-featured" />
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-1 sm:pb-2 p-3 sm:p-6">
+              <CardTitle className="text-xs sm:text-sm font-medium text-text-secondary">Avg Order Value</CardTitle>
+              <div className="p-1.5 sm:p-2 rounded-lg bg-pink-featured/10 group-hover:bg-pink-featured/20 transition-colors">
+                <BarChart3 className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-pink-featured" />
               </div>
             </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold text-text-primary">
+            <CardContent className="p-3 sm:p-6 pt-0 sm:pt-0">
+              <div className="text-xl sm:text-3xl font-bold text-text-primary">
                 {analyticsLoading ? (
-                  <div className="skeleton h-9 w-24 rounded" />
+                  <div className="skeleton h-6 sm:h-9 w-16 sm:w-24 rounded" />
                 ) : (
                   <span className="crypto-amount">€{(analytics?.averageOrderValue ?? 0).toFixed(2)}</span>
                 )}
               </div>
-              <p className="text-xs text-text-secondary mt-1">Per order average</p>
+              <p className="text-[10px] sm:text-xs text-text-secondary mt-1">Per order average</p>
             </CardContent>
           </Card>
         </div>
@@ -655,67 +656,69 @@ export default function AdminOrdersPage(): React.ReactElement {
         )}
 
         <Card className="bg-bg-secondary border-border-subtle">
-        <CardHeader>
-          <div className="flex flex-col gap-4">
-            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <CardHeader className="p-3 sm:p-6">
+          <div className="flex flex-col gap-3 sm:gap-4">
+            <div className="flex flex-col gap-3 sm:gap-4 md:flex-row md:items-center md:justify-between">
               <div>
-                <CardTitle className="text-text-primary">Orders</CardTitle>
-                <CardDescription className="text-text-secondary">
+                <CardTitle className="text-text-primary text-base sm:text-lg">Orders</CardTitle>
+                <CardDescription className="text-text-secondary text-xs sm:text-sm">
                   Total orders: <span className="text-cyan-glow font-medium">{totalItems}</span>
                 </CardDescription>
               </div>
-              <div className="flex flex-col gap-2 md:flex-row md:items-center">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
                 <div className="relative">
                   <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-text-muted" />
                   <Input
-                    placeholder="Search by email or order ID..."
-                    className="pl-9 w-full md:w-[280px] input-glow bg-bg-tertiary border-border-subtle"
+                    placeholder="Search orders..."
+                    className="pl-9 w-full sm:w-[200px] md:w-[280px] input-glow bg-bg-tertiary border-border-subtle text-sm"
                     value={(filters.search as string) ?? ''}
                     onChange={(e) => handleFilterChange('search', e.target.value)}
                   />
                 </div>
-                <Select
-                  value={(filters.status as string) ?? 'all'}
-                  onValueChange={(value) => handleFilterChange('status', value)}
-                >
-                  <SelectTrigger className="w-full md:w-[150px] bg-bg-tertiary border-border-subtle">
-                    <SelectValue placeholder="Filter by Status" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-bg-secondary border-border-subtle">
-                    <SelectItem value="all">All Statuses</SelectItem>
-                    <SelectItem value="fulfilled">Fulfilled</SelectItem>
-                    <SelectItem value="paid">Paid</SelectItem>
-                    <SelectItem value="pending">Pending</SelectItem>
-                    <SelectItem value="failed">Failed</SelectItem>
-                    <SelectItem value="underpaid">Underpaid</SelectItem>
-                    <SelectItem value="confirming">Confirming</SelectItem>
-                    <SelectItem value="refunded">Refunded</SelectItem>
-                    <SelectItem value="cancelled">Cancelled</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Select
-                  value={limit.toString()}
-                  onValueChange={(value) => setLimit(Number(value))}
-                >
-                  <SelectTrigger className="w-[100px] bg-bg-tertiary border-border-subtle">
-                    <SelectValue placeholder="Limit" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-bg-secondary border-border-subtle">
-                    <SelectItem value="10">10 / page</SelectItem>
-                    <SelectItem value="25">25 / page</SelectItem>
-                    <SelectItem value="50">50 / page</SelectItem>
-                  </SelectContent>
-                </Select>
+                <div className="flex gap-2">
+                  <Select
+                    value={(filters.status as string) ?? 'all'}
+                    onValueChange={(value) => handleFilterChange('status', value)}
+                  >
+                    <SelectTrigger className="flex-1 sm:w-[130px] md:w-[150px] bg-bg-tertiary border-border-subtle text-sm">
+                      <SelectValue placeholder="Status" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-bg-secondary border-border-subtle">
+                      <SelectItem value="all">All Statuses</SelectItem>
+                      <SelectItem value="fulfilled">Fulfilled</SelectItem>
+                      <SelectItem value="paid">Paid</SelectItem>
+                      <SelectItem value="pending">Pending</SelectItem>
+                      <SelectItem value="failed">Failed</SelectItem>
+                      <SelectItem value="underpaid">Underpaid</SelectItem>
+                      <SelectItem value="confirming">Confirming</SelectItem>
+                      <SelectItem value="refunded">Refunded</SelectItem>
+                      <SelectItem value="cancelled">Cancelled</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Select
+                    value={limit.toString()}
+                    onValueChange={(value) => setLimit(Number(value))}
+                  >
+                    <SelectTrigger className="w-[80px] sm:w-[100px] bg-bg-tertiary border-border-subtle text-sm">
+                      <SelectValue placeholder="Limit" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-bg-secondary border-border-subtle">
+                      <SelectItem value="10">10</SelectItem>
+                      <SelectItem value="25">25</SelectItem>
+                      <SelectItem value="50">50</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
             </div>
-            {/* Additional filters row */}
-            <div className="flex flex-wrap gap-2 items-center border-t border-border-subtle pt-4">
-              <div className="flex items-center gap-2">
+            {/* Additional filters row - hidden on mobile */}
+            <div className="hidden sm:flex flex-wrap gap-2 items-center border-t border-border-subtle pt-4">
+              <div className="flex flex-wrap items-center gap-2">
                 <Calendar className="h-4 w-4 text-purple-neon" />
                 <span className="text-sm text-text-secondary">Date Range:</span>
                 <Input
                   type="date"
-                  className="w-[140px] input-glow bg-bg-tertiary border-border-subtle"
+                  className="w-[130px] input-glow bg-bg-tertiary border-border-subtle text-sm"
                   value={(filters.startDate as string) ?? ''}
                   onChange={(e) => handleFilterChange('startDate', e.target.value)}
                   placeholder="Start date"
@@ -723,7 +726,7 @@ export default function AdminOrdersPage(): React.ReactElement {
                 <span className="text-text-muted">to</span>
                 <Input
                   type="date"
-                  className="w-[140px] input-glow bg-bg-tertiary border-border-subtle"
+                  className="w-[130px] input-glow bg-bg-tertiary border-border-subtle text-sm"
                   value={(filters.endDate as string) ?? ''}
                   onChange={(e) => handleFilterChange('endDate', e.target.value)}
                   placeholder="End date"
@@ -733,8 +736,8 @@ export default function AdminOrdersPage(): React.ReactElement {
                 value={(filters.sourceType as string) ?? 'all'}
                 onValueChange={(value) => handleFilterChange('sourceType', value)}
               >
-                <SelectTrigger className="w-[150px] bg-bg-tertiary border-border-subtle">
-                  <SelectValue placeholder="Source Type" />
+                <SelectTrigger className="w-[130px] bg-bg-tertiary border-border-subtle text-sm">
+                  <SelectValue placeholder="Source" />
                 </SelectTrigger>
                 <SelectContent className="bg-bg-secondary border-border-subtle">
                   <SelectItem value="all">All Sources</SelectItem>
@@ -938,24 +941,22 @@ export default function AdminOrdersPage(): React.ReactElement {
 
               {/* Pagination */}
               {totalPages > 1 && (
-                <div className="flex items-center justify-between pt-4 border-t border-border-subtle mt-4">
-                  <p className="text-sm text-text-secondary">
-                    Showing <span className="text-text-primary font-medium">{((page - 1) * limit) + 1}</span> to{' '}
-                    <span className="text-text-primary font-medium">{Math.min(page * limit, totalItems)}</span> of{' '}
-                    <span className="text-cyan-glow font-medium">{totalItems}</span> orders
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between pt-4 border-t border-border-subtle mt-4">
+                  <p className="text-xs sm:text-sm text-text-secondary text-center sm:text-left">
+                    <span className="text-text-primary font-medium">{((page - 1) * limit) + 1}</span>-<span className="text-text-primary font-medium">{Math.min(page * limit, totalItems)}</span> of <span className="text-cyan-glow font-medium">{totalItems}</span>
                   </p>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center justify-center gap-1 sm:gap-2">
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => setPage(Math.max(1, page - 1))}
                       disabled={page === 1}
-                      className="border-border-subtle hover:border-cyan-glow/50 hover:text-cyan-glow disabled:opacity-50"
+                      className="border-border-subtle hover:border-cyan-glow/50 hover:text-cyan-glow disabled:opacity-50 text-xs sm:text-sm"
                     >
-                      <ChevronLeft className="h-4 w-4 mr-1" />
-                      Previous
+                      <ChevronLeft className="h-4 w-4 sm:mr-1" />
+                      <span className="hidden sm:inline">Previous</span>
                     </Button>
-                    <div className="flex items-center gap-1 px-3">
+                    <div className="hidden xs:flex items-center gap-1 px-1 sm:px-3">
                       {/* Page number indicators */}
                       {Array.from({ length: Math.min(5, totalPages) }).map((_, i) => {
                         const pageNum = page <= 3 ? i + 1 : page + i - 2;
@@ -968,8 +969,8 @@ export default function AdminOrdersPage(): React.ReactElement {
                             onClick={() => setPage(pageNum)}
                             className={
                               pageNum === page 
-                                ? 'bg-cyan-glow text-bg-primary hover:bg-cyan-glow/90 w-8 h-8 p-0' 
-                                : 'hover:bg-bg-tertiary text-text-secondary w-8 h-8 p-0'
+                                ? 'bg-cyan-glow text-bg-primary hover:bg-cyan-glow/90 w-7 h-7 sm:w-8 sm:h-8 p-0 text-xs sm:text-sm' 
+                                : 'hover:bg-bg-tertiary text-text-secondary w-7 h-7 sm:w-8 sm:h-8 p-0 text-xs sm:text-sm'
                             }
                           >
                             {pageNum}
@@ -977,15 +978,16 @@ export default function AdminOrdersPage(): React.ReactElement {
                         );
                       })}
                     </div>
+                    <span className="xs:hidden text-xs text-text-secondary px-2">{page}/{totalPages}</span>
                     <Button
                       variant="outline"
                       size="sm"
                       onClick={() => setPage(Math.min(totalPages, page + 1))}
                       disabled={page === totalPages}
-                      className="border-border-subtle hover:border-cyan-glow/50 hover:text-cyan-glow disabled:opacity-50"
+                      className="border-border-subtle hover:border-cyan-glow/50 hover:text-cyan-glow disabled:opacity-50 text-xs sm:text-sm"
                     >
-                      Next
-                      <ChevronRight className="h-4 w-4 ml-1" />
+                      <span className="hidden sm:inline">Next</span>
+                      <ChevronRight className="h-4 w-4 sm:ml-1" />
                     </Button>
                   </div>
                 </div>

@@ -937,34 +937,34 @@ export default function ProfilePage(): React.ReactElement {
 
   return (
     <ErrorBoundary>
-    <div className="container mx-auto max-w-6xl py-8 space-y-8" role="region" aria-label="User profile dashboard">
+    <div className="container mx-auto max-w-6xl px-4 sm:px-6 py-6 sm:py-8 space-y-6 sm:space-y-8" role="region" aria-label="User profile dashboard">
       {/* Neon Welcome Banner */}
-      <div className="glass relative overflow-hidden rounded-xl border border-cyan-glow/20 bg-bg-secondary p-8 shadow-lg shadow-cyan-glow/5">
+      <div className="glass relative overflow-hidden rounded-xl border border-cyan-glow/20 bg-bg-secondary p-4 sm:p-6 md:p-8 shadow-lg shadow-cyan-glow/5">
         <div className="absolute inset-0 opacity-30">
           <AnimatedGridPattern />
         </div>
         <div className="relative z-10 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
-            <h1 className="font-display text-3xl font-bold text-text-primary text-glow-cyan">
-              Welcome back, <span className="text-gradient-primary">{user.email.split('@')[0]}</span>
+            <h1 className="font-display text-xl sm:text-2xl md:text-3xl font-bold text-text-primary text-glow-cyan">
+              Welcome back, <span className="text-gradient-primary break-all">{user.email.split('@')[0]}</span>
             </h1>
             <p className="text-text-secondary">Manage your profile, security, and purchases all in one place.</p>
           </div>
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2 rounded-full border border-green-success/30 bg-green-success/10 px-4 py-1.5 backdrop-blur-sm">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+            <div className="flex items-center gap-2 rounded-full border border-green-success/30 bg-green-success/10 px-3 sm:px-4 py-1 sm:py-1.5 backdrop-blur-sm">
               <span className="status-dot status-dot-success" />
-              <span className="text-sm font-medium text-green-success">Account Active</span>
+              <span className="text-xs sm:text-sm font-medium text-green-success">Account Active</span>
             </div>
             {user.role === 'admin' && (
               <Button
                 variant="outline"
                 size="sm"
                 asChild
-                className="border-purple-500/30 text-purple-400 hover:bg-purple-500/10 hover:border-purple-500/50 hover:text-purple-300"
+                className="border-purple-500/30 text-purple-400 hover:bg-purple-500/10 hover:border-purple-500/50 hover:text-purple-300 text-xs sm:text-sm"
               >
                 <Link href="/admin">
-                  <LayoutDashboard className="h-4 w-4 mr-1.5" />
-                  Admin Dashboard
+                  <LayoutDashboard className="h-4 w-4 mr-1 sm:mr-1.5" />
+                  <span className="hidden xs:inline">Admin </span>Dashboard
                 </Link>
               </Button>
             )}
@@ -977,9 +977,9 @@ export default function ProfilePage(): React.ReactElement {
                 logout();
                 toast.success('Logged out successfully');
               }}
-              className="border-destructive/30 text-destructive hover:bg-destructive/10 hover:border-destructive/50"
+              className="border-destructive/30 text-destructive hover:bg-destructive/10 hover:border-destructive/50 text-xs sm:text-sm"
             >
-              <LogOut className="h-4 w-4 mr-1.5" />
+              <LogOut className="h-4 w-4 mr-1 sm:mr-1.5" />
               Logout
             </Button>
           </div>
@@ -1020,7 +1020,7 @@ export default function ProfilePage(): React.ReactElement {
 
       {/* Main Tabs Section */}
       <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
-        <TabsList className="glass grid w-full grid-cols-6 border border-border-subtle bg-bg-secondary/50 p-1 backdrop-blur-sm">
+        <TabsList className="glass flex w-full overflow-x-auto border border-border-subtle bg-bg-secondary/50 p-1 backdrop-blur-sm sm:grid sm:grid-cols-6">
           <TabsTrigger
             value="overview"
             aria-label="Overview tab - view dashboard summary"
@@ -1919,22 +1919,22 @@ export default function ProfilePage(): React.ReactElement {
 
                   {/* Pagination Controls */}
                   {purchasesTotalPages > 1 && (
-                    <div className="flex items-center justify-between pt-4 border-t border-border-subtle">
-                      <div className="text-sm text-text-muted">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between pt-4 border-t border-border-subtle">
+                      <div className="text-xs sm:text-sm text-text-muted text-center sm:text-left">
                         Page {purchasesPage} of {purchasesTotalPages}
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex flex-wrap items-center justify-center gap-2">
                         <Button
                           variant="outline"
                           size="sm"
                           onClick={() => setPurchasesPage(Math.max(1, purchasesPage - 1))}
                           disabled={purchasesPage === 1}
-                          className="border-purple-neon/30 text-purple-neon hover:bg-purple-neon/10"
+                          className="border-purple-neon/30 text-purple-neon hover:bg-purple-neon/10 text-xs sm:text-sm"
                         >
-                          <ChevronLeft className="h-4 w-4 mr-1" />
-                          Previous
+                          <ChevronLeft className="h-4 w-4 sm:mr-1" />
+                          <span className="hidden sm:inline">Previous</span>
                         </Button>
-                        <div className="flex items-center gap-1">
+                        <div className="hidden xs:flex items-center gap-1">
                           {Array.from({ length: Math.min(5, purchasesTotalPages) }, (_, i) => {
                             const totalPages = purchasesTotalPages;
                             let pageNumber: number;
@@ -1967,10 +1967,10 @@ export default function ProfilePage(): React.ReactElement {
                           size="sm"
                           onClick={() => setPurchasesPage(Math.min(purchasesTotalPages, purchasesPage + 1))}
                           disabled={purchasesPage >= purchasesTotalPages}
-                          className="border-purple-neon/30 text-purple-neon hover:bg-purple-neon/10"
+                          className="border-purple-neon/30 text-purple-neon hover:bg-purple-neon/10 text-xs sm:text-sm"
                         >
-                          Next
-                          <ChevronRight className="h-4 w-4 ml-1" />
+                          <span className="hidden sm:inline">Next</span>
+                          <ChevronRight className="h-4 w-4 sm:ml-1" />
                         </Button>
                       </div>
                     </div>
@@ -2179,17 +2179,17 @@ export default function ProfilePage(): React.ReactElement {
           >
             <Card className="glass border-border-subtle bg-bg-secondary/50 backdrop-blur-sm">
               <CardHeader className="pb-4">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-green-success/10 border border-green-success/20">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-green-success/10 border border-green-success/20 shrink-0">
                       <Key className="h-5 w-5 text-green-success" />
                     </div>
                     <div>
-                      <CardTitle className="text-text-primary">Active Sessions</CardTitle>
-                      <CardDescription className="text-text-secondary">Devices where you&apos;re signed in</CardDescription>
+                      <CardTitle className="text-text-primary text-sm sm:text-base">Active Sessions</CardTitle>
+                      <CardDescription className="text-text-secondary text-xs sm:text-sm">Devices where you&apos;re signed in</CardDescription>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 self-end sm:self-auto">
                     <Button
                       variant="ghost"
                       size="sm"
@@ -2206,14 +2206,14 @@ export default function ProfilePage(): React.ReactElement {
                         size="sm"
                         onClick={() => void revokeAllSessionsMutation.mutateAsync()}
                         disabled={revokeAllSessionsMutation.isPending}
-                        className="text-orange-warning border-orange-warning/30 hover:bg-orange-warning/10"
+                        className="text-orange-warning border-orange-warning/30 hover:bg-orange-warning/10 text-xs sm:text-sm"
                       >
                         {revokeAllSessionsMutation.isPending ? (
                           <Loader2 className="h-4 w-4 animate-spin mr-1" />
                         ) : (
                           <LogOut className="h-4 w-4 mr-1" />
                         )}
-                        Revoke All Others
+                        <span className="hidden xs:inline">Revoke All </span>Others
                       </Button>
                     )}
                   </div>
@@ -2224,15 +2224,15 @@ export default function ProfilePage(): React.ReactElement {
                   <div className="space-y-2">
                     {/* Skeleton loading for sessions */}
                     {Array.from({ length: 3 }).map((_, i) => (
-                      <div key={i} className="flex items-center justify-between p-4 rounded-lg bg-bg-tertiary/30 border border-border-subtle">
+                      <div key={i} className="flex flex-col gap-3 xs:flex-row xs:items-center xs:justify-between p-3 sm:p-4 rounded-lg bg-bg-tertiary/30 border border-border-subtle">
                         <div className="flex items-center gap-3">
-                          <div className="skeleton h-10 w-10 animate-shimmer rounded-lg" />
+                          <div className="skeleton h-9 w-9 sm:h-10 sm:w-10 animate-shimmer rounded-lg shrink-0" />
                           <div className="space-y-2">
-                            <div className="skeleton h-4 w-32 animate-shimmer rounded" />
-                            <div className="skeleton h-3 w-24 animate-shimmer rounded" />
+                            <div className="skeleton h-4 w-24 sm:w-32 animate-shimmer rounded" />
+                            <div className="skeleton h-3 w-20 sm:w-24 animate-shimmer rounded" />
                           </div>
                         </div>
-                        <div className="skeleton h-8 w-16 animate-shimmer rounded" />
+                        <div className="skeleton h-8 w-8 xs:w-12 sm:w-16 animate-shimmer rounded self-end xs:self-auto" />
                       </div>
                     ))}
                   </div>
@@ -2245,37 +2245,37 @@ export default function ProfilePage(): React.ReactElement {
                     {sessions.map((session) => (
                       <div
                         key={session.id}
-                        className={`flex items-center justify-between p-4 rounded-lg border transition-colors ${
+                        className={`flex flex-col gap-3 xs:flex-row xs:items-center xs:justify-between p-3 sm:p-4 rounded-lg border transition-colors ${
                           session.isCurrent === true
                             ? 'bg-green-success/5 border-green-success/30'
                             : 'bg-bg-tertiary/30 border-border-subtle hover:border-border-subtle'
                         }`}
                       >
-                        <div className="flex items-center gap-3">
-                          <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className={`flex h-9 w-9 sm:h-10 sm:w-10 shrink-0 items-center justify-center rounded-lg ${
                             session.isCurrent === true ? 'bg-green-success/10' : 'bg-bg-tertiary/50'
                           }`}>
                             {session.deviceInfo?.toLowerCase().includes('mobile') ? (
-                              <Smartphone className={`h-5 w-5 ${session.isCurrent === true ? 'text-green-success' : 'text-text-muted'}`} />
+                              <Smartphone className={`h-4 w-4 sm:h-5 sm:w-5 ${session.isCurrent === true ? 'text-green-success' : 'text-text-muted'}`} />
                             ) : (
-                              <Monitor className={`h-5 w-5 ${session.isCurrent === true ? 'text-green-success' : 'text-text-muted'}`} />
+                              <Monitor className={`h-4 w-4 sm:h-5 sm:w-5 ${session.isCurrent === true ? 'text-green-success' : 'text-text-muted'}`} />
                             )}
                           </div>
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <p className="text-sm font-medium text-text-primary">
+                          <div className="min-w-0 flex-1">
+                            <div className="flex flex-wrap items-center gap-1 sm:gap-2">
+                              <p className="text-xs sm:text-sm font-medium text-text-primary truncate max-w-[150px] xs:max-w-[200px] sm:max-w-none">
                                 {session.deviceInfo ?? 'Unknown Device'}
                               </p>
                               {session.isCurrent === true && (
-                                <Badge className="badge-success text-xs">
+                                <Badge className="badge-success text-[10px] sm:text-xs shrink-0">
                                   Current
                                 </Badge>
                               )}
                             </div>
-                            <div className="flex items-center gap-2 text-xs text-text-muted">
+                            <div className="flex flex-wrap items-center gap-1 sm:gap-2 text-[10px] sm:text-xs text-text-muted">
                               <span>{maskIpAddress(session.ipAddress)}</span>
-                              <span>•</span>
-                              <span>Last active: {session.lastActiveAt != null ? formatRelativeTime(session.lastActiveAt) : 'Unknown'}</span>
+                              <span className="hidden xs:inline">•</span>
+                              <span className="hidden xs:inline">Last active: {session.lastActiveAt != null ? formatRelativeTime(session.lastActiveAt) : 'Unknown'}</span>
                             </div>
                           </div>
                         </div>
@@ -2285,7 +2285,7 @@ export default function ProfilePage(): React.ReactElement {
                             size="sm"
                             onClick={() => setSessionToRevoke({ id: session.id, deviceInfo: session.deviceInfo ?? 'Unknown Device' })}
                             disabled={revokeSessionMutation.isPending}
-                            className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                            className="text-destructive hover:text-destructive hover:bg-destructive/10 self-end xs:self-auto shrink-0"
                           >
                             {revokeSessionMutation.isPending && sessionToRevoke?.id === session.id ? (
                               <Loader2 className="h-4 w-4 animate-spin" />
@@ -2301,15 +2301,15 @@ export default function ProfilePage(): React.ReactElement {
                 
                 {/* Session Revoke Confirmation Dialog */}
                 <AlertDialog open={sessionToRevoke !== null} onOpenChange={(open) => !open && setSessionToRevoke(null)}>
-                  <AlertDialogContent className="bg-bg-secondary border-border-subtle">
+                  <AlertDialogContent className="bg-bg-secondary border-border-subtle w-[calc(100vw-32px)] sm:w-full max-w-md">
                     <AlertDialogHeader>
-                      <AlertDialogTitle className="text-text-primary">Revoke Session?</AlertDialogTitle>
-                      <AlertDialogDescription className="text-text-secondary">
+                      <AlertDialogTitle className="text-text-primary text-base sm:text-lg">Revoke Session?</AlertDialogTitle>
+                      <AlertDialogDescription className="text-text-secondary text-sm">
                         This will sign out the device &quot;{sessionToRevoke?.deviceInfo}&quot;. 
                         They will need to log in again to access the account.
                       </AlertDialogDescription>
                     </AlertDialogHeader>
-                    <AlertDialogFooter>
+                    <AlertDialogFooter className="flex-col gap-2 sm:flex-row">
                       <AlertDialogCancel className="border-border-subtle text-text-secondary hover:text-text-primary">
                         Cancel
                       </AlertDialogCancel>
@@ -2330,33 +2330,33 @@ export default function ProfilePage(): React.ReactElement {
                 
                 {/* Sessions Pagination */}
                 {sessionsTotalPages > 1 && (
-                  <div className="flex items-center justify-between pt-4 border-t border-border-subtle mt-4">
-                    <p className="text-sm text-text-muted">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between pt-4 border-t border-border-subtle mt-4">
+                    <p className="text-xs sm:text-sm text-text-muted text-center sm:text-left">
                       Showing {sessions.length} of {sessionsTotal} sessions
                     </p>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center justify-center gap-2">
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={() => setSessionsPage(p => Math.max(1, p - 1))}
                         disabled={sessionsPage === 1 || sessionsLoading}
-                        className="border-border-subtle text-text-secondary hover:text-text-primary"
+                        className="border-border-subtle text-text-secondary hover:text-text-primary text-xs sm:text-sm"
                       >
-                        <ChevronLeft className="h-4 w-4 mr-1" />
-                        Previous
+                        <ChevronLeft className="h-4 w-4 sm:mr-1" />
+                        <span className="hidden sm:inline">Previous</span>
                       </Button>
-                      <span className="text-sm text-text-secondary px-2">
-                        Page {sessionsPage} of {sessionsTotalPages}
+                      <span className="text-xs sm:text-sm text-text-secondary px-2">
+                        {sessionsPage}/{sessionsTotalPages}
                       </span>
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={() => setSessionsPage(p => Math.min(sessionsTotalPages, p + 1))}
                         disabled={sessionsPage === sessionsTotalPages || sessionsLoading}
-                        className="border-border-subtle text-text-secondary hover:text-text-primary"
+                        className="border-border-subtle text-text-secondary hover:text-text-primary text-xs sm:text-sm"
                       >
-                        Next
-                        <ChevronRight className="h-4 w-4 ml-1" />
+                        <span className="hidden sm:inline">Next</span>
+                        <ChevronRight className="h-4 w-4 sm:ml-1" />
                       </Button>
                     </div>
                   </div>

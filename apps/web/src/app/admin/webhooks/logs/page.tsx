@@ -191,31 +191,31 @@ export default function AdminWebhookLogsPage(): React.ReactElement {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="sm" asChild className="hover:text-cyan-glow hover:bg-bg-tertiary transition-all duration-200">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex items-center gap-2 sm:gap-4">
+          <Button variant="ghost" size="sm" asChild className="hover:text-cyan-glow hover:bg-bg-tertiary transition-all duration-200 h-8 text-xs sm:text-sm px-2 sm:px-3">
             <Link href="/admin/webhooks">
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Dashboard
+              <ArrowLeft className="mr-1 sm:mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4" />
+              <span className="hidden xs:inline">Dashboard</span>
             </Link>
           </Button>
           <div>
-            <h1 className="text-3xl font-bold tracking-tight text-text-primary">Webhook Logs</h1>
-            <p className="text-text-secondary">
+            <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight text-text-primary">Webhook Logs</h1>
+            <p className="text-text-secondary text-xs sm:text-sm hidden xs:block">
               Browse, filter, and manage all webhook events
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" onClick={() => refetch()} disabled={isLoading === true || isFetching === true} className="hover:text-cyan-glow hover:border-cyan-glow/50 hover:shadow-glow-cyan-sm transition-all duration-200 disabled:opacity-50">
-            <RefreshCw className={`mr-2 h-4 w-4 ${isFetching === true ? 'animate-spin' : ''}`} />
-            Refresh
+        <div className="flex flex-wrap items-center gap-2">
+          <Button variant="outline" onClick={() => refetch()} disabled={isLoading === true || isFetching === true} className="hover:text-cyan-glow hover:border-cyan-glow/50 hover:shadow-glow-cyan-sm transition-all duration-200 disabled:opacity-50 h-8 text-xs sm:text-sm">
+            <RefreshCw className={`mr-1.5 sm:mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4 ${isFetching === true ? 'animate-spin' : ''}`} />
+            <span className="hidden xs:inline">Refresh</span>
           </Button>
-          <Button variant="outline" onClick={handleExportCSV} disabled={webhooks?.data === undefined || webhooks.data.length === 0} className="hover:text-cyan-glow hover:border-cyan-glow/50 hover:shadow-glow-cyan-sm transition-all duration-200 disabled:opacity-50">
-            <Download className="mr-2 h-4 w-4" />
-            Export CSV
+          <Button variant="outline" onClick={handleExportCSV} disabled={webhooks?.data === undefined || webhooks.data.length === 0} className="hover:text-cyan-glow hover:border-cyan-glow/50 hover:shadow-glow-cyan-sm transition-all duration-200 disabled:opacity-50 h-8 text-xs sm:text-sm">
+            <Download className="mr-1.5 sm:mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4" />
+            <span className="hidden sm:inline">Export</span> <span className="hidden md:inline">CSV</span>
           </Button>
           {showClearConfirm ? (
             <div className="flex items-center gap-2">
@@ -241,10 +241,10 @@ export default function AdminWebhookLogsPage(): React.ReactElement {
             <Button
               variant="outline"
               onClick={() => setShowClearConfirm(true)}
-              className="hover:text-red-400 hover:border-red-400/50 transition-all duration-200"
+              className="hover:text-red-400 hover:border-red-400/50 transition-all duration-200 h-8 text-xs sm:text-sm"
             >
-              <Trash2 className="mr-2 h-4 w-4" />
-              Clear All
+              <Trash2 className="mr-1.5 sm:mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4" />
+              <span className="hidden sm:inline">Clear All</span>
             </Button>
           )}
         </div>
@@ -255,10 +255,10 @@ export default function AdminWebhookLogsPage(): React.ReactElement {
 
       {/* Bulk Actions Bar */}
       {selectedIds.size > 0 && (
-        <div className="flex items-center gap-4 p-4 bg-purple-neon/10 border border-purple-neon/30 rounded-lg shadow-glow-purple-sm">
-          <CheckSquare className="h-5 w-5 text-purple-neon" />
-          <span className="font-medium text-text-primary">
-            {selectedIds.size} webhook{selectedIds.size > 1 ? 's' : ''} selected
+        <div className="flex flex-wrap items-center gap-2 sm:gap-4 p-2 sm:p-4 bg-purple-neon/10 border border-purple-neon/30 rounded-lg shadow-glow-purple-sm">
+          <CheckSquare className="h-4 w-4 sm:h-5 sm:w-5 text-purple-neon" />
+          <span className="font-medium text-text-primary text-xs sm:text-sm">
+            {selectedIds.size} <span className="hidden xs:inline">webhook{selectedIds.size > 1 ? 's' : ''}</span> selected
           </span>
           <div className="flex-1" />
           <Button
@@ -266,33 +266,33 @@ export default function AdminWebhookLogsPage(): React.ReactElement {
             size="sm"
             onClick={handleBulkReplay}
             disabled={isReplaying}
-            className="hover:text-cyan-glow hover:border-cyan-glow/50 hover:shadow-glow-cyan-sm transition-all duration-200 disabled:opacity-50"
+            className="hover:text-cyan-glow hover:border-cyan-glow/50 hover:shadow-glow-cyan-sm transition-all duration-200 disabled:opacity-50 h-7 sm:h-8 text-xs sm:text-sm"
           >
-            <RotateCcw className={`mr-2 h-4 w-4 ${isReplaying === true ? 'animate-spin' : ''}`} />
-            Replay Selected
+            <RotateCcw className={`mr-1.5 sm:mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4 ${isReplaying === true ? 'animate-spin' : ''}`} />
+            <span className="hidden sm:inline">Replay</span>
           </Button>
-          <Button variant="ghost" size="sm" onClick={() => setSelectedIds(new Set())} className="hover:text-cyan-glow hover:bg-bg-tertiary transition-all duration-200">
-            Clear Selection
+          <Button variant="ghost" size="sm" onClick={() => setSelectedIds(new Set())} className="hover:text-cyan-glow hover:bg-bg-tertiary transition-all duration-200 h-7 sm:h-8 text-xs sm:text-sm">
+            <span className="hidden sm:inline">Clear</span>
           </Button>
         </div>
       )}
 
       {/* Table */}
       <Card className="bg-bg-secondary border-border-subtle">
-        <CardHeader>
-          <CardTitle className="text-text-primary">
+        <CardHeader className="p-3 sm:p-6">
+          <CardTitle className="text-base sm:text-lg text-text-primary">
             Webhook Events
             {webhooks?.total !== undefined && (
-              <span className="ml-2 text-sm font-normal text-text-secondary">
+              <span className="ml-2 text-xs sm:text-sm font-normal text-text-secondary">
                 ({webhooks.total} total)
               </span>
             )}
           </CardTitle>
-          <CardDescription className="text-text-secondary">
+          <CardDescription className="text-text-secondary text-xs sm:text-sm hidden xs:block">
             Click on a row to view full webhook details
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-0 sm:p-6 sm:pt-0">
           <div className="rounded-md border border-border-subtle overflow-x-auto scrollbar-thin">
             <Table>
               <TableHeader>

@@ -901,20 +901,20 @@ export default function HomepageSectionsPage(): React.ReactElement {
   };
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-4 sm:space-y-6 p-3 sm:p-6">
       {/* Header with Gradient Accent */}
       <div className="relative">
         <div className="absolute inset-0 bg-linear-to-r from-purple-neon/5 via-cyan-glow/5 to-transparent rounded-2xl blur-xl" />
-        <div className="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-start gap-4">
-            <div className="p-3 rounded-xl bg-purple-neon/10 border border-purple-neon/20 shadow-glow-purple-sm">
-              <Sparkles className="h-7 w-7 text-purple-neon" />
+        <div className="relative flex flex-col gap-3 sm:gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-start gap-2 sm:gap-4">
+            <div className="p-2 sm:p-3 rounded-xl bg-purple-neon/10 border border-purple-neon/20 shadow-glow-purple-sm">
+              <Sparkles className="h-5 w-5 sm:h-7 sm:w-7 text-purple-neon" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold tracking-tight text-text-primary">
+              <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-text-primary">
                 Homepage Sections
               </h1>
-              <p className="text-text-secondary text-sm mt-1">
+              <p className="text-text-secondary text-xs sm:text-sm mt-1 hidden xs:block">
                 Curate products for each homepage section
               </p>
             </div>
@@ -925,63 +925,64 @@ export default function HomepageSectionsPage(): React.ReactElement {
             variant="secondary"
             size="sm"
             glowColor="cyan"
+            className="h-8 text-xs sm:text-sm"
           >
-            <RefreshCw className={`mr-2 h-4 w-4 ${isAnyRefetching ? 'animate-spin' : ''}`} />
-            Refresh All
+            <RefreshCw className={`mr-1.5 sm:mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4 ${isAnyRefetching ? 'animate-spin' : ''}`} />
+            <span className="hidden xs:inline">Refresh</span> <span className="hidden sm:inline">All</span>
           </GlowButton>
         </div>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
         <Card className="bg-bg-secondary border-border-subtle hover:border-border-accent transition-colors">
-          <CardContent className="p-4 flex items-center gap-4">
-            <div className="p-2.5 rounded-xl bg-cyan-glow/10 border border-cyan-glow/20">
-              <LayoutGrid className="h-5 w-5 text-cyan-glow" />
+          <CardContent className="p-2.5 sm:p-4 flex items-center gap-2 sm:gap-4">
+            <div className="p-1.5 sm:p-2.5 rounded-lg sm:rounded-xl bg-cyan-glow/10 border border-cyan-glow/20">
+              <LayoutGrid className="h-4 w-4 sm:h-5 sm:w-5 text-cyan-glow" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-text-primary tabular-nums">
+              <p className="text-lg sm:text-2xl font-bold text-text-primary tabular-nums">
                 {HOMEPAGE_SECTIONS.length}
               </p>
-              <p className="text-xs text-text-muted">Total Sections</p>
+              <p className="text-[10px] sm:text-xs text-text-muted">Total Sections</p>
             </div>
           </CardContent>
         </Card>
         
         <Card className="bg-bg-secondary border-border-subtle hover:border-border-accent transition-colors">
-          <CardContent className="p-4 flex items-center gap-4">
-            <div className="p-2.5 rounded-xl bg-green-success/10 border border-green-success/20">
-              <CheckCircle className="h-5 w-5 text-green-success" />
+          <CardContent className="p-2.5 sm:p-4 flex items-center gap-2 sm:gap-4">
+            <div className="p-1.5 sm:p-2.5 rounded-lg sm:rounded-xl bg-green-success/10 border border-green-success/20">
+              <CheckCircle className="h-4 w-4 sm:h-5 sm:w-5 text-green-success" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-text-primary tabular-nums">{activeSectionsCount}</p>
-              <p className="text-xs text-text-muted">Active Sections</p>
+              <p className="text-lg sm:text-2xl font-bold text-text-primary tabular-nums">{activeSectionsCount}</p>
+              <p className="text-[10px] sm:text-xs text-text-muted">Active Sections</p>
             </div>
           </CardContent>
         </Card>
         
         <Card className="bg-bg-secondary border-border-subtle hover:border-border-accent transition-colors">
-          <CardContent className="p-4 flex items-center gap-4">
-            <div className="p-2.5 rounded-xl bg-purple-neon/10 border border-purple-neon/20">
-              <Package className="h-5 w-5 text-purple-neon" />
+          <CardContent className="p-2.5 sm:p-4 flex items-center gap-2 sm:gap-4">
+            <div className="p-1.5 sm:p-2.5 rounded-lg sm:rounded-xl bg-purple-neon/10 border border-purple-neon/20">
+              <Package className="h-4 w-4 sm:h-5 sm:w-5 text-purple-neon" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-text-primary tabular-nums">{totalProducts}</p>
-              <p className="text-xs text-text-muted">Total Products</p>
+              <p className="text-lg sm:text-2xl font-bold text-text-primary tabular-nums">{totalProducts}</p>
+              <p className="text-[10px] sm:text-xs text-text-muted">Total Products</p>
             </div>
           </CardContent>
         </Card>
         
         <Card className="bg-bg-secondary border-border-subtle hover:border-border-accent transition-colors">
-          <CardContent className="p-4 flex items-center gap-4">
-            <div className="p-2.5 rounded-xl bg-orange-warning/10 border border-orange-warning/20">
-              <Zap className="h-5 w-5 text-orange-warning" />
+          <CardContent className="p-2.5 sm:p-4 flex items-center gap-2 sm:gap-4">
+            <div className="p-1.5 sm:p-2.5 rounded-lg sm:rounded-xl bg-orange-warning/10 border border-orange-warning/20">
+              <Zap className="h-4 w-4 sm:h-5 sm:w-5 text-orange-warning" />
             </div>
             <div>
-              <p className="text-2xl font-bold text-text-primary tabular-nums">
+              <p className="text-lg sm:text-2xl font-bold text-text-primary tabular-nums">
                 {HOMEPAGE_SECTIONS.reduce((acc, s) => acc + s.maxProducts, 0)}
               </p>
-              <p className="text-xs text-text-muted">Max Capacity</p>
+              <p className="text-[10px] sm:text-xs text-text-muted">Max Capacity</p>
             </div>
           </CardContent>
         </Card>
@@ -989,7 +990,7 @@ export default function HomepageSectionsPage(): React.ReactElement {
 
       {/* Sections Grid */}
       {isAnyLoading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-5">
           {Array.from({ length: 4 }).map((_, i) => (
             <Card key={i} className="bg-bg-secondary border-border-subtle animate-pulse">
               <CardHeader className="p-5 pb-4">
@@ -1010,7 +1011,7 @@ export default function HomepageSectionsPage(): React.ReactElement {
           ))}
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-5">
           {HOMEPAGE_SECTIONS.map((config) => (
             <SectionCard
               key={config.key}

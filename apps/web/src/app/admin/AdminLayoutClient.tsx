@@ -251,9 +251,9 @@ export default function AdminLayoutClient({ children }: { children: ReactNode })
 
       {/* Admin Tabs Navigation */}
       <div className="sticky top-0 z-50 border-b border-border-subtle glass-strong shadow-card-md">
-        <div className="mx-auto max-w-[1920px] px-4 lg:px-6">
+        <div className="mx-auto max-w-[1920px] px-2 sm:px-4 lg:px-6">
           <nav
-            className="flex justify-center gap-1 overflow-x-auto py-2 scrollbar-thin scrollbar-thumb-cyan-glow/30 scrollbar-track-transparent hover:scrollbar-thumb-cyan-glow/50"
+            className="flex justify-start sm:justify-center gap-0.5 sm:gap-1 overflow-x-auto py-1.5 sm:py-2 scrollbar-thin scrollbar-thumb-cyan-glow/30 scrollbar-track-transparent hover:scrollbar-thumb-cyan-glow/50"
             role="navigation"
             aria-label="Admin navigation"
           >
@@ -267,7 +267,7 @@ export default function AdminLayoutClient({ children }: { children: ReactNode })
                   key={tab.href}
                   href={tab.href}
                   className={cn(
-                    'group flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium',
+                    'group flex shrink-0 items-center gap-1.5 sm:gap-2 rounded-lg px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm font-medium',
                     'transition-all duration-200 ease-out',
                     'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-glow/50 focus-visible:ring-offset-2 focus-visible:ring-offset-bg-primary',
                     isActive
@@ -281,7 +281,7 @@ export default function AdminLayoutClient({ children }: { children: ReactNode })
                       isActive ? 'text-cyan-glow' : 'text-text-secondary group-hover:text-cyan-glow'
                     )}
                   />
-                  <span className="whitespace-nowrap">{tab.label}</span>
+                  <span className="whitespace-nowrap hidden xs:inline">{tab.label}</span>
                 </Link>
               );
             })}
@@ -290,7 +290,7 @@ export default function AdminLayoutClient({ children }: { children: ReactNode })
             <DropdownMenu>
               <DropdownMenuTrigger
                 className={cn(
-                  'group flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium',
+                  'group flex shrink-0 items-center gap-1.5 sm:gap-2 rounded-lg px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm font-medium',
                   'transition-all duration-200 ease-out',
                   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-warning/50 focus-visible:ring-offset-2 focus-visible:ring-offset-bg-primary',
                   isDropdownActive(ADMIN_NAV.finance.items, pathname)
@@ -306,7 +306,7 @@ export default function AdminLayoutClient({ children }: { children: ReactNode })
                       : 'text-text-secondary group-hover:text-orange-warning'
                   )}
                 />
-                <span className="whitespace-nowrap">{ADMIN_NAV.finance.label}</span>
+                <span className="whitespace-nowrap hidden xs:inline">{ADMIN_NAV.finance.label}</span>
                 <ChevronDown
                   className={cn(
                     'h-3 w-3 transition-transform duration-200',
@@ -316,7 +316,7 @@ export default function AdminLayoutClient({ children }: { children: ReactNode })
               </DropdownMenuTrigger>
               <DropdownMenuContent
                 align="start"
-                className="glass-strong border-border-accent shadow-card-lg min-w-[200px] animate-scale-in"
+                className="glass-strong border-border-accent shadow-card-lg min-w-[180px] sm:min-w-[200px] animate-scale-in"
               >
                 <DropdownMenuLabel className="text-orange-warning font-semibold text-xs uppercase tracking-wider">
                   Finance & Billing
@@ -354,7 +354,7 @@ export default function AdminLayoutClient({ children }: { children: ReactNode })
             <DropdownMenu>
               <DropdownMenuTrigger
                 className={cn(
-                  'group flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium',
+                  'group flex shrink-0 items-center gap-1.5 sm:gap-2 rounded-lg px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm font-medium',
                   'transition-all duration-200 ease-out',
                   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-neon/50 focus-visible:ring-offset-2 focus-visible:ring-offset-bg-primary',
                   isDropdownActive(ADMIN_NAV.catalog.items, pathname)
@@ -370,7 +370,7 @@ export default function AdminLayoutClient({ children }: { children: ReactNode })
                       : 'text-text-secondary group-hover:text-purple-neon'
                   )}
                 />
-                <span className="whitespace-nowrap">{ADMIN_NAV.catalog.label}</span>
+                <span className="whitespace-nowrap hidden xs:inline">{ADMIN_NAV.catalog.label}</span>
                 <ChevronDown
                   className={cn(
                     'h-3 w-3 transition-transform duration-200',
@@ -380,7 +380,7 @@ export default function AdminLayoutClient({ children }: { children: ReactNode })
               </DropdownMenuTrigger>
               <DropdownMenuContent
                 align="start"
-                className="glass-strong border-border-accent shadow-card-lg min-w-[200px] animate-scale-in"
+                className="glass-strong border-border-accent shadow-card-lg min-w-[180px] sm:min-w-[200px] animate-scale-in"
               >
                 <DropdownMenuLabel className="text-purple-neon font-semibold text-xs uppercase tracking-wider">
                   Catalog Management
@@ -418,7 +418,7 @@ export default function AdminLayoutClient({ children }: { children: ReactNode })
             <DropdownMenu>
               <DropdownMenuTrigger
                 className={cn(
-                  'group flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium',
+                  'group flex shrink-0 items-center gap-1.5 sm:gap-2 rounded-lg px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm font-medium',
                   'transition-all duration-200 ease-out',
                   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500/50 focus-visible:ring-offset-2 focus-visible:ring-offset-bg-primary',
                   isDropdownActive(ADMIN_NAV.marketing.items, pathname)
@@ -434,7 +434,7 @@ export default function AdminLayoutClient({ children }: { children: ReactNode })
                       : 'text-text-secondary group-hover:text-orange-400'
                   )}
                 />
-                <span className="whitespace-nowrap">{ADMIN_NAV.marketing.label}</span>
+                <span className="whitespace-nowrap hidden xs:inline">{ADMIN_NAV.marketing.label}</span>
                 <ChevronDown
                   className={cn(
                     'h-3 w-3 transition-transform duration-200',
@@ -444,7 +444,7 @@ export default function AdminLayoutClient({ children }: { children: ReactNode })
               </DropdownMenuTrigger>
               <DropdownMenuContent
                 align="start"
-                className="glass-strong border-border-accent shadow-card-lg min-w-[200px] animate-scale-in"
+                className="glass-strong border-border-accent shadow-card-lg min-w-[180px] sm:min-w-[200px] animate-scale-in"
               >
                 <DropdownMenuLabel className="text-orange-400 font-semibold text-xs uppercase tracking-wider">
                   Marketing & Promos
@@ -482,7 +482,7 @@ export default function AdminLayoutClient({ children }: { children: ReactNode })
             <DropdownMenu>
               <DropdownMenuTrigger
                 className={cn(
-                  'group flex shrink-0 items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium',
+                  'group flex shrink-0 items-center gap-1.5 sm:gap-2 rounded-lg px-2 sm:px-3 py-1.5 sm:py-2 text-xs sm:text-sm font-medium',
                   'transition-all duration-200 ease-out',
                   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-success/50 focus-visible:ring-offset-2 focus-visible:ring-offset-bg-primary',
                   isDropdownActive(ADMIN_NAV.operations.items, pathname)
@@ -498,7 +498,7 @@ export default function AdminLayoutClient({ children }: { children: ReactNode })
                       : 'text-text-secondary group-hover:text-green-success'
                   )}
                 />
-                <span className="whitespace-nowrap">{ADMIN_NAV.operations.label}</span>
+                <span className="whitespace-nowrap hidden xs:inline">{ADMIN_NAV.operations.label}</span>
                 <ChevronDown
                   className={cn(
                     'h-3 w-3 transition-transform duration-200',
@@ -508,7 +508,7 @@ export default function AdminLayoutClient({ children }: { children: ReactNode })
               </DropdownMenuTrigger>
               <DropdownMenuContent
                 align="start"
-                className="glass-strong border-border-accent shadow-card-lg min-w-[200px] animate-scale-in"
+                className="glass-strong border-border-accent shadow-card-lg min-w-[180px] sm:min-w-[200px] animate-scale-in"
               >
                 <DropdownMenuLabel className="text-green-success font-semibold text-xs uppercase tracking-wider">
                   System & Operations
@@ -555,7 +555,7 @@ export default function AdminLayoutClient({ children }: { children: ReactNode })
         role="main"
         aria-label="Admin page content"
       >
-        <div className="mx-auto max-w-[1920px] px-4 lg:px-6 py-6 lg:py-8 animate-fade-in">{children}</div>
+        <div className="mx-auto max-w-[1920px] px-3 sm:px-4 lg:px-6 py-4 sm:py-6 lg:py-8 animate-fade-in">{children}</div>
       </main>
 
       <Footer />

@@ -69,19 +69,19 @@ export default function AdminWebhooksDashboardPage(): React.ReactElement {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-text-primary">Webhooks Dashboard</h1>
-          <p className="text-text-secondary">
+          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight text-text-primary">Webhooks Dashboard</h1>
+          <p className="text-text-secondary text-xs sm:text-sm hidden xs:block">
             Monitor incoming webhooks, processing status, and system health
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
           <Select value={period} onValueChange={(v) => setPeriod(v as StatsPeriod)}>
-            <SelectTrigger className="w-[140px]">
-              <SelectValue placeholder="Time Period" />
+            <SelectTrigger className="w-[100px] sm:w-[140px] h-8 sm:h-10 text-xs sm:text-sm">
+              <SelectValue placeholder="Period" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="24h">Last 24 Hours</SelectItem>
@@ -89,13 +89,15 @@ export default function AdminWebhooksDashboardPage(): React.ReactElement {
               <SelectItem value="30d">Last 30 Days</SelectItem>
             </SelectContent>
           </Select>
-          <Button variant="outline" onClick={handleRefresh} disabled={isStatsLoading === true || isTimelineLoading === true} className="hover:text-cyan-glow hover:border-cyan-glow/50 transition-all duration-200">
-            <RefreshCw className={`mr-2 h-4 w-4 ${isStatsLoading === true ? 'animate-spin' : ''}`} />
-            Refresh
+          <Button variant="outline" onClick={handleRefresh} disabled={isStatsLoading === true || isTimelineLoading === true} className="hover:text-cyan-glow hover:border-cyan-glow/50 transition-all duration-200 h-8 sm:h-10 text-xs sm:text-sm">
+            <RefreshCw className={`mr-1.5 sm:mr-2 h-3.5 w-3.5 sm:h-4 sm:w-4 ${isStatsLoading === true ? 'animate-spin' : ''}`} />
+            <span className="hidden xs:inline">Refresh</span>
           </Button>
-          <Button asChild className="bg-cyan-glow text-bg-primary hover:shadow-glow-cyan transition-all duration-200">
+          <Button asChild className="bg-cyan-glow text-bg-primary hover:shadow-glow-cyan transition-all duration-200 h-8 sm:h-10 text-xs sm:text-sm">
             <Link href="/admin/webhooks/logs">
-              View All Logs <ArrowRight className="ml-2 h-4 w-4" />
+              <span className="hidden sm:inline">View All Logs</span>
+              <span className="sm:hidden">Logs</span>
+              <ArrowRight className="ml-1.5 sm:ml-2 h-3.5 w-3.5 sm:h-4 sm:w-4" />
             </Link>
           </Button>
         </div>
@@ -105,24 +107,24 @@ export default function AdminWebhooksDashboardPage(): React.ReactElement {
       <WebhookQuickStats stats={stats ?? null} isLoading={isStatsLoading} />
 
       {/* Main Content Grid */}
-      <div className="grid gap-6 lg:grid-cols-3">
+      <div className="grid gap-4 sm:gap-6 lg:grid-cols-3">
         {/* Activity Chart - Takes 2 columns */}
         <div className="lg:col-span-2">
           <WebhookActivityChart
             data={timelineData ?? null}
             isLoading={isTimelineLoading}
             title="Webhook Activity Timeline"
-            height={350}
+            height={280}
           />
         </div>
 
         {/* Type Breakdown - Takes 1 column */}
         <Card>
-          <CardHeader>
-            <CardTitle className="text-lg text-text-primary">Webhooks by Type</CardTitle>
-            <CardDescription className="text-text-secondary">Distribution of webhook sources</CardDescription>
+          <CardHeader className="p-3 sm:p-6">
+            <CardTitle className="text-base sm:text-lg text-text-primary">Webhooks by Type</CardTitle>
+            <CardDescription className="text-text-secondary text-xs sm:text-sm">Distribution of webhook sources</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-3 sm:p-6 pt-0 sm:pt-0">
             {isStatsLoading ? (
               <div className="space-y-3">
                 {[1, 2, 3, 4].map((i) => (
@@ -141,30 +143,30 @@ export default function AdminWebhooksDashboardPage(): React.ReactElement {
 
       {/* Status Tabs */}
       <Card>
-        <CardHeader>
-          <CardTitle className="text-text-primary">Processing Status Overview</CardTitle>
-          <CardDescription className="text-text-secondary">
+        <CardHeader className="p-3 sm:p-6">
+          <CardTitle className="text-base sm:text-lg text-text-primary">Processing Status Overview</CardTitle>
+          <CardDescription className="text-text-secondary text-xs sm:text-sm hidden xs:block">
             Quick access to webhooks by processing state
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-3 sm:p-6 pt-0 sm:pt-0">
           <Tabs defaultValue="all">
-            <TabsList className="mb-4">
-              <TabsTrigger value="all" className="gap-2">
-                <Activity className="h-4 w-4" />
-                All ({stats?.total ?? 0})
+            <TabsList className="mb-3 sm:mb-4 h-8 sm:h-10 flex-wrap">
+              <TabsTrigger value="all" className="gap-1 sm:gap-2 text-xs sm:text-sm h-7 sm:h-9">
+                <Activity className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                <span className="hidden xs:inline">All</span> ({stats?.total ?? 0})
               </TabsTrigger>
-              <TabsTrigger value="processed" className="gap-2">
-                <CheckCircle2 className="h-4 w-4 text-green-success" />
-                Processed ({stats?.processed ?? 0})
+              <TabsTrigger value="processed" className="gap-1 sm:gap-2 text-xs sm:text-sm h-7 sm:h-9">
+                <CheckCircle2 className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-green-success" />
+                <span className="hidden sm:inline">Processed</span> ({stats?.processed ?? 0})
               </TabsTrigger>
-              <TabsTrigger value="pending" className="gap-2">
-                <Clock className="h-4 w-4 text-cyan-glow" />
-                Pending ({stats?.pending ?? 0})
+              <TabsTrigger value="pending" className="gap-1 sm:gap-2 text-xs sm:text-sm h-7 sm:h-9">
+                <Clock className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-cyan-glow" />
+                <span className="hidden sm:inline">Pending</span> ({stats?.pending ?? 0})
               </TabsTrigger>
-              <TabsTrigger value="failed" className="gap-2">
-                <AlertTriangle className="h-4 w-4 text-orange-warning" />
-                Failed ({stats?.failed ?? 0})
+              <TabsTrigger value="failed" className="gap-1 sm:gap-2 text-xs sm:text-sm h-7 sm:h-9">
+                <AlertTriangle className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-orange-warning" />
+                <span className="hidden sm:inline">Failed</span> ({stats?.failed ?? 0})
               </TabsTrigger>
             </TabsList>
 

@@ -275,7 +275,7 @@ export default function AdminFlagsPage(): React.ReactElement {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6 sm:space-y-8">
       {/* Header */}
       <PageHeader 
         enabledCount={enabledCount} 
@@ -314,27 +314,27 @@ export default function AdminFlagsPage(): React.ReactElement {
         const categoryEnabledCount = categoryFlags.filter(f => f.enabled).length;
         
         return (
-          <section key={category} className="space-y-4">
+          <section key={category} className="space-y-3 sm:space-y-4">
             {/* Category Header */}
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className={`p-2 rounded-lg bg-bg-tertiary ${config.accentColor}`}>
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className={`p-1.5 sm:p-2 rounded-lg bg-bg-tertiary ${config.accentColor}`}>
                   {config.icon}
                 </div>
                 <div>
-                  <h2 className="text-xl font-semibold text-text-primary flex items-center gap-2">
+                  <h2 className="text-base sm:text-xl font-semibold text-text-primary flex items-center gap-2">
                     {config.displayName}
-                    <Badge variant="outline" className="text-xs font-normal">
+                    <Badge variant="outline" className="text-[10px] sm:text-xs font-normal">
                       {categoryEnabledCount}/{categoryFlags.length}
                     </Badge>
                   </h2>
-                  <p className="text-sm text-text-secondary">{config.description}</p>
+                  <p className="text-xs sm:text-sm text-text-secondary hidden xs:block">{config.description}</p>
                 </div>
               </div>
             </div>
             
             {/* Flag Cards Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
               {categoryFlags.map((flag: FeatureFlag) => (
                 <FlagCard
                   key={flag.id}
@@ -393,27 +393,27 @@ function PageHeader({
   isRefreshing?: boolean;
 }): React.ReactElement {
   return (
-    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-      <div className="flex items-center gap-4">
-        <div className="p-3 rounded-xl bg-gradient-primary shadow-glow-cyan-sm">
-          <Zap className="h-6 w-6 text-bg-primary" />
+    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+      <div className="flex items-center gap-2 sm:gap-4">
+        <div className="p-2 sm:p-3 rounded-xl bg-gradient-primary shadow-glow-cyan-sm">
+          <Zap className="h-5 w-5 sm:h-6 sm:w-6 text-bg-primary" />
         </div>
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-text-primary">Feature Flags</h1>
-          <p className="text-text-secondary text-sm mt-0.5">
+          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-text-primary">Feature Flags</h1>
+          <p className="text-text-secondary text-xs sm:text-sm mt-0.5 hidden xs:block">
             Toggle features at runtime without redeploying
           </p>
         </div>
       </div>
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2 sm:gap-3">
         {!isLoading && (
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-bg-secondary border border-border-subtle">
-            <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg bg-bg-secondary border border-border-subtle">
+            <div className="flex items-center gap-1 sm:gap-1.5">
               <span className="status-dot status-dot-success" />
-              <span className="text-sm font-medium text-text-primary">{enabledCount}</span>
+              <span className="text-xs sm:text-sm font-medium text-text-primary">{enabledCount}</span>
             </div>
             <span className="text-text-muted">/</span>
-            <span className="text-sm text-text-secondary">{totalCount} flags</span>
+            <span className="text-xs sm:text-sm text-text-secondary">{totalCount}<span className="hidden xs:inline"> flags</span></span>
           </div>
         )}
         <Button
@@ -421,10 +421,10 @@ function PageHeader({
           size="sm"
           onClick={onRefresh}
           disabled={isRefreshing}
-          className="gap-2"
+          className="gap-1.5 sm:gap-2 h-8 text-xs sm:text-sm"
         >
-          <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-          <span className="hidden sm:inline">Refresh</span>
+          <RefreshCw className={`h-3.5 w-3.5 sm:h-4 sm:w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+          <span className="hidden xs:inline">Refresh</span>
         </Button>
       </div>
     </div>

@@ -346,27 +346,27 @@ function StatCard({
       'hover:border-border-accent hover:shadow-card-md group h-full',
       href !== undefined && href !== '' ? 'cursor-pointer' : '',
     )}>
-      <CardContent className="p-5 h-full flex flex-col">
+      <CardContent className="p-3 sm:p-5 h-full flex flex-col">
         <div className="flex items-start justify-between flex-1">
-          <div className="space-y-1 flex-1">
-            <p className="text-sm font-medium text-text-secondary">{title}</p>
+          <div className="space-y-0.5 sm:space-y-1 flex-1 min-w-0">
+            <p className="text-xs sm:text-sm font-medium text-text-secondary truncate">{title}</p>
             {loading ? (
-              <Skeleton className="h-8 w-20" />
+              <Skeleton className="h-6 sm:h-8 w-16 sm:w-20" />
             ) : (
-              <p className="text-2xl font-bold text-text-primary font-display tracking-tight">
+              <p className="text-lg sm:text-2xl font-bold text-text-primary font-display tracking-tight truncate">
                 {value}
               </p>
             )}
             {/* Always reserve space for subtitle - show text or invisible placeholder */}
             <p className={cn(
-              'text-xs min-h-4',
+              'text-[10px] sm:text-xs min-h-3 sm:min-h-4 truncate',
               subtitle !== undefined && subtitle !== '' && !loading ? 'text-text-muted' : 'invisible'
             )}>
               {subtitle !== undefined && subtitle !== '' && !loading ? subtitle : 'placeholder'}
             </p>
-            {/* Always reserve space for trend - show content or invisible placeholder */}
+            {/* Trend - hidden on mobile to save space */}
             {trend !== undefined && trend !== null && !loading ? (
-              <div className="flex items-center gap-1 min-h-5">
+              <div className="hidden sm:flex items-center gap-1 min-h-5">
                 {trend.isPositive === true ? (
                   <ArrowUpRight className="h-3 w-3 text-green-success" />
                 ) : (
@@ -381,7 +381,7 @@ function StatCard({
                 <span className="text-xs text-text-muted">vs last period</span>
               </div>
             ) : (
-              <div className="flex items-center gap-1 min-h-5 invisible">
+              <div className="hidden sm:flex items-center gap-1 min-h-5 invisible">
                 <ArrowUpRight className="h-3 w-3" />
                 <span className="text-xs">0.0%</span>
                 <span className="text-xs">vs last period</span>
@@ -389,16 +389,16 @@ function StatCard({
             )}
           </div>
           <div className={cn(
-            'p-3 rounded-xl transition-all duration-300 shrink-0',
+            'p-2 sm:p-3 rounded-lg sm:rounded-xl transition-all duration-300 shrink-0 ml-2',
             config.iconBg,
             'group-hover:scale-110',
           )}>
-            <Icon className={cn('h-5 w-5', config.iconColor)} />
+            <Icon className={cn('h-4 w-4 sm:h-5 sm:w-5', config.iconColor)} />
           </div>
         </div>
         {href !== undefined && href !== '' && (
-          <div className="absolute bottom-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
-            <ArrowRight className="h-4 w-4 text-text-muted" />
+          <div className="absolute bottom-2 sm:bottom-3 right-2 sm:right-3 opacity-0 group-hover:opacity-100 transition-opacity">
+            <ArrowRight className="h-3 w-3 sm:h-4 sm:w-4 text-text-muted" />
           </div>
         )}
       </CardContent>
@@ -961,31 +961,31 @@ export default function AdminDashboardPage(): React.ReactElement | null {
   // ============================================================================
 
   return (
-    <div className="container mx-auto py-6 px-4 md:px-6 space-y-6">
+    <div className="container mx-auto py-4 sm:py-6 px-3 sm:px-4 md:px-6 space-y-4 sm:space-y-6">
       {/* Header Section */}
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+      <div className="flex flex-col gap-3 sm:gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-text-primary font-display tracking-tight flex items-center gap-3">
-            <Sparkles className="h-8 w-8 text-cyan-glow" />
+          <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-text-primary font-display tracking-tight flex items-center gap-2 sm:gap-3">
+            <Sparkles className="h-6 w-6 sm:h-8 sm:w-8 text-cyan-glow" />
             Admin Dashboard
           </h1>
-          <p className="text-text-secondary mt-1">
+          <p className="text-text-secondary mt-1 text-xs sm:text-sm">
             Overview of your BitLoot platform performance
             {lastUpdated !== null && lastUpdated !== '' && (
-              <span className="text-text-muted ml-2">• Updated {lastUpdated}</span>
+              <span className="text-text-muted ml-2 hidden sm:inline">• Updated {lastUpdated}</span>
             )}
           </p>
         </div>
         
-        <div className="flex items-center gap-3 flex-wrap">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3">
           {/* Time Range Selector */}
-          <div className="flex items-center gap-1 p-1 rounded-lg bg-bg-secondary border border-border-subtle">
+          <div className="flex items-center gap-0.5 sm:gap-1 p-0.5 sm:p-1 rounded-lg bg-bg-secondary border border-border-subtle">
             {(['24h', '7d', '30d', '90d', 'all'] as TimeRange[]).map((range) => (
               <button
                 key={range}
                 onClick={() => setTimeRange(range)}
                 className={cn(
-                  'px-3 py-1.5 text-xs font-medium rounded-md transition-all',
+                  'px-2 sm:px-3 py-1 sm:py-1.5 text-[10px] sm:text-xs font-medium rounded-md transition-all',
                   timeRange === range
                     ? 'bg-cyan-glow/20 text-cyan-glow shadow-glow-cyan-sm'
                     : 'text-text-secondary hover:text-text-primary hover:bg-bg-tertiary'
@@ -1002,14 +1002,16 @@ export default function AdminDashboardPage(): React.ReactElement | null {
             size="sm"
             onClick={() => void handleRefresh()}
             disabled={isRefreshing}
-            className="border-cyan-glow/30 text-cyan-glow hover:bg-cyan-glow/10"
+            className="border-cyan-glow/30 text-cyan-glow hover:bg-cyan-glow/10 text-xs sm:text-sm"
           >
-            <RefreshCw className={cn('h-4 w-4 mr-2', isRefreshing && 'animate-spin')} />
-            {isRefreshing ? 'Refreshing...' : 'Refresh'}
+            <RefreshCw className={cn('h-4 w-4 sm:mr-2', isRefreshing && 'animate-spin')} />
+            <span className="hidden sm:inline">{isRefreshing ? 'Refreshing...' : 'Refresh'}</span>
           </Button>
 
-          {/* System Status */}
-          <SystemStatusBadge health={systemHealth} isChecking={isCheckingHealth} />
+          {/* System Status - Hidden on very small screens */}
+          <div className="hidden xs:block">
+            <SystemStatusBadge health={systemHealth} isChecking={isCheckingHealth} />
+          </div>
         </div>
       </div>
 
@@ -1041,7 +1043,7 @@ export default function AdminDashboardPage(): React.ReactElement | null {
       )}
 
       {/* Stats Grid - 6 Columns */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+      <div className="grid gap-3 sm:gap-4 grid-cols-2 md:grid-cols-3 xl:grid-cols-6">
         <StatCard
           title="Total Revenue"
           value={`€${(stats?.totalRevenue ?? 0).toFixed(2)}`}
@@ -1098,7 +1100,7 @@ export default function AdminDashboardPage(): React.ReactElement | null {
       </div>
 
       {/* Main Content Grid */}
-      <div className="grid gap-6 lg:grid-cols-3">
+      <div className="grid gap-4 sm:gap-6 lg:grid-cols-3">
         {/* Revenue Chart - Takes 2 columns */}
         <Card className="lg:col-span-2 bg-bg-secondary border-border-subtle">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -1257,7 +1259,7 @@ export default function AdminDashboardPage(): React.ReactElement | null {
       </div>
 
       {/* Quick Actions & Recent Activity */}
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid gap-4 sm:gap-6 lg:grid-cols-2">
         {/* Quick Actions */}
         <Card className="bg-bg-secondary border-border-subtle">
           <CardHeader className="pb-3">
@@ -1268,7 +1270,7 @@ export default function AdminDashboardPage(): React.ReactElement | null {
             <CardDescription>Common admin tasks</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid gap-3 sm:grid-cols-2">
+            <div className="grid gap-2 sm:gap-3 grid-cols-1 sm:grid-cols-2">
               <QuickActionCard
                 title="Manage Orders"
                 description="View and manage all orders"

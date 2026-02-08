@@ -127,15 +127,15 @@ function QuickAction({ href, icon: Icon, label, description, accentColor = 'cyan
     return (
         <Link href={href} className="block">
             <Card className={`h-full border-border-subtle ${colorClasses[accentColor]} transition-all duration-250 cursor-pointer group`}>
-                <CardContent className="flex items-center gap-4 p-4">
-                    <div className={`p-3 rounded-lg bg-bg-tertiary ${colorClasses[accentColor].split(' ').slice(1, 2).join(' ')} transition-colors duration-250`}>
-                        <Icon className={`h-6 w-6 text-text-muted ${textColor[accentColor]} transition-colors duration-250`} />
+                <CardContent className="flex items-center gap-2 sm:gap-4 p-3 sm:p-4">
+                    <div className={`p-2 sm:p-3 rounded-lg bg-bg-tertiary ${colorClasses[accentColor].split(' ').slice(1, 2).join(' ')} transition-colors duration-250 flex-shrink-0`}>
+                        <Icon className={`h-4 w-4 sm:h-6 sm:w-6 text-text-muted ${textColor[accentColor]} transition-colors duration-250`} />
                     </div>
                     <div className="flex-1 min-w-0">
-                        <div className={`font-medium text-text-primary ${textColor[accentColor]} transition-colors duration-250`}>{label}</div>
-                        <div className="text-sm text-text-muted truncate">{description}</div>
+                        <div className={`text-xs sm:text-sm font-medium text-text-primary ${textColor[accentColor]} transition-colors duration-250 truncate`}>{label}</div>
+                        <div className="text-[10px] sm:text-sm text-text-muted truncate hidden xs:block">{description}</div>
                     </div>
-                    <ArrowRight className={`h-4 w-4 text-text-muted ${textColor[accentColor]} group-hover:translate-x-1 transition-all duration-250 flex-shrink-0`} />
+                    <ArrowRight className={`h-3 w-3 sm:h-4 sm:w-4 text-text-muted ${textColor[accentColor]} group-hover:translate-x-1 transition-all duration-250 flex-shrink-0 hidden sm:block`} />
                 </CardContent>
             </Card>
         </Link>
@@ -207,25 +207,26 @@ export default function AdminCatalogPage(): React.ReactElement | null {
     }
 
     return (
-        <div className="container mx-auto py-8 space-y-8">
+        <div className="container mx-auto px-3 sm:px-4 lg:px-6 py-4 sm:py-6 lg:py-8 space-y-4 sm:space-y-6 lg:space-y-8">
             {/* Header with gradient accent */}
             <div className="relative">
                 <div className="absolute inset-0 bg-gradient-to-r from-cyan-glow/5 via-purple-neon/5 to-transparent rounded-2xl blur-xl" />
-                <div className="relative flex flex-col gap-4 md:flex-row md:items-center md:justify-between p-1">
+                <div className="relative flex flex-col gap-3 sm:gap-4 md:flex-row md:items-center md:justify-between p-1">
                     <div>
-                        <div className="flex items-center gap-3">
-                            <div className="p-2 rounded-lg bg-cyan-glow/10 border border-cyan-glow/20">
-                                <Sparkles className="h-6 w-6 text-cyan-glow" />
+                        <div className="flex items-center gap-2 sm:gap-3">
+                            <div className="p-1.5 sm:p-2 rounded-lg bg-cyan-glow/10 border border-cyan-glow/20">
+                                <Sparkles className="h-5 w-5 sm:h-6 sm:w-6 text-cyan-glow" />
                             </div>
-                            <h1 className="text-3xl font-bold text-text-primary">Catalog Dashboard</h1>
+                            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-text-primary">Catalog Dashboard</h1>
                         </div>
-                        <p className="text-text-secondary mt-2 ml-14">Overview of your product catalog and quick access to management tools.</p>
+                        <p className="text-xs sm:text-sm text-text-secondary mt-1 sm:mt-2 ml-9 sm:ml-14">Overview of your product catalog and quick access to management tools.</p>
                     </div>
                     {hasProducts && (
                         <Link href="/admin/catalog/products">
-                            <Button className="btn-primary gap-2 shadow-glow-cyan-sm hover:shadow-glow-cyan transition-all duration-250">
-                                <Package className="h-4 w-4" />
-                                Manage Products
+                            <Button size="sm" className="btn-primary gap-2 shadow-glow-cyan-sm hover:shadow-glow-cyan transition-all duration-250 text-xs sm:text-sm">
+                                <Package className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                                <span className="hidden xs:inline">Manage Products</span>
+                                <span className="xs:hidden">Products</span>
                             </Button>
                         </Link>
                     )}
@@ -248,7 +249,7 @@ export default function AdminCatalogPage(): React.ReactElement | null {
             )}
 
             {/* Dashboard Stats Cards */}
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+            <div className="grid gap-2 sm:gap-4 grid-cols-2 lg:grid-cols-4">
                 {isStatsLoading ? (
                     <>
                         <StatCardSkeleton />
@@ -260,29 +261,29 @@ export default function AdminCatalogPage(): React.ReactElement | null {
                     <>
                         {/* Total Products */}
                         <Card className="border-border-subtle hover:border-border-accent hover:shadow-card-md transition-all duration-250 group">
-                            <CardHeader className="flex flex-row items-center justify-between pb-2">
-                                <CardTitle className="text-sm font-medium text-text-secondary">Total Products</CardTitle>
-                                <div className="p-1.5 rounded-md bg-bg-tertiary group-hover:bg-cyan-glow/10 transition-colors duration-250">
-                                    <Package className="h-4 w-4 text-text-muted group-hover:text-cyan-glow transition-colors duration-250" />
+                            <CardHeader className="flex flex-row items-center justify-between p-3 sm:p-6 pb-1 sm:pb-2">
+                                <CardTitle className="text-xs sm:text-sm font-medium text-text-secondary">Total Products</CardTitle>
+                                <div className="p-1 sm:p-1.5 rounded-md bg-bg-tertiary group-hover:bg-cyan-glow/10 transition-colors duration-250">
+                                    <Package className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-text-muted group-hover:text-cyan-glow transition-colors duration-250" />
                                 </div>
                             </CardHeader>
-                            <CardContent>
-                                <div className="text-2xl font-bold text-text-primary">{totalAllProducts.toLocaleString()}</div>
-                                <p className="text-xs text-text-muted mt-1">Across all categories</p>
+                            <CardContent className="p-3 sm:p-6 pt-0">
+                                <div className="text-lg sm:text-2xl font-bold text-text-primary">{totalAllProducts.toLocaleString()}</div>
+                                <p className="text-[10px] sm:text-xs text-text-muted mt-0.5 sm:mt-1 hidden xs:block">Across all categories</p>
                             </CardContent>
                         </Card>
 
                         {/* Published */}
                         <Card className="border-border-subtle hover:border-green-success/50 hover:shadow-glow-success transition-all duration-250 group">
-                            <CardHeader className="flex flex-row items-center justify-between pb-2">
-                                <CardTitle className="text-sm font-medium text-text-secondary">Published</CardTitle>
-                                <div className="p-1.5 rounded-md bg-green-success/10 group-hover:bg-green-success/20 transition-colors duration-250">
-                                    <Eye className="h-4 w-4 text-green-success" />
+                            <CardHeader className="flex flex-row items-center justify-between p-3 sm:p-6 pb-1 sm:pb-2">
+                                <CardTitle className="text-xs sm:text-sm font-medium text-text-secondary">Published</CardTitle>
+                                <div className="p-1 sm:p-1.5 rounded-md bg-green-success/10 group-hover:bg-green-success/20 transition-colors duration-250">
+                                    <Eye className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-green-success" />
                                 </div>
                             </CardHeader>
-                            <CardContent>
-                                <div className="text-2xl font-bold text-green-success">{totalPublished.toLocaleString()}</div>
-                                <p className="text-xs text-text-muted mt-1">
+                            <CardContent className="p-3 sm:p-6 pt-0">
+                                <div className="text-lg sm:text-2xl font-bold text-green-success">{totalPublished.toLocaleString()}</div>
+                                <p className="text-[10px] sm:text-xs text-text-muted mt-0.5 sm:mt-1 hidden xs:block">
                                     {totalAllProducts > 0 ? `${Math.round((totalPublished / totalAllProducts) * 100)}% of catalog` : '0%'}
                                 </p>
                             </CardContent>
@@ -290,29 +291,29 @@ export default function AdminCatalogPage(): React.ReactElement | null {
 
                         {/* Draft */}
                         <Card className="border-border-subtle hover:border-border-accent hover:shadow-card-md transition-all duration-250 group">
-                            <CardHeader className="flex flex-row items-center justify-between pb-2">
-                                <CardTitle className="text-sm font-medium text-text-secondary">Draft</CardTitle>
-                                <div className="p-1.5 rounded-md bg-bg-tertiary group-hover:bg-purple-neon/10 transition-colors duration-250">
-                                    <EyeOff className="h-4 w-4 text-text-muted group-hover:text-purple-neon transition-colors duration-250" />
+                            <CardHeader className="flex flex-row items-center justify-between p-3 sm:p-6 pb-1 sm:pb-2">
+                                <CardTitle className="text-xs sm:text-sm font-medium text-text-secondary">Draft</CardTitle>
+                                <div className="p-1 sm:p-1.5 rounded-md bg-bg-tertiary group-hover:bg-purple-neon/10 transition-colors duration-250">
+                                    <EyeOff className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-text-muted group-hover:text-purple-neon transition-colors duration-250" />
                                 </div>
                             </CardHeader>
-                            <CardContent>
-                                <div className="text-2xl font-bold text-text-secondary">{(totalAllProducts - totalPublished).toLocaleString()}</div>
-                                <p className="text-xs text-text-muted mt-1">Awaiting publish</p>
+                            <CardContent className="p-3 sm:p-6 pt-0">
+                                <div className="text-lg sm:text-2xl font-bold text-text-secondary">{(totalAllProducts - totalPublished).toLocaleString()}</div>
+                                <p className="text-[10px] sm:text-xs text-text-muted mt-0.5 sm:mt-1 hidden xs:block">Awaiting publish</p>
                             </CardContent>
                         </Card>
 
                         {/* Featured */}
                         <Card className="border-border-subtle hover:border-cyan-glow/50 hover:shadow-glow-cyan-sm transition-all duration-250 group">
-                            <CardHeader className="flex flex-row items-center justify-between pb-2">
-                                <CardTitle className="text-sm font-medium text-text-secondary">Featured</CardTitle>
-                                <div className="p-1.5 rounded-md bg-cyan-glow/10 group-hover:bg-cyan-glow/20 transition-colors duration-250">
-                                    <TrendingUp className="h-4 w-4 text-cyan-glow" />
+                            <CardHeader className="flex flex-row items-center justify-between p-3 sm:p-6 pb-1 sm:pb-2">
+                                <CardTitle className="text-xs sm:text-sm font-medium text-text-secondary">Featured</CardTitle>
+                                <div className="p-1 sm:p-1.5 rounded-md bg-cyan-glow/10 group-hover:bg-cyan-glow/20 transition-colors duration-250">
+                                    <TrendingUp className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-cyan-glow" />
                                 </div>
                             </CardHeader>
-                            <CardContent>
-                                <div className="text-2xl font-bold text-cyan-glow">{totalFeatured.toLocaleString()}</div>
-                                <p className="text-xs text-text-muted mt-1">Highlighted on store</p>
+                            <CardContent className="p-3 sm:p-6 pt-0">
+                                <div className="text-lg sm:text-2xl font-bold text-cyan-glow">{totalFeatured.toLocaleString()}</div>
+                                <p className="text-[10px] sm:text-xs text-text-muted mt-0.5 sm:mt-1 hidden xs:block">Highlighted on store</p>
                             </CardContent>
                         </Card>
                     </>
@@ -353,11 +354,11 @@ export default function AdminCatalogPage(): React.ReactElement | null {
             {/* Category Breakdown Cards */}
             {(isStatsLoading || hasProducts) && (
                 <div>
-                    <h2 className="text-lg font-semibold text-text-primary mb-4 flex items-center gap-2">
-                        <span className="w-1 h-5 bg-gradient-to-b from-cyan-glow to-purple-neon rounded-full" />
+                    <h2 className="text-base sm:text-lg font-semibold text-text-primary mb-3 sm:mb-4 flex items-center gap-2">
+                        <span className="w-1 h-4 sm:h-5 bg-gradient-to-b from-cyan-glow to-purple-neon rounded-full" />
                         Categories
                     </h2>
-                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                    <div className="grid gap-2 sm:gap-4 grid-cols-2 lg:grid-cols-4">
                         {isStatsLoading ? (
                             <>
                                 <CategoryCardSkeleton />
@@ -377,20 +378,20 @@ export default function AdminCatalogPage(): React.ReactElement | null {
                                             {/* Gradient overlay on hover */}
                                             <div className={`absolute inset-0 bg-gradient-to-br ${config.gradientFrom} ${config.gradientTo} opacity-0 group-hover:opacity-100 transition-opacity duration-250`} />
                                             
-                                            <CardHeader className="relative flex flex-row items-center justify-between pb-2">
-                                                <CardTitle className={`text-sm font-medium ${config.color}`}>{config.label}</CardTitle>
-                                                <div className={`p-1.5 rounded-md ${config.bgColor} group-hover:scale-110 transition-transform duration-250`}>
-                                                    <Icon className={`h-5 w-5 ${config.color}`} />
+                                            <CardHeader className="relative flex flex-row items-center justify-between p-3 sm:p-6 pb-1 sm:pb-2">
+                                                <CardTitle className={`text-xs sm:text-sm font-medium ${config.color}`}>{config.label}</CardTitle>
+                                                <div className={`p-1 sm:p-1.5 rounded-md ${config.bgColor} group-hover:scale-110 transition-transform duration-250`}>
+                                                    <Icon className={`h-4 w-4 sm:h-5 sm:w-5 ${config.color}`} />
                                                 </div>
                                             </CardHeader>
-                                            <CardContent className="relative">
-                                                <div className={`text-2xl font-bold ${config.color}`}>{stat.total.toLocaleString()}</div>
-                                                <div className="flex gap-4 mt-2 text-xs text-text-muted">
+                                            <CardContent className="relative p-3 sm:p-6 pt-0">
+                                                <div className={`text-lg sm:text-2xl font-bold ${config.color}`}>{stat.total.toLocaleString()}</div>
+                                                <div className="flex flex-col xs:flex-row gap-1 xs:gap-4 mt-1 sm:mt-2 text-[10px] sm:text-xs text-text-muted">
                                                     <span className="flex items-center gap-1">
-                                                        <Eye className="h-3 w-3" /> {stat.published} live
+                                                        <Eye className="h-2.5 w-2.5 sm:h-3 sm:w-3" /> {stat.published} <span className="hidden xs:inline">live</span>
                                                     </span>
                                                     <span className="flex items-center gap-1">
-                                                        <TrendingUp className="h-3 w-3" /> {stat.featured} featured
+                                                        <TrendingUp className="h-2.5 w-2.5 sm:h-3 sm:w-3" /> {stat.featured} <span className="hidden xs:inline">featured</span>
                                                     </span>
                                                 </div>
                                             </CardContent>
@@ -405,11 +406,11 @@ export default function AdminCatalogPage(): React.ReactElement | null {
 
             {/* Quick Actions */}
             <div>
-                <h2 className="text-lg font-semibold text-text-primary mb-4 flex items-center gap-2">
-                    <span className="w-1 h-5 bg-gradient-to-b from-purple-neon to-pink-featured rounded-full" />
+                <h2 className="text-base sm:text-lg font-semibold text-text-primary mb-3 sm:mb-4 flex items-center gap-2">
+                    <span className="w-1 h-4 sm:h-5 bg-gradient-to-b from-purple-neon to-pink-featured rounded-full" />
                     Quick Actions
                 </h2>
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                <div className="grid gap-2 sm:gap-4 grid-cols-2 lg:grid-cols-4">
                     <QuickAction 
                         href="/admin/catalog/products" 
                         icon={Package} 

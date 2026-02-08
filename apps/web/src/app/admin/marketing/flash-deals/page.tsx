@@ -536,15 +536,15 @@ export default function AdminFlashDealsPage(): React.ReactElement {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-text-primary flex items-center gap-2">
-            <Zap className="h-6 w-6 text-yellow-400" />
+          <h1 className="text-xl sm:text-2xl font-bold text-text-primary flex items-center gap-2">
+            <Zap className="h-5 w-5 sm:h-6 sm:w-6 text-yellow-400" />
             Flash Deals
           </h1>
-          <p className="text-text-muted mt-1">
+          <p className="text-text-muted mt-1 text-xs sm:text-sm hidden xs:block">
             Create time-limited sales to drive urgency and conversions
           </p>
         </div>
@@ -554,18 +554,19 @@ export default function AdminFlashDealsPage(): React.ReactElement {
             size="sm"
             onClick={() => refetch()}
             disabled={isLoading}
-            className="gap-2"
+            className="gap-1.5 sm:gap-2 h-8 text-xs sm:text-sm"
           >
-            <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-            Refresh
+            <RefreshCw className={`h-3.5 w-3.5 sm:h-4 sm:w-4 ${isLoading ? 'animate-spin' : ''}`} />
+            <span className="hidden xs:inline">Refresh</span>
           </Button>
           <Button
             size="sm"
             onClick={() => setIsCreateOpen(true)}
-            className="gap-2 bg-yellow-500 hover:bg-yellow-600 text-black"
+            className="gap-1.5 sm:gap-2 h-8 text-xs sm:text-sm bg-yellow-500 hover:bg-yellow-600 text-black"
           >
-            <Plus className="h-4 w-4" />
-            New Flash Deal
+            <Plus className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+            <span className="hidden sm:inline">New Flash Deal</span>
+            <span className="sm:hidden">New</span>
           </Button>
         </div>
       </div>
@@ -609,23 +610,24 @@ export default function AdminFlashDealsPage(): React.ReactElement {
       {/* Flash Deals Table */}
       {isLoading !== true && (error === null || error === undefined) && (
         <Card className="glass border-border-accent">
-          <CardHeader>
-            <CardTitle>All Flash Deals</CardTitle>
-            <CardDescription>
+          <CardHeader className="p-3 sm:p-6">
+            <CardTitle className="text-base sm:text-lg">All Flash Deals</CardTitle>
+            <CardDescription className="text-xs sm:text-sm">
               {flashDeals.length} flash deal{flashDeals.length !== 1 ? 's' : ''} configured
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-0 sm:p-6 sm:pt-0">
             {flashDeals.length > 0 ? (
+              <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead>Name</TableHead>
-                    <TableHead>Type</TableHead>
+                    <TableHead className="hidden sm:table-cell">Type</TableHead>
                     <TableHead>Status</TableHead>
-                    <TableHead>Duration</TableHead>
-                    <TableHead>Products</TableHead>
-                    <TableHead>Time Left</TableHead>
+                    <TableHead className="hidden md:table-cell">Duration</TableHead>
+                    <TableHead className="hidden sm:table-cell">Products</TableHead>
+                    <TableHead className="hidden lg:table-cell">Time Left</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -634,17 +636,17 @@ export default function AdminFlashDealsPage(): React.ReactElement {
                     const status = getDealStatus(deal);
                     return (
                       <TableRow key={deal.id}>
-                        <TableCell>
+                        <TableCell className="py-2 sm:py-4">
                           <div>
-                            <p className="font-medium text-text-primary">{deal.name}</p>
+                            <p className="font-medium text-text-primary text-xs sm:text-sm">{deal.name}</p>
                             {deal.description !== null && deal.description !== undefined && deal.description !== '' && (
-                              <p className="text-sm text-text-muted truncate max-w-xs">
+                              <p className="text-xs text-text-muted truncate max-w-[120px] sm:max-w-xs hidden xs:block">
                                 {deal.description}
                               </p>
                             )}
                           </div>
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="hidden sm:table-cell py-2 sm:py-4">
                           <Badge 
                             variant="outline"
                             className={deal.displayType === 'sticky' 
@@ -655,10 +657,10 @@ export default function AdminFlashDealsPage(): React.ReactElement {
                             {deal.displayType === 'sticky' ? 'Sticky' : 'Inline'}
                           </Badge>
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="py-2 sm:py-4">
                           <Badge className={status.color}>{status.label}</Badge>
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="hidden md:table-cell py-2 sm:py-4">
                           <div className="text-sm">
                             <p className="flex items-center gap-1">
                               <Calendar className="h-3 w-3" />
@@ -669,27 +671,28 @@ export default function AdminFlashDealsPage(): React.ReactElement {
                             </p>
                           </div>
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="hidden sm:table-cell py-2 sm:py-4">
                           <div className="flex items-center gap-1">
-                            <Package className="h-4 w-4 text-text-muted" />
-                            <span>{deal.products?.length ?? 0} / {deal.productsCount}</span>
+                            <Package className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-text-muted" />
+                            <span className="text-xs sm:text-sm">{deal.products?.length ?? 0} / {deal.productsCount}</span>
                           </div>
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="hidden lg:table-cell py-2 sm:py-4">
                           <div className="flex items-center gap-1">
-                            <Timer className="h-4 w-4 text-yellow-400" />
-                            <span>{getTimeRemaining(deal.endsAt)}</span>
+                            <Timer className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-yellow-400" />
+                            <span className="text-xs sm:text-sm">{getTimeRemaining(deal.endsAt)}</span>
                           </div>
                         </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex items-center justify-end gap-2">
+                        <TableCell className="text-right py-2 sm:py-4">
+                          <div className="flex items-center justify-end gap-1 sm:gap-2">
                             <Button
                               variant="ghost"
                               size="sm"
                               onClick={() => setManagingProductsDeal(deal)}
                               title="Manage Products"
+                              className="h-7 w-7 sm:h-8 sm:w-8 p-0"
                             >
-                              <Package className="h-4 w-4" />
+                              <Package className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                             </Button>
                             <Button
                               variant="ghost"
@@ -697,27 +700,29 @@ export default function AdminFlashDealsPage(): React.ReactElement {
                               onClick={() => activateMutation.mutate(deal.id)}
                               disabled={activateMutation.isPending}
                               title={deal.isActive ? 'Deactivate' : 'Activate'}
+                              className="h-7 w-7 sm:h-8 sm:w-8 p-0 hidden xs:flex"
                             >
                               {deal.isActive ? (
-                                <Pause className="h-4 w-4" />
+                                <Pause className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                               ) : (
-                                <Play className="h-4 w-4" />
+                                <Play className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                               )}
                             </Button>
                             <Button
                               variant="ghost"
                               size="sm"
                               onClick={() => openEdit(deal)}
+                              className="h-7 w-7 sm:h-8 sm:w-8 p-0"
                             >
-                              <Edit className="h-4 w-4" />
+                              <Edit className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                             </Button>
                             <Button
                               variant="ghost"
                               size="sm"
                               onClick={() => setDeleteConfirm(deal)}
-                              className="text-red-400 hover:text-red-300"
+                              className="text-red-400 hover:text-red-300 h-7 w-7 sm:h-8 sm:w-8 p-0"
                             >
-                              <Trash2 className="h-4 w-4" />
+                              <Trash2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                             </Button>
                           </div>
                         </TableCell>
@@ -726,8 +731,9 @@ export default function AdminFlashDealsPage(): React.ReactElement {
                   })}
                 </TableBody>
               </Table>
+              </div>
             ) : (
-              <div className="text-center py-8 text-text-muted">
+              <div className="text-center py-6 sm:py-8 px-3 text-text-muted">
                 <Zap className="h-12 w-12 mx-auto mb-4 text-yellow-400/50" />
                 <p>No flash deals yet</p>
                 <p className="text-sm mt-1">Create your first flash deal to drive urgency</p>

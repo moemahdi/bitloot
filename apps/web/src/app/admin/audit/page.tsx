@@ -196,34 +196,34 @@ export default function AdminAuditPage(): React.ReactElement {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-center">
         <div>
-          <h1 className="text-3xl font-bold text-text-primary">Audit Logs</h1>
-          <p className="text-text-secondary mt-1">
+          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-text-primary">Audit Logs</h1>
+          <p className="text-text-secondary text-xs sm:text-sm mt-1 hidden xs:block">
             Track all admin actions and system events for compliance and security
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
           <Button
             variant="outline"
             size="sm"
             onClick={() => void refetch()}
             disabled={isLoading || isFetching}
-            className="border-border-subtle hover:border-cyan-glow/50 hover:text-cyan-glow"
+            className="border-border-subtle hover:border-cyan-glow/50 hover:text-cyan-glow h-8 text-xs sm:text-sm"
           >
-            <RefreshCw className={`w-4 h-4 mr-2 ${isFetching ? 'animate-spin' : ''}`} />
-            Refresh
+            <RefreshCw className={`w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2 ${isFetching ? 'animate-spin' : ''}`} />
+            <span className="hidden xs:inline">Refresh</span>
           </Button>
           <Button
             variant="outline"
             size="sm"
             onClick={() => exportCsvMutation.mutate()}
             disabled={exportCsvMutation.isPending}
-            className="border-border-subtle hover:border-cyan-glow/50 hover:text-cyan-glow"
+            className="border-border-subtle hover:border-cyan-glow/50 hover:text-cyan-glow h-8 text-xs sm:text-sm"
           >
-            <FileSpreadsheet className="w-4 h-4 mr-2" />
+            <FileSpreadsheet className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2" />
             CSV
           </Button>
           <Button
@@ -231,49 +231,49 @@ export default function AdminAuditPage(): React.ReactElement {
             size="sm"
             onClick={() => exportJsonMutation.mutate()}
             disabled={exportJsonMutation.isPending}
-            className="border-border-subtle hover:border-cyan-glow/50 hover:text-cyan-glow"
+            className="border-border-subtle hover:border-cyan-glow/50 hover:text-cyan-glow h-8 text-xs sm:text-sm"
           >
-            <Download className="w-4 h-4 mr-2" />
+            <Download className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2" />
             JSON
           </Button>
         </div>
       </div>
 
       {/* Statistics Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-4">
         <Card className="bg-bg-secondary border-border-subtle hover:border-cyan-glow/30 transition-colors">
-          <CardContent className="pt-6">
+          <CardContent className="p-3 sm:pt-6 sm:p-6">
             <div className="text-center">
-              <ClipboardList className="h-6 w-6 mx-auto mb-2 text-cyan-glow" />
-              <div className="text-3xl font-bold text-text-primary">{stats.total.toLocaleString()}</div>
-              <p className="text-sm text-text-secondary mt-1">Total Logs</p>
+              <ClipboardList className="h-5 w-5 sm:h-6 sm:w-6 mx-auto mb-1.5 sm:mb-2 text-cyan-glow" />
+              <div className="text-xl sm:text-3xl font-bold text-text-primary">{stats.total.toLocaleString()}</div>
+              <p className="text-xs sm:text-sm text-text-secondary mt-1">Total Logs</p>
             </div>
           </CardContent>
         </Card>
         <Card className="bg-bg-secondary border-border-subtle hover:border-purple-neon/30 transition-colors">
-          <CardContent className="pt-6">
+          <CardContent className="p-3 sm:pt-6 sm:p-6">
             <div className="text-center">
-              <Activity className="h-6 w-6 mx-auto mb-2 text-purple-neon" />
-              <div className="text-3xl font-bold text-text-primary">{stats.actions}</div>
-              <p className="text-sm text-text-secondary mt-1">Action Types</p>
+              <Activity className="h-5 w-5 sm:h-6 sm:w-6 mx-auto mb-1.5 sm:mb-2 text-purple-neon" />
+              <div className="text-xl sm:text-3xl font-bold text-text-primary">{stats.actions}</div>
+              <p className="text-xs sm:text-sm text-text-secondary mt-1">Action Types</p>
             </div>
           </CardContent>
         </Card>
         <Card className="bg-bg-secondary border-border-subtle hover:border-green-success/30 transition-colors">
-          <CardContent className="pt-6">
+          <CardContent className="p-3 sm:pt-6 sm:p-6">
             <div className="text-center">
-              <Target className="h-6 w-6 mx-auto mb-2 text-green-success" />
-              <div className="text-3xl font-bold text-text-primary">{stats.targets}</div>
-              <p className="text-sm text-text-secondary mt-1">Target Types</p>
+              <Target className="h-5 w-5 sm:h-6 sm:w-6 mx-auto mb-1.5 sm:mb-2 text-green-success" />
+              <div className="text-xl sm:text-3xl font-bold text-text-primary">{stats.targets}</div>
+              <p className="text-xs sm:text-sm text-text-secondary mt-1">Target Types</p>
             </div>
           </CardContent>
         </Card>
         <Card className="bg-bg-secondary border-border-subtle hover:border-pink-featured/30 transition-colors">
-          <CardContent className="pt-6">
+          <CardContent className="p-3 sm:pt-6 sm:p-6">
             <div className="text-center">
-              <UserCog className="h-6 w-6 mx-auto mb-2 text-pink-featured" />
-              <div className="text-3xl font-bold text-text-primary">{stats.admins}</div>
-              <p className="text-sm text-text-secondary mt-1">Active Admins</p>
+              <UserCog className="h-5 w-5 sm:h-6 sm:w-6 mx-auto mb-1.5 sm:mb-2 text-pink-featured" />
+              <div className="text-xl sm:text-3xl font-bold text-text-primary">{stats.admins}</div>
+              <p className="text-xs sm:text-sm text-text-secondary mt-1">Active Admins</p>
             </div>
           </CardContent>
         </Card>
@@ -281,21 +281,21 @@ export default function AdminAuditPage(): React.ReactElement {
 
       {/* Filters */}
       <Card className="bg-bg-secondary border-border-subtle">
-        <CardHeader className="pb-4">
-          <div className="flex justify-between items-center">
+        <CardHeader className="p-3 sm:p-6 pb-2 sm:pb-4">
+          <div className="flex flex-col gap-2 sm:flex-row sm:justify-between sm:items-center">
             <div>
-              <CardTitle className="text-text-primary">Filters</CardTitle>
-              <CardDescription className="text-text-secondary">Narrow down audit logs by specific criteria</CardDescription>
+              <CardTitle className="text-base sm:text-lg text-text-primary">Filters</CardTitle>
+              <CardDescription className="text-text-secondary text-xs sm:text-sm hidden xs:block">Narrow down audit logs by specific criteria</CardDescription>
             </div>
             {hasFilters && (
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={clearFilters}
-                className="text-text-secondary hover:text-orange-warning"
+                className="text-text-secondary hover:text-orange-warning h-7 sm:h-8 text-xs sm:text-sm"
               >
-                <X className="w-4 h-4 mr-2" />
-                Clear Filters
+                <X className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2" />
+                Clear
               </Button>
             )}
           </div>
