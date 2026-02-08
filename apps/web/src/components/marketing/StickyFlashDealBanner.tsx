@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import { m, AnimatePresence } from 'framer-motion';
 import { useQuery } from '@tanstack/react-query';
@@ -38,6 +38,9 @@ interface StickyFlashDeal {
   displayType?: 'inline' | 'sticky';
   products: StickyFlashDealProduct[];
 }
+
+// Stable fallback date (far in the past = already expired)
+const EXPIRED_DATE = '1970-01-01T00:00:00.000Z';
 
 // Fetch sticky flash deal
 async function fetchStickyFlashDeal(): Promise<StickyFlashDeal | null> {
@@ -137,7 +140,9 @@ export function StickyFlashDealBanner(): React.ReactElement | null {
     refetchInterval: 60_000,
   });
 
-  const countdown = useCountdown(flashDeal?.endsAt ?? new Date().toISOString());
+  // Memoize endTime to prevent infinite re-renders
+  const endTime = useMemo(() => flashDeal?.endsAt ?? EXPIRED_DATE, [flashDeal?.endsAt]);
+  const countdown = useCountdown(endTime);
 
   const handleDismiss = useCallback(() => {
     setIsDismissed(true);

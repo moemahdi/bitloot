@@ -229,7 +229,7 @@ export function Header(): React.ReactElement {
                     className="group flex items-center gap-2.5 font-bold text-xl transition-all duration-300 hover:scale-[1.02]"
                 >
                     <div className="relative flex items-center justify-center w-9 h-9 rounded-lg bg-linear-to-br from-cyan-glow/20 to-purple-neon/20 border border-cyan-glow/30 group-hover:border-cyan-glow/60 group-hover:shadow-glow-cyan transition-all duration-300">
-                        <Zap className="w-5 h-5 text-cyan-glow group-hover:text-cyan-300 transition-colors" />
+                        <Gamepad2 className="w-5 h-5 text-cyan-glow group-hover:text-cyan-300 transition-colors" />
                         <div className="absolute inset-0 rounded-lg bg-cyan-glow/10 opacity-0 group-hover:opacity-100 transition-opacity" />
                     </div>
                     <span className="text-text-primary group-hover:text-cyan-glow transition-colors duration-300">
@@ -498,7 +498,7 @@ export function Header(): React.ReactElement {
                             {/* Mobile Menu Header */}
                             <div className="flex items-center gap-2 p-4 border-b border-border-subtle">
                                 <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-cyan-glow/10 border border-cyan-glow/30">
-                                    <Zap className="w-4 h-4 text-cyan-glow" />
+                                    <Gamepad2 className="w-4 h-4 text-cyan-glow" />
                                 </div>
                                 <span className="font-bold text-text-primary">
                                     Bit<span className="text-cyan-glow">Loot</span>

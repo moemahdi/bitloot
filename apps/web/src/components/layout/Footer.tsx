@@ -236,7 +236,7 @@ export function Footer(): React.ReactElement {
                             className="group inline-flex items-center gap-2.5 font-bold text-xl transition-all duration-300"
                         >
                             <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-linear-to-br from-cyan-glow/20 to-purple-neon/20 border border-cyan-glow/30 group-hover:border-cyan-glow/60 group-hover:shadow-glow-cyan-sm transition-all duration-300">
-                                <Zap className="w-5 h-5 text-cyan-glow" />
+                                <Gamepad2 className="w-5 h-5 text-cyan-glow" />
                             </div>
                             <span className="text-text-primary group-hover:text-cyan-glow transition-colors">
                                 Bit<span className="text-cyan-glow">Loot</span>

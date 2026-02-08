@@ -31,6 +31,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from '@/design-system/primitives/accordion';
+import { TawkChat } from '@/components/TawkToWidget';
 
 // Last updated date
 const LAST_UPDATED = 'January 30, 2026';
@@ -662,10 +663,14 @@ export default function RefundPolicyPage(): React.ReactElement {
                     <Mail className="w-5 h-5 text-cyan-glow" />
                     <span className="text-text-primary">support@bitloot.io</span>
                   </div>
-                  <div className="flex items-center gap-3">
+                  <button 
+                    type="button"
+                    onClick={() => TawkChat.maximize()}
+                    className="flex items-center gap-3 hover:opacity-80 transition-opacity cursor-pointer"
+                  >
                     <MessageCircle className="w-5 h-5 text-cyan-glow" />
-                    <span className="text-text-primary">Live Chat (24/7)</span>
-                  </div>
+                    <span className="text-text-primary hover:text-cyan-glow transition-colors">Live Chat (24/7)</span>
+                  </button>
                   <div className="flex items-center gap-3">
                     <Globe className="w-5 h-5 text-cyan-glow" />
                     <Link href="/contact" className="text-cyan-glow hover:underline">

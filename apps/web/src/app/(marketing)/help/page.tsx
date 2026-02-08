@@ -40,6 +40,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from '@/design-system/primitives/accordion';
+import { TawkChat } from '@/components/TawkToWidget';
 
 // Last updated date
 const LAST_UPDATED = 'January 30, 2026';
@@ -135,12 +136,14 @@ function QuickLinkCard({
   title,
   description,
   href,
+  onClick,
   color = 'cyan',
 }: {
   icon: React.ElementType;
   title: string;
   description: string;
-  href: string;
+  href?: string;
+  onClick?: () => void;
   color?: 'cyan' | 'purple' | 'orange' | 'green' | 'pink';
 }) {
   const colorClasses = {
@@ -151,26 +154,30 @@ function QuickLinkCard({
     pink: 'border-pink-featured/20 hover:border-pink-featured/50 bg-pink-featured/5 hover:bg-pink-featured/10 text-pink-featured',
   };
 
-  return (
-    <Link href={href}>
-      <Card className={`glass transition-all duration-300 group cursor-pointer ${colorClasses[color]}`}>
-        <CardContent className="p-5">
-          <div className="flex items-start gap-4">
-            <div className={`p-3 rounded-xl bg-bg-secondary/50 group-hover:scale-110 transition-transform`}>
-              <Icon className={`h-6 w-6 ${colorClasses[color].split(' ').pop()}`} />
-            </div>
-            <div className="flex-1">
-              <h3 className="font-semibold text-text-primary group-hover:text-current transition-colors flex items-center gap-2">
-                {title}
-                <ChevronRight className="h-4 w-4 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all" />
-              </h3>
-              <p className="text-sm text-text-secondary mt-1">{description}</p>
-            </div>
+  const content = (
+    <Card className={`glass transition-all duration-300 group cursor-pointer ${colorClasses[color]}`}>
+      <CardContent className="p-5">
+        <div className="flex items-start gap-4">
+          <div className={`p-3 rounded-xl bg-bg-secondary/50 group-hover:scale-110 transition-transform`}>
+            <Icon className={`h-6 w-6 ${colorClasses[color].split(' ').pop()}`} />
           </div>
-        </CardContent>
-      </Card>
-    </Link>
+          <div className="flex-1">
+            <h3 className="font-semibold text-text-primary group-hover:text-current transition-colors flex items-center gap-2">
+              {title}
+              <ChevronRight className="h-4 w-4 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all" />
+            </h3>
+            <p className="text-sm text-text-secondary mt-1">{description}</p>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   );
+
+  if (onClick !== undefined) {
+    return <button type="button" onClick={onClick} className="w-full text-left">{content}</button>;
+  }
+
+  return <Link href={href ?? '#'}>{content}</Link>;
 }
 
 // ============================================================================
@@ -531,7 +538,7 @@ export default function HelpCenterPage(): React.ReactElement {
               icon={MessageCircle}
               title="Live Chat"
               description="Get instant help from our team"
-              href="#support"
+              onClick={() => TawkChat.maximize()}
               color="green"
             />
             <QuickLinkCard
@@ -905,7 +912,10 @@ export default function HelpCenterPage(): React.ReactElement {
                         <p className="text-sm text-text-secondary mb-4">
                           Get instant help from our support team. Available 24/7.
                         </p>
-                        <Button className="w-full bg-cyan-glow/10 text-cyan-glow hover:bg-cyan-glow/20 border border-cyan-glow/30">
+                        <Button 
+                          className="w-full bg-cyan-glow/10 text-cyan-glow hover:bg-cyan-glow/20 border border-cyan-glow/30"
+                          onClick={() => TawkChat.maximize()}
+                        >
                           <MessageCircle className="h-4 w-4 mr-2" />
                           Start Chat
                         </Button>
@@ -1038,7 +1048,10 @@ export default function HelpCenterPage(): React.ReactElement {
               Can&apos;t find what you&apos;re looking for? Our support team is ready to help you 24/7.
             </p>
             <div className="flex flex-wrap justify-center gap-4">
-              <Button className="bg-green-success hover:bg-green-success/90 text-black">
+              <Button 
+                className="bg-green-success hover:bg-green-success/90 text-black"
+                onClick={() => TawkChat.maximize()}
+              >
                 <MessageCircle className="h-4 w-4 mr-2" />
                 Start Live Chat
               </Button>

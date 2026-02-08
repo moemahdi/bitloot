@@ -23,12 +23,14 @@ Crypto-only digital goods marketplace delivering instant keys from Kinguin and c
 
 ## Documentation Reference & Implementation
 
+> **🔴 AI AGENT: You MUST use `read_file` tool to load the referenced docs below BEFORE generating any code. Do NOT rely on summaries — read the actual files.**
+
 **Start Here:**
-- **[PRD.md](/docs/PRD.md)** — BitLoot's Product Requirements Document. Defines goals, features, user flows, acceptance criteria, and technical requirements. Reference for all product scope questions.
-- **[project-description.md](/docs/project-description.md)** — High-level project overview, core value proposition, feature breakdown, tech stack, end-to-end flow, and target users. Read first for context.
+- **[PRD.md](../docs/PRD.md)** — BitLoot's Product Requirements Document. Defines goals, features, user flows, acceptance criteria, and technical requirements. Reference for all product scope questions.
+- **[project-description.md](../docs/project-description.md)** — High-level project overview, core value proposition, feature breakdown, tech stack, end-to-end flow, and target users. Read first for context.
 
 **Project Structure & Architecture:**
-- **[Project-Architecture.md](Project-Architecture.md)** — Complete monorepo folder and file structure with detailed purpose descriptions for every module, entity, controller, service, migration, and configuration file. Essential reference when navigating the codebase or understanding where to add new features.
+- **[Project-Architecture.md](./Project-Architecture.md)** — Complete monorepo folder and file structure with detailed purpose descriptions for every module, entity, controller, service, migration, and configuration file. Essential reference when navigating the codebase or understanding where to add new features.
 
 **Code Standards & Implementation** _(🔴 AI MUST LOAD & FOLLOW ALWAYS when generating code)_
 
@@ -36,13 +38,19 @@ _⚠️ MANDATORY: These docs establish BitLoot's authoritative engineering stan
 - **[BitLoot-Code-Standards.md](./BitLoot-Code-Standards.md)** — Complete authoritative code standards covering TypeScript strict mode, ESLint runtime-safety rules, backend patterns (entities, DTOs, services, controllers, webhooks), frontend patterns (SDK clients, forms, hooks), security standards, database rules, and async queue patterns. Use as the source of truth for all implementation decisions.
 - **[BitLoot-Checklists-Patterns.md](./BitLoot-Checklists-Patterns.md)** — Practical implementation checklists and 10 copy-paste code templates: Entity Checklist, DTO Checklist, Service Checklist, Controller Checklist, Webhook Checklist, Frontend Query Checklist, Frontend Form Checklist, HMAC Verification Checklist, OTP Pattern, Queue Processor Pattern. Reference these templates as starting points for every new feature.
 
+> **AI: Run `read_file` on `.github/BitLoot-Code-Standards.md` and `.github/BitLoot-Checklists-Patterns.md` NOW before writing any code.**
+
 _⚠️ MANDATORY: Always use design-system when designing or coding UI components or pages._
 **Frontend Development & Design:**
 - **[design-system.md](../docs/design-system.md)** — Complete Shadcn/UI setup with 46 components, Tailwind v4 configuration, Vercel OKLch theme, dark mode, and styling guidelines. Use for all UI/UX development and component usage.
 
+> **AI: Run `read_file` on `docs/design-system.md` before any UI/component work.**
+
 _⚠️ MANDATORY: Always use sdk-first for all frontend-backend interactions._
 **Backend & SDK Development:** 
 - **[sdk.md](../docs/sdk.md)** — SDK design rationale, structure, and integration guide. Covers why SDK-first is essential for security and how to use typed clients instead of direct third-party API calls.
+
+> **AI: Run `read_file` on `docs/sdk.md` before any API integration work.**
 
 **Production Launch & Deployment:**
 - LAUNCH_PREPARATION_GUIDE.md: `docs/Pre-Launch/LAUNCH_PREPARATION_GUIDE.md` — Comprehensive 8-phase production launch checklist covering database cleanup, production API setup (NOWPayments, Kinguin, Resend), product catalog strategy, frontend polish, admin dashboard review, security audit, pre-launch testing, and deployment. Reference when preparing for production deployment.
@@ -602,5 +610,36 @@ npm run quality:full      # Format, lint, type-check, test, build (all must pass
 ***
 
 ## AI Agent Guidance
+
+### 🔴 MANDATORY: Auto-Load Documentation on Every Request
+
+**Before answering ANY request, the AI agent MUST read these files using tools:**
+
+```
+ALWAYS LOAD (every request):
+├── .github/copilot-instructions.md     # This file (already loaded)
+├── .github/BitLoot-Code-Standards.md   # Code patterns & standards
+└── .github/BitLoot-Checklists-Patterns.md  # Implementation templates
+
+LOAD FOR CODE GENERATION:
+├── docs/design-system.md               # UI components & Tailwind
+└── docs/sdk.md                         # SDK-first patterns
+
+LOAD ON-DEMAND (when task involves):
+├── docs/PRD.md                         # Product requirements
+├── docs/project-description.md         # Project overview
+├── docs/nowpayments-API-documentaion.md    # Payment integration
+├── docs/resend-API-documentaion.md         # Email integration
+├── docs/Kinguin-eCommerce-API-master/      # Fulfillment integration
+└── docs/Pre-Launch/LAUNCH_PREPARATION_GUIDE.md  # Deployment
+```
+
+**Execution Rule:** At the start of every response involving code or architecture:
+1. Use `read_file` tool to load `BitLoot-Code-Standards.md` and `BitLoot-Checklists-Patterns.md`
+2. For UI work, also load `design-system.md`
+3. For API/backend work, also load `sdk.md`
+4. Reference the loaded content when generating code
+
+### General Guidance
 
 Always use this document's context, follow all security and architectural rules, consult referenced documentation for specifics, and structure responses per template, citing direct commands/code patterns when useful for implementation. Never violate non-negotiable rules, prioritize security, type safety, SDK-first design, and robust queue/idempotency for side effects.

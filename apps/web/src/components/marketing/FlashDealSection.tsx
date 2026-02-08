@@ -17,6 +17,9 @@ const apiConfig = new Configuration({
   basePath: process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000',
 });
 
+// Stable fallback date (far in the past = already expired)
+const EXPIRED_DATE = '1970-01-01T00:00:00.000Z';
+
 // Flash deal response type
 interface FlashDealProduct {
   id: string;
@@ -358,7 +361,9 @@ export function FlashDealSection(): React.ReactElement | null {
     refetchInterval: 60_000, // Check for new deals every minute
   });
 
-  const countdown = useCountdown(flashDeal?.endsAt ?? new Date().toISOString());
+  // Memoize endTime to prevent infinite re-renders
+  const endTime = useMemo(() => flashDeal?.endsAt ?? EXPIRED_DATE, [flashDeal?.endsAt]);
+  const countdown = useCountdown(endTime);
 
   // Calculate pagination
   const totalProducts = flashDeal?.products.length ?? 0;

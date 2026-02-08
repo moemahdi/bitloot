@@ -1,4 +1,4 @@
-import { Zap, Loader2 } from 'lucide-react';
+import { Gamepad2, Loader2 } from 'lucide-react';
 
 export default function Loading(): React.ReactElement {
   return (
@@ -19,7 +19,7 @@ export default function Loading(): React.ReactElement {
           
           {/* Logo container */}
           <div className="relative flex h-16 w-16 items-center justify-center rounded-2xl border border-cyan-glow/30 bg-bg-secondary">
-            <Zap className="h-8 w-8 animate-pulse text-cyan-glow" fill="currentColor" />
+            <Gamepad2 className="h-8 w-8 animate-pulse text-cyan-glow" fill="currentColor" />
           </div>
         </div>
 

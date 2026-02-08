@@ -33,6 +33,7 @@ import { GlowButton } from '@/design-system/primitives/glow-button';
 import { WatchlistPreview } from '@/components/WatchlistPreview';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { formatDate, formatRelativeTime } from '@/utils/format-date';
+import { TawkChat } from '@/components/TawkToWidget';
 
 const usersClient = new UsersApi(apiConfig);
 const fulfillmentClient = new FulfillmentApi(apiConfig);
@@ -2737,7 +2738,12 @@ export default function ProfilePage(): React.ReactElement {
                 </div>
                 <h3 className="font-semibold text-text-primary">Live Chat</h3>
                 <p className="text-xs text-text-secondary">Get instant help from our support team</p>
-                <Button variant="outline" size="sm" className="border-cyan-glow/30 text-cyan-glow hover:bg-cyan-glow/10">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="border-cyan-glow/30 text-cyan-glow hover:bg-cyan-glow/10"
+                  onClick={() => TawkChat.maximize()}
+                >
                   Start Chat
                 </Button>
               </CardContent>
