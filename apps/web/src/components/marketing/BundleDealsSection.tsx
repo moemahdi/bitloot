@@ -55,16 +55,11 @@ interface BundleDeal {
 
 // Fetch active bundles
 async function fetchActiveBundles(): Promise<BundleDeal[]> {
-  console.log('🎁 Fetching bundles from:', `${apiConfig.basePath}/public/marketing/bundles`);
   const response = await fetch(`${apiConfig.basePath}/public/marketing/bundles`);
-  console.log('🎁 Bundles fetch response:', response.status, response.ok);
   if (!response.ok) {
-    console.error('🎁 Bundles fetch failed:', response.status, response.statusText);
     throw new Error('Failed to fetch bundles');
   }
-  const data = await response.json() as Promise<BundleDeal[]>;
-  console.log('🎁 Bundles fetched:', data);
-  return data;
+  return await response.json() as Promise<BundleDeal[]>;
 }
 
 // Format price in Euro (BitLoot uses Euro only)
@@ -76,13 +71,6 @@ function formatPrice(price: string | number): string {
 
 // Bundle card component
 function BundleCard({ bundle, onSelect, isPriority = false }: { bundle: BundleDeal; onSelect: (bundle: BundleDeal) => void; isPriority?: boolean }) {
-  console.log('🎁 BundleCard rendering:', bundle.name, {
-    hasHeroImage: !!bundle.heroImage,
-    productsCount: bundle.products.length,
-    originalPrice: bundle.originalPrice,
-    bundlePrice: bundle.bundlePrice,
-  });
-  
   const originalPriceRaw = parseFloat(bundle.originalPrice);
   const bundlePriceRaw = parseFloat(bundle.bundlePrice);
   const originalPrice = Number.isNaN(originalPriceRaw) ? 0 : originalPriceRaw;
@@ -255,32 +243,19 @@ export function BundleDealsSection(): React.ReactElement | null {
     staleTime: 5 * 60_000, // 5 minutes
   });
 
-  // Debug logging
-  console.log('🎁 BundleDealsSection render:', {
-    isLoading,
-    error: error?.toString(),
-    bundlesCount: bundles?.length ?? 0,
-    bundles: bundles?.map(b => ({ id: b.id, name: b.name, isActive: b.isActive })),
-  });
-
   // Don't render if loading
   if (isLoading === true) {
-    console.log('🎁 Showing skeleton (loading)');
     return <BundleSkeleton />;
   }
 
   // Don't render if no bundles or error
   if (error !== null && error !== undefined) {
-    console.log('🎁 Not rendering (error):', error);
     return null;
   }
 
   if (bundles === null || bundles === undefined || bundles.length === 0) {
-    console.log('🎁 Not rendering (no bundles)');
     return null;
   }
-
-  console.log('🎁 Rendering bundles section with', bundles.length, 'bundles');
 
   return (
     <section className="py-16 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-transparent via-pink-500/5 to-transparent">
@@ -326,23 +301,15 @@ export function BundleDealsSection(): React.ReactElement | null {
 
         {/* Bundles Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {(() => {
-            const bundlesToRender = bundles.slice(0, 6);
-            console.log('🎁 Bundle cards to render:', bundlesToRender.length, bundlesToRender.map(b => b.name));
-            return bundlesToRender.map((bundle, index) => {
-              console.log(`🎁 Rendering card ${index}:`, bundle.name, bundle.id);
-              return (
-                <m.div
-                  key={bundle.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.1 }}
-                >
-                  <BundleCard bundle={bundle} onSelect={setSelectedBundle} isPriority={index < 3} />
-                </m.div>
-              );
-            });
-          })()}
+          {bundles.slice(0, 6).map((bundle, index) => (
+            <m.div
+              key={bundle.id}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.1 }}
+            >
+              <BundleCard bundle={bundle} onSelect={setSelectedBundle} isPriority={index < 3} />
+            </m.div>
           ))}
         </div>
 
