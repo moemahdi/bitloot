@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Patch, Param, Query, Body, UseGuards, HttpCode, HttpStatus, Req } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Param, Query, Body, UseGuards, HttpCode, HttpStatus, Req } from '@nestjs/common';
 import type { Request } from 'express';
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags, ApiQuery, ApiBody } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -523,6 +523,33 @@ export class AdminController {
     @Body() body: { ids: string[] },
   ): Promise<{ replayed: number; failed: number; errors: Array<{ id: string; error: string }> }> {
     return this.admin.bulkReplayWebhooks(body.ids);
+  }
+
+  /**
+   * Clear all webhook logs (hard delete)
+   * Optionally filter by webhook type to clear only specific logs
+   */
+  @Delete('webhook-logs')
+  @HttpCode(HttpStatus.OK)
+  @AuditLog({
+    action: 'webhook.logs.clear',
+    target: 'query.type',
+    details: 'Admin cleared webhook logs',
+  })
+  @ApiOperation({
+    summary: 'Clear webhook logs',
+    description: 'Deletes webhook logs. Optionally filter by type (e.g. kinguin_product_update)',
+  })
+  @ApiQuery({ name: 'type', required: false, description: 'Filter by webhook type' })
+  @ApiResponse({
+    status: 200,
+    description: 'Number of deleted logs',
+    schema: { properties: { deleted: { type: 'number' } } },
+  })
+  async clearWebhookLogs(
+    @Query('type') type?: string,
+  ): Promise<{ deleted: number }> {
+    return this.admin.clearWebhookLogs(type);
   }
 
   // ============================================================================

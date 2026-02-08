@@ -53,6 +53,7 @@ import { MetricsModule } from '../metrics/metrics.module';
     ConfigModule,
     TypeOrmModule.forFeature([WebhookLog, Order, OrderItem, Product]),
     BullModule.registerQueue({ name: QUEUE_NAMES.FULFILLMENT }),
+    BullModule.registerQueue({ name: 'catalog' }),
     MetricsModule,
   ],
   providers: [

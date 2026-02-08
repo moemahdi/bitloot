@@ -6,6 +6,7 @@ export * from './AddInventoryItemDto';
 export * from './AddToWatchlistDto';
 export * from './AdminControllerAdminRevealKey200Response';
 export * from './AdminControllerBulkReplayWebhooksRequest';
+export * from './AdminControllerClearWebhookLogs200Response';
 export * from './AdminControllerExportOrders200ResponseInner';
 export * from './AdminControllerGetAdjacentWebhooks200Response';
 export * from './AdminControllerGetKeyAuditTrail200ResponseInner';

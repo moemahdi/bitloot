@@ -38,12 +38,14 @@ import {
   ExternalLink,
   ArrowLeft,
   CheckSquare,
+  Trash2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatDate, formatDateForExport } from '@/utils/format-date';
 import { useAdminGuard } from '@/features/admin/hooks/useAdminGuard';
 import { useWebhookLogsEnhanced } from '@/features/admin/hooks/useWebhookLogsEnhanced';
 import { useWebhookBulkReplay } from '@/features/admin/hooks/useWebhookBulkReplay';
+import { useWebhookClear } from '@/features/admin/hooks/useWebhookClear';
 import {
   WebhookFilters,
   DEFAULT_FILTERS,
@@ -87,6 +89,8 @@ export default function AdminWebhookLogsPage(): React.ReactElement {
   });
 
   const { replay: bulkReplay, isReplaying } = useWebhookBulkReplay();
+  const { clearLogs, isClearing } = useWebhookClear();
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
 
   const handleFiltersChange = useCallback((newFilters: WebhookFiltersState) => {
     setFilters(newFilters);
@@ -213,6 +217,36 @@ export default function AdminWebhookLogsPage(): React.ReactElement {
             <Download className="mr-2 h-4 w-4" />
             Export CSV
           </Button>
+          {showClearConfirm ? (
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-red-400">Delete all logs?</span>
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={() => {
+                  clearLogs();
+                  setShowClearConfirm(false);
+                  toast.success('Webhook logs cleared');
+                }}
+                disabled={isClearing}
+              >
+                {isClearing ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : null}
+                Confirm
+              </Button>
+              <Button variant="ghost" size="sm" onClick={() => setShowClearConfirm(false)}>
+                Cancel
+              </Button>
+            </div>
+          ) : (
+            <Button
+              variant="outline"
+              onClick={() => setShowClearConfirm(true)}
+              className="hover:text-red-400 hover:border-red-400/50 transition-all duration-200"
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              Clear All
+            </Button>
+          )}
         </div>
       </div>
 

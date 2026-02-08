@@ -49,6 +49,7 @@ docs/AdminCatalogRepricingApi.md
 docs/AdminCatalogSyncApi.md
 docs/AdminControllerAdminRevealKey200Response.md
 docs/AdminControllerBulkReplayWebhooksRequest.md
+docs/AdminControllerClearWebhookLogs200Response.md
 docs/AdminControllerExportOrders200ResponseInner.md
 docs/AdminControllerGetAdjacentWebhooks200Response.md
 docs/AdminControllerGetKeyAuditTrail200ResponseInner.md
@@ -358,6 +359,7 @@ models/AddInventoryItemDto.ts
 models/AddToWatchlistDto.ts
 models/AdminControllerAdminRevealKey200Response.ts
 models/AdminControllerBulkReplayWebhooksRequest.ts
+models/AdminControllerClearWebhookLogs200Response.ts
 models/AdminControllerExportOrders200ResponseInner.ts
 models/AdminControllerGetAdjacentWebhooks200Response.ts
 models/AdminControllerGetKeyAuditTrail200ResponseInner.ts

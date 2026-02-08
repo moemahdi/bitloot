@@ -7,6 +7,7 @@ All URIs are relative to *http://localhost*
 | [**adminControllerAdminRevealKey**](AdminApi.md#admincontrolleradminrevealkey) | **GET** /admin/keys/{keyId}/reveal | Admin reveal key (for support) |
 | [**adminControllerBulkReplayWebhooks**](AdminApi.md#admincontrollerbulkreplaywebhooksoperation) | **POST** /admin/webhook-logs/bulk-replay | Bulk replay failed webhooks |
 | [**adminControllerBulkUpdateStatus**](AdminApi.md#admincontrollerbulkupdatestatus) | **PATCH** /admin/orders/bulk-status | Bulk update order status |
+| [**adminControllerClearWebhookLogs**](AdminApi.md#admincontrollerclearwebhooklogs) | **DELETE** /admin/webhook-logs | Clear webhook logs |
 | [**adminControllerExportOrders**](AdminApi.md#admincontrollerexportorders) | **GET** /admin/orders/export | Export orders with date range |
 | [**adminControllerGetAdjacentWebhooks**](AdminApi.md#admincontrollergetadjacentwebhooks) | **GET** /admin/webhook-logs/{id}/adjacent | Get adjacent webhooks for navigation |
 | [**adminControllerGetDashboardStats**](AdminApi.md#admincontrollergetdashboardstats) | **GET** /admin/stats | Get dashboard statistics |
@@ -240,6 +241,77 @@ example().catch(console.error);
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
 | **200** | Bulk update completed |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## adminControllerClearWebhookLogs
+
+> AdminControllerClearWebhookLogs200Response adminControllerClearWebhookLogs(type)
+
+Clear webhook logs
+
+Deletes webhook logs. Optionally filter by type (e.g. kinguin_product_update)
+
+### Example
+
+```ts
+import {
+  Configuration,
+  AdminApi,
+} from '';
+import type { AdminControllerClearWebhookLogsRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const config = new Configuration({ 
+    // Configure HTTP bearer authorization: JWT-auth
+    accessToken: "YOUR BEARER TOKEN",
+  });
+  const api = new AdminApi(config);
+
+  const body = {
+    // string | Filter by webhook type (optional)
+    type: type_example,
+  } satisfies AdminControllerClearWebhookLogsRequest;
+
+  try {
+    const data = await api.adminControllerClearWebhookLogs(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **type** | `string` | Filter by webhook type | [Optional] [Defaults to `undefined`] |
+
+### Return type
+
+[**AdminControllerClearWebhookLogs200Response**](AdminControllerClearWebhookLogs200Response.md)
+
+### Authorization
+
+[JWT-auth](../README.md#JWT-auth)
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Number of deleted logs |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 

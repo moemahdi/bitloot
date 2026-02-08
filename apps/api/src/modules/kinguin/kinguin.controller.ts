@@ -5,6 +5,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { QUEUE_NAMES } from '../../jobs/queues';
 import { WebhookLog } from '../../database/entities/webhook-log.entity';
+import { Product } from '../catalog/entities/product.entity';
 import { ApiTags, ApiOperation, ApiResponse, ApiHeader } from '@nestjs/swagger';
 import { KinguinService } from './kinguin.service';
 import { OrdersService } from '../orders/orders.service';
@@ -61,7 +62,9 @@ export class KinguinController {
     private readonly kinguinService: KinguinService,
     private readonly ordersService: OrdersService,
     @InjectQueue(QUEUE_NAMES.FULFILLMENT) private readonly fulfillmentQueue: Queue,
+    @InjectQueue('catalog') private readonly catalogQueue: Queue,
     @InjectRepository(WebhookLog) private readonly webhookLogsRepo: Repository<WebhookLog>,
+    @InjectRepository(Product) private readonly productRepo: Repository<Product>,
     private readonly metrics: MetricsService,
   ) {}
 
@@ -302,6 +305,18 @@ export class KinguinController {
   private async handleProductUpdateWebhook(payload: ProductUpdateWebhookDto): Promise<void> {
     const { kinguinId, productId, qty, textQty, cheapestOfferId, updatedAt } = payload;
 
+    // Early exit: Only process webhooks for products we've actually imported
+    // Kinguin sends product.update for their ENTIRE catalog (thousands of products)
+    const existsInCatalog = await this.productRepo.findOne({
+      where: { kinguinId },
+      select: ['id'],
+    });
+
+    if (existsInCatalog === null || existsInCatalog === undefined) {
+      // Not a product we sell — acknowledge silently, don't log or enqueue
+      return;
+    }
+
     this.logStructured('info', 'handleProductUpdate:start', 'processing', {
       kinguinId,
       productId,
@@ -311,11 +326,13 @@ export class KinguinController {
       updatedAt,
     });
 
-    // Check for duplicate webhook (idempotency)
+    // Idempotency: skip if we already processed this exact update (same kinguinId + updatedAt)
+    // This allows new updates for the same product (different updatedAt) while blocking exact duplicates
     const existingLog = await this.webhookLogsRepo.findOne({
       where: {
         externalId: String(kinguinId),
         webhookType: 'kinguin_product_update',
+        paymentStatus: updatedAt ?? 'product_update',
       },
     });
 
@@ -331,8 +348,6 @@ export class KinguinController {
       return; // Skip duplicate
     }
 
-    // For now, just log the product update
-    // Future: Update local product cache, trigger price updates, etc.
     this.logger.log(
       `[KINGUIN_WEBHOOK] Product update: kinguinId=${kinguinId}, productId=${productId}, qty=${qty}`,
     );
@@ -344,8 +359,33 @@ export class KinguinController {
     log.payload = payload as unknown as Record<string, unknown>;
     log.signature = '';
     log.signatureValid = true;
-    log.processed = true;  // Product updates are logged but not processed further
-    log.paymentStatus = 'product_update';
+    log.processed = false;
+    log.paymentStatus = updatedAt ?? 'product_update';
+    await this.webhookLogsRepo.save(log);
+
+    // Enqueue async product sync job via BullMQ catalog queue
+    // This fetches latest data from Kinguin API and upserts the product
+    await this.catalogQueue.add(
+      'sync-single-product',
+      {
+        kinguinId,
+        productId,
+        qty,
+        textQty,
+        cheapestOfferId: cheapestOfferId?.[0] ?? null,
+        updatedAt,
+        source: 'webhook',
+      },
+      {
+        attempts: 3,
+        backoff: { type: 'exponential', delay: 5000 },
+        removeOnComplete: true,
+        removeOnFail: 100,
+      },
+    );
+
+    // Mark webhook as processed after job is enqueued
+    log.processed = true;
     await this.webhookLogsRepo.save(log);
 
     this.logStructured('info', 'handleProductUpdate:complete', 'success', {

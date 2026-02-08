@@ -17,6 +17,7 @@ import * as runtime from '../runtime';
 import type {
   AdminControllerAdminRevealKey200Response,
   AdminControllerBulkReplayWebhooksRequest,
+  AdminControllerClearWebhookLogs200Response,
   AdminControllerExportOrders200ResponseInner,
   AdminControllerGetAdjacentWebhooks200Response,
   AdminControllerGetKeyAuditTrail200ResponseInner,
@@ -47,6 +48,8 @@ import {
     AdminControllerAdminRevealKey200ResponseToJSON,
     AdminControllerBulkReplayWebhooksRequestFromJSON,
     AdminControllerBulkReplayWebhooksRequestToJSON,
+    AdminControllerClearWebhookLogs200ResponseFromJSON,
+    AdminControllerClearWebhookLogs200ResponseToJSON,
     AdminControllerExportOrders200ResponseInnerFromJSON,
     AdminControllerExportOrders200ResponseInnerToJSON,
     AdminControllerGetAdjacentWebhooks200ResponseFromJSON,
@@ -107,6 +110,10 @@ export interface AdminControllerBulkReplayWebhooksOperationRequest {
 
 export interface AdminControllerBulkUpdateStatusRequest {
     bulkUpdateStatusDto: BulkUpdateStatusDto;
+}
+
+export interface AdminControllerClearWebhookLogsRequest {
+    type?: string;
 }
 
 export interface AdminControllerExportOrdersRequest {
@@ -372,6 +379,49 @@ export class AdminApi extends runtime.BaseAPI {
      */
     async adminControllerBulkUpdateStatus(requestParameters: AdminControllerBulkUpdateStatusRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<BulkUpdateStatusResponseDto> {
         const response = await this.adminControllerBulkUpdateStatusRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Deletes webhook logs. Optionally filter by type (e.g. kinguin_product_update)
+     * Clear webhook logs
+     */
+    async adminControllerClearWebhookLogsRaw(requestParameters: AdminControllerClearWebhookLogsRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<AdminControllerClearWebhookLogs200Response>> {
+        const queryParameters: any = {};
+
+        if (requestParameters['type'] != null) {
+            queryParameters['type'] = requestParameters['type'];
+        }
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("JWT-auth", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/admin/webhook-logs`;
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'DELETE',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => AdminControllerClearWebhookLogs200ResponseFromJSON(jsonValue));
+    }
+
+    /**
+     * Deletes webhook logs. Optionally filter by type (e.g. kinguin_product_update)
+     * Clear webhook logs
+     */
+    async adminControllerClearWebhookLogs(requestParameters: AdminControllerClearWebhookLogsRequest = {}, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<AdminControllerClearWebhookLogs200Response> {
+        const response = await this.adminControllerClearWebhookLogsRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

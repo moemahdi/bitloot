@@ -10,6 +10,8 @@ import {
 import { ApiExcludeEndpoint, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { ConfigService } from '@nestjs/config';
 import { InjectQueue } from '@nestjs/bullmq';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import { Queue } from 'bullmq';
 import * as crypto from 'crypto';
 import {
@@ -17,6 +19,7 @@ import {
   KinguinOrderStatusDto,
   KinguinOrderStatus,
 } from './dto/kinguin-webhook.dto';
+import { Product } from './entities/product.entity';
 
 /**
  * Kinguin Webhook Controller
@@ -44,6 +47,7 @@ export class KinguinWebhooksController {
     private readonly configService: ConfigService,
     @InjectQueue('catalog') private readonly catalogQueue: Queue,
     @InjectQueue('fulfillment') private readonly fulfillmentQueue: Queue,
+    @InjectRepository(Product) private readonly productRepo: Repository<Product>,
   ) {
     this.webhookSecret = this.configService.get<string>('KINGUIN_WEBHOOK_SECRET') ?? '';
 
@@ -100,6 +104,18 @@ export class KinguinWebhooksController {
     @Body() payload: KinguinProductUpdateDto,
   ): Promise<void> {
     this.validateSecret(eventSecret);
+
+    // Early exit: Only process webhooks for products we've actually imported
+    // Kinguin sends product.update for their ENTIRE catalog (thousands of products)
+    const existsInCatalog = await this.productRepo.findOne({
+      where: { kinguinId: payload.kinguinId },
+      select: ['id'],
+    });
+
+    if (existsInCatalog === null || existsInCatalog === undefined) {
+      // Not a product we sell — acknowledge silently, don't log or enqueue
+      return;
+    }
 
     this.logger.log(
       `📦 Product update webhook received: kinguinId=${payload.kinguinId}, qty=${payload.qty}, productId=${payload.productId}`,

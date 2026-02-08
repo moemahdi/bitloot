@@ -1790,4 +1790,22 @@ export class AdminService {
   private betweenDates(start: Date, end: Date): ReturnType<typeof Between<Date>> {
     return Between(start, end);
   }
+
+  /**
+   * Clear webhook logs (hard delete)
+   * @param type Optional webhook type filter (e.g. 'kinguin_product_update')
+   * @returns Number of deleted rows
+   */
+  async clearWebhookLogs(type?: string): Promise<{ deleted: number }> {
+    let result;
+    if (type !== undefined && type !== '') {
+      result = await this.webhookLogsRepo.delete({ webhookType: type });
+    } else {
+      result = await this.webhookLogsRepo
+        .createQueryBuilder()
+        .delete()
+        .execute();
+    }
+    return { deleted: result.affected ?? 0 };
+  }
 }
