@@ -35,20 +35,22 @@ export class OrdersController {
   @ApiOperation({ summary: 'Create a new order' })
   @ApiResponse({ status: 201, type: OrderResponseDto })
   async create(@Body() dto: CreateOrderDto, @Request() req: AuthenticatedRequest): Promise<OrderResponseDto> {
-    // Verify CAPTCHA token if feature flag is enabled AND not in development mode
+    // Extract userId from JWT if user is authenticated
+    const userId = req.user?.sub ?? undefined;
+    const isAuthenticated = userId !== undefined && userId !== null && userId !== '';
+
+    // Verify CAPTCHA token if feature flag is enabled AND not in development mode AND user is not authenticated
+    // Authenticated users are already verified via JWT, so CAPTCHA is redundant for them
     const captchaEnabled = this.featureFlagsService.isEnabled('captcha_enabled');
     const isDevelopment = process.env.NODE_ENV === 'development';
     
-    if (captchaEnabled && !isDevelopment) {
+    if (captchaEnabled && !isDevelopment && !isAuthenticated) {
       const captchaToken = dto.captchaToken ?? '';
       if (captchaToken.length === 0) {
         throw new Error('CAPTCHA token is required');
       }
       await verifyCaptchaToken(captchaToken);
     }
-
-    // Extract userId from JWT if user is authenticated
-    const userId = req.user?.sub ?? undefined;
 
     const order = await this.orders.create(dto, userId);
 
