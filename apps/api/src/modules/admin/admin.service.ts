@@ -86,10 +86,11 @@ export class AdminService {
     const daysInRange = this.getDaysInRange(timeRange);
 
     // 1. Total Revenue (Sum of completed payments in EUR for the time range)
+    // Include both 'finished' and 'confirmed' statuses (consistent with getPayments and getOrderAnalytics)
     const revenueQuery = this.paymentsRepo
       .createQueryBuilder('p')
       .select('COALESCE(SUM(CAST(p.priceAmount AS DECIMAL(20,8))), 0)', 'revenue')
-      .where('p.status = :status', { status: 'finished' });
+      .where('p.status IN (:...statuses)', { statuses: ['finished', 'confirmed'] });
 
     if (startDate !== null) {
       revenueQuery.andWhere('p.createdAt >= :startDate', { startDate });
@@ -122,11 +123,12 @@ export class AdminService {
     // 5. Revenue History - Use priceAmount (EUR) not payAmount (crypto)
     const historyStartDate = startDate ?? new Date(0); // For 'all', use epoch
 
+    // Include both 'finished' and 'confirmed' statuses (consistent with getPayments and getOrderAnalytics)
     const revenueHistoryRaw = await this.paymentsRepo
       .createQueryBuilder('p')
       .select("DATE_TRUNC('day', p.createdAt)", 'date')
       .addSelect('COALESCE(SUM(CAST(p.priceAmount AS DECIMAL(20,8))), 0)', 'revenue')
-      .where('p.status = :status', { status: 'finished' })
+      .where('p.status IN (:...statuses)', { statuses: ['finished', 'confirmed'] })
       .andWhere('p.createdAt >= :startDate', { startDate: historyStartDate })
       .groupBy('date')
       .orderBy('date', 'ASC')
