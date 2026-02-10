@@ -159,7 +159,7 @@ export class OrdersController {
     }
 
     // Check userId match (logged-in user who placed the order)
-    if (order.userId !== undefined && order.userId !== null && order.userId === user.sub) {
+    if (order.userId !== undefined && order.userId !== null && order.userId === user.id) {
       return {
         canAccess: true,
         reason: 'owner',
@@ -216,7 +216,7 @@ export class OrdersController {
       throw new Error('User not found in request');
     }
     // Verify ownership before returning
-    await this.orders.findUserOrderOrThrow(id, user.sub);
+    await this.orders.findUserOrderOrThrow(id, user.id!);
     // Return the order
     return this.orders.get(id);
   }
