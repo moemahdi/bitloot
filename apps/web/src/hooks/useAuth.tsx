@@ -68,10 +68,13 @@ export function AuthProvider({ children }: { children: ReactNode }): React.React
     return null;
   }, []);
 
-  const setCookie = useCallback((name: string, value: string): void => {
+  const setCookie = useCallback((name: string, value: string, maxAgeDays: number = 7): void => {
     if (typeof document === 'undefined') return;
 
-    document.cookie = `${name}=${value}; path=/; Secure; SameSite=Strict`;
+    // Set cookie with proper expiration to persist across browser sessions
+    // Default 7 days to match refresh token / session expiry
+    const maxAgeSeconds = maxAgeDays * 24 * 60 * 60;
+    document.cookie = `${name}=${value}; path=/; max-age=${maxAgeSeconds}; Secure; SameSite=Strict`;
   }, []);
 
   const deleteCookie = useCallback((name: string): void => {
@@ -245,9 +248,36 @@ export function AuthProvider({ children }: { children: ReactNode }): React.React
       // Refresh 1 minute before expiry, but minimum 5 seconds to prevent rapid loops
       const refreshTime = Math.max(timeUntilExpiry - 60 * 1000, 5000);
 
-      // If token is already expired or about to expire in less than 5 seconds, 
-      // don't schedule - let the API call fail and trigger a logout
+      // If token is already expired or about to expire in less than 5 seconds,
+      // trigger immediate refresh instead of waiting
       if (timeUntilExpiry < 5000) {
+        console.info('⏰ Token expired or nearly expired, triggering immediate refresh');
+        // Trigger immediate refresh
+        void (async () => {
+          if (isRefreshingRef.current) {
+            console.info('🔄 Immediate refresh skipped - already in progress');
+            return;
+          }
+          isRefreshingRef.current = true;
+
+          try {
+            const result = await authClient.refreshToken(state.refreshToken ?? '');
+            setCookie('accessToken', result.accessToken);
+            setCookie('refreshToken', result.refreshToken);
+            setState((prev) => ({
+              ...prev,
+              accessToken: result.accessToken,
+              refreshToken: result.refreshToken,
+            }));
+            console.info('✅ Immediate token refresh completed');
+          } catch (error) {
+            console.error('Immediate token refresh failed:', error);
+            logout();
+          } finally {
+            isRefreshingRef.current = false;
+            refreshPromiseRef.current = null;
+          }
+        })();
         return;
       }
 
