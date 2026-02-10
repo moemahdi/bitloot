@@ -39,11 +39,16 @@ export class OrdersController {
     const userId = req.user?.sub ?? undefined;
     const isAuthenticated = userId !== undefined && userId !== null && userId !== '';
 
+    // Debug logging to trace auth state
+    console.log(`[OrdersController] Create order - userId: ${userId}, isAuthenticated: ${isAuthenticated}, req.user: ${JSON.stringify(req.user)}`);
+
     // Verify CAPTCHA token if feature flag is enabled AND not in development mode AND user is not authenticated
     // Authenticated users are already verified via JWT, so CAPTCHA is redundant for them
     const captchaEnabled = this.featureFlagsService.isEnabled('captcha_enabled');
     const isDevelopment = process.env.NODE_ENV === 'development';
     
+    console.log(`[OrdersController] CAPTCHA check - enabled: ${captchaEnabled}, isDev: ${isDevelopment}, isAuth: ${isAuthenticated}, willRequire: ${captchaEnabled && !isDevelopment && !isAuthenticated}`);
+
     if (captchaEnabled && !isDevelopment && !isAuthenticated) {
       const captchaToken = dto.captchaToken ?? '';
       if (captchaToken.length === 0) {
