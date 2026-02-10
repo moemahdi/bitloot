@@ -105,11 +105,13 @@ export class IpnHandlerService {
    *
    * @param payload - Webhook payload from NOWPayments
    * @param signature - HMAC-SHA512 signature from x-nowpayments-sig header
+   * @param rawBody - Raw request body string (for accurate HMAC verification)
    * @returns Always 200 OK response
    */
   async handleIpn(
     payload: NowpaymentsIpnRequestDto,
     signature: string,
+    rawBody?: string,
   ): Promise<NowpaymentsIpnResponseDto> {
     const paymentId = payload.payment_id;
 
@@ -118,6 +120,7 @@ export class IpnHandlerService {
       paymentId,
       status: payload.payment_status,
       orderId: payload.order_id,
+      hasRawBody: Boolean(rawBody),
     });
 
     // 1. Create webhook log entry (for recovery/audit)
@@ -125,8 +128,8 @@ export class IpnHandlerService {
 
     try {
       // 2. Verify signature (timing-safe HMAC comparison)
-      // NOWPayments requires the payload to be sorted alphabetically by key before computing HMAC
-      const isValidSignature = this.verifySignature(payload, signature);
+      // Use raw body if available (preferred), otherwise fall back to re-serializing payload
+      const isValidSignature = this.verifySignature(payload, signature, rawBody);
       if (!isValidSignature) {
         // LOG INVALID SIGNATURE
         this.logStructured('warn', 'handleIpn:verify_failed', 'invalid_signature', {
@@ -273,18 +276,18 @@ export class IpnHandlerService {
    * Verify HMAC-SHA512 signature using timing-safe comparison
    * Prevents timing attacks that could leak signature information
    *
-   * @param {string} payload - Raw payload string
+   * @param {Record<string, unknown>} payload - Parsed payload object (fallback)
    * @param {string} signature - Signature hex string from webhook header
+   * @param {string} rawBody - Raw request body string (preferred for accurate verification)
    * @returns {boolean} True if signature is valid
    *
    * @private
    * @example
    * ```typescript
-   * const payloadStr = JSON.stringify(payload);
-   * const isValid = this.verifySignature(payloadObject, signatureFromHeader);
+   * const isValid = this.verifySignature(payloadObject, signatureFromHeader, rawBodyString);
    * ```
    */
-  private verifySignature(payload: Record<string, unknown>, signature: string): boolean {
+  private verifySignature(payload: Record<string, unknown>, signature: string, rawBody?: string): boolean {
     const secret = process.env.NOWPAYMENTS_IPN_SECRET;
     if (secret === undefined || secret === '') {
       this.logger.error('[IPN] NOWPAYMENTS_IPN_SECRET not configured');
@@ -301,34 +304,42 @@ export class IpnHandlerService {
     }
 
     try {
-      // NOWPayments requires payload to be sorted alphabetically by keys (recursively)
-      // before computing HMAC - per their documentation
-      const sortedPayload = this.sortObject(payload);
-      const payloadString = JSON.stringify(sortedPayload);
+      // PRIORITY 1: Use raw body directly if available (exact bytes from NOWPayments)
+      // This is the most accurate method as it preserves exact JSON formatting
+      let payloadString: string;
       
-      // Calculate HMAC-SHA512 of sorted payload
+      if (typeof rawBody === 'string' && rawBody.length > 0) {
+        // Use raw body directly - this is the exact bytes NOWPayments used for their signature
+        payloadString = rawBody;
+        this.logger.debug(`[IPN] Using raw body for HMAC (${rawBody.length} bytes)`);
+      } else {
+        // FALLBACK: Sort payload and serialize (may not match if NOWPayments sends differently formatted JSON)
+        this.logger.warn('[IPN] Raw body not available, falling back to re-serialization (may fail)');
+        const sortedPayload = this.sortObject(payload);
+        payloadString = JSON.stringify(sortedPayload);
+      }
+      
+      // Calculate HMAC-SHA512 of payload
       const hmac = crypto.createHmac('sha512', secret).update(payloadString).digest('hex');
       
-      // Debug logging (temporary)
-      this.logger.debug(`[IPN] Sorted payload for verification: ${payloadString.substring(0, 100)}...`);
-
-      // Log for debugging (temporary)
+      // Debug logging
+      this.logger.debug(`[IPN] Payload for verification (first 100 chars): ${payloadString.substring(0, 100)}...`);
       this.logger.log(`[IPN] Expected signature length: ${hmac.length}, received: ${signature.length}`);
       
       // If lengths differ, signatures cannot match (timingSafeEqual will throw)
-      const signatureStr = String(signature ?? '');
-      const signatureLength = signatureStr === null || signatureStr === undefined ? 0 : signatureStr.length;
-      if (hmac.length !== signatureLength) {
+      if (hmac.length !== signatureStr.length) {
         this.logger.warn(`[IPN] Signature length mismatch: expected ${hmac.length}, got ${signatureStr.length}`);
         this.metrics.incrementInvalidHmac('nowpayments');
         return false;
       }
 
       // Timing-safe comparison (prevents timing attacks)
-      const isValid = crypto.timingSafeEqual(Buffer.from(hmac), Buffer.from(signature));
+      const isValid = crypto.timingSafeEqual(Buffer.from(hmac), Buffer.from(signatureStr));
       
       if (!isValid) {
         this.logger.warn('[IPN] Invalid HMAC signature received');
+        this.logger.debug(`[IPN] Expected: ${hmac.substring(0, 32)}...`);
+        this.logger.debug(`[IPN] Received: ${signatureStr.substring(0, 32)}...`);
         this.metrics.incrementInvalidHmac('nowpayments');
       }
       

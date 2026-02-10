@@ -298,7 +298,7 @@ export class EmailsService {
     }
 
     const { orderId, items, total } = data;
-    const frontendUrl = process.env.FRONTEND_URL ?? 'http://localhost:3000';
+    const frontendUrl = process.env.FRONTEND_URL ?? 'https://bitloot.io';
     const successPageUrl = `${frontendUrl}/orders/${orderId}/success`;
 
     const params: KeyDeliveryParams = {
@@ -326,7 +326,7 @@ export class EmailsService {
     data: { orderId: string; amountSent?: string; amountRequired?: string },
   ): Promise<void> {
     const { orderId, amountSent, amountRequired } = data;
-    const frontendUrl = process.env.FRONTEND_URL ?? 'http://localhost:3000';
+    const frontendUrl = process.env.FRONTEND_URL ?? 'https://bitloot.io';
     const orderStatusUrl = `${frontendUrl}/orders/${orderId}/status`;
 
     const params: UnderpaymentParams = {
@@ -351,7 +351,7 @@ export class EmailsService {
    */
   async sendPaymentFailedNotice(to: string, data: { orderId: string; reason?: string }): Promise<void> {
     const { orderId, reason } = data;
-    const frontendUrl = process.env.FRONTEND_URL ?? 'http://localhost:3000';
+    const frontendUrl = process.env.FRONTEND_URL ?? 'https://bitloot.io';
     const orderStatusUrl = `${frontendUrl}/orders/${orderId}/status`;
 
     const params: PaymentFailedParams = {
@@ -375,7 +375,7 @@ export class EmailsService {
    */
   async sendPaymentExpiredNotice(to: string, data: { orderId: string; reason?: string }): Promise<void> {
     const { orderId, reason } = data;
-    const frontendUrl = process.env.FRONTEND_URL ?? 'http://localhost:3000';
+    const frontendUrl = process.env.FRONTEND_URL ?? 'https://bitloot.io';
     const retryUrl = `${frontendUrl}/checkout`;
 
     const params: PaymentExpiredParams = {

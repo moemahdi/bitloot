@@ -90,9 +90,9 @@ export class PaymentsService {
         pay_currency: dto.payCurrency ?? 'btc',
         order_id: dto.orderId,
         order_description: `BitLoot Order #${dto.orderId.substring(0, 8)}`,
-        ipn_callback_url: `${process.env.WEBHOOK_BASE_URL ?? 'http://localhost:4000'}/webhooks/nowpayments/ipn`,
-        success_url: `${process.env.FRONTEND_URL ?? 'http://localhost:3000'}/orders/${dto.orderId}/success`,
-        cancel_url: `${process.env.FRONTEND_URL ?? 'http://localhost:3000'}/orders/${dto.orderId}/cancel`,
+        ipn_callback_url: `${process.env.WEBHOOK_BASE_URL ?? 'https://api.bitloot.io'}/webhooks/nowpayments/ipn`,
+        success_url: `${process.env.FRONTEND_URL ?? 'https://bitloot.io'}/orders/${dto.orderId}/success`,
+        cancel_url: `${process.env.FRONTEND_URL ?? 'https://bitloot.io'}/orders/${dto.orderId}/cancel`,
       });
 
       // Create Payment record for tracking
@@ -547,7 +547,7 @@ export class PaymentsService {
         pay_currency: paymentCurrency,
         order_id: dto.orderId,
         order_description: `BitLoot Order #${dto.orderId.substring(0, 8)}`,
-        ipn_callback_url: `${process.env.WEBHOOK_BASE_URL ?? 'http://localhost:4000'}/webhooks/nowpayments/ipn`,
+        ipn_callback_url: `${process.env.WEBHOOK_BASE_URL ?? 'https://api.bitloot.io'}/webhooks/nowpayments/ipn`,
         // NO success_url / cancel_url = embedded flow (no redirect)
       });
 

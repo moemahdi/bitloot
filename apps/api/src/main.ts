@@ -5,7 +5,7 @@ process.env.TZ = 'UTC';
 import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe, Logger } from '@nestjs/common';
-import { json, urlencoded, type Request, type Response, type NextFunction } from 'express';
+import { json, urlencoded, type Request, type Response } from 'express';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
 import { AppModule } from './app.module';
@@ -19,21 +19,19 @@ async function bootstrap(): Promise<void> {
     credentials: true,
   });
 
-  // Standard JSON and URL-encoded parsing
-  // IMPORTANT: Must happen BEFORE the rawBody middleware so req.body is populated
-  app.use(json());
+  // JSON parsing with raw body capture for webhook HMAC verification
+  // CRITICAL: Use verify callback to capture raw bytes BEFORE parsing
+  // This preserves exact bytes sent by NOWPayments for signature verification
+  app.use(
+    json({
+      verify: (req: Request, _res: Response, buf: Buffer) => {
+        // Store raw body buffer as string for HMAC verification
+        // This is the EXACT bytes that NOWPayments used to compute their signature
+        (req as unknown as Record<string, unknown>).rawBody = buf.toString('utf8');
+      },
+    }),
+  );
   app.use(urlencoded({ extended: true }));
-
-  // Custom middleware to capture raw body AFTER json parsing for webhook verification
-  // We reconstruct the raw body from the parsed object for HMAC verification
-  app.use((req: Request, _res: Response, next: NextFunction) => {
-    if (req.method === 'POST' && typeof req.body === 'object' && req.body !== null) {
-      // Reconstruct raw body string from parsed JSON for HMAC verification
-      // This is safe because we know it's valid JSON that was just parsed
-      (req as unknown as Record<string, unknown>).rawBody = JSON.stringify(req.body);
-    }
-    next();
-  });
 
   app.useGlobalPipes(
     new ValidationPipe({

@@ -43,7 +43,7 @@ import { OrdersService } from '../orders/orders.service';
  */
 @WebSocketGateway({
   cors: {
-    origin: process.env.FRONTEND_URL ?? 'http://localhost:3000',
+    origin: process.env.FRONTEND_URL ?? 'https://bitloot.io',
     credentials: true,
   },
   namespace: '/fulfillment',

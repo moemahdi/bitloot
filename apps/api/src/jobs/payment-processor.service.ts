@@ -140,9 +140,9 @@ export class PaymentProcessorService extends WorkerHost {
             pay_currency: payCurrency,
             order_id: orderId,
             order_description: `BitLoot Order #${orderId.substring(0, 8)}`,
-            ipn_callback_url: `${process.env.WEBHOOK_BASE_URL ?? 'http://localhost:4000'}/webhooks/nowpayments/ipn`,
-            success_url: `${process.env.FRONTEND_URL ?? 'http://localhost:3000'}/orders/${orderId}/success`,
-            cancel_url: `${process.env.FRONTEND_URL ?? 'http://localhost:3000'}/orders/${orderId}/cancel`,
+            ipn_callback_url: `${process.env.WEBHOOK_BASE_URL ?? 'https://api.bitloot.io'}/webhooks/nowpayments/ipn`,
+            success_url: `${process.env.FRONTEND_URL ?? 'https://bitloot.io'}/orders/${orderId}/success`,
+            cancel_url: `${process.env.FRONTEND_URL ?? 'https://bitloot.io'}/orders/${orderId}/cancel`,
           });
 
           this.logger.log(

@@ -1123,21 +1123,23 @@ export class AdminService {
       .getRawMany<{ date: string; count: string }>();
 
     // Get total revenue from Payments table for the same period (source of truth)
+    // Include both 'finished' and 'confirmed' statuses (consistent with getPayments stats)
     const revenueResult = await this.paymentsRepo
       .createQueryBuilder('p')
       .select('COALESCE(SUM(CAST(p.priceAmount AS DECIMAL(20,8))), 0)', 'totalRevenue')
-      .where('p.status = :status', { status: 'finished' })
+      .where('p.status IN (:...statuses)', { statuses: ['finished', 'confirmed'] })
       .andWhere('p.createdAt >= :startDate', { startDate })
       .getRawOne<{ totalRevenue: string }>();
 
     const periodRevenue = parseFloat(revenueResult?.totalRevenue ?? '0');
 
     // Get daily revenue breakdown from Payments table
+    // Include both 'finished' and 'confirmed' statuses (consistent with getPayments stats)
     const dailyRevenueRaw = await this.paymentsRepo
       .createQueryBuilder('p')
       .select("DATE_TRUNC('day', p.createdAt)", 'date')
       .addSelect('COALESCE(SUM(CAST(p.priceAmount AS DECIMAL(20,8))), 0)', 'revenue')
-      .where('p.status = :status', { status: 'finished' })
+      .where('p.status IN (:...statuses)', { statuses: ['finished', 'confirmed'] })
       .andWhere('p.createdAt >= :startDate', { startDate })
       .groupBy('date')
       .orderBy('date', 'ASC')

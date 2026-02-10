@@ -297,7 +297,7 @@ export class AuthController {
       const resetToken = this.authService.generateResetToken(user.id, user.email);
 
       // Build reset link (frontend should consume this)
-      const resetLink = `${process.env.FRONTEND_URL ?? 'http://localhost:3000'}/auth/reset-password?token=${resetToken}`;
+      const resetLink = `${process.env.FRONTEND_URL ?? 'https://bitloot.io'}/auth/reset-password?token=${resetToken}`;
 
       // Password reset not implemented - log for now
       this.logger.log(`🔐 Password reset requested for ${user.email} (reset link: ${resetLink})`);
@@ -638,7 +638,7 @@ export class AuthController {
 
       // Generate secure cancellation token for email link
       const cancelToken = generateDeletionCancelToken(userId);
-      const cancelUrl = `${process.env.FRONTEND_URL ?? 'http://localhost:3000'}/cancel-deletion/${cancelToken}`;
+      const cancelUrl = `${process.env.FRONTEND_URL ?? 'https://bitloot.io'}/cancel-deletion/${cancelToken}`;
 
       // Send confirmation email with secure cancel link
       try {
@@ -758,7 +758,7 @@ export class AuthController {
 
     // Generate the cancellation token
     const token = generateDeletionCancelToken(userId);
-    const frontendUrl = process.env.FRONTEND_URL ?? 'http://localhost:3000';
+    const frontendUrl = process.env.FRONTEND_URL ?? 'https://bitloot.io';
     const cancelUrl = `${frontendUrl}/cancel-deletion/${token}`;
 
     this.logger.log(`✅ Generated cancellation token for ${userEmail}`);

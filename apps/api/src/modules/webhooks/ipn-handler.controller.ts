@@ -11,7 +11,9 @@ import {
   UsePipes,
   ValidationPipe,
   Logger,
+  Req,
 } from '@nestjs/common';
+import type { Request } from 'express';
 import { ApiTags, ApiOperation, ApiResponse, ApiHeader, ApiBearerAuth } from '@nestjs/swagger';
 import { ThrottlerGuard, Throttle, SkipThrottle } from '@nestjs/throttler';
 import { IpnHandlerService } from './ipn-handler.service';
@@ -142,6 +144,7 @@ export class IpnHandlerController {
     @Body() payload: NowpaymentsIpnRequestDto,
     @Headers('x-nowpayments-sig') signature: string | undefined,
     @Headers() allHeaders: Record<string, string>,
+    @Req() req: Request,
   ): Promise<NowpaymentsIpnResponseDto> {
     // NOWPayments sends the signature as 'x-nowpayments-sig' (lowercase in HTTP/2)
     // Try multiple possible header names for compatibility
@@ -153,12 +156,17 @@ export class IpnHandlerController {
       allHeaders['X-NOWPAYMENTS-SIGNATURE'] ??
       '';
 
+    // Get raw body captured by middleware (CRITICAL for HMAC verification)
+    // This is the exact bytes NOWPayments sent, not re-serialized JSON
+    const rawBody = (req as unknown as Record<string, unknown>).rawBody as string | undefined;
+
     // Log headers for debugging (temporary)
     const logger = new Logger('IpnController');
     logger.log(`[IPN] Received headers: ${JSON.stringify(Object.keys(allHeaders))}`);
     logger.log(`[IPN] Signature header value exists: ${Boolean(sig)}, length: ${sig?.length ?? 0}`);
+    logger.log(`[IPN] Raw body available: ${Boolean(rawBody)}, length: ${rawBody?.length ?? 0}`);
 
-    return this.ipnHandlerService.handleIpn(payload, sig);
+    return this.ipnHandlerService.handleIpn(payload, sig, rawBody);
   }
 
   /**
