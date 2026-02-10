@@ -207,7 +207,7 @@ function MaintenancePage({ message }: { message?: string }): React.ReactElement 
           
           <div className="flex items-center gap-3">
             <a
-              href="https://twitter.com/bitloot"
+              href="https://x.com/bitloot_io"
               target="_blank"
               rel="noopener noreferrer"
               className="p-3 rounded-lg bg-bg-secondary border border-border-subtle hover:border-cyan-glow/50 hover:shadow-glow-cyan-sm transition-all text-text-secondary hover:text-cyan-glow"
@@ -215,7 +215,7 @@ function MaintenancePage({ message }: { message?: string }): React.ReactElement 
               <Twitter className="h-5 w-5" />
             </a>
             <a
-              href="https://discord.gg/bitloot"
+              href="https://discord.gg/mqjUpqxBtA"
               target="_blank"
               rel="noopener noreferrer"
               className="p-3 rounded-lg bg-bg-secondary border border-border-subtle hover:border-purple-neon/50 hover:shadow-glow-purple-sm transition-all text-text-secondary hover:text-purple-neon"

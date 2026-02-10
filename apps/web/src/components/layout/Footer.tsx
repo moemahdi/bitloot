@@ -27,8 +27,8 @@ import {
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
 
 const socialLinks = [
-    { href: 'https://twitter.com/bitloot', icon: Twitter, label: 'Twitter' },
-    { href: 'https://discord.gg/bitloot', icon: MessageCircle, label: 'Discord' },
+    { href: 'https://x.com/bitloot_io', icon: Twitter, label: 'Twitter' },
+    { href: 'https://discord.gg/mqjUpqxBtA', icon: MessageCircle, label: 'Discord' },
 ];
 
 const shopLinks = [
