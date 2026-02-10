@@ -237,7 +237,7 @@ export default function OrderSuccessPage(): React.ReactElement {
                     <div>
                       <AlertTitle className="text-orange-warning">Preparing Your Order</AlertTitle>
                       <AlertDescription className="text-orange-warning/70">
-                        Your payment is confirmed! We&apos;re now preparing your digital products. This usually takes less than a minute.
+                        Your payment is confirmed! We&apos;re now preparing your digital products. This usually takes a few minutes.
                       </AlertDescription>
                     </div>
                   </div>

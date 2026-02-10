@@ -836,8 +836,10 @@ export class PaymentsService {
     // Get raw payload for additional details
     const rawPayload = payment.rawPayload as Record<string, unknown> | null;
     const payAddress = (rawPayload?.['pay_address'] as string) ?? '';
+    // Use stored expiration_date, or calculate from createdAt + 1 hour (NOT current time)
+    // This ensures timer doesn't reset on page refresh
     const expirationDate = (rawPayload?.['expiration_date'] as string) ?? 
-      new Date(Date.now() + 60 * 60 * 1000).toISOString();
+      new Date(payment.createdAt.getTime() + 60 * 60 * 1000).toISOString();
 
     // Generate QR code data
     const qrCodeData = this.generateQrCodeData(
