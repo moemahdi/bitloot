@@ -205,7 +205,7 @@ export class OrdersController {
   @Get(':id')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth('JWT-auth')
-  @ApiOperation({ summary: 'Get order by ID (requires ownership)' })
+  @ApiOperation({ summary: 'Get order by ID (requires ownership or admin role)' })
   @ApiResponse({ status: 200, type: OrderResponseDto })
   @ApiResponse({ status: 401, description: 'Unauthorized - missing or invalid JWT' })
   @ApiResponse({ status: 403, description: 'Forbidden - order does not belong to user' })
@@ -215,7 +215,13 @@ export class OrdersController {
     if (user === null) {
       throw new Error('User not found in request');
     }
-    // Verify ownership before returning
+    
+    // Admins can view any order without ownership check
+    if (user.role === 'admin') {
+      return this.orders.get(id);
+    }
+    
+    // Non-admins must pass ownership verification
     await this.orders.findUserOrderOrThrow(id, user.id!);
     // Return the order
     return this.orders.get(id);
