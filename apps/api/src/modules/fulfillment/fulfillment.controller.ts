@@ -12,7 +12,8 @@ import { RecoveryResponseDto } from './dto/recovery-response.dto';
 import { AdminGuard } from '../../common/guards/admin.guard';
 
 interface JwtPayload {
-  sub: string;
+  id?: string;
+  sub?: string;
   email?: string;
   role?: string;
 }
@@ -73,7 +74,7 @@ export class FulfillmentController {
       if (order === null || order === undefined) {
         throw new HttpException('Order not found', HttpStatus.NOT_FOUND);
       }
-      if (order.userId !== user.sub && user.role !== 'admin') {
+      if (order.userId !== user.id && user.role !== 'admin') {
         throw new HttpException('Forbidden', HttpStatus.FORBIDDEN);
       }
 
@@ -126,7 +127,7 @@ export class FulfillmentController {
       if (order === null || order === undefined) {
         throw new HttpException('Order not found', HttpStatus.NOT_FOUND);
       }
-      if (order.userId !== user.sub && user.role !== 'admin') {
+      if (order.userId !== user.id && user.role !== 'admin') {
         throw new HttpException('Forbidden', HttpStatus.FORBIDDEN);
       }
 
@@ -191,9 +192,12 @@ export class FulfillmentController {
       let accessMethod = 'none';
 
       // 1. Check session token (for immediate guest access)
+      // Must verify BOTH orderId AND email match to prevent token abuse
       if (!hasAccess && sessionToken !== undefined && sessionToken.length > 0) {
         const tokenData = this.ordersService.verifyOrderSessionToken(sessionToken);
-        if (tokenData !== null && tokenData.orderId === id) {
+        if (tokenData !== null && 
+            tokenData.orderId === id && 
+            tokenData.email.toLowerCase() === order.email.toLowerCase()) {
           hasAccess = true;
           accessMethod = 'session_token';
           this.logger.log(`✅ Session token access granted for order ${id}`);
@@ -203,7 +207,7 @@ export class FulfillmentController {
       // 2. Check authenticated user access
       if (!hasAccess && user !== null) {
         const isAdmin = user.role === 'admin';
-        const isOwnerByUserId = order.userId !== undefined && order.userId !== null && order.userId === user.sub;
+        const isOwnerByUserId = order.userId !== undefined && order.userId !== null && order.userId === user.id;
         const userEmail = user.email ?? null;
         const isOwnerByEmail = userEmail !== null && order.email.toLowerCase() === userEmail.toLowerCase();
 
@@ -221,7 +225,7 @@ export class FulfillmentController {
 
       // If no access granted, deny
       if (!hasAccess) {
-        const userId = user?.sub ?? 'guest';
+        const userId = user?.id ?? 'guest';
         this.logger.warn(`🚫 Access denied for ${userId} to order ${id} (userId: ${order.userId ?? 'guest'}, email: ${order.email})`);
         throw new HttpException('Forbidden', HttpStatus.FORBIDDEN);
       }
@@ -344,7 +348,7 @@ export class FulfillmentController {
       if (order === null || order === undefined) {
         throw new HttpException('Order not found', HttpStatus.NOT_FOUND);
       }
-      if (order.userId !== user.sub && user.role !== 'admin') {
+      if (order.userId !== user.id && user.role !== 'admin') {
         throw new HttpException('Forbidden', HttpStatus.FORBIDDEN);
       }
 
