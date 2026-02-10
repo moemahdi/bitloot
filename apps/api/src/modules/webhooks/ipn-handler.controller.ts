@@ -55,8 +55,8 @@ export class IpnHandlerController {
    * NOWPayments sends signature in X-NOWPAYMENTS-SIGNATURE header as SHA512 HMAC of request body
    *
    * **Payment Status Flow:**
-   * - waiting → Order status: confirming (payment received, awaiting confirmations)
-   * - confirming → Order status: confirming (confirmations in progress)
+   * - waiting → Order status: waiting (payment created, customer hasn't sent crypto yet)
+   * - confirming → Order status: confirming (transaction detected, awaiting blockchain confirmations)
    * - finished → Order status: paid (payment complete, fulfillment triggered) ✅
    * - failed → Order status: failed (payment error)
    * - underpaid → Order status: underpaid (payment insufficient, non-refundable)

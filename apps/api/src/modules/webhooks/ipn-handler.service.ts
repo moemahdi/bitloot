@@ -29,7 +29,8 @@ import { invalidateOrderCache } from '../orders/orders.service';
  * 4. Always returns 200 OK (prevents webhook retries)
  *
  * Payment Status State Machine:
- * - waiting/confirming → Order status: confirming
+ * - waiting → Order status: waiting (customer hasn't sent crypto yet)
+ * - confirming → Order status: confirming (transaction detected, awaiting confirmations)
  * - finished → Order status: paid, trigger fulfillment
  * - failed → Order status: failed
  * - underpaid → Order status: underpaid (non-refundable)
@@ -389,7 +390,8 @@ export class IpnHandlerService {
   /**
    * Process payment status and update order
    * Implements payment state machine:
-   * - waiting/confirming → Update order to 'confirming'
+   * - waiting → Update order to 'waiting' (customer hasn't sent crypto)
+   * - confirming → Update to 'confirming' (transaction detected, awaiting confirmations)
    * - finished → Update to 'paid', trigger fulfillment
    * - failed → Update to 'failed'
    * - underpaid → Update to 'underpaid' (non-refundable)
@@ -426,7 +428,12 @@ export class IpnHandlerService {
 
     switch (payload.payment_status) {
       case 'waiting':
+        // Customer hasn't sent crypto yet - keep order in waiting state
+        order.status = 'waiting';
+        break;
+
       case 'confirming':
+        // Transaction detected, awaiting blockchain confirmations
         order.status = 'confirming';
         break;
 

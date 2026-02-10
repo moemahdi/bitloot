@@ -38,7 +38,11 @@ describe('IpnHandlerService', () => {
   });
 
   describe('Payment State Machine', () => {
-    it('should transition waiting -> confirming', () => {
+    it('should transition waiting -> waiting', () => {
+      expect(service).toBeDefined();
+    });
+
+    it('should transition confirming -> confirming', () => {
       expect(service).toBeDefined();
     });
 

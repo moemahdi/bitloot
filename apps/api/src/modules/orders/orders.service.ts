@@ -442,9 +442,9 @@ export class OrdersService {
   }
 
   /**
-   * Mark order as waiting for payment confirmation
+   * Mark order as waiting for payment
    * Transition: created → waiting
-   * Called when NOWPayments confirms payment is being received
+   * Called when NOWPayments payment is created - customer hasn't sent crypto yet
    */
   async markWaiting(orderId: string): Promise<Order> {
     const order = await this.ordersRepo.findOne({ where: { id: orderId }, relations: ['items'] });
