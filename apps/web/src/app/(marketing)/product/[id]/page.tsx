@@ -199,6 +199,7 @@ interface QuantitySelectorProps {
   quantity: number;
   onQuantityChange: (quantity: number) => void;
   min?: number;
+  max?: number;
   disabled?: boolean;
   unitPrice: number;
   currencySymbol: string;
@@ -208,6 +209,7 @@ function QuantitySelector({
   quantity, 
   onQuantityChange, 
   min = 1,
+  max,
   disabled = false,
   unitPrice,
   currencySymbol,
@@ -219,16 +221,29 @@ function QuantitySelector({
   };
 
   const increase = (): void => {
+    // If max is defined and we're at max, don't increase
+    if (max !== undefined && quantity >= max) return;
     onQuantityChange(quantity + 1);
   };
 
   const totalPrice = unitPrice * quantity;
+  
+  // Calculate if max is reached
+  const atMax = max !== undefined && quantity >= max;
+  const isLowStock = max !== undefined && max > 0 && max <= 10;
 
   return (
     <div className="p-4 rounded-xl bg-bg-tertiary/30 border border-border-subtle space-y-3">
       {/* Header Row */}
       <div className="flex items-center justify-between">
         <span className="text-sm font-medium text-text-secondary">Select Quantity</span>
+        {/* Show available stock when low */}
+        {isLowStock && (
+          <span className="text-xs font-medium text-orange-warning flex items-center gap-1">
+            <AlertTriangle className="h-3 w-3" />
+            Only {max} available
+          </span>
+        )}
       </div>
       
       {/* Quantity Controls Row */}
@@ -250,7 +265,7 @@ function QuantitySelector({
           <button
             type="button"
             onClick={increase}
-            disabled={disabled}
+            disabled={disabled || atMax}
             className="h-10 w-10 flex items-center justify-center rounded-lg text-text-secondary hover:bg-purple-neon/20 hover:text-purple-neon transition-all duration-200 disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-text-secondary"
             aria-label="Increase quantity"
           >
@@ -273,7 +288,9 @@ function QuantitySelector({
 
       {/* Quick Select Buttons */}
       <div className="flex gap-2">
-        {[1, 2, 3, 5, 10].map((num) => (
+        {[1, 2, 3, 5, 10]
+          .filter((num) => max === undefined || num <= max)
+          .map((num) => (
           <button
             key={num}
             type="button"
@@ -291,6 +308,24 @@ function QuantitySelector({
             {num}
           </button>
         ))}
+        {/* Show max button if max is set and not already in the list */}
+        {max !== undefined && max > 0 && ![1, 2, 3, 5, 10].includes(max) && max < 100 && (
+          <button
+            type="button"
+            onClick={() => onQuantityChange(max)}
+            disabled={disabled}
+            className={`
+              flex-1 py-1.5 text-sm font-medium rounded-lg transition-all duration-200
+              ${quantity === max 
+                ? 'bg-purple-neon/20 text-purple-neon border border-purple-neon/40' 
+                : 'bg-bg-primary/40 text-text-muted border border-transparent hover:bg-bg-primary/60 hover:text-text-secondary'
+              }
+              disabled:opacity-30 disabled:cursor-not-allowed
+            `}
+          >
+            {max}
+          </button>
+        )}
       </div>
     </div>
   );
@@ -915,6 +950,12 @@ export default function ProductPage(): React.ReactElement {
   
   const discountPercent = (flashDealProduct?.discountPercent != null && flashDealProduct.discountPercent !== '') ? parseFloat(flashDealProduct.discountPercent) : 0;
   
+  // Stock availability
+  // Use qty for Kinguin products, default to unlimited (undefined) for custom products
+  const availableQty = product.qty;
+  const isOutOfStock = product.inStock === false || (availableQty !== undefined && availableQty <= 0);
+  const maxQuantity = availableQty !== undefined && availableQty > 0 ? availableQty : undefined;
+  
   return (
     <div className="min-h-screen bg-bg-primary text-text-primary selection:bg-cyan-glow/30 selection:text-cyan-glow pb-20">
       
@@ -1065,14 +1106,25 @@ export default function ProductPage(): React.ReactElement {
                     </div>
                   )}
 
-                  {/* Enhanced Quantity Selector */}
-                  <QuantitySelector
-                    quantity={quantity}
-                    onQuantityChange={setQuantity}
-                    min={1}
-                    unitPrice={displayPrice}
-                    currencySymbol={currencySymbol}
-                  />
+                  {/* Out of Stock Banner */}
+                  {isOutOfStock && (
+                    <div className="flex items-center gap-2 px-4 py-3 bg-destructive/10 border border-destructive/30 rounded-xl">
+                      <Package className="h-5 w-5 text-destructive" />
+                      <span className="text-sm font-semibold text-destructive">Out of Stock</span>
+                    </div>
+                  )}
+
+                  {/* Enhanced Quantity Selector - Hidden when out of stock */}
+                  {!isOutOfStock && (
+                    <QuantitySelector
+                      quantity={quantity}
+                      onQuantityChange={setQuantity}
+                      min={1}
+                      max={maxQuantity}
+                      unitPrice={displayPrice}
+                      currencySymbol={currencySymbol}
+                    />
+                  )}
 
                   {/* Cart Status - Shows if item is already in cart */}
                   {(() => {
@@ -1102,12 +1154,14 @@ export default function ProductPage(): React.ReactElement {
                     {/* Buy Now Button - Primary CTA */}
                     <Button 
                       size="lg" 
-                      className={`w-full h-14 text-lg font-bold shadow-lg border-0 transition-all hover:scale-[1.02] active:scale-[0.98] ${
+                      disabled={isOutOfStock}
+                      className={`w-full h-14 text-lg font-bold shadow-lg border-0 transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 ${
                         isInFlashDeal 
                           ? 'bg-linear-to-r from-yellow-500 to-orange-500 hover:from-yellow-400 hover:to-orange-400 text-black shadow-yellow-500/30' 
                           : 'bg-linear-to-r from-cyan-glow to-purple-neon hover:from-cyan-glow/90 hover:to-purple-neon/90 text-white shadow-cyan-glow/30'
                       }`}
                       onClick={() => {
+                        if (isOutOfStock) return;
                         buyNow({
                           productId: product.id ?? '',
                           title: product.title ?? 'Product',
@@ -1118,8 +1172,17 @@ export default function ProductPage(): React.ReactElement {
                         router.push('/checkout');
                       }}
                     >
-                      {isInFlashDeal ? <Flame className="h-5 w-5 mr-2" /> : <Bitcoin className="h-5 w-5 mr-2" />}
-                      Buy Now • {currencySymbol}{(displayPrice * quantity).toFixed(2)}
+                      {isOutOfStock ? (
+                        <>
+                          <Package className="h-5 w-5 mr-2" />
+                          Out of Stock
+                        </>
+                      ) : (
+                        <>
+                          {isInFlashDeal ? <Flame className="h-5 w-5 mr-2" /> : <Bitcoin className="h-5 w-5 mr-2" />}
+                          Buy Now • {currencySymbol}{(displayPrice * quantity).toFixed(2)}
+                        </>
+                      )}
                     </Button>
 
                     {/* Add to Cart + Watchlist Row */}
@@ -1128,9 +1191,9 @@ export default function ProductPage(): React.ReactElement {
                       <Button
                         size="lg"
                         variant="outline"
-                        disabled={isAddingToCart}
+                        disabled={isAddingToCart || isOutOfStock}
                         onClick={async () => {
-                          if (isAddingToCart || justAdded) return;
+                          if (isAddingToCart || justAdded || isOutOfStock) return;
                           setIsAddingToCart(true);
                           
                           // Brief delay for feedback
@@ -1138,6 +1201,7 @@ export default function ProductPage(): React.ReactElement {
                           
                           addItem({
                             productId: product.id ?? '',
+                            slug: product.slug,
                             title: product.title ?? 'Product',
                             price: displayPrice,
                             quantity: quantity,
@@ -1159,7 +1223,7 @@ export default function ProductPage(): React.ReactElement {
                             ? 'border-green-success bg-green-success/20 text-green-success shadow-glow-success' 
                             : 'border-purple-neon/60 bg-purple-neon/10 text-purple-neon hover:bg-purple-neon/20 hover:border-purple-neon hover:shadow-glow-purple-sm'
                           }
-                          active:scale-[0.98]
+                          active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed
                         `}
                       >
                         {isAddingToCart ? (

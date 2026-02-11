@@ -156,6 +156,7 @@ function CompactProductCard({ product, className }: CompactProductCardProps): Re
     // Add to cart via CartContext
     addItem({
       productId: product.id,
+      slug: product.slug,
       title: product.title,
       price: displayPrice,
       quantity: 1,

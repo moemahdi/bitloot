@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 
 interface AddToCartButtonProps {
   id: string;
+  slug?: string;
   title: string;
   price: number;
   image?: string;
@@ -17,6 +18,7 @@ interface AddToCartButtonProps {
 
 export function AddToCartButton({ 
   id, 
+  slug,
   title, 
   price, 
   image,
@@ -37,6 +39,7 @@ export function AddToCartButton({
     
     addItem({
       productId: id,
+      slug: slug,
       title: title,
       price: price,
       quantity: 1,

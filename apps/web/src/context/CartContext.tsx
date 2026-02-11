@@ -8,6 +8,7 @@ import { getApiConfig } from '@/lib/api-config';
 
 export interface CartItem {
   productId: string;
+  slug?: string;           // URL-friendly identifier for API lookups
   title: string;
   price: number;           // Original price
   quantity: number;

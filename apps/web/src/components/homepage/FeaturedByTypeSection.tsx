@@ -431,6 +431,7 @@ function ProductCarousel({ config }: ProductCarouselProps): React.ReactElement {
         
         addItem({
             productId: product.id,
+            slug: product.slug,
             title: product.name,
             price: parseFloat(product.price),
             quantity: 1,

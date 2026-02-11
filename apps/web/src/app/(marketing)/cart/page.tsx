@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useCart } from '@/context/CartContext';
 import { useAuth } from '@/hooks/useAuth';
+import { useCartItemsStock, getStockWarning } from '@/hooks/useCartItemsStock';
 import { CartItemRow } from '@/components/cart/CartItemRow';
 import { Button } from '@/design-system/primitives/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/design-system/primitives/card';
@@ -260,6 +261,9 @@ export default function CartPage(): React.ReactElement {
   const { isAuthenticated } = useAuth();
   const addToWatchlist = useAddToWatchlist();
   
+  // Fetch real-time stock for cart items
+  const { stockByProductId, hasStockIssues } = useCartItemsStock(items);
+  
   // Track items being removed for animation
   const [removingItems, setRemovingItems] = useState<Set<string>>(new Set());
   
@@ -387,6 +391,7 @@ export default function CartPage(): React.ReactElement {
   const handleAddRecentToCart = useCallback((product: RecentlyViewedProduct) => {
     addItem({
       productId: product.id,
+      slug: product.slug,
       title: product.name,
       price: parseFloat(product.price),
       quantity: 1,
@@ -505,7 +510,12 @@ export default function CartPage(): React.ReactElement {
           >
             <div className="space-y-4">
               <AnimatePresence mode="popLayout">
-                {items.map((item, index) => (
+                {items.map((item, index) => {
+                  const stock = stockByProductId.get(item.productId);
+                  const stockWarning = getStockWarning(item, stock);
+                  const maxQuantity = stock?.qty;
+                  
+                  return (
                   <motion.div
                     key={item.productId}
                     initial={{ opacity: 0, y: 20 }}
@@ -516,6 +526,7 @@ export default function CartPage(): React.ReactElement {
                   >
                     <CartItemRow
                       productId={item.productId}
+                      slug={item.slug}
                       title={item.title}
                       price={item.price}
                       quantity={item.quantity}
@@ -524,15 +535,17 @@ export default function CartPage(): React.ReactElement {
                       bundleId={item.bundleId}
                       platform={item.platform}
                       category={item.category}
-                      slug={item.productId}
                       isRemoving={removingItems.has(item.productId)}
                       isInWatchlistOverride={justSavedItems.has(item.productId) ? true : undefined}
+                      maxQuantity={maxQuantity}
+                      stockWarning={stockWarning}
                       onRemove={() => handleRemove(item.productId)}
                       onQuantityChange={(quantity) => updateQuantity(item.productId, quantity)}
                       onSaveForLater={() => handleSaveForLater(item.productId)}
                     />
                   </motion.div>
-                ))}
+                  );
+                })}
               </AnimatePresence>
             </div>
 
@@ -725,6 +738,15 @@ export default function CartPage(): React.ReactElement {
 
                 {/* Checkout Button */}
                 <div className="space-y-3 pt-2">
+                  {/* Stock Warning */}
+                  {hasStockIssues && (
+                    <div className="p-3 rounded-lg bg-orange-warning/10 border border-orange-warning/30">
+                      <p className="text-sm text-orange-warning font-medium">
+                        Some items have limited stock. Please review your cart before checkout.
+                      </p>
+                    </div>
+                  )}
+                  
                   <Button 
                     onClick={handleCheckout}
                     className="w-full h-14 bg-linear-to-r from-cyan-glow to-cyan-glow/90 text-bg-primary hover:shadow-glow-cyan font-bold text-base relative overflow-hidden group"

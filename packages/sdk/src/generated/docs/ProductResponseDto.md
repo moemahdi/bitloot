@@ -21,6 +21,9 @@ Name | Type
 `price` | string
 `currency` | string
 `isPublished` | boolean
+`qty` | number
+`totalQty` | number
+`inStock` | boolean
 `imageUrl` | string
 `createdAt` | Date
 `updatedAt` | Date
@@ -62,6 +65,9 @@ const example = {
   "price": 59.99000000,
   "currency": EUR,
   "isPublished": true,
+  "qty": 150,
+  "totalQty": 500,
+  "inStock": true,
   "imageUrl": https://cdn.bitloot.io/products/cyberpunk-2077-cover.jpg,
   "createdAt": 2024-01-15T10:30Z,
   "updatedAt": 2024-01-20T15:45Z,

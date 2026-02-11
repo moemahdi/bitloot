@@ -383,6 +383,7 @@ export function FlashDealSection(): React.ReactElement | null {
     const coverImageUrl = typeof product.product?.coverImageUrl === 'string' ? product.product.coverImageUrl : undefined;
     addItem({
       productId: product.productId,
+      slug: product.product?.slug,
       title: product.product?.title ?? 'Unknown Product',
       price: discountedPrice,
       quantity: 1,

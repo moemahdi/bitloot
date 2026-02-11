@@ -132,6 +132,24 @@ export interface ProductResponseDto {
      */
     isPublished: boolean;
     /**
+     * Available quantity from cheapest offers (Kinguin products)
+     * @type {number}
+     * @memberof ProductResponseDto
+     */
+    qty?: number;
+    /**
+     * Total quantity from all offers (Kinguin products)
+     * @type {number}
+     * @memberof ProductResponseDto
+     */
+    totalQty?: number;
+    /**
+     * Whether the product is currently in stock
+     * @type {boolean}
+     * @memberof ProductResponseDto
+     */
+    inStock?: boolean;
+    /**
      * Cover image URL
      * @type {string}
      * @memberof ProductResponseDto
@@ -293,6 +311,9 @@ export function ProductResponseDtoFromJSONTyped(json: any, ignoreDiscriminator: 
         'price': json['price'],
         'currency': json['currency'],
         'isPublished': json['isPublished'],
+        'qty': json['qty'] == null ? undefined : json['qty'],
+        'totalQty': json['totalQty'] == null ? undefined : json['totalQty'],
+        'inStock': json['inStock'] == null ? undefined : json['inStock'],
         'imageUrl': json['imageUrl'] == null ? undefined : json['imageUrl'],
         'createdAt': (new Date(json['createdAt'])),
         'updatedAt': (new Date(json['updatedAt'])),
@@ -340,6 +361,9 @@ export function ProductResponseDtoToJSONTyped(value?: ProductResponseDto | null,
         'price': value['price'],
         'currency': value['currency'],
         'isPublished': value['isPublished'],
+        'qty': value['qty'],
+        'totalQty': value['totalQty'],
+        'inStock': value['inStock'],
         'imageUrl': value['imageUrl'],
         'createdAt': value['createdAt'].toISOString(),
         'updatedAt': value['updatedAt'].toISOString(),

@@ -28,6 +28,17 @@ function parseJsonArray<T>(value: unknown): T[] | undefined {
  * Includes all Kinguin extended fields for rich product display
  */
 function toProductResponseDto(product: Product): ProductResponseDto {
+  // Calculate stock availability
+  // For Kinguin products: use qty field (cheapest offers quantity)
+  // For custom products: qty is managed manually or via inventory
+  const qty = product.qty ?? undefined;
+  const totalQty = product.totalQty ?? undefined;
+  
+  // Product is in stock if qty > 0 OR if sourceType is 'custom' and qty is not set (assume available)
+  const inStock = product.sourceType === 'custom' 
+    ? (qty === undefined || qty > 0) 
+    : (qty !== undefined && qty > 0);
+
   return {
     // Basic fields
     id: product.id,
@@ -45,6 +56,12 @@ function toProductResponseDto(product: Product): ProductResponseDto {
     price: product.price,
     currency: product.currency,
     isPublished: product.isPublished,
+    
+    // Stock/availability fields
+    qty,
+    totalQty,
+    inStock,
+    
     imageUrl: product.coverImageUrl, // Map coverImageUrl → imageUrl
     createdAt: product.createdAt,
     updatedAt: product.updatedAt,

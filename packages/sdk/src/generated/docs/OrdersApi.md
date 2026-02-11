@@ -5,7 +5,7 @@ All URIs are relative to *http://localhost*
 | Method | HTTP request | Description |
 |------------- | ------------- | -------------|
 | [**ordersControllerCreate**](OrdersApi.md#orderscontrollercreate) | **POST** /orders | Create a new order |
-| [**ordersControllerGet**](OrdersApi.md#orderscontrollerget) | **GET** /orders/{id} | Get order by ID (requires ownership) |
+| [**ordersControllerGet**](OrdersApi.md#orderscontrollerget) | **GET** /orders/{id} | Get order by ID (requires ownership or admin role) |
 | [**ordersControllerGetAccessStatus**](OrdersApi.md#orderscontrollergetaccessstatus) | **GET** /orders/{id}/access-status | Check if current user can access keys for this order |
 | [**ordersControllerGetForCheckout**](OrdersApi.md#orderscontrollergetforcheckout) | **GET** /orders/{id}/checkout | Get order for checkout (public - UUID is auth) |
 | [**ordersControllerSetReservation**](OrdersApi.md#orderscontrollersetreservation) | **PATCH** /orders/{id}/reservation | Set Kinguin reservation ID (test/internal use) |
@@ -85,7 +85,7 @@ example().catch(console.error);
 
 > OrderResponseDto ordersControllerGet(id)
 
-Get order by ID (requires ownership)
+Get order by ID (requires ownership or admin role)
 
 ### Example
 

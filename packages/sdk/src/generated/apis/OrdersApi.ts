@@ -102,7 +102,7 @@ export class OrdersApi extends runtime.BaseAPI {
     }
 
     /**
-     * Get order by ID (requires ownership)
+     * Get order by ID (requires ownership or admin role)
      */
     async ordersControllerGetRaw(requestParameters: OrdersControllerGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<OrderResponseDto>> {
         if (requestParameters['id'] == null) {
@@ -139,7 +139,7 @@ export class OrdersApi extends runtime.BaseAPI {
     }
 
     /**
-     * Get order by ID (requires ownership)
+     * Get order by ID (requires ownership or admin role)
      */
     async ordersControllerGet(requestParameters: OrdersControllerGetRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<OrderResponseDto> {
         const response = await this.ordersControllerGetRaw(requestParameters, initOverrides);

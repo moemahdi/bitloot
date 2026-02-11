@@ -167,7 +167,7 @@ export default function DealsPage(): React.ReactElement {
             <FlashDealSection />
 
             {/* Bundle Deals Section */}
-            <BundleDealsSection />
+            <BundleDealsSection showViewAllButton={false} />
 
             {/* CTA Section */}
             <section className="py-16 sm:py-24 bg-bg-secondary">

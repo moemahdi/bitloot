@@ -147,7 +147,7 @@ export function BundleModal({ bundle, isOpen, onClose }: BundleModalProps): Reac
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="glass border-pink-500/30 w-[calc(100vw-16px)] sm:w-[95vw] max-w-2xl lg:max-w-3xl max-h-[85vh] sm:max-h-[90vh] p-0 overflow-hidden flex flex-col">
+      <DialogContent className="glass border-pink-500/30 w-[calc(100vw-16px)] sm:w-[95vw] max-w-2xl lg:max-w-3xl max-h-[85vh] sm:max-h-[90vh] p-0 overflow-hidden flex flex-col [&>button]:hidden">
         <LazyMotion features={domAnimation}>
         {/* Hero Section */}
         <div className="relative shrink-0">
@@ -198,7 +198,7 @@ export function BundleModal({ bundle, isOpen, onClose }: BundleModalProps): Reac
           </DialogHeader>
 
           {/* Products List */}
-          <div className="flex-1 overflow-hidden flex flex-col min-h-0">
+          <div className="flex-1 overflow-hidden flex flex-col min-h-0 max-h-[35vh] sm:max-h-none">
             <div className="flex items-center gap-2 text-text-muted text-xs sm:text-sm mb-2 sm:mb-3 shrink-0">
               <Package className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
               <span>{bundle.products?.length ?? 0} products in this bundle</span>

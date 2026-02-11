@@ -638,6 +638,7 @@ export function TrendingNowGrid(): React.ReactElement {
     const handleAddToCart = useCallback((product: TrendingProduct) => {
         addItem({
             productId: product.id,
+            slug: product.slug,
             title: product.name,
             price: parseFloat(product.price),
             quantity: 1,

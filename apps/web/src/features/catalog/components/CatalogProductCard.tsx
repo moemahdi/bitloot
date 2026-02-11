@@ -254,6 +254,12 @@ function CatalogProductCardComponent({
               <DiscountBadge percentage={discountPercentage} />
             </div>
           )}
+          {/* Low stock warning for list view */}
+          {product.stock !== undefined && product.stock > 0 && product.stock <= 10 && product.isAvailable === true && (
+            <div className="absolute bottom-1 left-1 rounded bg-orange-warning/90 px-1.5 py-0.5 text-[9px] font-medium text-white">
+              {product.stock} left
+            </div>
+          )}
         </div>
         
         {/* Content */}
@@ -298,15 +304,17 @@ function CatalogProductCardComponent({
           </div>
           
           <div className="flex items-center justify-between mt-2">
-            <div className="flex items-baseline gap-2">
-              <span className="text-lg font-bold text-white">
-                {formatPrice(product.price)}
-              </span>
-              {isOnSale && product.originalPrice !== undefined && product.originalPrice !== '' && (
-                <span className="text-sm text-text-muted line-through">
-                  {formatPrice(product.originalPrice)}
+            <div className="flex flex-col">
+              <div className="flex items-baseline gap-2">
+                <span className="text-lg font-bold text-white">
+                  {formatPrice(product.price)}
                 </span>
-              )}
+                {isOnSale && product.originalPrice !== undefined && product.originalPrice !== '' && (
+                  <span className="text-sm text-text-muted line-through">
+                    {formatPrice(product.originalPrice)}
+                  </span>
+                )}
+              </div>
             </div>
             
             {showQuickActions && (
@@ -526,6 +534,13 @@ function CatalogProductCardComponent({
           <div className="absolute bottom-3 left-3 flex items-center gap-1.5 rounded-full bg-orange-500/90 px-2.5 py-1 text-xs font-medium text-white backdrop-blur-sm">
             <Users className="h-3.5 w-3.5" />
             {product.viewerCount} viewing
+          </div>
+        )}
+        
+        {/* Low stock warning - positioned on image */}
+        {product.stock !== undefined && product.stock > 0 && product.stock <= 10 && product.isAvailable === true && variant !== 'trending' && variant !== 'flash-deal' && (
+          <div className="absolute bottom-3 left-3 flex items-center gap-1 rounded-full bg-orange-warning/90 px-2 py-1 text-[10px] font-medium text-white backdrop-blur-sm">
+            Only {product.stock} left
           </div>
         )}
       </div>

@@ -69,6 +69,7 @@ export function WatchlistPreview() {
   const handleAddToCart = (item: WatchlistItemResponseDto) => {
     addItem({
       productId: item.product.id,
+      slug: item.product.slug,
       title: item.product.title,
       price: item.product.price,
       quantity: 1,

@@ -303,8 +303,8 @@ export function useCatalogState(): UseCatalogStateReturn {
         category: p.category ?? undefined, // Keep for backwards compatibility
         businessCategory: p.businessCategory ?? undefined, // BitLoot store section
         discount: undefined, // SDK doesn't have discountPercent
-        stock: undefined, // SDK doesn't have stock
-        isAvailable: p.isPublished,
+        stock: p.qty ?? undefined, // Map API qty to stock for display
+        isAvailable: p.inStock ?? p.isPublished, // Use inStock from API, fallback to isPublished
         rating: p.rating ?? undefined,
         isFeatured: p.isFeatured ?? false,
         // Store detected regions for filtering

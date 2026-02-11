@@ -24,6 +24,10 @@ interface CartItemRowProps {
   isRemoving?: boolean;
   /** Override from parent (e.g., for immediate feedback after save) */
   isInWatchlistOverride?: boolean;
+  /** Maximum quantity available (from real-time stock) */
+  maxQuantity?: number;
+  /** Stock warning message to display */
+  stockWarning?: string;
   onRemove: () => void;
   onQuantityChange: (quantity: number) => void;
   onSaveForLater?: () => void;
@@ -42,6 +46,8 @@ export function CartItemRow({
   category,
   isRemoving = false,
   isInWatchlistOverride,
+  maxQuantity,
+  stockWarning,
   onRemove,
   onQuantityChange,
   onSaveForLater,
@@ -65,8 +71,13 @@ export function CartItemRow({
   };
 
   const handleIncrement = (): void => {
+    // Respect max quantity limit if set
+    if (maxQuantity !== undefined && quantity >= maxQuantity) return;
     onQuantityChange(quantity + 1);
   };
+
+  // Check if we're at or over the stock limit
+  const isAtStockLimit = maxQuantity !== undefined && quantity >= maxQuantity;
 
   return (
     <motion.div
@@ -183,12 +194,21 @@ export function CartItemRow({
               size="sm"
               onClick={handleIncrement}
               aria-label="Increase quantity"
-              className="h-6 w-6 p-0 text-text-muted hover:text-cyan-glow hover:bg-cyan-glow/10"
+              disabled={isAtStockLimit}
+              className="h-6 w-6 p-0 text-text-muted hover:text-cyan-glow hover:bg-cyan-glow/10 disabled:opacity-30 disabled:cursor-not-allowed"
+              title={isAtStockLimit ? `Only ${maxQuantity} available` : undefined}
             >
               <Plus className="h-3 w-3" />
             </Button>
           </div>
         </div>
+
+        {/* Stock Warning */}
+        {stockWarning !== undefined && stockWarning !== '' && (
+          <p className="text-[10px] sm:text-xs text-orange-warning font-medium mt-1">
+            {stockWarning}
+          </p>
+        )}
       </div>
 
       {/* Right: Total & Actions */}

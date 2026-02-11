@@ -226,6 +226,7 @@ function WatchlistTabContentBase(): React.ReactElement {
   const handleAddToCart = useCallback((item: NonNullable<typeof watchlistData>['data'][0]): void => {
     addItem({
       productId: item.product.id,
+      slug: item.product.slug,
       title: item.product.title,
       price: item.product.price,
       quantity: 1,
@@ -240,6 +241,7 @@ function WatchlistTabContentBase(): React.ReactElement {
     availableItems.forEach(item => {
       addItem({
         productId: item.product.id,
+        slug: item.product.slug,
         title: item.product.title,
         price: item.product.price,
         quantity: 1,

@@ -233,8 +233,15 @@ function BundleSkeleton() {
  * - Individual product discounts
  * - Direct checkout flow (not cart)
  * - Responsive grid layout
+ * 
+ * @param showViewAllButton - Whether to show the "View All Bundles" link (default: true)
  */
-export function BundleDealsSection(): React.ReactElement | null {
+
+interface BundleDealsSectionProps {
+  showViewAllButton?: boolean;
+}
+
+export function BundleDealsSection({ showViewAllButton = true }: BundleDealsSectionProps): React.ReactElement | null {
   const [selectedBundle, setSelectedBundle] = useState<BundleDeal | null>(null);
   
   const { data: bundles, isLoading, error } = useQuery({
@@ -287,16 +294,18 @@ export function BundleDealsSection(): React.ReactElement | null {
             </div>
           </div>
 
-          <Button 
-            variant="outline" 
-            className="gap-2 border-pink-500/50 text-pink-400 hover:bg-pink-500/10"
-            asChild
-          >
-            <Link href="/deals">
-              View All Bundles
-              <ChevronRight className="h-4 w-4" />
-            </Link>
-          </Button>
+          {showViewAllButton && (
+            <Button 
+              variant="outline" 
+              className="gap-2 border-pink-500/50 text-pink-400 hover:bg-pink-500/10"
+              asChild
+            >
+              <Link href="/deals">
+                View All Bundles
+                <ChevronRight className="h-4 w-4" />
+              </Link>
+            </Button>
+          )}
         </div>
 
         {/* Bundles Grid */}

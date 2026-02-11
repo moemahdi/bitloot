@@ -135,6 +135,31 @@ export class ProductResponseDto {
   })
   isPublished!: boolean;
 
+  // ============================================
+  // STOCK/AVAILABILITY FIELDS
+  // ============================================
+
+  @ApiProperty({
+    description: 'Available quantity from cheapest offers (Kinguin products)',
+    required: false,
+    example: 150,
+  })
+  qty?: number;
+
+  @ApiProperty({
+    description: 'Total quantity from all offers (Kinguin products)',
+    required: false,
+    example: 500,
+  })
+  totalQty?: number;
+
+  @ApiProperty({
+    description: 'Whether the product is currently in stock',
+    required: false,
+    example: true,
+  })
+  inStock?: boolean;
+
   @ApiProperty({
     description: 'Cover image URL',
     example: 'https://cdn.bitloot.io/products/cyberpunk-2077-cover.jpg',

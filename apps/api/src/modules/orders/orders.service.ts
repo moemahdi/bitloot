@@ -169,6 +169,29 @@ export class OrdersService {
       throw new NotFoundException(`Products not found: ${notFound.join(', ')}`);
     }
 
+    // ========== STOCK VALIDATION ==========
+    // Validate that requested quantity doesn't exceed available stock for Kinguin products
+    const insufficientStockProducts: string[] = [];
+    for (let i = 0; i < itemsToCreate.length; i++) {
+      const item = itemsToCreate[i];
+      const product = products[i];
+      if (item !== undefined && product !== undefined) {
+        // For Kinguin products, check qty (available from cheapest offers)
+        // For custom products, qty may be undefined (unlimited)
+        if (product.sourceType === 'kinguin' && product.qty !== undefined && product.qty !== null) {
+          if (product.qty <= 0) {
+            insufficientStockProducts.push(`${product.title ?? product.id} is out of stock`);
+          } else if (item.quantity > product.qty) {
+            insufficientStockProducts.push(`${product.title ?? product.id}: requested ${item.quantity} but only ${product.qty} available`);
+          }
+        }
+      }
+    }
+
+    if (insufficientStockProducts.length > 0) {
+      throw new BadRequestException(`Insufficient stock: ${insufficientStockProducts.join('; ')}`);
+    }
+
     // ========== GET EFFECTIVE PRICES (considering flash deals AND bundle discounts) ==========
     // For bundle purchases, bundle discounts take priority over flash deals
     // For regular purchases, flash deals apply as SOURCE OF TRUTH
