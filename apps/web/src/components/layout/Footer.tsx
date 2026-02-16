@@ -23,12 +23,14 @@ import {
     Loader2,
     CheckCircle2,
 } from 'lucide-react';
+import { DiscordIcon, TelegramIcon } from '@/components/social-icons';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
 
 const socialLinks = [
     { href: 'https://x.com/bitloot_io', icon: Twitter, label: 'Twitter' },
-    { href: 'https://discord.gg/mqjUpqxBtA', icon: MessageCircle, label: 'Discord' },
+    { href: 'https://discord.gg/mqjUpqxBtA', icon: DiscordIcon, label: 'Discord' },
+    { href: 'https://t.me/its_bitloot', icon: TelegramIcon, label: 'Telegram' },
 ];
 
 const shopLinks = [

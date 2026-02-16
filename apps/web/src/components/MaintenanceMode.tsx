@@ -6,11 +6,11 @@ import {
   Wrench,
   Clock,
   Twitter,
-  MessageCircle,
   Zap,
   Shield,
   RefreshCw,
 } from 'lucide-react';
+import { DiscordIcon, TelegramIcon } from '@/components/social-icons';
 import { Button } from '@/design-system/primitives/button';
 
 interface MaintenanceStatusResponse {
@@ -220,7 +220,15 @@ function MaintenancePage({ message }: { message?: string }): React.ReactElement 
               rel="noopener noreferrer"
               className="p-3 rounded-lg bg-bg-secondary border border-border-subtle hover:border-purple-neon/50 hover:shadow-glow-purple-sm transition-all text-text-secondary hover:text-purple-neon"
             >
-              <MessageCircle className="h-5 w-5" />
+              <DiscordIcon className="h-5 w-5" />
+            </a>
+            <a
+              href="https://t.me/its_bitloot"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="p-3 rounded-lg bg-bg-secondary border border-border-subtle hover:border-cyan-glow/50 hover:shadow-glow-cyan-sm transition-all text-text-secondary hover:text-cyan-glow"
+            >
+              <TelegramIcon className="h-5 w-5" />
             </a>
           </div>
         </div>

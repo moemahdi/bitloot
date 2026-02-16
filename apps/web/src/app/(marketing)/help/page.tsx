@@ -26,6 +26,7 @@ import {
   AlertCircle,
   Gamepad2,
 } from 'lucide-react';
+import { DiscordIcon, TelegramIcon } from '@/components/social-icons';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { useState, useMemo } from 'react';
@@ -902,7 +903,7 @@ export default function HelpCenterPage(): React.ReactElement {
                   bgColor="bg-cyan-glow/10"
                   borderColor="border-cyan-glow/30"
                 >
-                  <div className="grid gap-4 md:grid-cols-2">
+                  <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                     <Card className="glass border-cyan-glow/20 hover:border-cyan-glow/50 transition-all group">
                       <CardContent className="p-6 text-center">
                         <div className="w-14 h-14 rounded-full bg-cyan-glow/10 flex items-center justify-center mx-auto mb-4 group-hover:bg-cyan-glow/20 transition-colors">
@@ -937,6 +938,44 @@ export default function HelpCenterPage(): React.ReactElement {
                         >
                           <Mail className="h-4 w-4 mr-2" />
                           support@bitloot.io
+                        </Button>
+                      </CardContent>
+                    </Card>
+
+                    <Card className="glass border-indigo-500/20 hover:border-indigo-500/50 transition-all group">
+                      <CardContent className="p-6 text-center">
+                        <div className="w-14 h-14 rounded-full bg-indigo-500/10 flex items-center justify-center mx-auto mb-4 group-hover:bg-indigo-500/20 transition-colors">
+                          <DiscordIcon className="h-7 w-7 text-indigo-400" />
+                        </div>
+                        <h3 className="font-semibold text-text-primary mb-2">Discord</h3>
+                        <p className="text-sm text-text-secondary mb-4">
+                          Join our community for updates and support.
+                        </p>
+                        <Button
+                          className="w-full bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500/20 border border-indigo-500/30"
+                          onClick={() => window.open('https://discord.gg/mqjUpqxBtA', '_blank')}
+                        >
+                          <DiscordIcon className="h-4 w-4 mr-2" />
+                          Join Discord
+                        </Button>
+                      </CardContent>
+                    </Card>
+
+                    <Card className="glass border-sky-500/20 hover:border-sky-500/50 transition-all group">
+                      <CardContent className="p-6 text-center">
+                        <div className="w-14 h-14 rounded-full bg-sky-500/10 flex items-center justify-center mx-auto mb-4 group-hover:bg-sky-500/20 transition-colors">
+                          <TelegramIcon className="h-7 w-7 text-sky-400" />
+                        </div>
+                        <h3 className="font-semibold text-text-primary mb-2">Telegram</h3>
+                        <p className="text-sm text-text-secondary mb-4">
+                          Get announcements and quick support.
+                        </p>
+                        <Button
+                          className="w-full bg-sky-500/10 text-sky-400 hover:bg-sky-500/20 border border-sky-500/30"
+                          onClick={() => window.open('https://t.me/its_bitloot', '_blank')}
+                        >
+                          <TelegramIcon className="h-4 w-4 mr-2" />
+                          Join Telegram
                         </Button>
                       </CardContent>
                     </Card>

@@ -11,19 +11,20 @@ export default function Loading(): React.ReactElement {
 
       {/* Loading Content */}
       <div className="relative flex flex-col items-center gap-4">
-        {/* Animated Logo */}
+        {/* Animated Logo - same as Header */}
         <div className="relative">
           {/* Outer glow ring */}
           <div className="absolute -inset-4 animate-ping rounded-full bg-cyan-glow/20" />
           <div className="absolute -inset-2 animate-pulse rounded-full bg-cyan-glow/10" />
           
-          {/* Logo container */}
-          <div className="relative flex h-16 w-16 items-center justify-center rounded-2xl border border-cyan-glow/30 bg-bg-secondary">
-            <Gamepad2 className="h-8 w-8 animate-pulse text-cyan-glow" fill="currentColor" />
+          {/* Logo container - matching Header style */}
+          <div className="relative flex items-center justify-center w-16 h-16 rounded-xl bg-linear-to-br from-cyan-glow/20 to-purple-neon/20 border border-cyan-glow/30">
+            <Gamepad2 className="w-8 h-8 text-cyan-glow animate-pulse" />
+            <div className="absolute inset-0 rounded-xl bg-cyan-glow/10" />
           </div>
         </div>
 
-        {/* Brand name */}
+        {/* Brand name - same as Header */}
         <div className="text-xl font-bold tracking-tight text-text-primary">
           Bit<span className="text-cyan-glow">Loot</span>
         </div>
