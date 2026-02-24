@@ -42,6 +42,9 @@ jobs:
           # Make script executable
           chmod +x ./scripts/backup-db.sh
           
+          # Ensure pg_dump v17 is used (matches Railway PostgreSQL 17)
+          export PATH="/usr/lib/postgresql/17/bin:$PATH"
+          
           # Run backup
           ./scripts/backup-db.sh --retention-days 30
       
