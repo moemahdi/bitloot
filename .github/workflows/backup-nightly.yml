@@ -12,6 +12,9 @@ jobs:
   backup:
     runs-on: ubuntu-latest
     
+    permissions:
+      issues: write
+    
     # Set timeout to 30 minutes
     timeout-minutes: 30
     
