@@ -190,7 +190,7 @@ const ALL_FAQS: FAQItemData[] = [
   {
     id: 'what-is-bitloot',
     question: 'What is BitLoot?',
-    answer: 'BitLoot is a cryptocurrency-only digital marketplace for game keys, software licenses, and subscriptions. We offer instant delivery, secure encrypted key storage, and support for 300+ cryptocurrencies. All transactions are secure, and keys are delivered within minutes of payment confirmation.',
+    answer: 'BitLoot is a cryptocurrency-only digital marketplace for game keys, software licenses, and subscriptions. We offer instant delivery, secure encrypted key storage, and support for 100+ cryptocurrencies. All transactions are secure, and keys are delivered within minutes of payment confirmation.',
     category: 'getting-started',
   },
   {
@@ -216,7 +216,7 @@ const ALL_FAQS: FAQItemData[] = [
   {
     id: 'crypto-payment',
     question: 'What cryptocurrencies do you accept?',
-    answer: 'We accept over 300+ cryptocurrencies including Bitcoin (BTC), Ethereum (ETH), USDT, USDC, Litecoin (LTC), Dogecoin (DOGE), Solana (SOL), and many more. All payments are processed securely through NOWPayments with competitive real-time exchange rates.',
+    answer: 'We accept over 100+ cryptocurrencies including Bitcoin (BTC), Ethereum (ETH), USDT, USDC, Litecoin (LTC), Dogecoin (DOGE), Solana (SOL), and many more. All payments are processed securely with competitive real-time exchange rates.',
     category: 'payments',
   },
   {

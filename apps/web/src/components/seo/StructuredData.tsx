@@ -51,10 +51,12 @@ interface WebsiteSearchSchemaProps {
 
 // ============ Organization Schema ============
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://bitloot.io';
+
 export function OrganizationSchema({
   name = 'BitLoot',
-  url = 'https://bitloot.io',
-  logo = 'https://bitloot.io/logo.png',
+  url = SITE_URL,
+  logo = `${SITE_URL}/logo.png`,
   description = 'Crypto-powered digital gaming marketplace with instant delivery of game keys and software.',
   sameAs = [],
 }: OrganizationSchemaProps) {
@@ -69,7 +71,7 @@ export function OrganizationSchema({
     contactPoint: {
       '@type': 'ContactPoint',
       contactType: 'customer service',
-      email: 'support@bitloot.io',
+      email: `support@${SITE_URL.replace('https://', '').replace('http://', '')}`,
       availableLanguage: ['English'],
     },
     potentialAction: {
@@ -287,12 +289,12 @@ export function OnlineStoreSchema() {
     '@context': 'https://schema.org',
     '@type': 'OnlineStore',
     name: 'BitLoot',
-    url: 'https://bitloot.com',
+    url: SITE_URL,
     description: 'Crypto-powered digital gaming marketplace with instant delivery of game keys and software.',
     currenciesAccepted: 'BTC,ETH,USDT,USDC,LTC,XRP,DOGE',
     paymentAccepted: 'Cryptocurrency',
     priceRange: '€1 - €200',
-    image: 'https://bitloot.com/og-image.png',
+    image: `${SITE_URL}/og-image.png`,
     sameAs: [
       // Add social media links here
     ],

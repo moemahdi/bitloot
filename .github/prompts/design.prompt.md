@@ -19,7 +19,7 @@ Your task is to **transform the provided page or component into a production-rea
 
 **What BitLoot Is:**
 - Crypto-only e-commerce platform for instant digital goods delivery (game keys, software, subscriptions)
-- Accepts payments in 300+ crypto assets via NOWPayments
+- Accepts payments in 100+ crypto assets via NOWPayments
 - Delivers keys instantly through encrypted Cloudflare R2 URLs
 - Admin dashboard for product management, order tracking, and analytics
 - **Aesthetic:** Neon cyberpunk gaming theme with deep space dark mode

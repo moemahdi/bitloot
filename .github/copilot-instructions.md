@@ -13,7 +13,7 @@ Crypto-only digital goods marketplace delivering instant keys from Kinguin and c
 **Architecture:**  
 - **Frontend:** Next.js 16, React 19, Tailwind, Radix UI, shadcn/ui, TanStack Query, Zustand, PWA-first.
 - **Backend:** NestJS (modular), PostgreSQL + TypeORM, Redis + BullMQ, Docker, Nginx, CI/CD via GitHub Actions.
-- **Payments:** NOWPayments (crypto, 300+ assets) with IPN webhooks, strict underpayment policy.
+- **Payments:** NOWPayments (crypto, 100+ assets) with IPN webhooks, strict underpayment policy.
 - **Fulfillment:** Kinguin API for product sync and order fulfillment via secure server-side integration.
 - **Delivery:** Keys are encrypted and stored in Cloudflare R2, delivered only through short-lived signed URLs.
 - **Auth & Emails:** OTP-first (6-digit), password setup, transactional/marketing emails via Resend, with templates and idempotency.

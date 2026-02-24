@@ -247,7 +247,7 @@ export function EmbeddedPaymentUI({
     },
   });
 
-  // Also poll NOWPayments directly for payment status (sandbox workaround)
+  // Also poll provider status directly for payment status (sandbox workaround)
   // This will update the order status when payment is detected
   const { data: _paymentPollData } = useQuery({
     queryKey: ['payment-poll', paymentId],
@@ -286,7 +286,7 @@ export function EmbeddedPaymentUI({
   // Check for expired order status first (from backend orphan cleanup)
   if (orderStatus === 'expired') {
     paymentStatus = 'expired';
-  // Check NOWPayments status (more accurate in sandbox)
+  // Check provider status (more accurate in sandbox)
   } else if (npPaymentStatus === 'confirming' || npPaymentStatus === 'sending') {
     paymentStatus = 'confirming';
   } else if (npPaymentStatus === 'confirmed' || npPaymentStatus === 'finished') {

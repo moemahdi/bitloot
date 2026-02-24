@@ -38,7 +38,7 @@ interface EmbeddedPaymentResponse {
   estimatedTime: string;
 }
 
-// Define Zod schema for validation - accepts any currency string (300+ supported)
+// Define Zod schema for validation - accepts any currency string (100+ supported)
 const checkoutSchema = z.object({
   email: z.string().min(1, 'Email is required').email('Invalid email address'),
   payCurrency: z.string({

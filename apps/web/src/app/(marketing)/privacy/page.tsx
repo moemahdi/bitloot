@@ -604,8 +604,8 @@ export default function PrivacyPolicyPage(): React.ReactElement {
 
               <p className="mt-4">
                 To exercise any of these rights, please contact us at{' '}
-                <Link href="mailto:privacy@bitloot.com" className="text-purple-neon hover:underline">
-                  privacy@bitloot.com
+                <Link href="mailto:privacy@bitloot.io" className="text-purple-neon hover:underline">
+                  privacy@bitloot.io
                 </Link>. We will respond within 30 days.
               </p>
 
@@ -743,8 +743,8 @@ export default function PrivacyPolicyPage(): React.ReactElement {
                 BitLoot is not intended for use by individuals under 18 years of age. We do not 
                 knowingly collect personal information from children. If you believe we have 
                 inadvertently collected data from a minor, please contact us immediately at{' '}
-                <Link href="mailto:privacy@bitloot.com" className="text-purple-neon hover:underline">
-                  privacy@bitloot.com
+                <Link href="mailto:privacy@bitloot.io" className="text-purple-neon hover:underline">
+                  privacy@bitloot.io
                 </Link>, and we will promptly delete such information.
               </p>
             </Section>
@@ -781,7 +781,7 @@ export default function PrivacyPolicyPage(): React.ReactElement {
                   <div className="space-y-3">
                     <div className="flex items-center gap-3">
                       <Mail className="w-5 h-5 text-purple-neon" />
-                      <span className="text-text-primary">privacy@bitloot.com</span>
+                      <span className="text-text-primary">privacy@bitloot.io</span>
                     </div>
                     <div className="flex items-center gap-3">
                       <Globe className="w-5 h-5 text-purple-neon" />

@@ -5,9 +5,9 @@ import '@/design-system/styles/globals.css';
 import { Providers } from '../lib/providers';
 import { OrganizationSchema, WebsiteSchema, OnlineStoreSchema } from '@/components/seo';
 
-// Force dynamic rendering for all pages - Providers use React context
-// which fails during static prerendering on Railway
-export const dynamic = 'force-dynamic';
+// Note: force-dynamic is NOT set here globally.
+// Pages that need it (auth, profile, orders) set it individually.
+// This allows catalog and product pages to benefit from ISR/edge caching.
 
 const inter = Inter({
   subsets: ['latin'],
@@ -28,7 +28,7 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 // Site URL for structured data
-const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://bitloot.com';
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://bitloot.io';
 
 export const metadata: Metadata = {
   metadataBase: new URL(
@@ -40,7 +40,7 @@ export const metadata: Metadata = {
     template: '%s | BitLoot',
   },
   description:
-    'Instant delivery of game keys & software via crypto. Secure, fast, anonymous. Pay with Bitcoin, Ethereum, and 300+ cryptocurrencies.',
+    'Instant delivery of game keys & software via crypto. Secure, fast, anonymous. Pay with Bitcoin, Ethereum, and 100+ cryptocurrencies.',
   keywords: [
     'crypto gaming',
     'game keys',
@@ -59,7 +59,7 @@ export const metadata: Metadata = {
     'cdkey',
     'game code',
   ],
-  authors: [{ name: 'BitLoot Team', url: 'https://bitloot.com' }],
+  authors: [{ name: 'BitLoot Team', url: 'https://bitloot.io' }],
   creator: 'BitLoot',
   publisher: 'BitLoot',
   robots: {
@@ -96,18 +96,18 @@ export const metadata: Metadata = {
   openGraph: {
     type: 'website',
     locale: 'en_US',
-    url: 'https://bitloot.com',
+    url: 'https://bitloot.io',
     title: 'BitLoot — Crypto Gaming Marketplace | Buy Game Keys with Bitcoin',
     description:
-      'Instant delivery of game keys & software via crypto. Pay with Bitcoin, Ethereum, and 300+ cryptocurrencies. Steam, PlayStation, Xbox, Nintendo keys.',
+      'Instant delivery of game keys & software via crypto. Pay with Bitcoin, Ethereum, and 100+ cryptocurrencies. Steam, PlayStation, Xbox, Nintendo keys.',
     siteName: 'BitLoot',
     images: [
       {
-        url: '/og-image.svg', // Note: Convert to PNG for better compatibility before launch
+        url: '/og-image.png',   // PNG required — SVG is ignored by Facebook, Twitter, Google
         width: 1200,
         height: 630,
         alt: 'BitLoot - Crypto Gaming Marketplace - Buy Game Keys with Bitcoin',
-        type: 'image/svg+xml',
+        type: 'image/png',
       },
     ],
   },
@@ -115,10 +115,10 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'BitLoot — Buy Game Keys with Bitcoin & Crypto',
     description:
-      'Instant delivery of Steam, PlayStation, Xbox & Nintendo keys. Pay with Bitcoin, Ethereum, and 300+ cryptocurrencies. Anonymous & secure.',
+      'Instant delivery of Steam, PlayStation, Xbox & Nintendo keys. Pay with Bitcoin, Ethereum, and 100+ cryptocurrencies. Anonymous & secure.',
     creator: '@bitloot',
     site: '@bitloot',
-    images: ['/og-image.svg'],
+    images: ['/og-image.png'],
   },
   category: 'technology',
   // Verification tags - Add your verification codes before launch
@@ -164,9 +164,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }):
           name="BitLoot"
           url={siteUrl}
           logo={`${siteUrl}/logo.png`}
-          description="Crypto-powered digital gaming marketplace with instant delivery of game keys and software. Pay with Bitcoin, Ethereum, and 300+ cryptocurrencies."
+          description="Crypto-powered digital gaming marketplace with instant delivery of game keys and software. Pay with Bitcoin, Ethereum, and 100+ cryptocurrencies."
           sameAs={[
-            // Add social media URLs when available
+            'https://x.com/bitloot_io',
+            'https://discord.gg/mqjUpqxBtA',
+            'https://t.me/its_bitloot',
           ]}
         />
         <WebsiteSchema siteUrl={siteUrl} searchPath="/catalog" />

@@ -337,7 +337,7 @@ export default function TermsOfServicePage(): React.ReactElement {
 
               <h3 className="text-lg font-semibold text-text-primary mt-6 mb-3">6.2 Payment Processing</h3>
               <p>
-                Cryptocurrency payments are processed through NOWPayments, a third-party payment processor. 
+                Cryptocurrency payments are processed through a third-party payment processor. 
                 Payment is considered complete when the required number of blockchain confirmations is received.
               </p>
 

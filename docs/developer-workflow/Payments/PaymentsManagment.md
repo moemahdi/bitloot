@@ -194,7 +194,7 @@ type PaymentStatusFilter =
 #### 1.2.4 Currency Filter
 - Price currency (fiat): USD, EUR, GBP, etc.
 - Pay currency (crypto): BTC, ETH, USDT, LTC, etc.
-- Support for 300+ cryptocurrencies from NOWPayments
+- Support for 100+ cryptocurrencies from NOWPayments
 
 #### 1.2.5 Search Functionality
 ```typescript

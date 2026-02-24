@@ -134,7 +134,7 @@ private generateEmailHeaders(priority: 'high' | 'normal' | 'low' = 'high'): Emai
 - Payment link button (high contrast)
 - Cryptocurrency payment information
 - 30-minute payment window notice
-- 300+ supported cryptos noted
+- 100+ supported cryptos noted
 - Non-refundable warning
 - Resend API integration verified
 
@@ -432,7 +432,7 @@ Before sending: `if (await this.suppressionList.isSuppressed(to)) { return; }`
 
 **Verification Result:** ✅ **NOW FULLY IMPLEMENTED** (Previously marked as partial)
 
-**File:** `apps/api/src/modules/metrics/metrics.service.ts` (300+ lines)
+**File:** `apps/api/src/modules/metrics/metrics.service.ts` (100+ lines)
 
 **Implementation Confirmed:**
 

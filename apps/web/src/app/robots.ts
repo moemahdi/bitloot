@@ -6,7 +6,7 @@ import type { MetadataRoute } from 'next';
  * This generates a robots.txt at /robots.txt
  */
 export default function robots(): MetadataRoute.Robots {
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://bitloot.com';
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://bitloot.io';
   
   return {
     rules: [

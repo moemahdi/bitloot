@@ -29,7 +29,7 @@ Here are **ALL 12 email types** currently being sent to users in the BitLoot sys
 <p><strong>What you can do on BitLoot:</strong></p>
 <ul>
   <li>🎮 Browse verified game keys and software licenses</li>
-  <li>💳 Checkout with 300+ cryptocurrencies (Bitcoin, Ethereum, etc.)</li>
+  <li>💳 Checkout with 100+ cryptocurrencies (Bitcoin, Ethereum, etc.)</li>
   <li>⚡ Receive your keys instantly — no waiting</li>
   <li>🔒 Secure, encrypted storage with signed download links</li>
 </ul>
@@ -88,7 +88,7 @@ Here are **ALL 12 email types** currently being sent to users in the BitLoot sys
 <p><strong>Important Information:</strong></p>
 <ul>
   <li>⏰ Payment link expires in 30 minutes</li>
-  <li>💰 We accept 300+ cryptocurrencies (BTC, ETH, XRP, BNB, USDT, etc.)</li>
+  <li>💰 We accept 100+ cryptocurrencies (BTC, ETH, XRP, BNB, USDT, etc.)</li>
   <li>⚠️ <strong>Underpayments are non-refundable</strong> due to blockchain immutability</li>
   <li>✅ Once payment is confirmed, your keys will be delivered instantly</li>
   <li>🔒 Keys are never stored in plaintext and delivered via 15-minute secure links only</li>

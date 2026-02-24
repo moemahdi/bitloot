@@ -3,7 +3,7 @@ import { ProductSchema, BreadcrumbSchema } from '@/components/seo';
 
 /**
  * Product Layout with Dynamic Metadata & Structured Data
- * 
+ *
  * Fetches product data on the server to generate:
  * - SEO metadata (title, description, keywords)
  * - Open Graph tags for social sharing
@@ -11,7 +11,13 @@ import { ProductSchema, BreadcrumbSchema } from '@/components/seo';
  * - Canonical URLs
  * - JSON-LD Product schema for rich snippets
  * - Breadcrumb schema for search navigation
+ *
+ * ISR: Pages are revalidated every 5 minutes, so Googlebot gets
+ * fast cached responses while price/stock data stays fresh.
  */
+
+// Revalidate product metadata every 5 minutes (ISR)
+export const revalidate = 300;
 
 interface Props {
   children: React.ReactNode;
@@ -52,8 +58,10 @@ export async function generateMetadata(
 ): Promise<Metadata> {
   const { id } = await params;
   const product = await getProduct(id);
+  const hasPlatform = typeof product?.platform === 'string' && product.platform !== '';
+  const hasCategory = typeof product?.category === 'string' && product.category !== '';
   
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://bitloot.com';
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://bitloot.io';
   
   // Fallback metadata if product not found
   if (product === null) {
@@ -66,24 +74,35 @@ export async function generateMetadata(
   // Truncate description for meta tags (160 chars max)
   const description = product.description !== undefined && product.description !== ''
     ? product.description.slice(0, 155) + (product.description.length > 155 ? '...' : '')
-    : `Buy ${product.title} with crypto on BitLoot. Instant delivery, anonymous payment.`;
+    : `Buy ${product.title}${hasPlatform ? ` ${product.platform} key` : ' key'} with crypto on BitLoot. Instant delivery. Pay with Bitcoin, Ethereum, USDT.`;
   
   // Format price for structured data
   const priceText = product.retailPriceEur !== undefined && product.retailPriceEur !== ''
     ? `€${parseFloat(product.retailPriceEur).toFixed(2)}` 
     : '';
   
+  // Enriched, product-specific keywords for maximum long-tail coverage
+  const enrichedKeywords = [
+    product.title,
+    `buy ${product.title} key`,
+    `buy ${product.title} with bitcoin`,
+    `buy ${product.title} with crypto`,
+    `cheap ${product.title}`,
+    hasPlatform ? `${product.title} ${product.platform}` : null,
+    hasPlatform ? `${product.title} ${product.platform} key` : null,
+    hasPlatform ? `buy ${product.title} ${product.platform} key` : null,
+    hasCategory ? `${product.category} game keys crypto` : null,
+    product.platform ?? 'game key',
+    product.category ?? 'digital goods',
+    'instant delivery',
+    'crypto payment',
+    'bitcoin gaming',
+  ].filter((k): k is string => k !== null && k !== undefined && k !== '');
+  
   return {
-    title: product.title,
+    title: `${product.title}${hasPlatform ? ` ${product.platform} Key` : ''}${priceText !== '' ? ` — ${priceText}` : ''} | Buy with Crypto`,
     description,
-    keywords: [
-      product.title,
-      product.platform ?? 'game key',
-      product.category ?? 'digital',
-      'crypto payment',
-      'bitcoin gaming',
-      'instant delivery',
-    ].filter(Boolean),
+    keywords: enrichedKeywords,
     openGraph: {
       title: `${product.title}${priceText !== '' ? ` - ${priceText}` : ''} | BitLoot`,
       description,
@@ -126,7 +145,7 @@ export default async function ProductLayout({
 }) {
   const { id } = await params;
   const product = await getProduct(id);
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://bitloot.com';
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://bitloot.io';
 
   // Don't render structured data if product not found
   if (product === null) {

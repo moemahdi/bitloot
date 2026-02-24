@@ -4,7 +4,7 @@
 
 - 🚀 **Frontend**: Next.js 16 (App Router) + React 19 PWA
 - 🏗️ **Backend**: NestJS + PostgreSQL + Redis + BullMQ
-- 💳 **Payments**: NOWPayments (300+ crypto assets)
+- 💳 **Payments**: NOWPayments (100+ crypto assets)
 - 📦 **Fulfillment**: Kinguin Sales Manager API (v1)
 - 🔐 **Security**: JWT auth, OTP (6-digit), HMAC verification, R2 signed URLs
 - 📚 **SDK-First**: Generated TypeScript SDK from OpenAPI (all network calls via SDK)

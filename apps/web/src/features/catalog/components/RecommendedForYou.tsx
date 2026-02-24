@@ -169,7 +169,7 @@ function CompactProductCard({ product, className }: CompactProductCardProps): Re
     
     // Reset button state after animation
     setTimeout(() => setIsAddingToCart(false), 1500);
-  }, [isAddingToCart, addItem, product.id, product.title, displayPrice, imageUrl, hasPlatform, platformValue, hasCategory, categoryValue]);
+  }, [isAddingToCart, addItem, product.id, product.slug, product.title, displayPrice, imageUrl, hasPlatform, platformValue, hasCategory, categoryValue]);
   
   return (
     <div

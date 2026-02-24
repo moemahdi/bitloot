@@ -74,7 +74,7 @@ export default function OrderSuccessPage(): React.ReactElement {
 
   // NOTE: Sandbox auto-fulfillment trigger removed.
   // Fulfillment is now handled exclusively by:
-  // 1. NOWPayments IPN webhook → triggers BullMQ fulfillment job
+  // 1. Payment IPN webhook → triggers BullMQ fulfillment job
   // 2. Kinguin order.complete webhook → triggers BullMQ fulfillment job
   // This prevents duplicate fulfillment, double emails, and duplicate key records.
 

@@ -613,7 +613,7 @@ export function PaymentMethodForm({
             <Shield className="w-3.5 h-3.5 text-green-success" />
             <span>
               Secure payment powered by{' '}
-              <span className="text-text-secondary font-medium">NOWPayments</span>
+              <span className="text-text-secondary font-medium">Crypto Payment Gateway</span>
             </span>
           </div>
         </form>

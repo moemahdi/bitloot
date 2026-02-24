@@ -58,7 +58,7 @@ Resend supports either sending raw HTML content or using pre-defined templates. 
 
 ```json
 {
-  "from": "BitLoot <no-reply@bitloot.com>",
+  "from": "BitLoot <no-reply@bitloot.io>",
   "to": ["user@example.com"],
   "subject": "Your BitLoot Verification Code",
   "template": {
@@ -129,7 +129,7 @@ dev.to.
 
 ### Sending Reset Email
 
-Send the password reset link or code to the user via Resend. Typically, a **reset link** is more user-friendly: e.g. `https://bitloot.com/reset-password?token=<token>`. The email content should include a clear call-to-action (button or link) for the user to reset their password. Using a Resend template can simplify this. For example, create a “Password Reset” email template with a variable for a **reset URL**. You might include the user’s first name for personalization as well. The template could be like:
+Send the password reset link or code to the user via Resend. Typically, a **reset link** is more user-friendly: e.g. `https://bitloot.io/reset-password?token=<token>`. The email content should include a clear call-to-action (button or link) for the user to reset their password. Using a Resend template can simplify this. For example, create a “Password Reset” email template with a variable for a **reset URL**. You might include the user’s first name for personalization as well. The template could be like:
 
 ```html
 <p>Hi {{FIRST_NAME}},</p>
@@ -197,7 +197,7 @@ The Idempotency-Key can be a unique value (like the order ID or a combination of
 resend.com.
 For example, if your order processing logic might call the email function twice by accident, the second call with the same idempotency key would be ignored by Resend (if within 24h). This is a nice safety for avoiding sending two receipts or two keys.
 
-Also, ensure your “from” addresses are consistent (e.g. `sales@bitloot.com` for order emails, `no-reply@bitloot.com` for OTPs, etc.), and that these addresses are verified domains on Resend (see section 5 on domain setup). Transactional emails usually don’t include unsubscribe links (since they’re related to an active transaction the user initiated), but it’s still good to make them informative and not too frequent.
+Also, ensure your “from” addresses are consistent (e.g. `sales@bitloot.io` for order emails, `no-reply@bitloot.io` for OTPs, etc.), and that these addresses are verified domains on Resend (see section 5 on domain setup). Transactional emails usually don’t include unsubscribe links (since they’re related to an active transaction the user initiated), but it’s still good to make them informative and not too frequent.
 
 ---
 
@@ -322,7 +322,7 @@ But since we’re not using SDK in this guide and to keep things simple, we use 
 
 ### Domain and Sender Identity
 
-Before sending from your custom domain (e.g. `@bitloot.com`), verify that domain in Resend. In the Resend dashboard’s Domains section, add your domain and follow the DNS instructions to set SPF/DKIM records
+Before sending from your custom domain (e.g. `@bitloot.io`), verify that domain in Resend. In the Resend dashboard’s Domains section, add your domain and follow the DNS instructions to set SPF/DKIM records
 resend.com
 resend.com.
 Once verified, you can send from addresses on that domain with higher deliverability. For development/testing, Resend might allow sending from unverified domains to certain “sandbox” addresses, but for production you want the domain properly verified.
@@ -444,7 +444,7 @@ export class MailService {
 
   async sendOtpEmail(to: string, code: string): Promise<void> {
     const payload = {
-      from: 'BitLoot <no-reply@bitloot.com>',
+      from: 'BitLoot <no-reply@bitloot.io>',
       to: [to],
       subject: 'Your BitLoot OTP Code',
       template: {

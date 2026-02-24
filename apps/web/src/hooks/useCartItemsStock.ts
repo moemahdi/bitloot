@@ -1,7 +1,9 @@
 'use client';
 
-import { useQueries, UseQueryResult } from '@tanstack/react-query';
-import { CatalogApi, ProductResponseDto } from '@bitloot/sdk';
+import { useQueries } from '@tanstack/react-query';
+import type { UseQueryResult } from '@tanstack/react-query';
+import { CatalogApi } from '@bitloot/sdk';
+import type { ProductResponseDto } from '@bitloot/sdk';
 import { apiConfig } from '@/lib/api-config';
 import type { CartItem } from '@/context/CartContext';
 
@@ -70,7 +72,7 @@ export function useCartItemsStock(items: CartItem[]): CartItemsStockResult {
         productId: item.productId,
         slug: item.slug!,
         isLoading: false,
-        error: query.error as Error,
+        error: query.error,
       });
     } else if (query.data !== undefined) {
       const { product } = query.data;

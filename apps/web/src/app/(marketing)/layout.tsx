@@ -3,8 +3,8 @@ import { Footer } from '@/components/layout/Footer';
 import { RecommendedSection } from '@/components/layout/RecommendedSection';
 import { FAQSchema } from '@/components/seo';
 
-// Force dynamic rendering — child pages use client hooks (useAuth, useRouter)
-export const dynamic = 'force-dynamic';
+// Note: No force-dynamic here — individual pages/layouts set their own revalidation.
+// Product + category layouts use next: { revalidate } for ISR edge caching.
 
 // FAQ items for structured data (mirrored from homepage)
 const FAQ_ITEMS_FOR_SCHEMA = [

@@ -65,7 +65,7 @@ Designed for speed, transparency, and automation, BitLoot connects directly to t
 | **Backend**            | NestJS (TypeScript, modular architecture)           | API, integrations, and webhooks             |
 | **Database**           | PostgreSQL + TypeORM                                | Persistent storage for users, orders, keys  |
 | **Cache & Queues**     | Redis + BullMQ                                      | Webhook retries, payment jobs, sync queues  |
-| **Payments**           | NOWPayments API                                     | 300+ crypto assets, IPN status updates      |
+| **Payments**           | NOWPayments API                                     | 100+ crypto assets, IPN status updates      |
 | **Fulfillment**        | Kinguin Sales Manager API (v1)                      | Offer sync, stock reservation, key delivery |
 | **Storage**            | Cloudflare R2                                       | Encrypted storage for digital assets        |
 | **Emails**             | Resend                                              | Authentication and transactional messages   |
