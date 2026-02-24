@@ -12,7 +12,7 @@
  * Follows Level 5 admin page patterns with neon cyberpunk design
  */
 
-import { useQuery, useQueryClient, useQueries } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState, useMemo, useCallback } from 'react';
 import Image from 'next/image';
 import {
@@ -176,19 +176,30 @@ async function fetchProducts(search: string): Promise<Product[]> {
   return response.products;
 }
 
-async function fetchSectionProducts(sectionKey: string): Promise<Product[]> {
+// Single fetch for all section products — split client-side, avoids 4×5000 calls
+async function fetchAllSectionProducts(): Promise<Record<string, Product[]>> {
   const api = new AdminCatalogProductsApi(apiConfig);
   const response = await api.adminProductsControllerListAll({
     published: 'true',
     limit: '5000',
   });
-  
-  return response.products
-    .filter((p) => {
-      const sections = p.featuredSections ?? [];
-      return sections.includes(sectionKey);
-    })
-    .sort((a, b) => (a.featuredOrder ?? 0) - (b.featuredOrder ?? 0));
+
+  const sectionKeys = HOMEPAGE_SECTIONS.map((s) => s.key);
+  const map: Record<string, Product[]> = {};
+  for (const key of sectionKeys) map[key] = [];
+
+  for (const product of response.products) {
+    const sections = product.featuredSections ?? [];
+    for (const key of sectionKeys) {
+      if (sections.includes(key)) map[key]!.push(product);
+    }
+  }
+
+  for (const key of sectionKeys) {
+    map[key]!.sort((a, b) => (a.featuredOrder ?? 0) - (b.featuredOrder ?? 0));
+  }
+
+  return map;
 }
 
 async function addProductToSection(
@@ -759,33 +770,24 @@ export default function HomepageSectionsPage(): React.ReactElement {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Fetch products for all sections
-  const sectionQueryResults = useQueries({
-    queries: HOMEPAGE_SECTIONS.map((config) => ({
-      queryKey: ['admin', 'marketing', 'section-products', config.key],
-      queryFn: () => fetchSectionProducts(config.key),
-      staleTime: 30_000,
-    })),
+  // Single query fetches all sections at once — 1 API call instead of 4
+  const allSectionsQuery = useQuery({
+    queryKey: ['admin', 'marketing', 'all-section-products'],
+    queryFn: fetchAllSectionProducts,
+    staleTime: 30_000,
   });
 
-  const sectionQueries = HOMEPAGE_SECTIONS.map((config, index) => {
-    const queryResult = sectionQueryResults[index];
-    return { key: config.key, query: queryResult };
-  }).filter((sq): sq is { key: string; query: NonNullable<typeof sq.query> } => sq.query !== undefined);
-
-  const getSectionProducts = (key: string): Product[] => {
-    const sectionQuery = sectionQueries.find((sq) => sq.key === key);
-    return sectionQuery?.query.data ?? [];
-  };
+  const getSectionProducts = (key: string): Product[] =>
+    allSectionsQuery.data?.[key] ?? [];
 
   const handleManage = (config: SectionConfig) => {
     setActiveSection(config);
     setIsDialogOpen(true);
   };
 
-  const invalidateSection = async (sectionKey: string) => {
+  const invalidateSection = async (_sectionKey: string) => {
     await queryClient.refetchQueries({ 
-      queryKey: ['admin', 'marketing', 'section-products', sectionKey] 
+      queryKey: ['admin', 'marketing', 'all-section-products'],
     });
     // Also refetch search queries so excludeIds updates
     await queryClient.invalidateQueries({ 
@@ -886,19 +888,19 @@ export default function HomepageSectionsPage(): React.ReactElement {
   };
 
   const totalProducts = useMemo(() => {
-    return sectionQueries.reduce((acc, sq) => acc + (sq.query.data?.length ?? 0), 0);
-  }, [sectionQueries]);
+    if (allSectionsQuery.data === undefined) return 0;
+    return HOMEPAGE_SECTIONS.reduce((acc, s) => acc + (allSectionsQuery.data[s.key]?.length ?? 0), 0);
+  }, [allSectionsQuery.data]);
 
   const activeSectionsCount = useMemo(() => {
-    return sectionQueries.filter((sq) => (sq.query.data?.length ?? 0) > 0).length;
-  }, [sectionQueries]);
+    if (allSectionsQuery.data === undefined) return 0;
+    return HOMEPAGE_SECTIONS.filter((s) => (allSectionsQuery.data[s.key]?.length ?? 0) > 0).length;
+  }, [allSectionsQuery.data]);
 
-  const isAnyLoading = sectionQueries.some((sq) => sq.query.isLoading);
-  const isAnyRefetching = sectionQueries.some((sq) => sq.query.isRefetching);
+  const isAnyLoading = allSectionsQuery.isLoading;
+  const isAnyRefetching = allSectionsQuery.isRefetching;
 
-  const refetchAll = () => {
-    sectionQueries.forEach((sq) => { void sq.query.refetch(); });
-  };
+  const refetchAll = () => { void allSectionsQuery.refetch(); };
 
   return (
     <div className="space-y-4 sm:space-y-6 p-3 sm:p-6">
