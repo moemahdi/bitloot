@@ -296,7 +296,9 @@ export function OnlineStoreSchema() {
     priceRange: '€1 - €200',
     image: `${SITE_URL}/og-image.png`,
     sameAs: [
-      // Add social media links here
+      'https://x.com/bitloot_io',
+      'https://discord.gg/mqjUpqxBtA',
+      'https://t.me/its_bitloot',
     ],
   };
 
