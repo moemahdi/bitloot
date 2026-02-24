@@ -62,8 +62,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    site: '@bitloot',
-    creator: '@bitloot',
+    site: '@bitloot_io',
+    creator: '@bitloot_io',
     title: 'BitLoot - Buy Game Keys with Bitcoin and Crypto',
     description: 'Instant Steam, Xbox, PlayStation and Nintendo keys. Pay with BTC, ETH, USDT and 100+ cryptos. Anonymous, instant, secure.',
     images: [siteUrl + '/og-image.png'],

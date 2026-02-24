@@ -76,12 +76,14 @@ export const metadata: Metadata = {
   manifest: '/manifest.json',
   icons: {
     icon: [
+      { url: '/favicon.ico', sizes: '48x48' },
+      { url: '/icon-192.png', type: 'image/png', sizes: '192x192' },
       { url: '/icon.svg', type: 'image/svg+xml' },
-      { url: '/logo.svg', type: 'image/svg+xml', sizes: '512x512' },
     ],
     apple: [
-      { url: '/icon.svg', type: 'image/svg+xml' },
+      { url: '/icon-192.png', type: 'image/png', sizes: '192x192' },
     ],
+    shortcut: '/favicon.ico',
   },
   appleWebApp: {
     capable: true,
@@ -116,22 +118,22 @@ export const metadata: Metadata = {
     title: 'BitLoot — Buy Game Keys with Bitcoin & Crypto',
     description:
       'Instant delivery of Steam, PlayStation, Xbox & Nintendo keys. Pay with Bitcoin, Ethereum, and 100+ cryptocurrencies. Anonymous & secure.',
-    creator: '@bitloot',
-    site: '@bitloot',
+    creator: '@bitloot_io',
+    site: '@bitloot_io',
     images: ['/og-image.png'],
   },
   category: 'technology',
-  // Verification tags - Add your verification codes before launch
-  verification: {
-    google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION ?? '',
-    // yandex: '',
-    // bing: '',
-  },
+  // Verification tags
+  ...(process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION !== undefined &&
+    process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION !== '' && {
+      verification: {
+        google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION,
+      },
+    }),
   // Additional meta for e-commerce
   other: {
     'application-name': 'BitLoot',
-    'msapplication-TileImage': '/logo.svg',
-    'apple-itunes-app': 'app-id=XXXXXX', // Replace with App Store ID if applicable
+    'msapplication-TileImage': '/icon-192.png',
   },
 };
 
