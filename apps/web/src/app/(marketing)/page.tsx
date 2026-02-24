@@ -15,8 +15,6 @@ interface SchemaProduct {
   title: string;
   slug?: string;
   id: string;
-  coverUrl?: string;
-  retailPriceEur?: string;
 }
 
 async function getHomepageSchemaProducts(): Promise<SchemaProduct[]> {
@@ -75,8 +73,6 @@ export default async function HomePage(): Promise<React.ReactElement> {
   const productListItems = products.map((product) => ({
     name: product.title,
     url: `${siteUrl}/product/${product.slug !== undefined && product.slug !== '' ? product.slug : product.id}`,
-    image: product.coverUrl,
-    price: product.retailPriceEur,
   }));
 
   return (

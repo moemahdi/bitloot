@@ -14,8 +14,6 @@ interface CatalogSchemaProduct {
   title: string;
   slug?: string;
   id: string;
-  coverUrl?: string;
-  retailPriceEur?: string;
 }
 
 async function getCatalogSchemaProducts(): Promise<CatalogSchemaProduct[]> {
@@ -82,8 +80,6 @@ export default async function CatalogLayout({
   const productListItems = products.map((product) => ({
     name: product.title,
     url: `${siteUrl}/product/${product.slug !== undefined && product.slug !== '' ? product.slug : product.id}`,
-    image: product.coverUrl,
-    price: product.retailPriceEur,
   }));
 
   return (

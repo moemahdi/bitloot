@@ -235,8 +235,6 @@ export function FAQSchema({ items }: { items: FAQItem[] }) {
 interface ProductListItem {
   name: string;
   url: string;
-  image?: string;
-  price?: string;
 }
 
 export function ProductListSchema({ 
@@ -254,22 +252,12 @@ export function ProductListSchema({
     name,
     description,
     numberOfItems: items.length,
+    // Use simple ListItem with url — avoids Google requiring offers/review on every Product
     itemListElement: items.map((item, index) => ({
       '@type': 'ListItem',
       position: index + 1,
-      item: {
-        '@type': 'Product',
-        name: item.name,
-        url: item.url,
-        image: item.image,
-        ...(item.price !== undefined && item.price !== '' && {
-          offers: {
-            '@type': 'Offer',
-            price: parseFloat(item.price).toFixed(2),
-            priceCurrency: 'EUR',
-          },
-        }),
-      },
+      name: item.name,
+      url: item.url,
     })),
   };
 
