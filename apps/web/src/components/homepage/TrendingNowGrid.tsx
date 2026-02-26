@@ -17,6 +17,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { m } from 'framer-motion';
 import { useQuery } from '@tanstack/react-query';
+import { useInView } from '@/hooks/useInView';
 import { CatalogApi, Configuration } from '@bitloot/sdk';
 import type { ProductListResponseDto } from '@bitloot/sdk';
 import { toast } from 'sonner';
@@ -95,6 +96,12 @@ interface CarouselConfig {
 
 const TOTAL_PRODUCTS = 48;
 
+// Virtual carousel window — only render the visible slice + a buffer on each side.
+// This keeps DOM nodes low (≈12) even when 48 products are fetched.
+const CARD_SLOT_WIDTH = 304; // card width (288px) + gap (16px) at md breakpoint
+const RENDER_BUFFER = 3;     // extra cards rendered beyond visible edges
+const INITIAL_RENDER_COUNT = 10; // cards visible + buffer on first paint
+
 const CAROUSEL_CONFIGS: CarouselConfig[] = [
     {
         id: 'top-sellers',
@@ -121,7 +128,7 @@ const CAROUSEL_CONFIGS: CarouselConfig[] = [
     {
         id: 'hot-picks',
         title: 'Hot Picks',
-        subtitle: 'Editor\'s recommended trending games',
+        subtitle: "Editor's recommended trending games",
         icon: Sparkles,
         iconBg: 'bg-cyan-glow/20',
         iconColor: 'text-cyan-glow',
@@ -411,29 +418,52 @@ function TrendingCarousel({ config, products, onAddToCart, onToggleWishlist, isL
     const [activeSegment, setActiveSegment] = useState(0);
     const [totalSegments, setTotalSegments] = useState(1);
     const [isAutoScrollPaused, setIsAutoScrollPaused] = useState(false);
+    // Virtual window: only render the slice that's near the viewport
+    const [renderRange, setRenderRange] = useState({
+        start: 0,
+        end: Math.min(products.length, INITIAL_RENDER_COUNT),
+    });
 
     const IconComponent = config.icon;
 
-    // Check scroll state
+    // Update render range when products array length changes (e.g. after data loads)
+    useEffect(() => {
+        setRenderRange({ start: 0, end: Math.min(products.length, INITIAL_RENDER_COUNT) });
+    }, [products.length]);
+
+    // Check scroll state + compute virtual window in one rAF to avoid forced reflows
     const checkScrollState = useCallback(() => {
-        const container = scrollContainerRef.current;
-        if (container === null) return;
+        requestAnimationFrame(() => {
+            const container = scrollContainerRef.current;
+            if (container === null) return;
 
-        setCanScrollLeft(container.scrollLeft > 0);
-        setCanScrollRight(
-            container.scrollLeft < container.scrollWidth - container.clientWidth - 10
-        );
+            const scrollLeft = container.scrollLeft;
+            const scrollWidth = container.scrollWidth;
+            const clientWidth = container.clientWidth;
 
-        // Calculate segments
-        const cardWidth = 288; // ~18rem card width + gap
-        const visibleCards = Math.floor(container.clientWidth / cardWidth);
-        const segments = Math.max(1, Math.ceil(products.length / Math.max(1, visibleCards)));
-        setTotalSegments(segments);
+            setCanScrollLeft(scrollLeft > 0);
+            setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 10);
 
-        // Calculate active segment
-        const scrollProgress = container.scrollLeft / Math.max(1, container.scrollWidth - container.clientWidth);
-        const currentSegment = Math.min(segments - 1, Math.floor(scrollProgress * segments));
-        setActiveSegment(Number.isNaN(currentSegment) ? 0 : currentSegment);
+            // Calculate segments
+            const visibleCards = Math.floor(clientWidth / CARD_SLOT_WIDTH);
+            const segments = Math.max(1, Math.ceil(products.length / Math.max(1, visibleCards)));
+            setTotalSegments(segments);
+
+            // Calculate active segment
+            const scrollProgress = scrollLeft / Math.max(1, scrollWidth - clientWidth);
+            const currentSegment = Math.min(segments - 1, Math.floor(scrollProgress * segments));
+            setActiveSegment(Number.isNaN(currentSegment) ? 0 : currentSegment);
+
+            // Compute virtual window: which cards need to be in the DOM right now
+            const firstVisible = Math.floor(scrollLeft / CARD_SLOT_WIDTH);
+            const nextStart = Math.max(0, firstVisible - RENDER_BUFFER);
+            const nextEnd = Math.min(products.length, firstVisible + visibleCards + RENDER_BUFFER);
+            setRenderRange((prev) =>
+                prev.start === nextStart && prev.end === nextEnd
+                    ? prev // skip re-render if unchanged
+                    : { start: nextStart, end: nextEnd }
+            );
+        });
     }, [products.length]);
 
     // Initialize scroll state
@@ -468,17 +498,19 @@ function TrendingCarousel({ config, products, onAddToCart, onToggleWishlist, isL
         if (isAutoScrollPaused || products.length === 0) return;
 
         const intervalId = setInterval(() => {
-            const container = scrollContainerRef.current;
-            if (container === null) return;
+            requestAnimationFrame(() => {
+                const container = scrollContainerRef.current;
+                if (container === null) return;
 
-const cardWidth = 288;
-            const isAtEnd = container.scrollLeft >= container.scrollWidth - container.clientWidth - 10;
+                const cardWidth = 288;
+                const isAtEnd = container.scrollLeft >= container.scrollWidth - container.clientWidth - 10;
 
-            if (isAtEnd) {
-                container.scrollTo({ left: 0, behavior: 'smooth' });
-            } else {
-                container.scrollBy({ left: cardWidth * 2, behavior: 'smooth' });
-            }
+                if (isAtEnd) {
+                    container.scrollTo({ left: 0, behavior: 'smooth' });
+                } else {
+                    container.scrollBy({ left: cardWidth * 2, behavior: 'smooth' });
+                }
+            });
         }, 15000);
 
         return () => clearInterval(intervalId);
@@ -550,17 +582,38 @@ const cardWidth = 288;
                     {isLoading ? (
                         <CarouselSkeleton />
                     ) : (
-                        products.map((product, index) => (
-                            <div key={product.id} className="w-56 sm:w-64 md:w-72 shrink-0 snap-start">
-                                <TrendingCard
-                                    product={product}
-                                    rank={config.startIndex + index + 1}
-                                    accentColor={config.accentColor}
-                                    onAddToCart={onAddToCart}
-                                    onToggleWishlist={onToggleWishlist}
+                        <>
+                            {/* Left virtual spacer — maintains scroll width for hidden cards */}
+                            {renderRange.start > 0 && (
+                                <div
+                                    aria-hidden="true"
+                                    style={{ minWidth: renderRange.start * CARD_SLOT_WIDTH, flexShrink: 0 }}
                                 />
-                            </div>
-                        ))
+                            )}
+
+                            {products.slice(renderRange.start, renderRange.end).map((product, index) => (
+                                <div key={product.id} className="w-56 sm:w-64 md:w-72 shrink-0 snap-start">
+                                    <TrendingCard
+                                        product={product}
+                                        rank={config.startIndex + renderRange.start + index + 1}
+                                        accentColor={config.accentColor}
+                                        onAddToCart={onAddToCart}
+                                        onToggleWishlist={onToggleWishlist}
+                                    />
+                                </div>
+                            ))}
+
+                            {/* Right virtual spacer — maintains scroll width for hidden cards */}
+                            {renderRange.end < products.length && (
+                                <div
+                                    aria-hidden="true"
+                                    style={{
+                                        minWidth: (products.length - renderRange.end) * CARD_SLOT_WIDTH,
+                                        flexShrink: 0,
+                                    }}
+                                />
+                            )}
+                        </>
                     )}
                 </div>
             </div>
@@ -603,11 +656,16 @@ export function TrendingNowGrid(): React.ReactElement {
     const { mutate: addToWatchlist } = useAddToWatchlist();
     const { mutate: removeFromWatchlist } = useRemoveFromWatchlist();
 
-    // Fetch trending products
+    // Defer the API fetch until this section is near the viewport.
+    // This removes all trending API calls from the critical path on initial load.
+    const { ref: sectionRef, inView } = useInView('500px');
+
+    // Fetch trending products — only fires once the section is in view
     const { data: trendingData, isLoading, error } = useQuery<ProductListResponseDto>({
         queryKey: ['homepage', 'section', 'trending'],
         queryFn: () => catalogApi.catalogControllerGetProductsBySection({ sectionKey: 'trending', limit: TOTAL_PRODUCTS }),
-        staleTime: 2 * 60 * 1000,
+        staleTime: 5 * 60 * 1000, // 5 min stale time — trending changes slowly
+        enabled: inView,
     });
 
     // Transform API response
@@ -670,7 +728,7 @@ export function TrendingNowGrid(): React.ReactElement {
     }
 
     return (
-        <section className="py-12 md:py-16 bg-bg-primary relative">
+        <section ref={sectionRef} className="py-12 md:py-16 bg-bg-primary relative">
             {/* Top gradient line */}
             <div
                 className="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-orange-warning/30 to-transparent"

@@ -26,6 +26,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import dynamic from 'next/dynamic';
 import { LazyMotion, domAnimation, m } from 'framer-motion';
 import type { LucideIcon } from 'lucide-react';
 
@@ -44,7 +45,6 @@ import {
 import {
     Zap,
     Shield,
-    Star,
     ChevronRight,
     Bitcoin,
     ShoppingCart,
@@ -56,20 +56,38 @@ import {
     Wallet,
 } from 'lucide-react';
 
-// Components
-import { LivePurchaseFeed, TrustSection } from '@/components/SocialProof';
+// Components (SocialProof kept here for easy re-enabling)
+// import { LivePurchaseFeed, TrustSection } from '@/components/SocialProof';
 
-// Marketing Components (existing)
-import { FlashDealSection, BundleDealsSection, StickyFlashDealBanner } from '@/components/marketing';
+// Marketing Components (existing) — lazy loaded (below the fold)
+const FlashDealSection = dynamic(
+    () => import('@/components/marketing').then((m) => ({ default: m.FlashDealSection })),
+    { ssr: false, loading: () => <div className="py-16 bg-bg-primary" aria-hidden="true" /> }
+);
+const BundleDealsSection = dynamic(
+    () => import('@/components/marketing').then((m) => ({ default: m.BundleDealsSection })),
+    { ssr: false, loading: () => <div className="py-16" aria-hidden="true" /> }
+);
+import { StickyFlashDealBanner } from '@/components/marketing';
 
-// New 6-Section Architecture Components
-import {
-    HeroSection,
-    TrendingNowGrid,
-    FeaturedByTypeSection,
-    CategoryBrowser,
-    SpotlightGamesSection,
-} from '@/components/homepage';
+// New 6-Section Architecture Components — HeroSection eager, rest lazy
+import { HeroSection } from '@/components/homepage';
+const SpotlightGamesSection = dynamic(
+    () => import('@/components/homepage').then((m) => ({ default: m.SpotlightGamesSection })),
+    { ssr: false, loading: () => <div className="py-16" aria-hidden="true" /> }
+);
+const TrendingNowGrid = dynamic(
+    () => import('@/components/homepage').then((m) => ({ default: m.TrendingNowGrid })),
+    { ssr: false, loading: () => <div className="py-20" aria-hidden="true" /> }
+);
+const FeaturedByTypeSection = dynamic(
+    () => import('@/components/homepage').then((m) => ({ default: m.FeaturedByTypeSection })),
+    { ssr: false, loading: () => <div className="py-20" aria-hidden="true" /> }
+);
+const CategoryBrowser = dynamic(
+    () => import('@/components/homepage').then((m) => ({ default: m.CategoryBrowser })),
+    { ssr: false, loading: () => <div className="py-16" aria-hidden="true" /> }
+);
 
 // ============================================================================
 // TYPE DEFINITIONS
@@ -193,20 +211,18 @@ function BenefitsSection(): React.ReactElement {
 }
 
 // ============================================================================
-// SOCIAL PROOF SECTION
+// SOCIAL PROOF SECTION (disabled — uncomment import + section when re-enabling)
 // ============================================================================
 
-function _SocialProofSection(): React.ReactElement {
+/* function _SocialProofSection(): React.ReactElement {
     return (
         <section className="py-20 bg-bg-primary relative">
-            {/* Top gradient line */}
             <div
                 className="absolute top-0 left-0 right-0 h-px bg-linear-to-r from-transparent via-purple-neon/50 to-transparent"
                 aria-hidden="true"
             />
 
             <div className="container mx-auto px-4 md:px-6">
-                {/* Section Header */}
                 <m.div
                     initial={{ opacity: 0, y: 20 }}
                     whileInView={{ opacity: 1, y: 0 }}
@@ -230,32 +246,18 @@ function _SocialProofSection(): React.ReactElement {
                     </p>
                 </m.div>
 
-                {/* Live Purchase Feed & Trust Badges */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
-                    {/* Live Purchases */}
-                    <m.div
-                        initial={{ opacity: 0, x: -30 }}
-                        whileInView={{ opacity: 1, x: 0 }}
-                        viewport={{ once: true }}
-                        transition={{ duration: 0.5 }}
-                    >
+                    <m.div initial={{ opacity: 0, x: -30 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ duration: 0.5 }}>
                         <LivePurchaseFeed />
                     </m.div>
-
-                    {/* Trust Section */}
-                    <m.div
-                        initial={{ opacity: 0, x: 30 }}
-                        whileInView={{ opacity: 1, x: 0 }}
-                        viewport={{ once: true }}
-                        transition={{ duration: 0.5, delay: 0.1 }}
-                    >
+                    <m.div initial={{ opacity: 0, x: 30 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} transition={{ duration: 0.5, delay: 0.1 }}>
                         <TrustSection />
                     </m.div>
                 </div>
             </div>
         </section>
     );
-}
+} */
 
 // ============================================================================
 // FAQ SECTION
@@ -498,31 +500,13 @@ function CTASection(): React.ReactElement {
                 aria-hidden="true"
             />
 
-            {/* Floating Elements */}
-            <m.div
-                className="absolute top-10 left-10 w-20 h-20 rounded-full bg-cyan-glow/10 blur-2xl"
-                animate={{
-                    y: [0, 20, 0],
-                    opacity: [0.5, 0.8, 0.5],
-                }}
-                transition={{
-                    duration: 4,
-                    repeat: Infinity,
-                    ease: 'easeInOut',
-                }}
+            {/* Floating Elements — static CSS approach avoids JS-driven reflows */}
+            <div
+                className="absolute top-10 left-10 w-20 h-20 rounded-full bg-cyan-glow/10 blur-2xl animate-pulse"
                 aria-hidden="true"
             />
-            <m.div
-                className="absolute bottom-10 right-10 w-32 h-32 rounded-full bg-purple-neon/10 blur-3xl"
-                animate={{
-                    y: [0, -20, 0],
-                    opacity: [0.5, 0.7, 0.5],
-                }}
-                transition={{
-                    duration: 5,
-                    repeat: Infinity,
-                    ease: 'easeInOut',
-                }}
+            <div
+                className="absolute bottom-10 right-10 w-32 h-32 rounded-full bg-purple-neon/10 blur-3xl animate-pulse [animation-delay:1s]"
                 aria-hidden="true"
             />
 

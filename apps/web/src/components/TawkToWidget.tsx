@@ -108,41 +108,60 @@ export default function TawkToWidget() {
       return;
     }
 
-    // Initialize Tawk API
-    window.Tawk_API = window.Tawk_API ?? {};
-    window.Tawk_LoadStart = new Date();
+    const injectScript = () => {
+      if (scriptLoadedRef.current || document.getElementById('tawk-to-script') !== null) return;
 
-    // Set up onLoad callback
-    window.Tawk_API.onLoad = () => {
-      widgetReadyRef.current = true;
-      
-      // Hide immediately if on restricted route when widget loads
-      if (shouldHide && window.Tawk_API?.hideWidget !== undefined) {
-        window.Tawk_API.hideWidget();
+      // Initialize Tawk API
+      window.Tawk_API = window.Tawk_API ?? {};
+      window.Tawk_LoadStart = new Date();
+
+      // Set up onLoad callback
+      window.Tawk_API.onLoad = () => {
+        widgetReadyRef.current = true;
+
+        // Hide immediately if on restricted route when widget loads
+        if (shouldHide && window.Tawk_API?.hideWidget !== undefined) {
+          window.Tawk_API.hideWidget();
+        }
+      };
+
+      // Create and inject script
+      const script = document.createElement('script');
+      script.id = 'tawk-to-script';
+      script.async = true;
+      script.src = `https://embed.tawk.to/${TAWK_PROPERTY_ID}/${TAWK_WIDGET_ID}`;
+      script.charset = 'UTF-8';
+      script.setAttribute('crossorigin', '*');
+
+      const firstScript = document.getElementsByTagName('script')[0];
+      if (firstScript?.parentNode !== null && firstScript?.parentNode !== undefined) {
+        firstScript.parentNode.insertBefore(script, firstScript);
+      } else {
+        document.head.appendChild(script);
       }
+
+      scriptLoadedRef.current = true;
+
+      // Remove interaction listeners once loaded
+      USER_INTERACTION_EVENTS.forEach((event) => {
+        window.removeEventListener(event, injectScript);
+      });
     };
 
-    // Create and inject script
-    const script = document.createElement('script');
-    script.id = 'tawk-to-script';
-    script.async = true;
-    script.src = `https://embed.tawk.to/${TAWK_PROPERTY_ID}/${TAWK_WIDGET_ID}`;
-    script.charset = 'UTF-8';
-    script.setAttribute('crossorigin', '*');
+    // Delay loading until user interaction OR 7 seconds — whichever comes first.
+    // This keeps Tawk.to off the critical path and improves LCP/TBT significantly.
+    const USER_INTERACTION_EVENTS = ['scroll', 'mousemove', 'touchstart', 'keydown'] as const;
+    const timer = setTimeout(injectScript, 7000);
 
-    const firstScript = document.getElementsByTagName('script')[0];
-    if (firstScript?.parentNode !== null && firstScript?.parentNode !== undefined) {
-      firstScript.parentNode.insertBefore(script, firstScript);
-    } else {
-      document.head.appendChild(script);
-    }
+    USER_INTERACTION_EVENTS.forEach((event) => {
+      window.addEventListener(event, injectScript, { once: true, passive: true });
+    });
 
-    scriptLoadedRef.current = true;
-
-    // Cleanup on unmount (only remove if component fully unmounts)
     return () => {
-      // Don't remove script on route changes - just hide/show
-      // Script removal causes issues with SPAs
+      clearTimeout(timer);
+      USER_INTERACTION_EVENTS.forEach((event) => {
+        window.removeEventListener(event, injectScript);
+      });
     };
   }, [shouldHide, pathname]);
 

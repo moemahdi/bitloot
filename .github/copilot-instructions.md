@@ -552,6 +552,242 @@ const data = await adminApi.adminControllerGetReservations({ limit: 20 });
 
 ***
 
+## ⚡ Performance Standards — Mandatory for Every Page & Component
+
+_⚠️ AI AGENT: These rules are NON-NEGOTIABLE. Apply them automatically whenever creating or editing any Next.js page, section, or component. Do NOT wait to be asked._
+
+### 1. Deferred Data Fetching (Intersection Observer Gate)
+
+**Rule:** No below-fold section may fire a network request on initial page load.
+
+Use the `useInView` hook (`@/hooks/useInView`) to gate all TanStack Query fetches that are not needed for above-the-fold content:
+
+```tsx
+// ✅ REQUIRED pattern for every below-fold data section
+import { useInView } from '@/hooks/useInView';
+
+function BelowFoldSection() {
+  const { ref, inView } = useInView('500px'); // 500px pre-fetch margin
+  const { data } = useQuery({
+    queryKey: ['some-data'],
+    queryFn: fetchSomeData,
+    enabled: inView, // ← CRITICAL: zero API calls until near-viewport
+    staleTime: 5 * 60 * 1000,
+  });
+  return <section ref={ref}>...</section>;
+}
+```
+
+**Never do this for below-fold sections:**
+```tsx
+// ❌ Fires immediately on page load, blocking LCP
+const { data } = useQuery({ queryKey: ['data'], queryFn: fetch });
+```
+
+---
+
+### 2. Lazy Load All Below-Fold Components (`next/dynamic`)
+
+**Rule:** Only the above-the-fold component (Hero, top banner) may be imported statically. Everything else must use `next/dynamic` with `ssr: false`.
+
+```tsx
+// ✅ Static import ONLY for above-the-fold
+import HeroSection from '@/components/HeroSection';
+
+// ✅ Dynamic imports for everything below the fold
+const ProductGrid = dynamic(
+  () => import('@/components/ProductGrid'),
+  { ssr: false, loading: () => <div className="py-20" aria-hidden="true" /> }
+);
+const FAQSection = dynamic(() => import('@/components/FAQSection'), { ssr: false });
+```
+
+**Sizing of the placeholder:** match the expected height of the section (`py-16`, `py-20`, `h-96`, etc.) to avoid layout shift.
+
+---
+
+### 3. Avoid Forced Reflows — Wrap DOM Geometry Reads in `requestAnimationFrame`
+
+**Rule:** Never read `scrollLeft`, `scrollWidth`, `clientWidth`, `offsetWidth`, `offsetHeight`, `getBoundingClientRect()` etc. directly in scroll handlers, resize listeners, or `setInterval` callbacks. Always wrap in `requestAnimationFrame`.
+
+```tsx
+// ✅ rAF batches reads, prevents forced synchronous layout
+const checkScrollState = useCallback(() => {
+  requestAnimationFrame(() => {
+    const el = ref.current;
+    if (!el) return;
+    const { scrollLeft, scrollWidth, clientWidth } = el;
+    // now safe to call setState
+    setCanScrollLeft(scrollLeft > 0);
+  });
+}, []);
+
+// ❌ Causes forced reflow — reads layout after style invalidation
+const checkScrollState = () => {
+  setCanScrollLeft(ref.current.scrollLeft > 0); // forced reflow!
+};
+```
+
+Also applies to `setInterval` callbacks that read scroll geometry:
+```tsx
+// ✅
+setInterval(() => requestAnimationFrame(() => { /* read + scroll */ }), 15000);
+```
+
+---
+
+### 4. Virtual Windows for Long Carousels / Lists
+
+**Rule:** Any scrollable container with more than 12 items MUST use a virtual render window. Render only the visible slice + a buffer of 3 cards on each side. Use spacer `<div>`s to maintain correct `scrollWidth`.
+
+```tsx
+const CARD_WIDTH = 304; // card + gap
+const BUFFER = 3;
+
+// Track which cards are near the viewport
+const [range, setRange] = useState({ start: 0, end: 10 });
+
+// In the rAF scroll handler:
+const firstVisible = Math.floor(scrollLeft / CARD_WIDTH);
+const nextStart = Math.max(0, firstVisible - BUFFER);
+const nextEnd = Math.min(total, firstVisible + visible + BUFFER);
+
+// In JSX:
+<div ref={scrollRef} className="flex overflow-x-auto">
+  {/* Left spacer — keeps scrollbar geometry correct */}
+  {range.start > 0 && <div style={{ minWidth: range.start * CARD_WIDTH }} aria-hidden="true" />}
+
+  {items.slice(range.start, range.end).map((item) => <Card key={item.id} {...item} />)}
+
+  {/* Right spacer */}
+  {range.end < items.length && (
+    <div style={{ minWidth: (items.length - range.end) * CARD_WIDTH }} aria-hidden="true" />
+  )}
+</div>
+```
+
+---
+
+### 5. No Infinite JS Animations (Use CSS Instead)
+
+**Rule:** Never use Framer Motion `animate={{ ... repeat: Infinity }}` for decorative background blobs, pulses, or floating elements. These run on the main thread and cause continuous style recalculations.
+
+```tsx
+// ✅ CSS handles it off the main thread
+<div className="animate-pulse bg-cyan-glow/10 blur-2xl" aria-hidden="true" />
+<div className="animate-bounce [animation-delay:500ms]" aria-hidden="true" />
+
+// ❌ JS-driven infinite loop — causes continuous forced reflows
+<m.div animate={{ y: [0, 20, 0] }} transition={{ repeat: Infinity }} />
+```
+
+Use `framer-motion` only for one-shot entrance animations (`viewport={{ once: true }}`).
+
+---
+
+### 6. Third-Party Scripts — Always Deferred
+
+**Rule:** Never load third-party scripts eagerly on page mount. Load them only after user interaction OR after a timeout (≥ 5 seconds), whichever comes first.
+
+```tsx
+// ✅ Defer until interaction or timeout
+useEffect(() => {
+  const inject = () => { /* load script */ };
+  const timer = setTimeout(inject, 7000);
+  const events = ['scroll', 'mousemove', 'touchstart', 'keydown'] as const;
+  events.forEach(e => window.addEventListener(e, inject, { once: true, passive: true }));
+  return () => {
+    clearTimeout(timer);
+    events.forEach(e => window.removeEventListener(e, inject));
+  };
+}, []);
+
+// ❌ Loads immediately — blocks main thread during LCP window
+useEffect(() => { injectThirdPartyScript(); }, []);
+```
+
+Applies to: Tawk.to, analytics scripts, ad scripts, pixels, A/B testing SDKs.
+
+---
+
+### 7. `<Image>` Tag Rules
+
+**Rule:** Always use Next.js `<Image>` (never `<img>`). Mandatory attributes:
+
+```tsx
+// ✅ Correct
+<Image
+  src={product.imageUrl}
+  alt={product.title}   // descriptive alt for LCP images; "" for decorative
+  fill              // or explicit width + height
+  sizes="(max-width: 640px) 45vw, (max-width: 1024px) 30vw, 18vw"
+  loading="lazy"    // above-fold: use priority={true} instead
+  onError={() => setImageError(true)}
+/>
+
+// For the single above-the-fold hero image:
+<Image src={heroImg} alt="Hero" fill priority sizes="100vw" />
+```
+
+- Above-fold hero image: `priority={true}`, no `loading="lazy"`.
+- Below-fold images: `loading="lazy"` (default).
+- Always provide `sizes` prop — absence doubles image download size.
+- Never use `width` + `height` of `0` or omit alt text.
+
+---
+
+### 8. Font Loading
+
+**Rule:** Only fonts used in above-the-fold content should be preloaded. Mono/display fonts used only in code blocks or secondary content must use `preload: false`.
+
+```tsx
+// ✅ Mono font — not needed for initial paint
+const jetbrainsMono = JetBrains_Mono({
+  subsets: ['latin'],
+  variable: '--font-mono',
+  display: 'swap',
+  preload: false, // ← prevents woff2 blocking the critical path
+});
+```
+
+Never add `<link rel="preconnect">` for `fonts.googleapis.com` or `fonts.gstatic.com` — Next.js serves fonts locally and those hints are wasted connections.
+
+---
+
+### 9. API Payload Discipline
+
+**Rule:** Homepage sections must request only what they display in the initial visible viewport.
+
+| Section type | Max `limit` per request |
+|---|---|
+| Above-fold carousels (hero, trending row 1) | 12–16 |
+| Below-fold carousels (all others) | 48 max, with `useInView` gate |
+| Bundle/marketing sections | 10 |
+| Catalog pages | 24–48 with pagination |
+| Admin list pages | 20, with pagination |
+
+- **`staleTime` for homepage sections: 5 minutes** — product listings don't change second-by-second.
+- **`staleTime` for user-specific data (cart, profile, orders): 0 or 30 seconds**.
+
+---
+
+### 10. Page-Level Performance Checklist (AI: Run This Before Marking Any Page Complete)
+
+Before completing any new page or section, verify:
+
+- [ ] **No eager below-fold API calls** — all guarded with `useInView` + `enabled: inView`
+- [ ] **Below-fold components lazy loaded** — `next/dynamic` with `ssr: false`
+- [ ] **No `<img>` tags** — only `<Image>` from `next/image` with `sizes` prop
+- [ ] **Above-fold hero image** has `priority={true}`, not `loading="lazy"`
+- [ ] **No Framer Motion `repeat: Infinity`** on decorative elements — use CSS `animate-*`
+- [ ] **Carousel/list > 12 items** uses virtual render window with spacers
+- [ ] **Scroll/resize handlers** wrapped in `requestAnimationFrame`
+- [ ] **Third-party scripts** (chat, analytics) deferred with interaction + timeout strategy
+- [ ] **`staleTime` set** on all queries (never left at default 0 for public catalog data)
+- [ ] **No unused `preconnect` hints** in `<head>`
+
+***
+
 ## Security & Verification
 
 - HMAC signature verification for all webhooks/IPN.
