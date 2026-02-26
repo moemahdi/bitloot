@@ -71,34 +71,11 @@ export function CatalogHero({
       className="relative overflow-hidden border-b border-border-subtle"
       aria-label="Catalog hero"
     >
-      {/* Animated gradient orbs */}
+      {/* Static gradient orbs — CSS pulse only, no JS-driven animation */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none" aria-hidden="true">
-        <motion.div
-          className="absolute -top-1/2 -left-1/4 w-[600px] h-[600px] rounded-full bg-cyan-glow/10 blur-3xl"
-          animate={{ 
-            x: [0, 50, 0],
-            y: [0, 30, 0],
-            scale: [1, 1.1, 1],
-          }}
-          transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
-        />
-        <motion.div
-          className="absolute -top-1/4 right-0 w-[500px] h-[500px] rounded-full bg-purple-neon/10 blur-3xl"
-          animate={{ 
-            x: [0, -30, 0],
-            y: [0, 40, 0],
-            scale: [1, 1.15, 1],
-          }}
-          transition={{ duration: 10, repeat: Infinity, ease: 'easeInOut', delay: 1 }}
-        />
-        <motion.div
-          className="absolute bottom-0 left-1/3 w-[400px] h-[400px] rounded-full bg-pink-featured/5 blur-3xl"
-          animate={{ 
-            x: [0, 40, 0],
-            y: [0, -20, 0],
-          }}
-          transition={{ duration: 12, repeat: Infinity, ease: 'easeInOut', delay: 2 }}
-        />
+        <div className="absolute -top-1/2 -left-1/4 w-[600px] h-[600px] rounded-full bg-cyan-glow/10 blur-3xl animate-pulse [animation-duration:8s]" />
+        <div className="absolute -top-1/4 right-0 w-[500px] h-[500px] rounded-full bg-purple-neon/10 blur-3xl animate-pulse [animation-duration:10s] [animation-delay:1s]" />
+        <div className="absolute bottom-0 left-1/3 w-[400px] h-[400px] rounded-full bg-pink-featured/5 blur-3xl animate-pulse [animation-duration:12s] [animation-delay:2s]" />
       </div>
 
       {/* Gradient overlay */}
@@ -174,7 +151,7 @@ export function CatalogHero({
                 value={searchValue}
                 onChange={(e) => onSearchChange(e.target.value)}
                 onKeyDown={handleKeyPress}
-                className="flex-1 h-12 md:h-14 !border-0 bg-transparent text-text-primary placeholder:text-text-muted !ring-0 !ring-offset-0 !outline-none !shadow-none focus:!ring-0 focus:!border-0 focus-visible:!ring-0 focus-visible:!ring-offset-0 text-base"
+                className="flex-1 h-12 md:h-14 border-0! bg-transparent text-text-primary placeholder:text-text-muted ring-0! ring-offset-0! outline-none! shadow-none! focus:ring-0! focus:border-0! focus-visible:ring-0! focus-visible:ring-offset-0! text-base"
                 aria-label="Search products"
               />
               <div className="hidden md:flex items-center gap-2 pr-2">
