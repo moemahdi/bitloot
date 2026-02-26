@@ -19,6 +19,7 @@ import { useQuery } from '@tanstack/react-query';
 import { CatalogApi, Configuration } from '@bitloot/sdk';
 import type { ProductListResponseDto } from '@bitloot/sdk';
 import { toast } from 'sonner';
+import { useInView } from '@/hooks/useInView';
 
 // API Configuration
 const apiConfig = new Configuration({
@@ -159,7 +160,7 @@ function CompactProductCard({ product, color, onAddToCart, isPriority = false }:
                 colors.glow
             )}>
                 {/* Image Container */}
-                <div className="relative aspect-[4/3] overflow-hidden bg-bg-tertiary">
+                <div className="relative aspect-4/3 overflow-hidden bg-bg-tertiary">
                     {product.image != null && product.image !== '' ? (
                         <Image
                             src={product.image}
@@ -254,7 +255,7 @@ function CarouselSkeleton(): React.ReactElement {
             {Array.from({ length: 6 }).map((_, i) => (
                 <div key={i} className="w-56 sm:w-64 md:w-72 shrink-0">
                     <div className="overflow-hidden rounded-xl bg-bg-secondary border border-border-subtle">
-                        <Skeleton className="aspect-[4/3]" />
+                        <Skeleton className="aspect-4/3" />
                         <div className="p-3 space-y-2">
                             <Skeleton className="h-4 w-full" />
                             <div className="flex justify-between">
@@ -309,9 +310,11 @@ function ErrorState({ message }: { message: string }): React.ReactElement {
 
 interface ProductCarouselProps {
     config: ProductTypeConfig;
+    /** When false, the data fetch is deferred (IntersectionObserver-based). */
+    enabled?: boolean;
 }
 
-function ProductCarousel({ config }: ProductCarouselProps): React.ReactElement {
+function ProductCarousel({ config, enabled = true }: ProductCarouselProps): React.ReactElement {
     const scrollContainerRef = useRef<HTMLDivElement>(null);
     const [canScrollLeft, setCanScrollLeft] = useState(false);
     const [canScrollRight, setCanScrollRight] = useState(true);
@@ -324,14 +327,15 @@ function ProductCarousel({ config }: ProductCarouselProps): React.ReactElement {
     const colors = colorClasses[config.color];
     const Icon = config.icon;
 
-    // Fetch products
+    // Fetch products — gated by the parent section's IntersectionObserver
     const { data: productsData, isLoading, isError, error } = useQuery<ProductListResponseDto>({
         queryKey: ['homepage', 'carousel', config.id],
         queryFn: () => catalogApi.catalogControllerGetProductsBySection({ 
             sectionKey: config.id, 
             limit: PRODUCTS_PER_CAROUSEL 
         }),
-        staleTime: 2 * 60 * 1000,
+        staleTime: 5 * 60 * 1000, // 5 min stale
+        enabled,
     });
 
     // Transform products
@@ -352,30 +356,34 @@ function ProductCarousel({ config }: ProductCarouselProps): React.ReactElement {
         }));
     }, [productsData]);
 
-    // Check scroll state
+    // Check scroll state (wrapped in rAF to batch layout reads and avoid forced reflows)
     const checkScrollState = useCallback(() => {
-        const container = scrollContainerRef.current;
-        if (container === null) return;
+        requestAnimationFrame(() => {
+            const container = scrollContainerRef.current;
+            if (container === null) return;
 
-        setCanScrollLeft(container.scrollLeft > 0);
-        setCanScrollRight(
-            container.scrollLeft < container.scrollWidth - container.clientWidth - 10
-        );
+            const scrollLeft = container.scrollLeft;
+            const scrollWidth = container.scrollWidth;
+            const clientWidth = container.clientWidth;
 
-        // Calculate segments
-        const visibleCards = Math.floor(container.clientWidth / CARD_WIDTH);
-        const segments = Math.max(1, Math.ceil(products.length / Math.max(1, visibleCards)));
-        setTotalSegments(segments);
+            setCanScrollLeft(scrollLeft > 0);
+            setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 10);
 
-        // Calculate active segment
-        const maxScroll = container.scrollWidth - container.clientWidth;
-        if (maxScroll <= 0) {
-            setActiveSegment(0);
-            return;
-        }
-        const scrollProgress = container.scrollLeft / maxScroll;
-        const currentSegment = Math.min(segments - 1, Math.floor(scrollProgress * segments));
-        setActiveSegment(Number.isNaN(currentSegment) ? 0 : currentSegment);
+            // Calculate segments
+            const visibleCards = Math.floor(clientWidth / CARD_WIDTH);
+            const segments = Math.max(1, Math.ceil(products.length / Math.max(1, visibleCards)));
+            setTotalSegments(segments);
+
+            // Calculate active segment
+            const maxScroll = scrollWidth - clientWidth;
+            if (maxScroll <= 0) {
+                setActiveSegment(0);
+                return;
+            }
+            const scrollProgress = scrollLeft / maxScroll;
+            const currentSegment = Math.min(segments - 1, Math.floor(scrollProgress * segments));
+            setActiveSegment(Number.isNaN(currentSegment) ? 0 : currentSegment);
+        });
     }, [products.length]);
 
     // Initialize scroll state
@@ -409,16 +417,18 @@ function ProductCarousel({ config }: ProductCarouselProps): React.ReactElement {
         if (isAutoScrollPaused || products.length <= 6 || isLoading) return;
 
         const intervalId = setInterval(() => {
-            const container = scrollContainerRef.current;
-            if (container === null) return;
+            requestAnimationFrame(() => {
+                const container = scrollContainerRef.current;
+                if (container === null) return;
 
-            const isAtEnd = container.scrollLeft >= container.scrollWidth - container.clientWidth - 10;
+                const isAtEnd = container.scrollLeft >= container.scrollWidth - container.clientWidth - 10;
 
-            if (isAtEnd) {
-                container.scrollTo({ left: 0, behavior: 'smooth' });
-            } else {
-                container.scrollBy({ left: CARD_WIDTH * 2, behavior: 'smooth' });
-            }
+                if (isAtEnd) {
+                    container.scrollTo({ left: 0, behavior: 'smooth' });
+                } else {
+                    container.scrollBy({ left: CARD_WIDTH * 2, behavior: 'smooth' });
+                }
+            });
         }, 15000);
 
         return () => clearInterval(intervalId);
@@ -566,8 +576,12 @@ function ProductCarousel({ config }: ProductCarouselProps): React.ReactElement {
 // ============================================================================
 
 export function FeaturedByTypeSection(): React.ReactElement {
+    // Defer all carousel data fetches until this section is about to scroll into view.
+    // A single IntersectionObserver on the section root gates all 3 carousels simultaneously.
+    const { ref: sectionRef, inView } = useInView('500px');
+
     return (
-        <section className="py-12 md:py-16 bg-bg-primary relative overflow-hidden">
+        <section ref={sectionRef} className="py-12 md:py-16 bg-bg-primary relative overflow-hidden">
             {/* Background decoration */}
             <div
                 className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,var(--tw-gradient-stops))] from-purple-neon/5 via-transparent to-transparent opacity-50"
@@ -618,7 +632,7 @@ export function FeaturedByTypeSection(): React.ReactElement {
                             viewport={{ once: true }}
                             transition={{ duration: 0.4, delay: index * 0.1 }}
                         >
-                            <ProductCarousel config={config} />
+                            <ProductCarousel config={config} enabled={inView} />
                         </m.div>
                     ))}
                 </div>

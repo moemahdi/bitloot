@@ -3,9 +3,23 @@ const nextConfig = {
   // Disable React Compiler for now - causes prerender issues on Railway
   // reactCompiler: true,
   output: 'standalone',
+  compress: true,
+  poweredByHeader: false,
   eslint: {
     // Ignore ESLint during builds - lint is run separately in CI
     ignoreDuringBuilds: true,
+  },
+  experimental: {
+    // Tree-shake specific package imports to reduce bundle size
+    optimizePackageImports: [
+      'lucide-react',
+      'framer-motion',
+      '@radix-ui/react-accordion',
+      '@radix-ui/react-dialog',
+      '@radix-ui/react-dropdown-menu',
+      '@radix-ui/react-tooltip',
+      'date-fns',
+    ],
   },
   images: {
     remotePatterns: [
@@ -205,8 +219,11 @@ const nextConfig = {
     ],
     // Cache optimization for external images
     minimumCacheTTL: 2592000, // 30 days cache for external images
-    deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
-    imageSizes: [16, 24, 32, 48, 64, 96, 128, 256, 384],
+    deviceSizes: [640, 750, 828, 1080, 1200, 1920],
+    imageSizes: [16, 32, 64, 128, 256],
+    formats: ['image/avif', 'image/webp'],
+    dangerouslyAllowSVG: false,
+    contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
   },
   typescript: {
     tsconfigPath: './tsconfig.json',

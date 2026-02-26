@@ -25,6 +25,7 @@ const jetbrainsMono = JetBrains_Mono({
   subsets: ['latin'],
   variable: '--font-mono',
   display: 'swap',
+  preload: false,
 });
 
 // Site URL for structured data
@@ -154,8 +155,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }):
     <html lang="en" suppressHydrationWarning className="dark scrollbar-thin" data-scroll-behavior="smooth">
       <head>
         <link rel="manifest" href="/manifest.json" />
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <meta name="theme-color" content="#0A0E1A" />
         <meta name="msapplication-TileColor" content="#0A0E1A" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
