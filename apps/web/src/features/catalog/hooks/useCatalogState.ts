@@ -255,6 +255,20 @@ export function useCatalogState(): UseCatalogStateReturn {
   // Server-side region filtering is now supported, so we use normal pagination
   const fetchLimit = filters.itemsPerPage;
   
+  // Build a stable query key from only API-relevant fields (exclude UI-only state like viewMode)
+  const apiQueryKey = {
+    search: filters.search,
+    businessCategory: filters.businessCategory,
+    genre: filters.genre,
+    platform: filters.platform,
+    region: filters.region,
+    minPrice: filters.minPrice,
+    maxPrice: filters.maxPrice,
+    sortBy: filters.sortBy,
+    page: filters.page,
+    itemsPerPage: filters.itemsPerPage,
+  };
+
   const {
     data,
     isLoading,
@@ -262,7 +276,7 @@ export function useCatalogState(): UseCatalogStateReturn {
     error,
     refetch,
   } = useQuery({
-    queryKey: ['catalog-products', filters],
+    queryKey: ['catalog-products', apiQueryKey],
     queryFn: () => catalogClient.findAll({
       q: filters.search !== '' ? filters.search : undefined,
       businessCategory: filters.businessCategory ?? undefined,
