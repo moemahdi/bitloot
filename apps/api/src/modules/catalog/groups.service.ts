@@ -56,6 +56,21 @@ export class GroupsService {
       minPrice: '0.00000000',
       maxPrice: '0.00000000',
       productCount: 0,
+      // Spotlight fields
+      isSpotlight: dto.isSpotlight ?? false,
+      heroImageUrl: dto.heroImageUrl,
+      heroVideoUrl: dto.heroVideoUrl,
+      releaseDate: dto.releaseDate !== undefined ? new Date(dto.releaseDate) : undefined,
+      longDescription: dto.longDescription,
+      accentColor: dto.accentColor,
+      badgeText: dto.badgeText,
+      metacriticScore: dto.metacriticScore,
+      developerName: dto.developerName,
+      publisherName: dto.publisherName,
+      genres: dto.genres ?? [],
+      features: this.normalizeFeatures(dto.features),
+      faqItems: dto.faqItems ?? [],
+      spotlightOrder: dto.spotlightOrder ?? 0,
     });
 
     const saved = await this.groupRepo.save(group);
@@ -76,7 +91,7 @@ export class GroupsService {
       }
     }
 
-    // Apply updates
+    // Apply basic updates
     if (dto.title !== undefined) group.title = dto.title;
     if (dto.slug !== undefined) group.slug = dto.slug;
     if (dto.description !== undefined) group.description = dto.description;
@@ -84,6 +99,22 @@ export class GroupsService {
     if (dto.tagline !== undefined) group.tagline = dto.tagline;
     if (dto.isActive !== undefined) group.isActive = dto.isActive;
     if (dto.displayOrder !== undefined) group.displayOrder = dto.displayOrder;
+
+    // Apply spotlight updates
+    if (dto.isSpotlight !== undefined) group.isSpotlight = dto.isSpotlight;
+    if (dto.heroImageUrl !== undefined) group.heroImageUrl = dto.heroImageUrl;
+    if (dto.heroVideoUrl !== undefined) group.heroVideoUrl = dto.heroVideoUrl;
+    if (dto.releaseDate !== undefined) group.releaseDate = new Date(dto.releaseDate);
+    if (dto.longDescription !== undefined) group.longDescription = dto.longDescription;
+    if (dto.accentColor !== undefined) group.accentColor = dto.accentColor;
+    if (dto.badgeText !== undefined) group.badgeText = dto.badgeText;
+    if (dto.metacriticScore !== undefined) group.metacriticScore = dto.metacriticScore;
+    if (dto.developerName !== undefined) group.developerName = dto.developerName;
+    if (dto.publisherName !== undefined) group.publisherName = dto.publisherName;
+    if (dto.genres !== undefined) group.genres = dto.genres;
+    if (dto.features !== undefined) group.features = this.normalizeFeatures(dto.features);
+    if (dto.faqItems !== undefined) group.faqItems = dto.faqItems;
+    if (dto.spotlightOrder !== undefined) group.spotlightOrder = dto.spotlightOrder;
 
     const saved = await this.groupRepo.save(group);
     return this.toResponseDto(saved);
@@ -184,6 +215,10 @@ export class GroupsService {
       whereClause.isActive = query.isActive;
     }
 
+    if (query.isSpotlight !== undefined) {
+      whereClause.isSpotlight = query.isSpotlight;
+    }
+
     if (query.search !== undefined && query.search !== '') {
       whereClause.title = ILike(`%${query.search}%`);
     }
@@ -214,6 +249,43 @@ export class GroupsService {
     });
 
     return groups.map((g) => this.toResponseDto(g));
+  }
+
+  /**
+   * List all active spotlight groups for public games page
+   */
+  async findAllActiveSpotlights(): Promise<ProductGroupResponseDto[]> {
+    const groups = await this.groupRepo.find({
+      where: { isActive: true, isSpotlight: true },
+      order: { spotlightOrder: 'ASC', createdAt: 'DESC' },
+    });
+
+    return groups.map((g) => this.toResponseDto(g));
+  }
+
+  /**
+   * Get a spotlight group by slug with all products
+   * Returns 404 if group is not a spotlight or not active
+   */
+  async findSpotlightBySlug(slug: string): Promise<ProductGroupWithProductsDto> {
+    const group = await this.groupRepo.findOne({
+      where: { slug, isActive: true, isSpotlight: true },
+      relations: ['products'],
+    });
+
+    if (group === null) {
+      throw new NotFoundException(`Spotlight game "${slug}" not found`);
+    }
+
+    // Filter to only published products and sort by price
+    const publishedProducts = (group.products ?? [])
+      .filter((p) => p.isPublished)
+      .sort((a, b) => parseFloat(a.price) - parseFloat(b.price));
+
+    return {
+      ...this.toResponseDto(group),
+      products: publishedProducts.map((p) => this.toProductVariantDto(p)),
+    };
   }
 
   // ============================================
@@ -372,7 +444,63 @@ export class GroupsService {
       productCount: group.productCount,
       createdAt: group.createdAt,
       updatedAt: group.updatedAt,
+      // Spotlight fields
+      isSpotlight: group.isSpotlight,
+      heroImageUrl: group.heroImageUrl,
+      heroVideoUrl: group.heroVideoUrl,
+      releaseDate: group.releaseDate,
+      longDescription: group.longDescription,
+      accentColor: group.accentColor,
+      badgeText: group.badgeText,
+      metacriticScore: group.metacriticScore,
+      developerName: group.developerName,
+      publisherName: group.publisherName,
+      genres: group.genres ?? [],
+      features: this.normalizeFeatures(group.features),
+      faqItems: group.faqItems ?? [],
+      spotlightOrder: group.spotlightOrder,
     };
+  }
+
+  private normalizeFeatures(
+    features: unknown,
+  ): Array<{ title: string; description: string }> {
+    if (!Array.isArray(features)) {
+      return [];
+    }
+
+    const normalized = features
+      .map((item) => {
+        if (typeof item === 'string') {
+          const title = item.trim();
+          if (title === '') {
+            return null;
+          }
+          return { title, description: '' };
+        }
+
+        if (typeof item === 'object' && item !== null) {
+          const maybeItem = item as { title?: unknown; description?: unknown };
+          const title = typeof maybeItem.title === 'string' ? maybeItem.title.trim() : '';
+          const description =
+            typeof maybeItem.description === 'string'
+              ? maybeItem.description.trim()
+              : '';
+
+          if (title === '') {
+            return null;
+          }
+
+          return { title, description };
+        }
+
+        return null;
+      })
+      .filter(
+        (item): item is { title: string; description: string } => item !== null,
+      );
+
+    return normalized;
   }
 
   private toProductVariantDto(product: Product): GroupProductVariantDto {

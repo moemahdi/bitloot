@@ -19,6 +19,20 @@ Name | Type
 `productCount` | number
 `createdAt` | Date
 `updatedAt` | Date
+`isSpotlight` | boolean
+`heroImageUrl` | string
+`heroVideoUrl` | string
+`releaseDate` | Date
+`longDescription` | string
+`accentColor` | string
+`badgeText` | string
+`metacriticScore` | number
+`developerName` | string
+`publisherName` | string
+`genres` | Array&lt;string&gt;
+`features` | Array&lt;string&gt;
+`faqItems` | [Array&lt;FaqItemDto&gt;](FaqItemDto.md)
+`spotlightOrder` | number
 
 ## Example
 
@@ -40,6 +54,20 @@ const example = {
   "productCount": null,
   "createdAt": null,
   "updatedAt": null,
+  "isSpotlight": null,
+  "heroImageUrl": null,
+  "heroVideoUrl": null,
+  "releaseDate": null,
+  "longDescription": null,
+  "accentColor": null,
+  "badgeText": null,
+  "metacriticScore": null,
+  "developerName": null,
+  "publisherName": null,
+  "genres": null,
+  "features": null,
+  "faqItems": null,
+  "spotlightOrder": null,
 } satisfies ProductGroupResponseDto
 
 console.log(example)

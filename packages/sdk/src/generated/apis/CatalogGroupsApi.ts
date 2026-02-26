@@ -29,6 +29,10 @@ export interface GroupsControllerGetGroupRequest {
     slugOrId: string;
 }
 
+export interface GroupsControllerGetSpotlightRequest {
+    slug: string;
+}
+
 /**
  * 
  */
@@ -74,6 +78,45 @@ export class CatalogGroupsApi extends runtime.BaseAPI {
     }
 
     /**
+     * Returns a spotlight group with all its published products. Used to render the /games/[slug] page.
+     * Get spotlight game with all variants
+     */
+    async groupsControllerGetSpotlightRaw(requestParameters: GroupsControllerGetSpotlightRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<ProductGroupWithProductsDto>> {
+        if (requestParameters['slug'] == null) {
+            throw new runtime.RequiredError(
+                'slug',
+                'Required parameter "slug" was null or undefined when calling groupsControllerGetSpotlight().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/catalog/groups/spotlight/{slug}`;
+        urlPath = urlPath.replace(`{${"slug"}}`, encodeURIComponent(String(requestParameters['slug'])));
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => ProductGroupWithProductsDtoFromJSON(jsonValue));
+    }
+
+    /**
+     * Returns a spotlight group with all its published products. Used to render the /games/[slug] page.
+     * Get spotlight game with all variants
+     */
+    async groupsControllerGetSpotlight(requestParameters: GroupsControllerGetSpotlightRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<ProductGroupWithProductsDto> {
+        const response = await this.groupsControllerGetSpotlightRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
      * Returns all active product groups for display in the catalog. Groups are ordered by displayOrder then createdAt.
      * List all active product groups
      */
@@ -101,6 +144,37 @@ export class CatalogGroupsApi extends runtime.BaseAPI {
      */
     async groupsControllerListGroups(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<ProductGroupResponseDto>> {
         const response = await this.groupsControllerListGroupsRaw(initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Returns all active spotlight groups for display on the homepage and games page. Ordered by spotlightOrder.
+     * List all active spotlight groups
+     */
+    async groupsControllerListSpotlightsRaw(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<ProductGroupResponseDto>>> {
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/catalog/groups/spotlights`;
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => jsonValue.map(ProductGroupResponseDtoFromJSON));
+    }
+
+    /**
+     * Returns all active spotlight groups for display on the homepage and games page. Ordered by spotlightOrder.
+     * List all active spotlight groups
+     */
+    async groupsControllerListSpotlights(initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<ProductGroupResponseDto>> {
+        const response = await this.groupsControllerListSpotlightsRaw(initOverrides);
         return await response.value();
     }
 

@@ -65,6 +65,7 @@ import { NormalizePlatformNames1780000000000 } from './migrations/1780000000000-
 import { AddCostRangeToPricingRules1780100000000 } from './migrations/1780100000000-AddCostRangeToPricingRules';
 import { AddUserSuspendFields1780200000000 } from './migrations/1780200000000-AddUserSuspendFields';
 import { CreateProductInventory1780300000000 } from './migrations/1780300000000-CreateProductInventory';
+import { AddSpotlightFields1790000000000 } from './migrations/1790000000000-AddSpotlightFields';
 
 dotenv.config({ path: path.resolve(__dirname, '../../../../.env') });
 
@@ -114,6 +115,7 @@ export default new DataSource({
     AddCostRangeToPricingRules1780100000000,
     AddUserSuspendFields1780200000000,
     CreateProductInventory1780300000000,
+    AddSpotlightFields1790000000000,
   ],
   logging: true,
   synchronize: false,

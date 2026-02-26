@@ -9,9 +9,49 @@ import {
   MinLength,
   MaxLength,
   Min,
+  Max,
   ArrayMinSize,
+  IsDateString,
+  ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
+
+// ============================================
+// FAQ ITEM DTO
+// ============================================
+
+/**
+ * FAQ item for spotlight pages
+ */
+export class FaqItemDto {
+  @ApiProperty({ description: 'Question text' })
+  @IsString()
+  question!: string;
+
+  @ApiProperty({ description: 'Answer text' })
+  @IsString()
+  answer!: string;
+}
+
+/**
+ * Feature item for spotlight pages
+ */
+export class FeatureItemDto {
+  @ApiProperty({ description: 'Feature title', example: 'Massive Open World' })
+  @IsString()
+  @MinLength(2)
+  @MaxLength(120)
+  title!: string;
+
+  @ApiProperty({
+    description: 'Feature description',
+    example: 'Explore a living world with dynamic events, side quests, and seamless traversal.',
+  })
+  @IsString()
+  @MinLength(2)
+  @MaxLength(500)
+  description!: string;
+}
 
 // ============================================
 // CREATE / UPDATE DTOs
@@ -82,6 +122,144 @@ export class CreateProductGroupDto {
   @IsInt()
   @Min(0)
   displayOrder?: number;
+
+  // ============================================
+  // SPOTLIGHT FIELDS
+  // ============================================
+
+  @ApiProperty({
+    description: 'Whether this group appears on spotlight/games pages',
+    default: false,
+  })
+  @IsOptional()
+  @IsBoolean()
+  isSpotlight?: boolean;
+
+  @ApiProperty({
+    description: 'Full-width hero banner/poster image URL',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  heroImageUrl?: string;
+
+  @ApiProperty({
+    description: 'YouTube/Vimeo embed URL for trailer',
+    required: false,
+    example: 'https://www.youtube.com/embed/VIDEO_ID',
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  heroVideoUrl?: string;
+
+  @ApiProperty({
+    description: 'Release date (ISO 8601)',
+    required: false,
+    example: '2026-03-15T00:00:00Z',
+  })
+  @IsOptional()
+  @IsDateString()
+  releaseDate?: string;
+
+  @ApiProperty({
+    description: 'Rich marketing copy for spotlight page',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  longDescription?: string;
+
+  @ApiProperty({
+    description: 'Per-game accent color for theming',
+    required: false,
+    example: '#FF6B00',
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(20)
+  accentColor?: string;
+
+  @ApiProperty({
+    description: 'Badge text (NEW RELEASE, COMING SOON, PRE-ORDER)',
+    required: false,
+    example: 'NEW RELEASE',
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(50)
+  badgeText?: string;
+
+  @ApiProperty({
+    description: 'Metacritic score (0-100)',
+    required: false,
+    example: 85,
+  })
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(100)
+  metacriticScore?: number;
+
+  @ApiProperty({
+    description: 'Game developer name',
+    required: false,
+    example: 'DICE',
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(255)
+  developerName?: string;
+
+  @ApiProperty({
+    description: 'Game publisher name',
+    required: false,
+    example: 'Electronic Arts',
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(255)
+  publisherName?: string;
+
+  @ApiProperty({
+    description: 'Array of genre strings',
+    required: false,
+    example: ['FPS', 'Action', 'Multiplayer'],
+    type: [String],
+  })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  genres?: string[];
+
+  @ApiProperty({
+    description: 'Array of structured feature highlights',
+    required: false,
+    type: [FeatureItemDto],
+  })
+  @IsOptional()
+  @IsArray()
+  features?: FeatureItemDto[];
+
+  @ApiProperty({
+    description: 'Array of FAQ items',
+    required: false,
+    type: [FaqItemDto],
+  })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => FaqItemDto)
+  faqItems?: FaqItemDto[];
+
+  @ApiProperty({
+    description: 'Display order in spotlight carousel (lower = first)',
+    default: 0,
+  })
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  spotlightOrder?: number;
 }
 
 /**
@@ -148,6 +326,136 @@ export class UpdateProductGroupDto {
   @IsInt()
   @Min(0)
   displayOrder?: number;
+
+  // ============================================
+  // SPOTLIGHT FIELDS
+  // ============================================
+
+  @ApiProperty({
+    description: 'Whether this group appears on spotlight/games pages',
+    required: false,
+  })
+  @IsOptional()
+  @IsBoolean()
+  isSpotlight?: boolean;
+
+  @ApiProperty({
+    description: 'Full-width hero banner/poster image URL',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  heroImageUrl?: string;
+
+  @ApiProperty({
+    description: 'YouTube/Vimeo embed URL for trailer',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  heroVideoUrl?: string;
+
+  @ApiProperty({
+    description: 'Release date (ISO 8601)',
+    required: false,
+  })
+  @IsOptional()
+  @IsDateString()
+  releaseDate?: string;
+
+  @ApiProperty({
+    description: 'Rich marketing copy for spotlight page',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  longDescription?: string;
+
+  @ApiProperty({
+    description: 'Per-game accent color for theming',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(20)
+  accentColor?: string;
+
+  @ApiProperty({
+    description: 'Badge text (NEW RELEASE, COMING SOON, PRE-ORDER)',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(50)
+  badgeText?: string;
+
+  @ApiProperty({
+    description: 'Metacritic score (0-100)',
+    required: false,
+  })
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(100)
+  metacriticScore?: number;
+
+  @ApiProperty({
+    description: 'Game developer name',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(255)
+  developerName?: string;
+
+  @ApiProperty({
+    description: 'Game publisher name',
+    required: false,
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(255)
+  publisherName?: string;
+
+  @ApiProperty({
+    description: 'Array of genre strings',
+    required: false,
+    type: [String],
+  })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  genres?: string[];
+
+  @ApiProperty({
+    description: 'Array of structured feature highlights',
+    required: false,
+    type: [FeatureItemDto],
+  })
+  @IsOptional()
+  @IsArray()
+  features?: FeatureItemDto[];
+
+  @ApiProperty({
+    description: 'Array of FAQ items',
+    required: false,
+    type: [FaqItemDto],
+  })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => FaqItemDto)
+  faqItems?: FaqItemDto[];
+
+  @ApiProperty({
+    description: 'Display order in spotlight carousel (lower = first)',
+    required: false,
+  })
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  spotlightOrder?: number;
 }
 
 /**
@@ -266,6 +574,52 @@ export class ProductGroupResponseDto {
 
   @ApiProperty({ description: 'Updated at' })
   updatedAt!: Date;
+
+  // ============================================
+  // SPOTLIGHT FIELDS
+  // ============================================
+
+  @ApiProperty({ description: 'Whether this group appears on spotlight/games pages' })
+  isSpotlight!: boolean;
+
+  @ApiProperty({ description: 'Full-width hero banner/poster image URL' })
+  heroImageUrl?: string;
+
+  @ApiProperty({ description: 'YouTube/Vimeo embed URL for trailer' })
+  heroVideoUrl?: string;
+
+  @ApiProperty({ description: 'Release date' })
+  releaseDate?: Date;
+
+  @ApiProperty({ description: 'Rich marketing copy for spotlight page' })
+  longDescription?: string;
+
+  @ApiProperty({ description: 'Per-game accent color for theming' })
+  accentColor?: string;
+
+  @ApiProperty({ description: 'Badge text (NEW RELEASE, COMING SOON, PRE-ORDER)' })
+  badgeText?: string;
+
+  @ApiProperty({ description: 'Metacritic score (0-100)' })
+  metacriticScore?: number;
+
+  @ApiProperty({ description: 'Game developer name' })
+  developerName?: string;
+
+  @ApiProperty({ description: 'Game publisher name' })
+  publisherName?: string;
+
+  @ApiProperty({ description: 'Array of genre strings', type: [String] })
+  genres!: string[];
+
+  @ApiProperty({ description: 'Array of structured feature highlights', type: [FeatureItemDto] })
+  features!: FeatureItemDto[];
+
+  @ApiProperty({ description: 'Array of FAQ items', type: [FaqItemDto] })
+  faqItems!: FaqItemDto[];
+
+  @ApiProperty({ description: 'Display order in spotlight carousel' })
+  spotlightOrder!: number;
 }
 
 /**
@@ -315,6 +669,15 @@ export class ListProductGroupsQueryDto {
   @IsBoolean()
   @Type(() => Boolean)
   isActive?: boolean;
+
+  @ApiProperty({
+    description: 'Filter by spotlight status',
+    required: false,
+  })
+  @IsOptional()
+  @IsBoolean()
+  @Type(() => Boolean)
+  isSpotlight?: boolean;
 
   @ApiProperty({
     description: 'Search in title',

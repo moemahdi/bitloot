@@ -184,6 +184,7 @@ docs/EffectivePriceResponseDto.md
 docs/EmailChangeResponseDto.md
 docs/EmailsApi.md
 docs/EmbeddedPaymentResponseDto.md
+docs/FaqItemDto.md
 docs/FeatureFlagResponseDto.md
 docs/FeaturedCategoryDto.md
 docs/FiltersResponseDto.md
@@ -477,6 +478,7 @@ models/DeliveryLinkDto.ts
 models/EffectivePriceResponseDto.ts
 models/EmailChangeResponseDto.ts
 models/EmbeddedPaymentResponseDto.ts
+models/FaqItemDto.ts
 models/FeatureFlagResponseDto.ts
 models/FeaturedCategoryDto.ts
 models/FiltersResponseDto.ts

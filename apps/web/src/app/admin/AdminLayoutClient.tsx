@@ -72,7 +72,7 @@ const ADMIN_NAV = {
     items: [
       { href: '/admin/catalog', label: 'Overview', icon: ShoppingBag },
       { href: '/admin/catalog/products', label: 'Products', icon: Boxes },
-      { href: '/admin/catalog/groups', label: 'Groups', icon: Layers },
+      { href: '/admin/catalog/groups', label: 'Spotlights', icon: Layers },
       { href: '/admin/catalog/import', label: 'Import', icon: Crown },
       { href: '/admin/catalog/rules', label: 'Pricing Rules', icon: Settings },
       { href: '/admin/catalog/sync', label: 'Sync Status', icon: RefreshCw },

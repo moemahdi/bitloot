@@ -448,7 +448,7 @@ This endpoint does not need any parameter.
 
 ## adminGroupsControllerList
 
-> ProductGroupListResponseDto adminGroupsControllerList(isActive, search, page, limit)
+> ProductGroupListResponseDto adminGroupsControllerList(isActive, isSpotlight, search, page, limit)
 
 List all product groups
 
@@ -474,6 +474,8 @@ async function example() {
   const body = {
     // boolean | Filter by active status (optional)
     isActive: true,
+    // boolean | Filter by spotlight status (optional)
+    isSpotlight: true,
     // string | Search in title (optional)
     search: search_example,
     // number | Page number (1-based) (optional)
@@ -500,6 +502,7 @@ example().catch(console.error);
 | Name | Type | Description  | Notes |
 |------------- | ------------- | ------------- | -------------|
 | **isActive** | `boolean` | Filter by active status | [Optional] [Defaults to `undefined`] |
+| **isSpotlight** | `boolean` | Filter by spotlight status | [Optional] [Defaults to `undefined`] |
 | **search** | `string` | Search in title | [Optional] [Defaults to `undefined`] |
 | **page** | `number` | Page number (1-based) | [Optional] [Defaults to `1`] |
 | **limit** | `number` | Items per page | [Optional] [Defaults to `20`] |
