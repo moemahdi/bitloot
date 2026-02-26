@@ -52,6 +52,7 @@ interface WebsiteSearchSchemaProps {
 // ============ Organization Schema ============
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://bitloot.io';
+const FALLBACK_IMAGE = `${SITE_URL}/og-image.png`;
 
 export function OrganizationSchema({
   name = 'BitLoot',
@@ -141,7 +142,8 @@ export function ProductSchema({
     '@type': 'Product',
     name,
     description,
-    image,
+    // Always include image — fall back to OG image so Google never sees a missing image
+    image: image !== undefined && image !== '' ? image : FALLBACK_IMAGE,
     sku,
     brand: {
       '@type': 'Brand',
@@ -159,6 +161,46 @@ export function ProductSchema({
       url,
       priceValidUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
       itemCondition: 'https://schema.org/NewCondition',
+      // Required by Google for Merchant eligibility
+      shippingDetails: {
+        '@type': 'OfferShippingDetails',
+        shippingRate: {
+          '@type': 'MonetaryAmount',
+          value: '0',
+          currency: 'EUR',
+        },
+        shippingDestination: {
+          '@type': 'DefinedRegion',
+          addressCountry: 'WORLDWIDE',
+        },
+        deliveryTime: {
+          '@type': 'ShippingDeliveryTime',
+          handlingTime: {
+            '@type': 'QuantitativeValue',
+            minValue: 0,
+            maxValue: 0,
+            unitCode: 'MIN',
+          },
+          transitTime: {
+            '@type': 'QuantitativeValue',
+            minValue: 0,
+            maxValue: 5,
+            unitCode: 'MIN',
+          },
+        },
+        // Tells Google this is a digital / downloadable product
+        doesNotShip: true,
+      },
+      hasMerchantReturnPolicy: {
+        '@type': 'MerchantReturnPolicy',
+        applicableCountry: 'WORLDWIDE',
+        returnPolicyCategory: 'https://schema.org/MerchantReturnFiniteReturnWindow',
+        merchantReturnDays: 0,
+        returnMethod: 'https://schema.org/ReturnByMail',
+        returnFees: 'https://schema.org/FreeReturn',
+        // Digital keys are non-refundable once revealed — reflected here
+        refundType: 'https://schema.org/ExchangeRefund',
+      },
     },
     category,
   };
