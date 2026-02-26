@@ -66,6 +66,7 @@ export interface AdminGroupsControllerGetGroupProductsRequest {
 
 export interface AdminGroupsControllerListRequest {
     isActive?: boolean;
+    isSpotlight?: boolean;
     search?: string;
     page?: number;
     limit?: number;
@@ -384,6 +385,10 @@ export class AdminProductGroupsApi extends runtime.BaseAPI {
 
         if (requestParameters['isActive'] != null) {
             queryParameters['isActive'] = requestParameters['isActive'];
+        }
+
+        if (requestParameters['isSpotlight'] != null) {
+            queryParameters['isSpotlight'] = requestParameters['isSpotlight'];
         }
 
         if (requestParameters['search'] != null) {

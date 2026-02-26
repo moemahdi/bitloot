@@ -68,6 +68,7 @@ import {
     TrendingNowGrid,
     FeaturedByTypeSection,
     CategoryBrowser,
+    SpotlightGamesSection,
 } from '@/components/homepage';
 
 // ============================================================================
@@ -593,6 +594,9 @@ export default function HomepageClient(): React.ReactElement {
                 
                 {/* Section 1: Hero - Value prop + search + trust indicators */}
                 <HeroSection />
+                
+                {/* NEW: Game Spotlights - Featured game landing pages */}
+                <SpotlightGamesSection />
                 
                 {/* Section 2: Flash Deals - Urgency with countdown timer */}
                 <FlashDealSection />

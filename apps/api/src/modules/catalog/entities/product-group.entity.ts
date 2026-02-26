@@ -26,6 +26,7 @@ import { Product } from './product.entity';
 @Index(['slug'], { unique: true })
 @Index(['isActive', 'displayOrder'])
 @Index(['isActive', 'createdAt'])
+@Index(['isSpotlight', 'isActive', 'spotlightOrder'])
 export class ProductGroup {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
@@ -97,6 +98,96 @@ export class ProductGroup {
 
   @UpdateDateColumn()
   updatedAt!: Date;
+
+  // ============================================
+  // SPOTLIGHT FIELDS
+  // ============================================
+
+  /**
+   * Whether this group should appear on spotlight/games pages
+   */
+  @Column({ type: 'boolean', default: false })
+  isSpotlight!: boolean;
+
+  /**
+   * Full-width hero banner/poster image URL
+   */
+  @Column({ type: 'text', nullable: true })
+  heroImageUrl?: string;
+
+  /**
+   * YouTube/Vimeo embed URL for trailer
+   */
+  @Column({ type: 'varchar', length: 500, nullable: true })
+  heroVideoUrl?: string;
+
+  /**
+   * Release date for "COMING SOON" countdown
+   */
+  @Column({ type: 'timestamp', nullable: true })
+  releaseDate?: Date;
+
+  /**
+   * Rich marketing copy for spotlight page
+   */
+  @Column({ type: 'text', nullable: true })
+  longDescription?: string;
+
+  /**
+   * Per-game accent color for theming (e.g., "#FF6B00")
+   */
+  @Column({ type: 'varchar', length: 20, nullable: true })
+  accentColor?: string;
+
+  /**
+   * Badge text like "NEW RELEASE", "COMING SOON", "PRE-ORDER"
+   */
+  @Column({ type: 'varchar', length: 50, nullable: true })
+  badgeText?: string;
+
+  /**
+   * Metacritic score (0-100)
+   */
+  @Column({ type: 'int', nullable: true })
+  metacriticScore?: number;
+
+  /**
+   * Game developer name
+   */
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  developerName?: string;
+
+  /**
+   * Game publisher name
+   */
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  publisherName?: string;
+
+  /**
+   * Array of genre strings (e.g., ['Action', 'Open World'])
+   */
+  @Column({ type: 'jsonb', nullable: true, default: [] })
+  genres!: string[];
+
+  /**
+    * Array of structured feature highlights for the spotlight page
+    * Format: [{ title: string, description: string }]
+   */
+  @Column({ type: 'jsonb', nullable: true, default: [] })
+    features!: Array<{ title: string; description: string }>;
+
+  /**
+   * Array of FAQ items for the spotlight page
+   * Format: [{ question: string, answer: string }]
+   */
+  @Column({ type: 'jsonb', nullable: true, default: [] })
+  faqItems!: Array<{ question: string; answer: string }>;
+
+  /**
+   * Display order in spotlight carousel (lower = first)
+   */
+  @Column({ type: 'int', default: 0 })
+  spotlightOrder!: number;
 
   // Relations
   @OneToMany(() => Product, (product) => product.group)

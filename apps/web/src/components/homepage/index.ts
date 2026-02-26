@@ -8,3 +8,4 @@ export { HeroSection } from './HeroSection';
 export { TrendingNowGrid } from './TrendingNowGrid';
 export { FeaturedByTypeSection } from './FeaturedByTypeSection';
 export { CategoryBrowser } from './CategoryBrowser';
+export { SpotlightGamesSection } from './SpotlightGamesSection';

@@ -13,6 +13,20 @@ Name | Type
 `tagline` | string
 `isActive` | boolean
 `displayOrder` | number
+`isSpotlight` | boolean
+`heroImageUrl` | string
+`heroVideoUrl` | string
+`releaseDate` | string
+`longDescription` | string
+`accentColor` | string
+`badgeText` | string
+`metacriticScore` | number
+`developerName` | string
+`publisherName` | string
+`genres` | Array&lt;string&gt;
+`features` | Array&lt;string&gt;
+`faqItems` | [Array&lt;FaqItemDto&gt;](FaqItemDto.md)
+`spotlightOrder` | number
 
 ## Example
 
@@ -28,6 +42,20 @@ const example = {
   "tagline": Available on 5 platforms,
   "isActive": null,
   "displayOrder": null,
+  "isSpotlight": null,
+  "heroImageUrl": null,
+  "heroVideoUrl": https://www.youtube.com/embed/VIDEO_ID,
+  "releaseDate": 2026-03-15T00:00:00Z,
+  "longDescription": null,
+  "accentColor": #FF6B00,
+  "badgeText": NEW RELEASE,
+  "metacriticScore": 85,
+  "developerName": DICE,
+  "publisherName": Electronic Arts,
+  "genres": ["FPS","Action","Multiplayer"],
+  "features": ["Next-gen graphics","128 player battles","Cross-platform play"],
+  "faqItems": null,
+  "spotlightOrder": null,
 } satisfies CreateProductGroupDto
 
 console.log(example)

@@ -25,14 +25,13 @@ import {
   MobileFilterSheet,
   MobileFilterTrigger,
   CatalogProductGrid,
-  GroupVariantsModal,
   CatalogEmptyState,
   CatalogErrorState,
   CatalogPagination,
 } from '@/features/catalog/components';
 import { PLATFORMS, REGIONS, GENRES } from '@/features/catalog/types';
 import type { FilterPreset, CatalogProduct } from '@/features/catalog/types';
-import { CatalogGroupsApi, Configuration, type ProductGroupResponseDto, type WatchlistItemResponseDto } from '@bitloot/sdk';
+import { type WatchlistItemResponseDto } from '@bitloot/sdk';
 
 export default function CatalogPage(): React.ReactElement {
   const router = useRouter();
@@ -92,55 +91,7 @@ export default function CatalogPage(): React.ReactElement {
     }
   }, [watchlistData]);
   
-  // Selected group for modal
-  const [selectedGroup, setSelectedGroup] = useState<ProductGroupResponseDto | null>(null);
-  const [isGroupModalOpen, setIsGroupModalOpen] = useState(false);
-  
-  // Product groups state (fetched from API)
-  const [productGroups, setProductGroups] = useState<ProductGroupResponseDto[]>([]);
-  const [isLoadingGroups, setIsLoadingGroups] = useState(false);
-  
-  // Fetch product groups from API
-  useEffect(() => {
-    // Only fetch groups on first page without category filter
-    const hasCategory = filters.businessCategory !== undefined && filters.businessCategory !== null;
-    if (currentPage !== 1 || hasCategory) {
-      setProductGroups([]);
-      return;
-    }
-    
-    const fetchGroups = async (): Promise<void> => {
-      setIsLoadingGroups(true);
-      try {
-        const config = new Configuration({
-          basePath: process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000',
-        });
-        const api = new CatalogGroupsApi(config);
-        const groups = await api.groupsControllerListGroups();
-        setProductGroups(groups);
-      } catch (err) {
-        console.error('Failed to fetch product groups:', err);
-        setProductGroups([]);
-      } finally {
-        setIsLoadingGroups(false);
-      }
-    };
-    
-    void fetchGroups();
-  }, [currentPage, filters.businessCategory]);
-  
-  // Filter product groups by search query (client-side)
-  const filteredProductGroups = useMemo(() => {
-    if (filters.search === '') {
-      return productGroups;
-    }
-    const searchLower = filters.search.toLowerCase();
-    return productGroups.filter((group) => {
-      const titleMatch = group.title?.toLowerCase().includes(searchLower);
-      const taglineMatch = group.tagline?.toLowerCase().includes(searchLower);
-      return titleMatch || taglineMatch;
-    });
-  }, [productGroups, filters.search]);
+
   
   // Grid products are just all products (no more featured/trending separation)
   const gridProducts = useMemo(() => {
@@ -241,10 +192,7 @@ export default function CatalogPage(): React.ReactElement {
     }
   }, [router, products]);
   
-  const handleViewVariants = useCallback((group: ProductGroupResponseDto) => {
-    setSelectedGroup(group);
-    setIsGroupModalOpen(true);
-  }, []);
+
   
   const handleSavePreset = useCallback((name: string) => {
     saveCurrentPreset(name);
@@ -353,7 +301,7 @@ export default function CatalogPage(): React.ReactElement {
             />
             
             {/* Product Grid or Empty State */}
-            {!isLoading && gridProducts.length === 0 && filteredProductGroups.length === 0 ? (
+            {!isLoading && gridProducts.length === 0 ? (
               <CatalogEmptyState
                 filters={filters}
                 onResetFilters={resetFilters}
@@ -363,14 +311,11 @@ export default function CatalogPage(): React.ReactElement {
               <>
                 <CatalogProductGrid
                   products={gridProducts}
-                  productGroups={filteredProductGroups}
                   viewMode={viewMode}
                   isLoading={isLoading}
-                  isLoadingGroups={isLoadingGroups}
                   onAddToCart={handleAddToCart}
                   onToggleWishlist={handleToggleWishlist}
                   onViewProduct={handleViewProduct}
-                  onViewVariants={handleViewVariants}
                   wishlistIds={wishlistIds}
                   skeletonCount={itemsPerPage}
                 />
@@ -414,12 +359,6 @@ export default function CatalogPage(): React.ReactElement {
         totalResults={totalCount}
       />
       
-      {/* Product Group Variants Modal */}
-      <GroupVariantsModal
-        group={selectedGroup}
-        open={isGroupModalOpen}
-        onOpenChange={setIsGroupModalOpen}
-      />
     </div>
   );
 }

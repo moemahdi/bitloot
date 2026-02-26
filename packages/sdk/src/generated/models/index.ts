@@ -124,6 +124,7 @@ export * from './DeliveryLinkDto';
 export * from './EffectivePriceResponseDto';
 export * from './EmailChangeResponseDto';
 export * from './EmbeddedPaymentResponseDto';
+export * from './FaqItemDto';
 export * from './FeatureFlagResponseDto';
 export * from './FeaturedCategoryDto';
 export * from './FiltersResponseDto';

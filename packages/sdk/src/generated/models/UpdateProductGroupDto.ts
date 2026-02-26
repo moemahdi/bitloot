@@ -13,6 +13,14 @@
  */
 
 import { mapValues } from '../runtime';
+import type { FaqItemDto } from './FaqItemDto';
+import {
+    FaqItemDtoFromJSON,
+    FaqItemDtoFromJSONTyped,
+    FaqItemDtoToJSON,
+    FaqItemDtoToJSONTyped,
+} from './FaqItemDto';
+
 /**
  * 
  * @export
@@ -61,6 +69,90 @@ export interface UpdateProductGroupDto {
      * @memberof UpdateProductGroupDto
      */
     displayOrder?: number;
+    /**
+     * Whether this group appears on spotlight/games pages
+     * @type {boolean}
+     * @memberof UpdateProductGroupDto
+     */
+    isSpotlight?: boolean;
+    /**
+     * Full-width hero banner/poster image URL
+     * @type {string}
+     * @memberof UpdateProductGroupDto
+     */
+    heroImageUrl?: string;
+    /**
+     * YouTube/Vimeo embed URL for trailer
+     * @type {string}
+     * @memberof UpdateProductGroupDto
+     */
+    heroVideoUrl?: string;
+    /**
+     * Release date (ISO 8601)
+     * @type {string}
+     * @memberof UpdateProductGroupDto
+     */
+    releaseDate?: string;
+    /**
+     * Rich marketing copy for spotlight page
+     * @type {string}
+     * @memberof UpdateProductGroupDto
+     */
+    longDescription?: string;
+    /**
+     * Per-game accent color for theming
+     * @type {string}
+     * @memberof UpdateProductGroupDto
+     */
+    accentColor?: string;
+    /**
+     * Badge text (NEW RELEASE, COMING SOON, PRE-ORDER)
+     * @type {string}
+     * @memberof UpdateProductGroupDto
+     */
+    badgeText?: string;
+    /**
+     * Metacritic score (0-100)
+     * @type {number}
+     * @memberof UpdateProductGroupDto
+     */
+    metacriticScore?: number;
+    /**
+     * Game developer name
+     * @type {string}
+     * @memberof UpdateProductGroupDto
+     */
+    developerName?: string;
+    /**
+     * Game publisher name
+     * @type {string}
+     * @memberof UpdateProductGroupDto
+     */
+    publisherName?: string;
+    /**
+     * Array of genre strings
+     * @type {Array<string>}
+     * @memberof UpdateProductGroupDto
+     */
+    genres?: Array<string>;
+    /**
+     * Array of feature highlights
+     * @type {Array<string>}
+     * @memberof UpdateProductGroupDto
+     */
+    features?: Array<string>;
+    /**
+     * Array of FAQ items
+     * @type {Array<FaqItemDto>}
+     * @memberof UpdateProductGroupDto
+     */
+    faqItems?: Array<FaqItemDto>;
+    /**
+     * Display order in spotlight carousel (lower = first)
+     * @type {number}
+     * @memberof UpdateProductGroupDto
+     */
+    spotlightOrder?: number;
 }
 
 /**
@@ -87,6 +179,20 @@ export function UpdateProductGroupDtoFromJSONTyped(json: any, ignoreDiscriminato
         'tagline': json['tagline'] == null ? undefined : json['tagline'],
         'isActive': json['isActive'] == null ? undefined : json['isActive'],
         'displayOrder': json['displayOrder'] == null ? undefined : json['displayOrder'],
+        'isSpotlight': json['isSpotlight'] == null ? undefined : json['isSpotlight'],
+        'heroImageUrl': json['heroImageUrl'] == null ? undefined : json['heroImageUrl'],
+        'heroVideoUrl': json['heroVideoUrl'] == null ? undefined : json['heroVideoUrl'],
+        'releaseDate': json['releaseDate'] == null ? undefined : json['releaseDate'],
+        'longDescription': json['longDescription'] == null ? undefined : json['longDescription'],
+        'accentColor': json['accentColor'] == null ? undefined : json['accentColor'],
+        'badgeText': json['badgeText'] == null ? undefined : json['badgeText'],
+        'metacriticScore': json['metacriticScore'] == null ? undefined : json['metacriticScore'],
+        'developerName': json['developerName'] == null ? undefined : json['developerName'],
+        'publisherName': json['publisherName'] == null ? undefined : json['publisherName'],
+        'genres': json['genres'] == null ? undefined : json['genres'],
+        'features': json['features'] == null ? undefined : json['features'],
+        'faqItems': json['faqItems'] == null ? undefined : ((json['faqItems'] as Array<any>).map(FaqItemDtoFromJSON)),
+        'spotlightOrder': json['spotlightOrder'] == null ? undefined : json['spotlightOrder'],
     };
 }
 
@@ -108,6 +214,20 @@ export function UpdateProductGroupDtoToJSONTyped(value?: UpdateProductGroupDto |
         'tagline': value['tagline'],
         'isActive': value['isActive'],
         'displayOrder': value['displayOrder'],
+        'isSpotlight': value['isSpotlight'],
+        'heroImageUrl': value['heroImageUrl'],
+        'heroVideoUrl': value['heroVideoUrl'],
+        'releaseDate': value['releaseDate'],
+        'longDescription': value['longDescription'],
+        'accentColor': value['accentColor'],
+        'badgeText': value['badgeText'],
+        'metacriticScore': value['metacriticScore'],
+        'developerName': value['developerName'],
+        'publisherName': value['publisherName'],
+        'genres': value['genres'],
+        'features': value['features'],
+        'faqItems': value['faqItems'] == null ? undefined : ((value['faqItems'] as Array<any>).map(FaqItemDtoToJSON)),
+        'spotlightOrder': value['spotlightOrder'],
     };
 }
 

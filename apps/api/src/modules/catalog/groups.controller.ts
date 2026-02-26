@@ -34,6 +34,51 @@ export class GroupsController {
   }
 
   /**
+   * List all active spotlight groups (games)
+   * Used by the homepage/games page to show spotlight cards
+   */
+  @Get('spotlights')
+  @ApiOperation({
+    summary: 'List all active spotlight groups',
+    description: 'Returns all active spotlight groups for display on the homepage and games page. Ordered by spotlightOrder.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'List of active spotlight groups',
+    type: [ProductGroupResponseDto],
+  })
+  async listSpotlights(): Promise<ProductGroupResponseDto[]> {
+    return this.groupsService.findAllActiveSpotlights();
+  }
+
+  /**
+   * Get a spotlight group by slug with all its products
+   * Used by the /games/[slug] page to render the full spotlight experience
+   */
+  @Get('spotlight/:slug')
+  @ApiOperation({
+    summary: 'Get spotlight game with all variants',
+    description: 'Returns a spotlight group with all its published products. Used to render the /games/[slug] page.',
+  })
+  @ApiParam({
+    name: 'slug',
+    description: 'Spotlight game slug (e.g., "gta-6")',
+    example: 'gta-6',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Spotlight group with all variant products',
+    type: ProductGroupWithProductsDto,
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Spotlight game not found',
+  })
+  async getSpotlight(@Param('slug') slug: string): Promise<ProductGroupWithProductsDto> {
+    return this.groupsService.findSpotlightBySlug(slug);
+  }
+
+  /**
    * Get a product group by slug or ID with all its products
    * Used when user clicks on a group card to open the variant modal
    */
