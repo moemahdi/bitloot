@@ -16,6 +16,7 @@
  */
 
 import { useState, useCallback } from 'react';
+import { toast } from 'sonner';
 import { useParams, useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import {
@@ -91,6 +92,8 @@ import {
   ChevronLeft,
   ChevronRight,
   TrendingUp,
+  Download,
+  RotateCcw,
 } from 'lucide-react';
 import Link from 'next/link';
 import type {
@@ -108,6 +111,9 @@ import {
   useBulkImportInventory,
   useDeleteInventoryItem,
   useUpdateInventoryItemStatus,
+  useRestoreInventoryItem,
+  useBulkDeleteInventoryItems,
+  useExportInventoryItems,
   type InventoryFilters,
 } from '@/hooks/useInventory';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -312,19 +318,25 @@ function AddItemDialog({
         break;
     }
 
-    await addItemMutation.mutateAsync({
-      itemData,
-      supplier: metaData.supplier.length > 0 ? metaData.supplier : undefined,
-      cost: metaData.cost.length > 0 ? parseFloat(metaData.cost) : undefined,
-      expiresAt: metaData.expiresAt.length > 0 ? new Date(metaData.expiresAt).toISOString() : undefined,
-      notes: metaData.notes.length > 0 ? metaData.notes : undefined,
-    });
+    try {
+      await addItemMutation.mutateAsync({
+        itemData,
+        supplier: metaData.supplier.length > 0 ? metaData.supplier : undefined,
+        cost: metaData.cost.length > 0 ? parseFloat(metaData.cost) : undefined,
+        expiresAt: metaData.expiresAt.length > 0 ? new Date(metaData.expiresAt).toISOString() : undefined,
+        notes: metaData.notes.length > 0 ? metaData.notes : undefined,
+      });
 
-    // Reset and close
-    setFormData({});
-    setMetaData({ supplier: '', cost: '', expiresAt: '', notes: '' });
-    onSuccess();
-    onClose();
+      // Reset and close
+      setFormData({});
+      setMetaData({ supplier: '', cost: '', expiresAt: '', notes: '' });
+      toast.success('Item added successfully');
+      onSuccess();
+      onClose();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to add item';
+      toast.error(message);
+    }
   };
 
   const togglePasswordVisibility = (fieldName: string): void => {
@@ -597,6 +609,24 @@ function BulkImportDialog({
           <DialogDescription>
             Paste multiple items, one per line. Maximum 1000 items.
           </DialogDescription>
+
+          {/* Format help for account and bundle types */}
+          {deliveryType === 'account' && (
+            <Alert className="mt-2 border-primary/20 bg-primary/5">
+              <AlertDescription className="text-xs">
+                <strong>Format:</strong> username,password,email (comma-separated) or email:password:token (colon-separated).
+                The separator is auto-detected. If a third value contains &quot;@&quot; it&apos;s treated as an email; otherwise as notes.
+              </AlertDescription>
+            </Alert>
+          )}
+          {deliveryType === 'bundle' && (
+            <Alert className="mt-2 border-primary/20 bg-primary/5">
+              <AlertDescription className="text-xs">
+                <strong>Format:</strong> One JSON object per line. Each object must include a &quot;type&quot; field.
+                Bundle items: <code className="text-[11px]">{'{"type":"bundle","items":[{"type":"key","label":"Game","value":"KEY-123"}]}'}</code>
+              </AlertDescription>
+            </Alert>
+          )}
         </DialogHeader>
 
         <div className="space-y-4 py-4">
@@ -681,6 +711,9 @@ export default function ProductInventoryPage(): React.JSX.Element {
   const [showAddItem, setShowAddItem] = useState(false);
   const [showBulkImport, setShowBulkImport] = useState(false);
   const [deleteItemId, setDeleteItemId] = useState<string | null>(null);
+  const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
 
   // Filters
   const [filters, setFilters] = useState<InventoryFilters>({
@@ -708,6 +741,9 @@ export default function ProductInventoryPage(): React.JSX.Element {
   // Mutations
   const deleteItemMutation = useDeleteInventoryItem(productId);
   const updateStatusMutation = useUpdateInventoryItemStatus(productId);
+  const restoreItemMutation = useRestoreInventoryItem(productId);
+  const bulkDeleteMutation = useBulkDeleteInventoryItems(productId);
+  const exportItemsMutation = useExportInventoryItems(productId);
 
   const handleRefresh = useCallback((): void => {
     void inventoryQuery.refetch();
@@ -721,10 +757,96 @@ export default function ProductInventoryPage(): React.JSX.Element {
   };
 
   const handleMarkInvalid = async (itemId: string): Promise<void> => {
-    await updateStatusMutation.mutateAsync({
-      itemId,
-      dto: { status: 'invalid', reason: 'Marked invalid by admin' },
+    try {
+      await updateStatusMutation.mutateAsync({
+        itemId,
+        dto: { status: 'invalid', reason: 'Marked invalid by admin' },
+      });
+      toast.success('Item marked as invalid');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to mark item invalid';
+      toast.error(message);
+    }
+  };
+
+  const handleRestoreItem = async (itemId: string): Promise<void> => {
+    try {
+      await restoreItemMutation.mutateAsync(itemId);
+      toast.success('Item restored to available');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to restore item';
+      toast.error(message);
+    }
+  };
+
+  const handleBulkDelete = async (): Promise<void> => {
+    if (selectedItems.size === 0) return;
+    setIsBulkDeleting(true);
+    try {
+      const result = await bulkDeleteMutation.mutateAsync(Array.from(selectedItems));
+      toast.success(`Deleted ${result.deleted} items${(result.skipped ?? 0) > 0 ? `, skipped ${result.skipped} (reserved/sold)` : ''}`);
+      setSelectedItems(new Set());
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Bulk delete failed';
+      toast.error(message);
+    } finally {
+      setIsBulkDeleting(false);
+    }
+  };
+
+  const handleExportCsv = async (): Promise<void> => {
+    setIsExporting(true);
+    try {
+      const status = filters.status;
+      const data = await exportItemsMutation.mutateAsync(status);
+      // Build CSV
+      const headers = ['ID', 'Type', 'Status', 'Preview', 'Supplier', 'Cost', 'Uploaded', 'Sold At', 'Sold Price'];
+      const rows = data.map((item) => [
+        item.id,
+        item.deliveryType,
+        item.status,
+        item.maskedPreview ?? '',
+        item.supplier ?? '',
+        item.cost?.toFixed(2) ?? '',
+        item.uploadedAt instanceof Date ? item.uploadedAt.toISOString() : String(item.uploadedAt),
+        item.soldAt instanceof Date ? item.soldAt.toISOString() : (item.soldAt ?? ''),
+        item.soldPrice?.toFixed(2) ?? '',
+      ]);
+      const csv = [headers, ...rows].map((row) => row.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `inventory-${productId.slice(0, 8)}-${new Date().toISOString().split('T')[0]}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success(`Exported ${data.length} items`);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Export failed';
+      toast.error(message);
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const toggleSelectItem = (itemId: string): void => {
+    setSelectedItems((prev) => {
+      const next = new Set(prev);
+      if (next.has(itemId)) {
+        next.delete(itemId);
+      } else {
+        next.add(itemId);
+      }
+      return next;
     });
+  };
+
+  const toggleSelectAll = (): void => {
+    if (selectedItems.size === items.length) {
+      setSelectedItems(new Set());
+    } else {
+      setSelectedItems(new Set(items.map((i) => i.id)));
+    }
   };
 
   // Determine delivery type from PRODUCT, not from inventory items
@@ -796,6 +918,10 @@ export default function ProductInventoryPage(): React.JSX.Element {
           <Button variant="outline" onClick={handleRefresh} disabled={inventoryQuery.isFetching}>
             <RefreshCw className={`mr-2 h-4 w-4 ${inventoryQuery.isFetching ? 'animate-spin' : ''}`} />
             Refresh
+          </Button>
+          <Button variant="outline" onClick={handleExportCsv} disabled={isExporting}>
+            {isExporting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+            Export CSV
           </Button>
           {isCustomProduct && (
             <>
@@ -939,9 +1065,42 @@ export default function ProductInventoryPage(): React.JSX.Element {
             </div>
           ) : (
             <>
+              {/* Bulk Actions Bar */}
+              {selectedItems.size > 0 && isCustomProduct && (
+                <div className="flex items-center gap-3 mb-4 p-3 rounded-lg bg-primary/5 border border-primary/20">
+                  <span className="text-sm font-medium">{selectedItems.size} selected</span>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={handleBulkDelete}
+                    disabled={isBulkDeleting}
+                  >
+                    {isBulkDeleting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Trash2 className="mr-2 h-4 w-4" />}
+                    Delete Selected
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setSelectedItems(new Set())}
+                  >
+                    Clear
+                  </Button>
+                </div>
+              )}
+
               <Table>
                 <TableHeader>
                   <TableRow>
+                    {isCustomProduct && (
+                      <TableHead className="w-[40px]">
+                        <input
+                          type="checkbox"
+                          checked={items.length > 0 && selectedItems.size === items.length}
+                          onChange={toggleSelectAll}
+                          className="rounded border-border-subtle"
+                        />
+                      </TableHead>
+                    )}
                     <TableHead>Preview</TableHead>
                     <TableHead>Type</TableHead>
                     <TableHead>Status</TableHead>
@@ -961,6 +1120,16 @@ export default function ProductInventoryPage(): React.JSX.Element {
                         exit={{ opacity: 0, y: 10 }}
                         className="border-b border-border-subtle"
                       >
+                        {isCustomProduct && (
+                          <TableCell>
+                            <input
+                              type="checkbox"
+                              checked={selectedItems.has(item.id)}
+                              onChange={() => toggleSelectItem(item.id)}
+                              className="rounded border-border-subtle"
+                            />
+                          </TableCell>
+                        )}
                         <TableCell className="font-mono text-sm text-text-secondary">
                           {item.maskedPreview ?? '••••••••'}
                         </TableCell>
@@ -996,13 +1165,21 @@ export default function ProductInventoryPage(): React.JSX.Element {
                                     Mark Invalid
                                   </DropdownMenuItem>
                                 )}
-                                <DropdownMenuItem
-                                  className="text-destructive"
-                                  onClick={() => setDeleteItemId(item.id)}
-                                >
-                                  <Trash2 className="mr-2 h-4 w-4" />
-                                  Delete
-                                </DropdownMenuItem>
+                                {(item.status === 'expired' || item.status === 'invalid') && (
+                                  <DropdownMenuItem onClick={() => handleRestoreItem(item.id)}>
+                                    <RotateCcw className="mr-2 h-4 w-4" />
+                                    Restore to Available
+                                  </DropdownMenuItem>
+                                )}
+                                {item.status !== 'reserved' && (
+                                  <DropdownMenuItem
+                                    className="text-destructive"
+                                    onClick={() => setDeleteItemId(item.id)}
+                                  >
+                                    <Trash2 className="mr-2 h-4 w-4" />
+                                    Delete
+                                  </DropdownMenuItem>
+                                )}
                               </DropdownMenuContent>
                             </DropdownMenu>
                           )}

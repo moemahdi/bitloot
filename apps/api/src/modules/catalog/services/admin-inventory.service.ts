@@ -242,79 +242,133 @@ export class AdminInventoryService {
 
     // Process in transaction for consistency
     await this.dataSource.transaction(async (manager) => {
+      // PRE-COMPUTE: Generate hashes for all items upfront
+      const itemsWithHash: Array<{
+        index: number;
+        itemData: ItemData;
+        hash: string;
+        dto: typeof dto.items[number];
+      }> = [];
+
       for (let i = 0; i < dto.items.length; i++) {
         const itemDto = dto.items[i]!;
         const itemData = itemDto.itemData as unknown as ItemData;
 
-        try {
-          // Validate item type
-          if (itemData.type !== (product.deliveryType as string)) {
-            result.failed++;
-            result.errors.push(
-              `Item ${i + 1}: Type mismatch (${itemData.type} vs ${product.deliveryType})`,
-            );
-            continue;
-          }
-
-          const validationResult = validateItemData(
-            product.deliveryType,
-            itemData,
+        // Validate item type
+        if (itemData.type !== (product.deliveryType as string)) {
+          result.failed++;
+          result.errors.push(
+            `Item ${i + 1}: Type mismatch (${itemData.type} vs ${product.deliveryType})`,
           );
-          if (!validationResult.valid) {
-            result.failed++;
-            result.errors.push(`Item ${i + 1}: ${validationResult.error}`);
-            continue;
+          continue;
+        }
+
+        const validationResult = validateItemData(
+          product.deliveryType,
+          itemData,
+        );
+        if (!validationResult.valid) {
+          result.failed++;
+          result.errors.push(`Item ${i + 1}: ${validationResult.error}`);
+          continue;
+        }
+
+        itemsWithHash.push({
+          index: i,
+          itemData,
+          hash: this.generateItemHash(itemData),
+          dto: itemDto,
+        });
+      }
+
+      // BATCH DUPLICATE CHECK: Single query for all hashes instead of N queries
+      const existingHashes = new Set<string>();
+      if (itemsWithHash.length > 0) {
+        const allHashes = itemsWithHash.map((i) => i.hash);
+        // Query in batches of 500 to avoid parameter limits
+        for (let b = 0; b < allHashes.length; b += 500) {
+          const batch = allHashes.slice(b, b + 500);
+          const existing = await manager
+            .createQueryBuilder(ProductInventory, 'inv')
+            .select('inv.itemHash')
+            .where('inv.productId = :productId', { productId })
+            .andWhere('inv.itemHash IN (:...hashes)', { hashes: batch })
+            .getMany();
+          for (const e of existing) {
+            if (e.itemHash !== undefined) {
+              existingHashes.add(e.itemHash);
+            }
           }
+        }
+      }
 
-          // Check for duplicates
-          const itemHash = this.generateItemHash(itemData);
-          const existing = await manager.findOne(ProductInventory, {
-            where: { productId, itemHash },
-          });
+      // BATCH INSERT: Create all non-duplicate items
+      const toInsert: Partial<ProductInventory>[] = [];
 
-          if (existing !== null) {
+      for (const entry of itemsWithHash) {
+        try {
+          if (existingHashes.has(entry.hash)) {
             if (skipDuplicates) {
               result.skippedDuplicates++;
               continue;
             } else {
               result.failed++;
-              result.errors.push(`Item ${i + 1}: Duplicate item`);
+              result.errors.push(`Item ${entry.index + 1}: Duplicate item`);
+              continue;
+            }
+          }
+
+          // Also skip within-batch duplicates
+          if (toInsert.some((i) => i.itemHash === entry.hash)) {
+            if (skipDuplicates) {
+              result.skippedDuplicates++;
+              continue;
+            } else {
+              result.failed++;
+              result.errors.push(`Item ${entry.index + 1}: Duplicate item (within batch)`);
               continue;
             }
           }
 
           // Encrypt and create
-          const { encrypted, iv, authTag } = this.encryptItemData(itemData);
-          const maskedPreview = createMaskedPreview(itemData);
+          const { encrypted, iv, authTag } = this.encryptItemData(entry.itemData);
+          const maskedPreview = createMaskedPreview(entry.itemData);
 
-          const costValue = itemDto.cost ?? dto.costPerItem;
-          const item = manager.create(ProductInventory, {
+          const costValue = entry.dto.cost ?? dto.costPerItem;
+          toInsert.push({
             productId,
             deliveryType: product.deliveryType,
             itemDataEncrypted: encrypted,
             encryptionIv: iv,
             authTag,
-            itemHash,
+            itemHash: entry.hash,
             maskedPreview,
             status: InventoryItemStatus.AVAILABLE,
-            expiresAt: itemDto.expiresAt !== undefined && itemDto.expiresAt !== ''
-              ? new Date(itemDto.expiresAt)
+            expiresAt: entry.dto.expiresAt !== undefined && entry.dto.expiresAt !== ''
+              ? new Date(entry.dto.expiresAt)
               : undefined,
-            supplier: itemDto.supplier ?? dto.supplier,
+            supplier: entry.dto.supplier ?? dto.supplier,
             cost: costValue !== undefined ? String(costValue) : undefined,
-            notes: itemDto.notes,
+            notes: entry.dto.notes,
             uploadedAt: new Date(),
             uploadedById: adminId,
-          } as Partial<ProductInventory>);
-
-          await manager.save(ProductInventory, item);
-          result.imported++;
+          });
         } catch (error) {
           result.failed++;
           result.errors.push(
-            `Item ${i + 1}: ${error instanceof Error ? error.message : 'Unknown error'}`,
+            `Item ${entry.index + 1}: ${error instanceof Error ? error.message : 'Unknown error'}`,
           );
         }
+      }
+
+      // Bulk save in batches of 100
+      if (toInsert.length > 0) {
+        for (let b = 0; b < toInsert.length; b += 100) {
+          const batch = toInsert.slice(b, b + 100);
+          const entities = batch.map((data) => manager.create(ProductInventory, data));
+          await manager.save(ProductInventory, entities);
+        }
+        result.imported = toInsert.length;
       }
 
       // Update product stock count
@@ -474,12 +528,12 @@ export class AdminInventoryService {
         oldStatus === InventoryItemStatus.AVAILABLE &&
         dto.status === InventoryItemStatus.INVALID
       ) {
-        await manager.decrement(
-          Product,
-          { id: productId },
-          'stockAvailable',
-          1,
-        );
+        await manager
+          .createQueryBuilder()
+          .update(Product)
+          .set({ stockAvailable: () => 'GREATEST("stockAvailable" - 1, 0)' })
+          .where('id = :id', { id: productId })
+          .execute();
       } else if (
         oldStatus === InventoryItemStatus.INVALID &&
         dto.status === InventoryItemStatus.AVAILABLE
@@ -530,8 +584,13 @@ export class AdminInventoryService {
     await this.dataSource.transaction(async (manager) => {
       await manager.remove(ProductInventory, item);
 
-      // Update stock count
-      await manager.decrement(Product, { id: productId }, 'stockAvailable', 1);
+      // Update stock count (safe: prevent going below 0)
+      await manager
+        .createQueryBuilder()
+        .update(Product)
+        .set({ stockAvailable: () => 'GREATEST("stockAvailable" - 1, 0)' })
+        .where('id = :id', { id: productId })
+        .execute();
     });
 
     // Audit log
@@ -555,9 +614,22 @@ export class AdminInventoryService {
     productId: string,
     orderId: string,
   ): Promise<ProductInventory | null> {
+    const items = await this.reserveItems(productId, orderId, 1);
+    return items.length > 0 ? items[0]! : null;
+  }
+
+  /**
+   * Reserve multiple available items for an order (FIFO, single transaction)
+   * Used for multi-quantity orders to avoid sequential lock contention.
+   */
+  async reserveItems(
+    productId: string,
+    orderId: string,
+    quantity: number,
+  ): Promise<ProductInventory[]> {
     return this.dataSource.transaction(async (manager) => {
-      // Use FIFO - get oldest available item
-      const item = await manager
+      // Use FIFO - get oldest available items with pessimistic lock
+      const items = await manager
         .createQueryBuilder(ProductInventory, 'item')
         .where('item.productId = :productId', { productId })
         .andWhere('item.status = :status', {
@@ -568,25 +640,34 @@ export class AdminInventoryService {
           { now: new Date() },
         )
         .orderBy('item.uploadedAt', 'ASC')
+        .limit(quantity)
         .setLock('pessimistic_write')
-        .getOne();
+        .getMany();
 
-      if (item === null) {
-        return null;
+      if (items.length < quantity) {
+        // Not enough stock — return empty (caller handles)
+        return [];
       }
 
-      // Reserve the item
-      item.status = InventoryItemStatus.RESERVED;
-      item.reservedForOrderId = orderId;
-      item.reservedAt = new Date();
+      const now = new Date();
+      for (const item of items) {
+        item.status = InventoryItemStatus.RESERVED;
+        item.reservedForOrderId = orderId;
+        item.reservedAt = now;
+      }
 
-      await manager.save(ProductInventory, item);
+      await manager.save(ProductInventory, items);
 
-      // Update stock counts
-      await manager.decrement(Product, { id: productId }, 'stockAvailable', 1);
-      await manager.increment(Product, { id: productId }, 'stockReserved', 1);
+      // Update stock counts in bulk (safe: prevent going below 0)
+      await manager
+        .createQueryBuilder()
+        .update(Product)
+        .set({ stockAvailable: () => `GREATEST("stockAvailable" - ${quantity}, 0)` })
+        .where('id = :id', { id: productId })
+        .execute();
+      await manager.increment(Product, { id: productId }, 'stockReserved', quantity);
 
-      return item;
+      return items;
     });
   }
 
@@ -626,13 +707,13 @@ export class AdminInventoryService {
 
       await manager.save(ProductInventory, item);
 
-      // Update stock counts
-      await manager.decrement(
-        Product,
-        { id: item.productId },
-        'stockReserved',
-        1,
-      );
+      // Update stock counts (safe: prevent going below 0)
+      await manager
+        .createQueryBuilder()
+        .update(Product)
+        .set({ stockReserved: () => 'GREATEST("stockReserved" - 1, 0)' })
+        .where('id = :id', { id: item.productId })
+        .execute();
       await manager.increment(Product, { id: item.productId }, 'stockSold', 1);
 
       return item;
@@ -659,18 +740,18 @@ export class AdminInventoryService {
 
     return this.dataSource.transaction(async (manager) => {
       item.status = InventoryItemStatus.AVAILABLE;
-      item.reservedForOrderId = undefined;
-      item.reservedAt = undefined;
+      item.reservedForOrderId = null as unknown as undefined;
+      item.reservedAt = null as unknown as undefined;
 
       await manager.save(ProductInventory, item);
 
-      // Update stock counts
-      await manager.decrement(
-        Product,
-        { id: item.productId },
-        'stockReserved',
-        1,
-      );
+      // Update stock counts (safe: prevent going below 0)
+      await manager
+        .createQueryBuilder()
+        .update(Product)
+        .set({ stockReserved: () => 'GREATEST("stockReserved" - 1, 0)' })
+        .where('id = :id', { id: item.productId })
+        .execute();
       await manager.increment(
         Product,
         { id: item.productId },
@@ -789,14 +870,14 @@ export class AdminInventoryService {
         { status: InventoryItemStatus.EXPIRED },
       );
 
-      // Update product stock counts
+      // Update product stock counts (safe: prevent going below 0)
       for (const [productId, count] of productCounts) {
-        await manager.decrement(
-          Product,
-          { id: productId },
-          'stockAvailable',
-          count,
-        );
+        await manager
+          .createQueryBuilder()
+          .update(Product)
+          .set({ stockAvailable: () => `GREATEST("stockAvailable" - ${count}, 0)` })
+          .where('id = :id', { id: productId })
+          .execute();
       }
 
       return toExpire.length;
@@ -850,5 +931,136 @@ export class AdminInventoryService {
       soldToOrderId: item.soldToOrderId ?? undefined,
       wasReported: item.wasReported,
     };
+  }
+
+  // ============================================
+  // BULK OPERATIONS
+  // ============================================
+
+  /**
+   * Bulk delete inventory items (only available/expired/invalid items can be deleted)
+   */
+  async bulkDeleteItems(
+    productId: string,
+    itemIds: string[],
+    adminId: string,
+  ): Promise<{ deleted: number; skipped: number }> {
+    const deletableStatuses = [
+      InventoryItemStatus.AVAILABLE,
+      InventoryItemStatus.EXPIRED,
+      InventoryItemStatus.INVALID,
+    ];
+
+    return this.dataSource.transaction(async (manager) => {
+      const items = await manager.find(ProductInventory, {
+        where: {
+          id: In(itemIds),
+          productId,
+        },
+      });
+
+      const toDelete = items.filter((i) =>
+        deletableStatuses.includes(i.status),
+      );
+      const skipped = items.length - toDelete.length;
+
+      if (toDelete.length === 0) {
+        return { deleted: 0, skipped };
+      }
+
+      // Count available items being deleted (to update stock)
+      const availableCount = toDelete.filter(
+        (i) => i.status === InventoryItemStatus.AVAILABLE,
+      ).length;
+
+      await manager.delete(ProductInventory, toDelete.map((i) => i.id));
+
+      // Update stock count
+      if (availableCount > 0) {
+        await manager
+          .createQueryBuilder()
+          .update(Product)
+          .set({ stockAvailable: () => `GREATEST("stockAvailable" - ${availableCount}, 0)` })
+          .where('id = :id', { id: productId })
+          .execute();
+      }
+
+      // Audit log
+      await this.auditLogService.log(
+        adminId,
+        'inventory:bulk-delete',
+        `product:${productId}`,
+        { deleted: toDelete.length, skipped },
+        `Bulk deleted ${toDelete.length} item(s), skipped ${skipped}`,
+      );
+
+      return { deleted: toDelete.length, skipped };
+    });
+  }
+
+  /**
+   * Export inventory items for a product as response DTOs
+   */
+  async exportItems(
+    productId: string,
+    statuses?: InventoryItemStatus[],
+  ): Promise<InventoryItemResponseDto[]> {
+    const where: Record<string, unknown> = { productId };
+
+    if (statuses !== undefined && statuses.length > 0) {
+      where['status'] = In(statuses);
+    }
+
+    const items = await this.inventoryRepo.find({
+      where: where as Record<string, unknown>,
+      order: { uploadedAt: 'ASC' },
+    });
+
+    return items.map((i) => this.toResponseDto(i));
+  }
+
+  /**
+   * Restore an expired/invalid item back to available status
+   */
+  async restoreItem(
+    itemId: string,
+    adminId: string,
+  ): Promise<InventoryItemResponseDto> {
+    return this.dataSource.transaction(async (manager) => {
+      const item = await manager.findOne(ProductInventory, {
+        where: { id: itemId },
+      });
+
+      if (item === null) {
+        throw new NotFoundException(`Item ${itemId} not found`);
+      }
+
+      const restorableStatuses = [
+        InventoryItemStatus.EXPIRED,
+        InventoryItemStatus.INVALID,
+      ];
+      if (!restorableStatuses.includes(item.status)) {
+        throw new BadRequestException(
+          `Cannot restore item with status "${item.status}". Only expired/invalid items can be restored.`,
+        );
+      }
+
+      item.status = InventoryItemStatus.AVAILABLE;
+      await manager.save(ProductInventory, item);
+
+      // Update stock count
+      await manager.increment(Product, { id: item.productId }, 'stockAvailable', 1);
+
+      // Audit log
+      await this.auditLogService.log(
+        adminId,
+        'inventory:restore',
+        `inventory:${itemId}`,
+        { previousStatus: item.status },
+        `Restored item ${itemId} to available`,
+      );
+
+      return this.toResponseDto(item);
+    });
   }
 }

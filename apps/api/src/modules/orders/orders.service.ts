@@ -170,19 +170,27 @@ export class OrdersService {
     }
 
     // ========== STOCK VALIDATION ==========
-    // Validate that requested quantity doesn't exceed available stock for Kinguin products
+    // Validate that requested quantity doesn't exceed available stock
     const insufficientStockProducts: string[] = [];
     for (let i = 0; i < itemsToCreate.length; i++) {
       const item = itemsToCreate[i];
       const product = products[i];
       if (item !== undefined && product !== undefined) {
-        // For Kinguin products, check qty (available from cheapest offers)
-        // For custom products, qty may be undefined (unlimited)
-        if (product.sourceType === 'kinguin' && product.qty !== undefined && product.qty !== null) {
-          if (product.qty <= 0) {
+        if (product.sourceType === 'kinguin') {
+          // For Kinguin products, check qty (available from cheapest offers)
+          if (product.qty !== undefined && product.qty !== null) {
+            if (product.qty <= 0) {
+              insufficientStockProducts.push(`${product.title ?? product.id} is out of stock`);
+            } else if (item.quantity > product.qty) {
+              insufficientStockProducts.push(`${product.title ?? product.id}: requested ${item.quantity} but only ${product.qty} available`);
+            }
+          }
+        } else if (product.sourceType === 'custom') {
+          // For custom products, check stockAvailable from inventory system
+          if (product.stockAvailable <= 0) {
             insufficientStockProducts.push(`${product.title ?? product.id} is out of stock`);
-          } else if (item.quantity > product.qty) {
-            insufficientStockProducts.push(`${product.title ?? product.id}: requested ${item.quantity} but only ${product.qty} available`);
+          } else if (item.quantity > product.stockAvailable) {
+            insufficientStockProducts.push(`${product.title ?? product.id}: requested ${item.quantity} but only ${product.stockAvailable} available`);
           }
         }
       }

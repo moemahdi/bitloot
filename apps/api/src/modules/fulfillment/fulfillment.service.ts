@@ -204,21 +204,25 @@ export class FulfillmentService {
   }
 
   /**
-   * Fulfill a single CUSTOM order item
+   * Fulfill a single CUSTOM order item (supports multi-quantity)
    * 
    * NEW INVENTORY SYSTEM:
-   * 1. Reserve item from product_inventory table (FIFO)
-   * 2. Get decrypted item data
+   * 1. Reserve item(s) from product_inventory table (FIFO, batch)
+   * 2. Get decrypted item data for each reserved item
    * 3. Build delivery content based on delivery type
-   * 4. Upload delivery content to R2
+   * 4. Upload aggregated delivery content to R2
    * 5. Generate signed URL
-   * 6. Mark item as sold
+   * 6. Mark all items as sold
+   * 
+   * Multi-quantity: When item.quantity > 1, reserves N items and aggregates
+   * all their delivery content into a single JSON file.
    * 
    * LEGACY FALLBACK (if no inventory items):
    * Falls back to checking for key.json in R2 (old system)
    */
   private async fulfillCustomItem(orderId: string, item: OrderItem): Promise<ItemFulfillmentResult> {
-    this.logger.debug(`[FULFILLMENT:CUSTOM] Processing item: ${item.id} for order: ${orderId}`);
+    const quantity = item.quantity ?? 1;
+    this.logger.debug(`[FULFILLMENT:CUSTOM] Processing item: ${item.id} (qty: ${quantity}) for order: ${orderId}`);
 
     // Get product to check delivery type
     const product = await this.productRepo.findOne({ where: { id: item.productId } });
@@ -226,19 +230,54 @@ export class FulfillmentService {
       throw new BadRequestException(`Product ${item.productId} not found`);
     }
 
-    // Try NEW inventory system first
-    const inventoryItem = await this.inventoryService.reserveItem(item.productId, orderId);
+    // Try NEW inventory system first — batch reserve for multi-quantity
+    const inventoryItems = await this.inventoryService.reserveItems(item.productId, orderId, quantity);
 
-    if (inventoryItem !== null) {
-      // NEW INVENTORY SYSTEM: Item reserved from inventory
-      this.logger.debug(`[FULFILLMENT:CUSTOM:INVENTORY] Reserved item ${inventoryItem.id} for order ${orderId}`);
+    if (inventoryItems.length > 0) {
+      // NEW INVENTORY SYSTEM: Items reserved from inventory
+      this.logger.debug(
+        `[FULFILLMENT:CUSTOM:INVENTORY] Reserved ${inventoryItems.length} item(s) for order ${orderId}`,
+      );
 
       try {
-        // Get decrypted item data
-        const { data: itemData } = await this.inventoryService.getItemDataForDelivery(inventoryItem.id);
+        // Build aggregated delivery content from all reserved items
+        const allDeliveryItems: DeliveryContent['items'] = [];
+        let faceValue: number | undefined;
+        let currency: string | undefined;
+        let activationUrl: string | undefined;
 
-        // Build delivery content based on type
-        const deliveryContent = this.buildDeliveryContent(itemData, product);
+        for (let i = 0; i < inventoryItems.length; i++) {
+          const invItem = inventoryItems[i]!;
+          const { data: itemData } = await this.inventoryService.getItemDataForDelivery(invItem.id);
+          const singleContent = this.buildDeliveryContent(itemData, product);
+
+          // For multi-quantity, prefix labels with item number
+          if (quantity > 1) {
+            for (const contentItem of singleContent.items) {
+              contentItem.label = `#${i + 1} — ${contentItem.label}`;
+            }
+          }
+
+          allDeliveryItems.push(...singleContent.items);
+
+          // Carry forward metadata from first item
+          if (i === 0) {
+            faceValue = singleContent.faceValue;
+            currency = singleContent.currency;
+            activationUrl = singleContent.activationUrl;
+          }
+        }
+
+        const deliveryContent: DeliveryContent = {
+          productTitle: product.title,
+          deliveryType: product.deliveryType ?? ProductDeliveryType.KEY,
+          deliveredAt: new Date().toISOString(),
+          deliveryInstructions: product.deliveryInstructions ?? undefined,
+          items: allDeliveryItems,
+          faceValue,
+          currency,
+          activationUrl,
+        };
 
         // Upload delivery content to R2 (unique path per order item)
         const storageRef = `orders/${orderId}/items/${item.id}/delivery.json`;
@@ -250,7 +289,7 @@ export class FulfillmentService {
             'order-item-id': item.id,
             'product-id': item.productId,
             'delivery-type': product.deliveryType ?? 'key',
-            'inventory-item-id': inventoryItem.id,
+            'inventory-item-ids': inventoryItems.map((i) => i.id).join(','),
           },
         });
         this.logger.debug(`[FULFILLMENT:CUSTOM:INVENTORY] Uploaded delivery content to ${storageRef}`);
@@ -261,17 +300,21 @@ export class FulfillmentService {
           expiresInSeconds: 3 * 60 * 60, // 3 hours
         });
 
-        // Mark inventory item as sold
+        // Mark all inventory items as sold
         const unitPrice = item.unitPrice ?? product.price ?? '0';
-        await this.inventoryService.markAsSold(inventoryItem.id, orderId, unitPrice);
-        this.logger.debug(`[FULFILLMENT:CUSTOM:INVENTORY] Marked item ${inventoryItem.id} as sold`);
+        for (const invItem of inventoryItems) {
+          await this.inventoryService.markAsSold(invItem.id, orderId, unitPrice);
+        }
+        this.logger.debug(
+          `[FULFILLMENT:CUSTOM:INVENTORY] Marked ${inventoryItems.length} item(s) as sold`,
+        );
 
-        // Update order item with signed URL and inventory reference
+        // Update order item with signed URL and first inventory reference
         await this.orderItemRepo.update(
           { id: item.id },
           {
             signedUrl,
-            inventoryItemId: inventoryItem.id,
+            inventoryItemId: inventoryItems[0]!.id,
             updatedAt: new Date(),
           },
         );
@@ -280,7 +323,7 @@ export class FulfillmentService {
         const keyEntity = this.keyRepo.create({
           orderItemId: item.id,
           storageRef,
-          encryptionKey: `inventory:${inventoryItem.id}`,
+          encryptionKey: `inventory:${inventoryItems.map((i) => i.id).join(',')}`,
         });
         await this.keyRepo.save(keyEntity);
 
@@ -292,15 +335,23 @@ export class FulfillmentService {
           status: 'fulfilled',
         };
       } catch (error) {
-        // If fulfillment fails, release the reservation
+        // If fulfillment fails, release all reservations
         const errorMessage = error instanceof Error ? error.message : String(error);
-        this.logger.error(`[FULFILLMENT:CUSTOM:INVENTORY] Failed, releasing reservation: ${errorMessage}`);
-        await this.inventoryService.releaseReservation(inventoryItem.id);
+        this.logger.error(`[FULFILLMENT:CUSTOM:INVENTORY] Failed, releasing ${inventoryItems.length} reservation(s): ${errorMessage}`);
+        for (const invItem of inventoryItems) {
+          await this.inventoryService.releaseReservation(invItem.id);
+        }
         throw error;
       }
     }
 
     // LEGACY FALLBACK: Check old R2 path (single key per product)
+    if (quantity > 1) {
+      throw new BadRequestException(
+        `Not enough inventory for product ${item.productId}. Need ${quantity} items but none available.`,
+      );
+    }
+
     this.logger.debug(`[FULFILLMENT:CUSTOM:LEGACY] No inventory items, trying legacy R2 path`);
     const legacyStorageRef = `products/${item.productId}/key.json`;
 
@@ -1184,6 +1235,13 @@ export class FulfillmentService {
             value: itemData.pin,
             sensitive: true,
           });
+        }
+        // Set faceValue/currency for frontend display
+        if (itemData.value !== undefined) {
+          baseContent.faceValue = itemData.value;
+        }
+        if (itemData.currency !== undefined) {
+          baseContent.currency = itemData.currency;
         }
         break;
 

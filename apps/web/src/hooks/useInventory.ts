@@ -18,6 +18,7 @@ import type {
   AdminInventoryControllerListItemsStatusEnum,
   AdminInventoryControllerListItemsSortByEnum,
   AdminInventoryControllerListItemsSortDirEnum,
+  AdminInventoryControllerBulkDelete200Response,
 } from '@bitloot/sdk';
 import { apiConfig } from '@/lib/api-config';
 
@@ -169,6 +170,63 @@ export function useUpdateInventoryItemStatus(productId: string) {
       // Invalidate both items list and stats
       void queryClient.invalidateQueries({ queryKey: inventoryKeys.lists() });
       void queryClient.invalidateQueries({ queryKey: inventoryKeys.stats(productId) });
+    },
+  });
+}
+
+/**
+ * Hook to restore an expired/invalid inventory item to available
+ */
+export function useRestoreInventoryItem(productId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation<InventoryItemResponseDto, Error, string>({
+    mutationFn: async (itemId) => {
+      const api = new AdminInventoryApi(apiConfig);
+      return await api.adminInventoryControllerRestoreItem({
+        productId,
+        itemId,
+      });
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: inventoryKeys.lists() });
+      void queryClient.invalidateQueries({ queryKey: inventoryKeys.stats(productId) });
+    },
+  });
+}
+
+/**
+ * Hook to bulk delete inventory items
+ */
+export function useBulkDeleteInventoryItems(productId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation<AdminInventoryControllerBulkDelete200Response, Error, string[]>({
+    mutationFn: async (itemIds) => {
+      const api = new AdminInventoryApi(apiConfig);
+      return await api.adminInventoryControllerBulkDelete({
+        productId,
+        bulkDeleteInventoryDto: { itemIds },
+      });
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: inventoryKeys.lists() });
+      void queryClient.invalidateQueries({ queryKey: inventoryKeys.stats(productId) });
+    },
+  });
+}
+
+/**
+ * Hook to export inventory items
+ */
+export function useExportInventoryItems(productId: string) {
+  return useMutation<InventoryItemResponseDto[], Error, string | undefined>({
+    mutationFn: async (status) => {
+      const api = new AdminInventoryApi(apiConfig);
+      return await api.adminInventoryControllerExportItems({
+        productId,
+        status,
+      });
     },
   });
 }

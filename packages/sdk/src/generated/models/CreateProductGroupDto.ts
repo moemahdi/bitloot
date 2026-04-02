@@ -20,6 +20,13 @@ import {
     FaqItemDtoToJSON,
     FaqItemDtoToJSONTyped,
 } from './FaqItemDto';
+import type { FeatureItemDto } from './FeatureItemDto';
+import {
+    FeatureItemDtoFromJSON,
+    FeatureItemDtoFromJSONTyped,
+    FeatureItemDtoToJSON,
+    FeatureItemDtoToJSONTyped,
+} from './FeatureItemDto';
 
 /**
  * 
@@ -136,11 +143,11 @@ export interface CreateProductGroupDto {
      */
     genres?: Array<string>;
     /**
-     * Array of feature highlights
-     * @type {Array<string>}
+     * Array of structured feature highlights
+     * @type {Array<FeatureItemDto>}
      * @memberof CreateProductGroupDto
      */
-    features?: Array<string>;
+    features?: Array<FeatureItemDto>;
     /**
      * Array of FAQ items
      * @type {Array<FaqItemDto>}
@@ -195,7 +202,7 @@ export function CreateProductGroupDtoFromJSONTyped(json: any, ignoreDiscriminato
         'developerName': json['developerName'] == null ? undefined : json['developerName'],
         'publisherName': json['publisherName'] == null ? undefined : json['publisherName'],
         'genres': json['genres'] == null ? undefined : json['genres'],
-        'features': json['features'] == null ? undefined : json['features'],
+        'features': json['features'] == null ? undefined : ((json['features'] as Array<any>).map(FeatureItemDtoFromJSON)),
         'faqItems': json['faqItems'] == null ? undefined : ((json['faqItems'] as Array<any>).map(FaqItemDtoFromJSON)),
         'spotlightOrder': json['spotlightOrder'],
     };
@@ -230,7 +237,7 @@ export function CreateProductGroupDtoToJSONTyped(value?: CreateProductGroupDto |
         'developerName': value['developerName'],
         'publisherName': value['publisherName'],
         'genres': value['genres'],
-        'features': value['features'],
+        'features': value['features'] == null ? undefined : ((value['features'] as Array<any>).map(FeatureItemDtoToJSON)),
         'faqItems': value['faqItems'] == null ? undefined : ((value['faqItems'] as Array<any>).map(FaqItemDtoToJSON)),
         'spotlightOrder': value['spotlightOrder'],
     };

@@ -240,7 +240,7 @@ export function SpotlightGamesSection(): React.ReactElement | null {
     container.scrollBy({ left: scrollAmount, behavior: 'smooth' });
   }, []);
 
-  if (isError || (!isLoading && !hasSpotlights)) {
+  if (isLoading || isError || !hasSpotlights) {
     return null;
   }
   
@@ -336,17 +336,9 @@ export function SpotlightGamesSection(): React.ReactElement | null {
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-6 mb-10 md:grid-cols-2 lg:grid-cols-3">
-            {isLoading ? (
-              <>
-                <SpotlightSkeleton />
-                <SpotlightSkeleton />
-                <SpotlightSkeleton />
-              </>
-            ) : (
-              spotlightsList.map((spotlight, index) => (
-                <SpotlightCard key={spotlight.id} spotlight={spotlight} index={index} />
-              ))
-            )}
+            {spotlightsList.map((spotlight, index) => (
+              <SpotlightCard key={spotlight.id} spotlight={spotlight} index={index} />
+            ))}
           </div>
         )}
         
