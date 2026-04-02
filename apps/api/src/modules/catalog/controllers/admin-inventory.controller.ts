@@ -17,6 +17,7 @@ import {
   ApiResponse,
   ApiBearerAuth,
   ApiParam,
+  ApiQuery,
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { AdminGuard } from '../../../common/guards/admin.guard';
@@ -24,6 +25,7 @@ import { AdminInventoryService } from '../services/admin-inventory.service';
 import {
   AddInventoryItemDto,
   BulkImportInventoryDto,
+  BulkDeleteInventoryDto,
   InventoryQueryDto,
   UpdateItemStatusDto,
   InventoryItemResponseDto,
@@ -31,6 +33,7 @@ import {
   BulkImportResultDto,
   PaginatedInventoryDto,
 } from '../dto/inventory.dto';
+import { InventoryItemStatus } from '../types/product-delivery.types';
 
 interface AuthRequest extends Request {
   user: {
@@ -182,6 +185,86 @@ export class AdminInventoryController {
     @Request() req: AuthRequest,
   ): Promise<void> {
     await this.inventoryService.deleteItem(productId, itemId, req.user.id);
+  }
+
+  // ============================================
+  // BULK OPERATIONS
+  // ============================================
+
+  @Post('bulk-delete')
+  @ApiOperation({
+    summary: 'Bulk delete inventory items',
+    description:
+      'Delete multiple items at once. Only available, expired, and invalid items can be deleted. Reserved/sold items are skipped.',
+  })
+  @ApiParam({ name: 'productId', description: 'Product UUID' })
+  @ApiResponse({
+    status: 200,
+    description: 'Bulk delete result',
+    schema: {
+      type: 'object',
+      properties: {
+        deleted: { type: 'number' },
+        skipped: { type: 'number' },
+      },
+    },
+  })
+  async bulkDelete(
+    @Param('productId', ParseUUIDPipe) productId: string,
+    @Body() body: BulkDeleteInventoryDto,
+    @Request() req: AuthRequest,
+  ): Promise<{ deleted: number; skipped: number }> {
+    return this.inventoryService.bulkDeleteItems(
+      productId,
+      body.itemIds,
+      req.user.id,
+    );
+  }
+
+  @Get('export')
+  @ApiOperation({
+    summary: 'Export inventory items',
+    description:
+      'Export inventory items as JSON. Optionally filter by status.',
+  })
+  @ApiParam({ name: 'productId', description: 'Product UUID' })
+  @ApiQuery({ name: 'status', required: false, description: 'Comma-separated statuses to filter by' })
+  @ApiResponse({
+    status: 200,
+    type: [InventoryItemResponseDto],
+    description: 'Exported inventory items',
+  })
+  async exportItems(
+    @Param('productId', ParseUUIDPipe) productId: string,
+    @Query('status') status?: string,
+  ): Promise<InventoryItemResponseDto[]> {
+    const statuses = status !== undefined && status !== ''
+      ? (status.split(',') as InventoryItemStatus[])
+      : undefined;
+    return this.inventoryService.exportItems(productId, statuses);
+  }
+
+  @Patch(':itemId/restore')
+  @ApiOperation({
+    summary: 'Restore item to available',
+    description:
+      'Restore an expired or invalid item back to available status.',
+  })
+  @ApiParam({ name: 'productId', description: 'Product UUID' })
+  @ApiParam({ name: 'itemId', description: 'Inventory item UUID' })
+  @ApiResponse({
+    status: 200,
+    type: InventoryItemResponseDto,
+    description: 'Item restored',
+  })
+  @ApiResponse({ status: 400, description: 'Cannot restore (wrong status)' })
+  @ApiResponse({ status: 404, description: 'Item not found' })
+  async restoreItem(
+    @Param('productId', ParseUUIDPipe) productId: string,
+    @Param('itemId', ParseUUIDPipe) itemId: string,
+    @Request() req: AuthRequest,
+  ): Promise<InventoryItemResponseDto> {
+    return this.inventoryService.restoreItem(itemId, req.user.id);
   }
 }
 

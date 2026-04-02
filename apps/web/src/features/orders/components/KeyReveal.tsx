@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -439,9 +439,22 @@ interface RevealedContentProps {
 }
 
 function RevealedContent({ revealedKey, variant, copiedKey, onCopy }: RevealedContentProps): React.ReactElement {
-  const [hiddenFields, setHiddenFields] = useState<Set<string>>(new Set());
-  const isImage = revealedKey.contentType?.startsWith('image/');
+  // Pre-compute sensitive field IDs so they start hidden by default
   const deliveryContent = revealedKey.deliveryContent;
+  const initialHidden = useMemo(() => {
+    const set = new Set<string>();
+    if (deliveryContent?.items != null) {
+      deliveryContent.items.forEach((item, index) => {
+        if (item.sensitive === true) {
+          set.add(`${item.type}-${index}`);
+        }
+      });
+    }
+    return set;
+  }, [deliveryContent]);
+
+  const [hiddenFields, setHiddenFields] = useState<Set<string>>(initialHidden);
+  const isImage = revealedKey.contentType?.startsWith('image/');
 
   const toggleFieldVisibility = (fieldId: string): void => {
     setHiddenFields(prev => {

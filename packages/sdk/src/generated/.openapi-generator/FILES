@@ -74,6 +74,7 @@ docs/AdminControllerUpdateOrderStatus200Response.md
 docs/AdminCreateReviewDto.md
 docs/AdminFeatureFlagsApi.md
 docs/AdminInventoryApi.md
+docs/AdminInventoryControllerBulkDelete200Response.md
 docs/AdminInventoryGlobalApi.md
 docs/AdminInventoryGlobalControllerExpireItems200Response.md
 docs/AdminInventoryGlobalControllerGetLowStock200ResponseInner.md
@@ -139,6 +140,7 @@ docs/AuthResponseDto.md
 docs/AuthenticationApi.md
 docs/BalanceAlertDto.md
 docs/BalanceHistoryPointDto.md
+docs/BulkDeleteInventoryDto.md
 docs/BulkDeleteProductsDto.md
 docs/BulkDeleteResponseDto.md
 docs/BulkImportInventoryDto.md
@@ -186,6 +188,7 @@ docs/EmailsApi.md
 docs/EmbeddedPaymentResponseDto.md
 docs/FaqItemDto.md
 docs/FeatureFlagResponseDto.md
+docs/FeatureItemDto.md
 docs/FeaturedCategoryDto.md
 docs/FiltersResponseDto.md
 docs/FlashDealProductDto.md
@@ -383,6 +386,7 @@ models/AdminControllerRetryFulfillment200Response.ts
 models/AdminControllerRetryFulfillmentRequest.ts
 models/AdminControllerUpdateOrderStatus200Response.ts
 models/AdminCreateReviewDto.ts
+models/AdminInventoryControllerBulkDelete200Response.ts
 models/AdminInventoryGlobalControllerExpireItems200Response.ts
 models/AdminInventoryGlobalControllerGetLowStock200ResponseInner.ts
 models/AdminInventoryGlobalControllerReleaseReservations200Response.ts
@@ -436,6 +440,7 @@ models/AuditLogResponseDto.ts
 models/AuthResponseDto.ts
 models/BalanceAlertDto.ts
 models/BalanceHistoryPointDto.ts
+models/BulkDeleteInventoryDto.ts
 models/BulkDeleteProductsDto.ts
 models/BulkDeleteResponseDto.ts
 models/BulkImportInventoryDto.ts
@@ -480,6 +485,7 @@ models/EmailChangeResponseDto.ts
 models/EmbeddedPaymentResponseDto.ts
 models/FaqItemDto.ts
 models/FeatureFlagResponseDto.ts
+models/FeatureItemDto.ts
 models/FeaturedCategoryDto.ts
 models/FiltersResponseDto.ts
 models/FlashDealProductDto.ts

@@ -49,7 +49,7 @@ export class StockSyncService {
 
   /**
    * Expire items past their expiresAt date
-   * Runs every hour at minute 5
+   * Runs every hour
    */
   @Cron(CronExpression.EVERY_HOUR)
   async runExpirationJob(): Promise<void> {
@@ -119,7 +119,7 @@ export class StockSyncService {
 
   /**
    * Sync stock counts on products table
-   * Runs every 15 minutes to ensure consistency
+   * Runs every 30 minutes to ensure consistency
    */
   @Cron(CronExpression.EVERY_30_MINUTES)
   async runStockCountSync(): Promise<void> {
@@ -230,8 +230,8 @@ export class StockSyncService {
       },
       {
         status: InventoryItemStatus.AVAILABLE,
-        reservedAt: undefined,
-        reservedForOrderId: undefined,
+        reservedAt: null as unknown as undefined,
+        reservedForOrderId: null as unknown as undefined,
       },
     );
 

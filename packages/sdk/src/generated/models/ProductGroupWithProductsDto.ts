@@ -20,6 +20,13 @@ import {
     FaqItemDtoToJSON,
     FaqItemDtoToJSONTyped,
 } from './FaqItemDto';
+import type { FeatureItemDto } from './FeatureItemDto';
+import {
+    FeatureItemDtoFromJSON,
+    FeatureItemDtoFromJSONTyped,
+    FeatureItemDtoToJSON,
+    FeatureItemDtoToJSONTyped,
+} from './FeatureItemDto';
 import type { GroupProductVariantDto } from './GroupProductVariantDto';
 import {
     GroupProductVariantDtoFromJSON,
@@ -179,11 +186,11 @@ export interface ProductGroupWithProductsDto {
      */
     genres: Array<string>;
     /**
-     * Array of feature highlights
-     * @type {Array<string>}
+     * Array of structured feature highlights
+     * @type {Array<FeatureItemDto>}
      * @memberof ProductGroupWithProductsDto
      */
-    features: Array<string>;
+    features: Array<FeatureItemDto>;
     /**
      * Array of FAQ items
      * @type {Array<FaqItemDto>}
@@ -273,7 +280,7 @@ export function ProductGroupWithProductsDtoFromJSONTyped(json: any, ignoreDiscri
         'developerName': json['developerName'],
         'publisherName': json['publisherName'],
         'genres': json['genres'],
-        'features': json['features'],
+        'features': ((json['features'] as Array<any>).map(FeatureItemDtoFromJSON)),
         'faqItems': ((json['faqItems'] as Array<any>).map(FaqItemDtoFromJSON)),
         'spotlightOrder': json['spotlightOrder'],
         'products': ((json['products'] as Array<any>).map(GroupProductVariantDtoFromJSON)),
@@ -315,7 +322,7 @@ export function ProductGroupWithProductsDtoToJSONTyped(value?: ProductGroupWithP
         'developerName': value['developerName'],
         'publisherName': value['publisherName'],
         'genres': value['genres'],
-        'features': value['features'],
+        'features': ((value['features'] as Array<any>).map(FeatureItemDtoToJSON)),
         'faqItems': ((value['faqItems'] as Array<any>).map(FaqItemDtoToJSON)),
         'spotlightOrder': value['spotlightOrder'],
         'products': ((value['products'] as Array<any>).map(GroupProductVariantDtoToJSON)),

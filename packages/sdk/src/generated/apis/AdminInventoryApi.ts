@@ -16,6 +16,8 @@
 import * as runtime from '../runtime';
 import type {
   AddInventoryItemDto,
+  AdminInventoryControllerBulkDelete200Response,
+  BulkDeleteInventoryDto,
   BulkImportInventoryDto,
   BulkImportResultDto,
   InventoryItemResponseDto,
@@ -26,6 +28,10 @@ import type {
 import {
     AddInventoryItemDtoFromJSON,
     AddInventoryItemDtoToJSON,
+    AdminInventoryControllerBulkDelete200ResponseFromJSON,
+    AdminInventoryControllerBulkDelete200ResponseToJSON,
+    BulkDeleteInventoryDtoFromJSON,
+    BulkDeleteInventoryDtoToJSON,
     BulkImportInventoryDtoFromJSON,
     BulkImportInventoryDtoToJSON,
     BulkImportResultDtoFromJSON,
@@ -45,6 +51,11 @@ export interface AdminInventoryControllerAddItemRequest {
     addInventoryItemDto: AddInventoryItemDto;
 }
 
+export interface AdminInventoryControllerBulkDeleteRequest {
+    productId: string;
+    bulkDeleteInventoryDto: BulkDeleteInventoryDto;
+}
+
 export interface AdminInventoryControllerBulkImportRequest {
     productId: string;
     bulkImportInventoryDto: BulkImportInventoryDto;
@@ -53,6 +64,11 @@ export interface AdminInventoryControllerBulkImportRequest {
 export interface AdminInventoryControllerDeleteItemRequest {
     productId: string;
     itemId: string;
+}
+
+export interface AdminInventoryControllerExportItemsRequest {
+    productId: string;
+    status?: string;
 }
 
 export interface AdminInventoryControllerGetStatsRequest {
@@ -67,6 +83,11 @@ export interface AdminInventoryControllerListItemsRequest {
     limit?: number;
     sortBy?: AdminInventoryControllerListItemsSortByEnum;
     sortDir?: AdminInventoryControllerListItemsSortDirEnum;
+}
+
+export interface AdminInventoryControllerRestoreItemRequest {
+    productId: string;
+    itemId: string;
 }
 
 export interface AdminInventoryControllerUpdateStatusRequest {
@@ -134,6 +155,63 @@ export class AdminInventoryApi extends runtime.BaseAPI {
      */
     async adminInventoryControllerAddItem(requestParameters: AdminInventoryControllerAddItemRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<InventoryItemResponseDto> {
         const response = await this.adminInventoryControllerAddItemRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Delete multiple items at once. Only available, expired, and invalid items can be deleted. Reserved/sold items are skipped.
+     * Bulk delete inventory items
+     */
+    async adminInventoryControllerBulkDeleteRaw(requestParameters: AdminInventoryControllerBulkDeleteRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<AdminInventoryControllerBulkDelete200Response>> {
+        if (requestParameters['productId'] == null) {
+            throw new runtime.RequiredError(
+                'productId',
+                'Required parameter "productId" was null or undefined when calling adminInventoryControllerBulkDelete().'
+            );
+        }
+
+        if (requestParameters['bulkDeleteInventoryDto'] == null) {
+            throw new runtime.RequiredError(
+                'bulkDeleteInventoryDto',
+                'Required parameter "bulkDeleteInventoryDto" was null or undefined when calling adminInventoryControllerBulkDelete().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        headerParameters['Content-Type'] = 'application/json';
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("JWT-auth", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/admin/products/{productId}/inventory/bulk-delete`;
+        urlPath = urlPath.replace(`{${"productId"}}`, encodeURIComponent(String(requestParameters['productId'])));
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'POST',
+            headers: headerParameters,
+            query: queryParameters,
+            body: BulkDeleteInventoryDtoToJSON(requestParameters['bulkDeleteInventoryDto']),
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => AdminInventoryControllerBulkDelete200ResponseFromJSON(jsonValue));
+    }
+
+    /**
+     * Delete multiple items at once. Only available, expired, and invalid items can be deleted. Reserved/sold items are skipped.
+     * Bulk delete inventory items
+     */
+    async adminInventoryControllerBulkDelete(requestParameters: AdminInventoryControllerBulkDeleteRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<AdminInventoryControllerBulkDelete200Response> {
+        const response = await this.adminInventoryControllerBulkDeleteRaw(requestParameters, initOverrides);
         return await response.value();
     }
 
@@ -246,6 +324,57 @@ export class AdminInventoryApi extends runtime.BaseAPI {
      */
     async adminInventoryControllerDeleteItem(requestParameters: AdminInventoryControllerDeleteItemRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<void> {
         await this.adminInventoryControllerDeleteItemRaw(requestParameters, initOverrides);
+    }
+
+    /**
+     * Export inventory items as JSON. Optionally filter by status.
+     * Export inventory items
+     */
+    async adminInventoryControllerExportItemsRaw(requestParameters: AdminInventoryControllerExportItemsRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<Array<InventoryItemResponseDto>>> {
+        if (requestParameters['productId'] == null) {
+            throw new runtime.RequiredError(
+                'productId',
+                'Required parameter "productId" was null or undefined when calling adminInventoryControllerExportItems().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        if (requestParameters['status'] != null) {
+            queryParameters['status'] = requestParameters['status'];
+        }
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("JWT-auth", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/admin/products/{productId}/inventory/export`;
+        urlPath = urlPath.replace(`{${"productId"}}`, encodeURIComponent(String(requestParameters['productId'])));
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => jsonValue.map(InventoryItemResponseDtoFromJSON));
+    }
+
+    /**
+     * Export inventory items as JSON. Optionally filter by status.
+     * Export inventory items
+     */
+    async adminInventoryControllerExportItems(requestParameters: AdminInventoryControllerExportItemsRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<Array<InventoryItemResponseDto>> {
+        const response = await this.adminInventoryControllerExportItemsRaw(requestParameters, initOverrides);
+        return await response.value();
     }
 
     /**
@@ -363,6 +492,61 @@ export class AdminInventoryApi extends runtime.BaseAPI {
      */
     async adminInventoryControllerListItems(requestParameters: AdminInventoryControllerListItemsRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PaginatedInventoryDto> {
         const response = await this.adminInventoryControllerListItemsRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Restore an expired or invalid item back to available status.
+     * Restore item to available
+     */
+    async adminInventoryControllerRestoreItemRaw(requestParameters: AdminInventoryControllerRestoreItemRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<InventoryItemResponseDto>> {
+        if (requestParameters['productId'] == null) {
+            throw new runtime.RequiredError(
+                'productId',
+                'Required parameter "productId" was null or undefined when calling adminInventoryControllerRestoreItem().'
+            );
+        }
+
+        if (requestParameters['itemId'] == null) {
+            throw new runtime.RequiredError(
+                'itemId',
+                'Required parameter "itemId" was null or undefined when calling adminInventoryControllerRestoreItem().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+        if (this.configuration && this.configuration.accessToken) {
+            const token = this.configuration.accessToken;
+            const tokenString = await token("JWT-auth", []);
+
+            if (tokenString) {
+                headerParameters["Authorization"] = `Bearer ${tokenString}`;
+            }
+        }
+
+        let urlPath = `/admin/products/{productId}/inventory/{itemId}/restore`;
+        urlPath = urlPath.replace(`{${"productId"}}`, encodeURIComponent(String(requestParameters['productId'])));
+        urlPath = urlPath.replace(`{${"itemId"}}`, encodeURIComponent(String(requestParameters['itemId'])));
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'PATCH',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => InventoryItemResponseDtoFromJSON(jsonValue));
+    }
+
+    /**
+     * Restore an expired or invalid item back to available status.
+     * Restore item to available
+     */
+    async adminInventoryControllerRestoreItem(requestParameters: AdminInventoryControllerRestoreItemRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<InventoryItemResponseDto> {
+        const response = await this.adminInventoryControllerRestoreItemRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

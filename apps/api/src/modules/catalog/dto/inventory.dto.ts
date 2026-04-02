@@ -9,6 +9,7 @@ import {
   IsEnum,
   IsISO8601,
   IsObject,
+  IsIn,
   ValidateNested,
   ArrayMinSize,
   ArrayMaxSize,
@@ -349,8 +350,8 @@ export class InventoryQueryDto {
     default: 'uploadedAt',
   })
   @IsOptional()
-  @IsString()
-  sortBy?: string;
+  @IsIn(['uploadedAt', 'soldAt', 'expiresAt', 'cost'])
+  sortBy?: 'uploadedAt' | 'soldAt' | 'expiresAt' | 'cost';
 
   @ApiPropertyOptional({
     description: 'Sort direction',
@@ -521,4 +522,19 @@ export class PaginatedInventoryDto {
 
   @ApiProperty({ description: 'Total pages' })
   totalPages!: number;
+}
+
+/**
+ * DTO for bulk deleting inventory items
+ */
+export class BulkDeleteInventoryDto {
+  @ApiProperty({
+    description: 'Array of inventory item UUIDs to delete',
+    type: [String],
+    example: ['uuid-1', 'uuid-2'],
+  })
+  @IsArray()
+  @IsString({ each: true })
+  @ArrayMinSize(1)
+  itemIds!: string[];
 }

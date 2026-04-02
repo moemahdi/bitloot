@@ -24,7 +24,7 @@ Name | Type
 `developerName` | string
 `publisherName` | string
 `genres` | Array&lt;string&gt;
-`features` | Array&lt;string&gt;
+`features` | [Array&lt;FeatureItemDto&gt;](FeatureItemDto.md)
 `faqItems` | [Array&lt;FaqItemDto&gt;](FaqItemDto.md)
 `spotlightOrder` | number
 
@@ -53,7 +53,7 @@ const example = {
   "developerName": DICE,
   "publisherName": Electronic Arts,
   "genres": ["FPS","Action","Multiplayer"],
-  "features": ["Next-gen graphics","128 player battles","Cross-platform play"],
+  "features": null,
   "faqItems": null,
   "spotlightOrder": null,
 } satisfies CreateProductGroupDto

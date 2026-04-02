@@ -24,7 +24,7 @@ Name | Type
 `developerName` | string
 `publisherName` | string
 `genres` | Array&lt;string&gt;
-`features` | Array&lt;string&gt;
+`features` | [Array&lt;FeatureItemDto&gt;](FeatureItemDto.md)
 `faqItems` | [Array&lt;FaqItemDto&gt;](FaqItemDto.md)
 `spotlightOrder` | number
 

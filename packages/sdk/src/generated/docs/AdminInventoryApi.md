@@ -5,10 +5,13 @@ All URIs are relative to *http://localhost*
 | Method | HTTP request | Description |
 |------------- | ------------- | -------------|
 | [**adminInventoryControllerAddItem**](AdminInventoryApi.md#admininventorycontrolleradditem) | **POST** /admin/products/{productId}/inventory | Add single item to inventory |
+| [**adminInventoryControllerBulkDelete**](AdminInventoryApi.md#admininventorycontrollerbulkdelete) | **POST** /admin/products/{productId}/inventory/bulk-delete | Bulk delete inventory items |
 | [**adminInventoryControllerBulkImport**](AdminInventoryApi.md#admininventorycontrollerbulkimport) | **POST** /admin/products/{productId}/inventory/bulk | Bulk import items to inventory |
 | [**adminInventoryControllerDeleteItem**](AdminInventoryApi.md#admininventorycontrollerdeleteitem) | **DELETE** /admin/products/{productId}/inventory/{itemId} | Delete an inventory item |
+| [**adminInventoryControllerExportItems**](AdminInventoryApi.md#admininventorycontrollerexportitems) | **GET** /admin/products/{productId}/inventory/export | Export inventory items |
 | [**adminInventoryControllerGetStats**](AdminInventoryApi.md#admininventorycontrollergetstats) | **GET** /admin/products/{productId}/inventory/stats | Get inventory statistics |
 | [**adminInventoryControllerListItems**](AdminInventoryApi.md#admininventorycontrollerlistitems) | **GET** /admin/products/{productId}/inventory | List inventory items |
+| [**adminInventoryControllerRestoreItem**](AdminInventoryApi.md#admininventorycontrollerrestoreitem) | **PATCH** /admin/products/{productId}/inventory/{itemId}/restore | Restore item to available |
 | [**adminInventoryControllerUpdateStatus**](AdminInventoryApi.md#admininventorycontrollerupdatestatus) | **PATCH** /admin/products/{productId}/inventory/{itemId}/status | Update item status |
 
 
@@ -86,6 +89,80 @@ example().catch(console.error);
 | **400** | Invalid item data or type mismatch |  -  |
 | **404** | Product not found |  -  |
 | **409** | Duplicate item |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## adminInventoryControllerBulkDelete
+
+> AdminInventoryControllerBulkDelete200Response adminInventoryControllerBulkDelete(productId, bulkDeleteInventoryDto)
+
+Bulk delete inventory items
+
+Delete multiple items at once. Only available, expired, and invalid items can be deleted. Reserved/sold items are skipped.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  AdminInventoryApi,
+} from '';
+import type { AdminInventoryControllerBulkDeleteRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const config = new Configuration({ 
+    // Configure HTTP bearer authorization: JWT-auth
+    accessToken: "YOUR BEARER TOKEN",
+  });
+  const api = new AdminInventoryApi(config);
+
+  const body = {
+    // string | Product UUID
+    productId: productId_example,
+    // BulkDeleteInventoryDto
+    bulkDeleteInventoryDto: ...,
+  } satisfies AdminInventoryControllerBulkDeleteRequest;
+
+  try {
+    const data = await api.adminInventoryControllerBulkDelete(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **productId** | `string` | Product UUID | [Defaults to `undefined`] |
+| **bulkDeleteInventoryDto** | [BulkDeleteInventoryDto](BulkDeleteInventoryDto.md) |  | |
+
+### Return type
+
+[**AdminInventoryControllerBulkDelete200Response**](AdminInventoryControllerBulkDelete200Response.md)
+
+### Authorization
+
+[JWT-auth](../README.md#JWT-auth)
+
+### HTTP request headers
+
+- **Content-Type**: `application/json`
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Bulk delete result |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
@@ -238,6 +315,80 @@ example().catch(console.error);
 | **204** | Item deleted |  -  |
 | **400** | Cannot delete (wrong status) |  -  |
 | **404** | Item not found |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## adminInventoryControllerExportItems
+
+> Array&lt;InventoryItemResponseDto&gt; adminInventoryControllerExportItems(productId, status)
+
+Export inventory items
+
+Export inventory items as JSON. Optionally filter by status.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  AdminInventoryApi,
+} from '';
+import type { AdminInventoryControllerExportItemsRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const config = new Configuration({ 
+    // Configure HTTP bearer authorization: JWT-auth
+    accessToken: "YOUR BEARER TOKEN",
+  });
+  const api = new AdminInventoryApi(config);
+
+  const body = {
+    // string | Product UUID
+    productId: productId_example,
+    // string | Comma-separated statuses to filter by (optional)
+    status: status_example,
+  } satisfies AdminInventoryControllerExportItemsRequest;
+
+  try {
+    const data = await api.adminInventoryControllerExportItems(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **productId** | `string` | Product UUID | [Defaults to `undefined`] |
+| **status** | `string` | Comma-separated statuses to filter by | [Optional] [Defaults to `undefined`] |
+
+### Return type
+
+[**Array&lt;InventoryItemResponseDto&gt;**](InventoryItemResponseDto.md)
+
+### Authorization
+
+[JWT-auth](../README.md#JWT-auth)
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Exported inventory items |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
@@ -398,6 +549,82 @@ example().catch(console.error);
 | Status code | Description | Response headers |
 |-------------|-------------|------------------|
 | **200** | Paginated inventory list |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## adminInventoryControllerRestoreItem
+
+> InventoryItemResponseDto adminInventoryControllerRestoreItem(productId, itemId)
+
+Restore item to available
+
+Restore an expired or invalid item back to available status.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  AdminInventoryApi,
+} from '';
+import type { AdminInventoryControllerRestoreItemRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const config = new Configuration({ 
+    // Configure HTTP bearer authorization: JWT-auth
+    accessToken: "YOUR BEARER TOKEN",
+  });
+  const api = new AdminInventoryApi(config);
+
+  const body = {
+    // string | Product UUID
+    productId: productId_example,
+    // string | Inventory item UUID
+    itemId: itemId_example,
+  } satisfies AdminInventoryControllerRestoreItemRequest;
+
+  try {
+    const data = await api.adminInventoryControllerRestoreItem(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **productId** | `string` | Product UUID | [Defaults to `undefined`] |
+| **itemId** | `string` | Inventory item UUID | [Defaults to `undefined`] |
+
+### Return type
+
+[**InventoryItemResponseDto**](InventoryItemResponseDto.md)
+
+### Authorization
+
+[JWT-auth](../README.md#JWT-auth)
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Item restored |  -  |
+| **400** | Cannot restore (wrong status) |  -  |
+| **404** | Item not found |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 
