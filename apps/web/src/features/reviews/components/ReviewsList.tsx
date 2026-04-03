@@ -1,7 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Star, CheckCircle, ChevronLeft, ChevronRight } from 'lucide-react';
+import Link from 'next/link';
+import { Star, CheckCircle, ChevronLeft, ChevronRight, MessageSquare, ArrowRight } from 'lucide-react';
 import { Badge } from '@/design-system/primitives/badge';
 import { Button } from '@/design-system/primitives/button';
 import {
@@ -42,6 +43,7 @@ interface ReviewCardProps {
   authorName: string;
   isVerifiedPurchase: boolean;
   productName?: string;
+  productSlug?: string;
   createdAt: string;
   showProductName?: boolean;
 }
@@ -53,6 +55,7 @@ function ReviewCard({
   authorName,
   isVerifiedPurchase,
   productName,
+  productSlug,
   createdAt,
   showProductName = false,
 }: ReviewCardProps): React.ReactElement {
@@ -89,7 +92,13 @@ function ReviewCard({
             {showProductName && productName != null && productName.length > 0 && (
               <>
                 <span>•</span>
-                <span>{productName}</span>
+                {productSlug != null ? (
+                  <Link href={`/product/${productSlug}`} className="hover:text-foreground transition-colors underline underline-offset-2">
+                    {productName}
+                  </Link>
+                ) : (
+                  <span>{productName}</span>
+                )}
               </>
             )}
             <span>•</span>
@@ -141,7 +150,7 @@ interface HomepageReviewsProps {
 export function HomepageReviews({
   limit = 6,
   title = 'What Our Customers Say',
-  description = 'Hear from our satisfied customers',
+  description = 'Real reviews from verified buyers around the world',
 }: HomepageReviewsProps): React.ReactElement | null {
   const { data, isLoading, error } = useHomepageReviews(limit);
 
@@ -149,53 +158,125 @@ export function HomepageReviews({
     return null; // Silently fail for homepage widget
   }
 
-  if (isLoading) {
-    return (
-      <section className="py-12">
-        <div className="container">
-          <div className="text-center mb-8">
-            <h2 className="text-3xl font-bold tracking-tight">{title}</h2>
-            <p className="text-muted-foreground mt-2">{description}</p>
-          </div>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {Array.from({ length: limit > 3 ? 3 : limit }).map((_, i) => (
-              <ReviewCardSkeleton key={i} />
-            ))}
-          </div>
-        </div>
-      </section>
-    );
-  }
-
   // useHomepageReviews returns ReviewResponseDto[] directly (an array)
   const reviews = data ?? [];
 
-  if (reviews.length === 0) {
-    return null; // Don't show section if no reviews
+  // Don't show section if no reviews and not loading
+  if (!isLoading && reviews.length === 0) {
+    return null;
   }
 
+  // Compute average rating from displayed reviews
+  const avgRating =
+    reviews.length > 0
+      ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length
+      : 0;
+
   return (
-    <section className="py-12">
-      <div className="container">
-        <div className="text-center mb-8">
-          <h2 className="text-3xl font-bold tracking-tight">{title}</h2>
-          <p className="text-muted-foreground mt-2">{description}</p>
+    <section className="relative py-20 sm:py-28 overflow-hidden">
+      {/* Background Effects */}
+      <div className="absolute inset-0 bg-bg-primary" />
+      <div className="absolute inset-0 bg-linear-to-b from-transparent via-purple-neon/5 to-transparent" />
+      <div
+        className="absolute top-1/3 left-1/4 w-80 h-80 bg-purple-neon/8 rounded-full blur-3xl"
+        aria-hidden="true"
+      />
+      <div
+        className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-cyan-glow/8 rounded-full blur-3xl"
+        aria-hidden="true"
+      />
+
+      {/* Top divider */}
+      <div
+        className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-6xl h-px bg-linear-to-r from-transparent via-border-subtle to-transparent"
+        aria-hidden="true"
+      />
+
+      <div className="relative container mx-auto px-4 md:px-6">
+        {/* Section Header */}
+        <div className="text-center mb-12 sm:mb-16">
+          <Badge
+            variant="outline"
+            className="mb-4 border-purple-neon/30 text-purple-neon bg-purple-neon/10 px-4 py-1.5"
+          >
+            <MessageSquare className="w-3.5 h-3.5 mr-1.5" />
+            Customer Reviews
+          </Badge>
+          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold tracking-tight mb-4">
+            <span className="text-text-primary">{title.split(' ').slice(0, -1).join(' ')} </span>
+            <span className="text-gradient-primary">{title.split(' ').slice(-1)[0]}</span>
+          </h2>
+          <p className="text-text-secondary text-lg max-w-2xl mx-auto">
+            {description}
+          </p>
+
+          {/* Average rating display */}
+          {reviews.length > 0 && (
+            <div className="mt-6 inline-flex items-center gap-3 px-5 py-2.5 rounded-full bg-bg-secondary/60 border border-border-subtle">
+              <div className="flex gap-0.5">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <Star
+                    key={star}
+                    className={cn(
+                      'h-5 w-5',
+                      star <= Math.round(avgRating)
+                        ? 'fill-yellow-400 text-yellow-400 drop-shadow-[0_0_6px_rgba(250,204,21,0.4)]'
+                        : 'fill-transparent text-text-muted',
+                    )}
+                  />
+                ))}
+              </div>
+              <span className="text-sm font-medium text-text-primary">
+                {avgRating.toFixed(1)} average
+              </span>
+              <span className="text-sm text-text-muted">
+                from {reviews.length} {reviews.length === 1 ? 'review' : 'reviews'}
+              </span>
+            </div>
+          )}
         </div>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {reviews.map((review) => (
-            <ReviewCard
-              key={review.id}
-              rating={review.rating}
-              title={review.title != null ? String(review.title) : undefined}
-              content={review.content}
-              authorName={review.authorName}
-              isVerifiedPurchase={review.isVerifiedPurchase}
-              productName={review.productName != null ? String(review.productName) : undefined}
-              createdAt={review.createdAt.toISOString()}
-              showProductName
-            />
-          ))}
-        </div>
+
+        {/* Reviews Grid */}
+        {isLoading ? (
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <ReviewCardSkeleton key={i} />
+            ))}
+          </div>
+        ) : (
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {reviews.map((review) => (
+              <ReviewCard
+                key={review.id}
+                rating={review.rating}
+                title={review.title != null ? String(review.title) : undefined}
+                content={review.content}
+                authorName={review.authorName}
+                isVerifiedPurchase={review.isVerifiedPurchase}
+                productName={review.productName != null ? String(review.productName) : undefined}
+                productSlug={review.productSlug != null ? String(review.productSlug) : undefined}
+                createdAt={review.createdAt.toISOString()}
+                showProductName
+              />
+            ))}
+          </div>
+        )}
+
+        {/* See All Reviews Link */}
+        {reviews.length > 0 && (
+          <div className="text-center mt-10">
+            <Button
+              asChild
+              variant="outline"
+              className="border-purple-neon/30 text-purple-neon hover:bg-purple-neon/10 hover:border-purple-neon/50"
+            >
+              <Link href="/reviews">
+                See All Reviews
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Link>
+            </Button>
+          </div>
+        )}
       </div>
     </section>
   );

@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useCallback, useMemo, useRef } from 'react';
+import Image from 'next/image';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/design-system/primitives/card';
 import { Button } from '@/design-system/primitives/button';
 import { Badge } from '@/design-system/primitives/badge';
@@ -52,6 +53,8 @@ import {
   Eye,
   MessageSquare,
   Plus,
+  ChevronsUpDown,
+  Check,
 } from 'lucide-react';
 import { useAdminGuard } from '@/features/admin/hooks/useAdminGuard';
 import { formatDate } from '@/utils/format-date';
@@ -71,6 +74,14 @@ import { AdminCatalogProductsApi } from '@bitloot/sdk';
 import { apiConfig } from '@/lib/api-config';
 import { useQuery } from '@tanstack/react-query';
 import { Label } from '@/design-system/primitives/label';
+import { cn } from '@/design-system/utils/utils';
+import { ScrollArea } from '@/design-system/primitives/scroll-area';
+import { Switch } from '@/design-system/primitives/switch';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/design-system/primitives/collapsible';
 
 function StarRating({ rating }: { rating: number }): React.ReactElement {
   return (
@@ -109,6 +120,17 @@ export default function AdminReviewsPage(): React.ReactElement {
 
   // Create review dialog state
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  const [productSearchQuery, setProductSearchQuery] = useState('');
+  const [debouncedProductQuery, setDebouncedProductQuery] = useState('');
+  const [selectedProductTitle, setSelectedProductTitle] = useState('');
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleProductSearch = useCallback((value: string) => {
+    setProductSearchQuery(value);
+    if (debounceRef.current !== null) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => setDebouncedProductQuery(value), 300);
+  }, []);
   const [createRating, setCreateRating] = useState(5);
   const [createTitle, setCreateTitle] = useState('');
   const [createContent, setCreateContent] = useState('');
@@ -131,16 +153,22 @@ export default function AdminReviewsPage(): React.ReactElement {
   const { data: stats, isLoading: statsLoading } = useAdminReviewStats();
   const totalPages = totalItems > 0 && limit > 0 ? Math.ceil(totalItems / limit) : 0;
 
-  // Fetch products for the dropdown
+  // Fetch products with server-side search
   const productsQuery = useQuery({
-    queryKey: ['admin', 'catalog', 'products', 'for-review'],
+    queryKey: ['admin', 'catalog', 'products', 'search', debouncedProductQuery],
     queryFn: async () => {
       const api = new AdminCatalogProductsApi(apiConfig);
-      return await api.adminProductsControllerListAll({ page: '1', limit: '100' });
+      return await api.adminProductsControllerListAll({
+        page: '1',
+        limit: '50',
+        ...(debouncedProductQuery.trim().length > 0 ? { search: debouncedProductQuery.trim() } : {}),
+      });
     },
     enabled: createDialogOpen,
     staleTime: 30_000,
   });
+
+  const productResults = useMemo(() => productsQuery.data?.products ?? [], [productsQuery.data]);
 
   const moderateReview = useModerateReview();
   const toggleHomepage = useToggleHomepageDisplay();
@@ -158,6 +186,10 @@ export default function AdminReviewsPage(): React.ReactElement {
     setCreateDisplayOnHomepage(false);
     setCreateAdminNotes('');
     setCreateProductId('');
+    setSelectedProductTitle('');
+    setProductSearchQuery('');
+    setDebouncedProductQuery('');
+    setShowAdvanced(false);
   };
 
   const handleCreateReview = async (): Promise<void> => {
@@ -735,121 +767,245 @@ export default function AdminReviewsPage(): React.ReactElement {
 
       {/* Create Review Dialog */}
       <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-w-3xl">
           <DialogHeader>
             <DialogTitle>Create New Review</DialogTitle>
             <DialogDescription>
-              Add a new customer review. Reviews created by admins are typically marked as non-verified purchases.
+              Add a customer review. Admin-created reviews are marked as non-verified.
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label>Product (Optional)</Label>
-              <Select value={createProductId} onValueChange={setCreateProductId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a product..." />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">No product (general review)</SelectItem>
-                  {productsQuery.data?.products?.map((product) => (
-                    <SelectItem key={product.id} value={product.id}>
-                      {product.title}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {productsQuery.isLoading && (
-                <p className="text-xs text-muted-foreground mt-1">Loading products...</p>
-              )}
-            </div>
-            <div>
-              <label className="text-sm font-medium">Author Name *</label>
-              <Input
-                value={createAuthorName}
-                onChange={(e) => setCreateAuthorName(e.target.value)}
-                placeholder="Customer name"
-              />
-            </div>
-            <div>
-              <label className="text-sm font-medium">Rating *</label>
-              <div className="flex items-center gap-2 mt-1">
-                {[1, 2, 3, 4, 5].map((star) => (
+          <div className="grid grid-cols-2 gap-5">
+            {/* Left column — Product search */}
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground">Product (Optional)</Label>
+              {/* Selected product chip */}
+              {createProductId.length > 0 && createProductId !== 'none' && (
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-primary/5 border border-primary/20 text-sm">
+                  <Check className="h-3.5 w-3.5 text-primary shrink-0" />
+                  <span className="flex-1 truncate font-medium">{selectedProductTitle}</span>
                   <button
-                    key={star}
                     type="button"
-                    onClick={() => setCreateRating(star)}
-                    className="focus:outline-none"
+                    onClick={() => { setCreateProductId(''); setSelectedProductTitle(''); }}
+                    className="shrink-0 text-muted-foreground hover:text-foreground transition-colors"
+                    aria-label="Clear product selection"
                   >
-                    <Star
-                      className={`h-6 w-6 ${
-                        star <= createRating
-                          ? 'fill-yellow-400 text-yellow-400'
-                          : 'text-gray-300'
-                      }`}
-                    />
+                    <XCircle className="h-4 w-4" />
                   </button>
-                ))}
-                <span className="text-sm text-muted-foreground ml-2">{createRating}/5</span>
+                </div>
+              )}
+              <div className="rounded-lg border border-border overflow-hidden">
+                {/* Search input */}
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <input
+                    value={productSearchQuery}
+                    onChange={(e) => handleProductSearch(e.target.value)}
+                    placeholder="Search products…"
+                    className="flex h-10 w-full bg-muted/30 pl-9 pr-9 text-sm outline-none placeholder:text-muted-foreground border-b border-border focus:bg-muted/50 transition-colors"
+                  />
+                  {productsQuery.isFetching && (
+                    <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />
+                  )}
+                </div>
+                {/* Product list */}
+                <ScrollArea className="h-[260px]">
+                  <div className="p-1.5 space-y-0.5">
+                    {/* General review option */}
+                    <button
+                      type="button"
+                      onClick={() => { setCreateProductId('none'); setSelectedProductTitle(''); }}
+                      className={cn(
+                        'flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-sm cursor-pointer transition-colors',
+                        (createProductId === 'none' || createProductId === '')
+                          ? 'bg-accent text-accent-foreground'
+                          : 'hover:bg-muted/60',
+                      )}
+                    >
+                      <div className="w-8 h-8 rounded bg-muted flex items-center justify-center shrink-0">
+                        <MessageSquare className="h-4 w-4 text-muted-foreground" />
+                      </div>
+                      <span className="text-sm">No product (general review)</span>
+                    </button>
+                    {/* Product results */}
+                    {productResults.map((product) => (
+                      <button
+                        type="button"
+                        key={product.id}
+                        onClick={() => { setCreateProductId(product.id); setSelectedProductTitle(product.title); }}
+                        className={cn(
+                          'flex w-full items-center gap-2.5 rounded-md px-2.5 py-1.5 cursor-pointer transition-colors',
+                          createProductId === product.id
+                            ? 'bg-accent text-accent-foreground'
+                            : 'hover:bg-muted/60',
+                        )}
+                      >
+                        {/* Thumbnail */}
+                        <div className="relative w-8 h-8 rounded overflow-hidden bg-muted shrink-0 border border-border self-start mt-0.5">
+                          {product.coverImageUrl != null && product.coverImageUrl !== '' ? (
+                            <Image
+                              src={product.coverImageUrl}
+                              alt={product.title}
+                              fill
+                              sizes="32px"
+                              className="object-cover"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center">
+                              <Star className="w-3.5 h-3.5 text-muted-foreground" />
+                            </div>
+                          )}
+                        </div>
+                        {/* Info */}
+                        <div className="flex-1 min-w-0 text-left">
+                          <p className="text-sm font-medium leading-snug">{product.title}</p>
+                          <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                            {product.platform != null && product.platform !== '' && (
+                              <span>{product.platform}</span>
+                            )}
+                            {product.platform != null && product.platform !== '' && (
+                              <span>·</span>
+                            )}
+                            <span className="text-green-600 dark:text-green-400 font-medium tabular-nums">
+                              €{Number(product.price).toFixed(2)}
+                            </span>
+                          </div>
+                        </div>
+                        {/* Selected indicator */}
+                        {createProductId === product.id && (
+                          <Check className="h-4 w-4 shrink-0 text-primary" />
+                        )}
+                      </button>
+                    ))}
+                    {/* Empty / loading states */}
+                    {!productsQuery.isFetching && productResults.length === 0 && (
+                      <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
+                        <Search className="h-6 w-6 mb-2 opacity-40" />
+                        <p className="text-xs">No products found</p>
+                      </div>
+                    )}
+                  </div>
+                </ScrollArea>
               </div>
             </div>
-            <div>
-              <label className="text-sm font-medium">Title</label>
-              <Input
-                value={createTitle}
-                onChange={(e) => setCreateTitle(e.target.value)}
-                placeholder="Review title (optional)"
-              />
-            </div>
-            <div>
-              <label className="text-sm font-medium">Content *</label>
-              <Textarea
-                value={createContent}
-                onChange={(e) => setCreateContent(e.target.value)}
-                placeholder="Write the review content..."
-                rows={4}
-              />
-            </div>
-            <div>
-              <label className="text-sm font-medium">Status</label>
-              <Select
-                value={createStatus}
-                onValueChange={(value: 'pending' | 'approved' | 'rejected') => setCreateStatus(value)}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="approved">Approved</SelectItem>
-                  <SelectItem value="pending">Pending</SelectItem>
-                  <SelectItem value="rejected">Rejected</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                id="displayOnHomepage"
-                checked={createDisplayOnHomepage}
-                onChange={(e) => setCreateDisplayOnHomepage(e.target.checked)}
-                className="h-4 w-4 rounded border-gray-300"
-              />
-              <label htmlFor="displayOnHomepage" className="text-sm font-medium">
-                Display on Homepage
-              </label>
-            </div>
-            <div>
-              <label className="text-sm font-medium">Admin Notes</label>
-              <Textarea
-                value={createAdminNotes}
-                onChange={(e) => setCreateAdminNotes(e.target.value)}
-                placeholder="Internal notes (optional)"
-                rows={2}
-              />
+
+            {/* Right column — Review details */}
+            <div className="space-y-3">
+              {/* Author + Rating */}
+              <div className="grid grid-cols-[1fr_auto] gap-3 items-end">
+                <div className="space-y-1.5">
+                  <Label className="text-xs text-muted-foreground">Author Name *</Label>
+                  <Input
+                    value={createAuthorName}
+                    onChange={(e) => setCreateAuthorName(e.target.value)}
+                    placeholder="Customer name"
+                    className="h-9"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs text-muted-foreground">Rating *</Label>
+                  <div className="flex items-center gap-1 h-9 px-1">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <button
+                        key={star}
+                        type="button"
+                        onClick={() => setCreateRating(star)}
+                        className="focus:outline-none focus-visible:ring-1 focus-visible:ring-ring rounded-sm"
+                      >
+                        <Star
+                          className={cn(
+                            'h-5 w-5 transition-colors',
+                            star <= createRating
+                              ? 'fill-yellow-400 text-yellow-400'
+                              : 'text-muted-foreground/40 hover:text-yellow-400/60',
+                          )}
+                        />
+                      </button>
+                    ))}
+                    <span className="text-xs text-muted-foreground tabular-nums ml-1">{createRating}/5</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Title */}
+              <div className="space-y-1.5">
+                <Label className="text-xs text-muted-foreground">Title</Label>
+                <Input
+                  value={createTitle}
+                  onChange={(e) => setCreateTitle(e.target.value)}
+                  placeholder="Review title (optional)"
+                  className="h-9"
+                />
+              </div>
+
+              {/* Content */}
+              <div className="space-y-1.5">
+                <Label className="text-xs text-muted-foreground">Content *</Label>
+                <Textarea
+                  value={createContent}
+                  onChange={(e) => setCreateContent(e.target.value)}
+                  placeholder="Write the review content…"
+                  rows={3}
+                  className="text-sm resize-none"
+                />
+              </div>
+
+              {/* Status + Homepage */}
+              <div className="grid grid-cols-2 gap-3 items-end">
+                <div className="space-y-1.5">
+                  <Label className="text-xs text-muted-foreground">Status</Label>
+                  <Select
+                    value={createStatus}
+                    onValueChange={(value: 'pending' | 'approved' | 'rejected') => setCreateStatus(value)}
+                  >
+                    <SelectTrigger className="h-9">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="approved">Approved</SelectItem>
+                      <SelectItem value="pending">Pending</SelectItem>
+                      <SelectItem value="rejected">Rejected</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex items-center gap-2 h-9">
+                  <Switch
+                    id="createDisplayOnHomepage"
+                    checked={createDisplayOnHomepage}
+                    onCheckedChange={setCreateDisplayOnHomepage}
+                  />
+                  <Label htmlFor="createDisplayOnHomepage" className="text-sm cursor-pointer">
+                    Show on Homepage
+                  </Label>
+                </div>
+              </div>
+
+              {/* Advanced — collapsible */}
+              <Collapsible open={showAdvanced} onOpenChange={setShowAdvanced}>
+                <CollapsibleTrigger asChild>
+                  <Button variant="ghost" size="sm" className="w-full justify-between text-xs text-muted-foreground h-7 px-2">
+                    Advanced options
+                    <ChevronsUpDown className="h-3.5 w-3.5" />
+                  </Button>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="pt-2">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs text-muted-foreground">Admin Notes</Label>
+                    <Textarea
+                      value={createAdminNotes}
+                      onChange={(e) => setCreateAdminNotes(e.target.value)}
+                      placeholder="Internal notes (optional)"
+                      rows={2}
+                      className="text-sm resize-none"
+                    />
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
             </div>
           </div>
           <DialogFooter>
             <Button
               variant="outline"
+              size="sm"
               onClick={() => {
                 setCreateDialogOpen(false);
                 resetCreateForm();
@@ -858,6 +1014,7 @@ export default function AdminReviewsPage(): React.ReactElement {
               Cancel
             </Button>
             <Button
+              size="sm"
               onClick={handleCreateReview}
               disabled={
                 createReview.isPending ||

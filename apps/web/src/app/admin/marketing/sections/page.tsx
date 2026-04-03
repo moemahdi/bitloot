@@ -251,6 +251,26 @@ async function updateProductOrder(productId: string, newOrder: number): Promise<
   });
 }
 
+/**
+ * Bulk-update featuredOrder for products whose order actually changed.
+ * Compares old vs new order and only sends API calls for diffs.
+ */
+async function persistOrderChanges(
+  oldProducts: Product[],
+  newProducts: Product[],
+): Promise<void> {
+  const oldOrderMap = new Map(oldProducts.map((p) => [p.id, p.featuredOrder ?? 0]));
+  const updates: Promise<void>[] = [];
+  for (const product of newProducts) {
+    const oldOrder = oldOrderMap.get(product.id);
+    const newOrder = product.featuredOrder ?? 0;
+    if (oldOrder !== newOrder) {
+      updates.push(updateProductOrder(product.id, newOrder));
+    }
+  }
+  if (updates.length > 0) await Promise.all(updates);
+}
+
 // ============================================================================
 // PRODUCT SEARCH COMPONENT
 // ============================================================================
@@ -390,12 +410,7 @@ function ProductSearch({
                   onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
-                    console.info('[ProductSearch] Add clicked, product:', product.id, product.title);
-                    console.info('[ProductSearch] canAddMore:', canAddMore);
-                    if (canAddMore) {
-                      console.info('[ProductSearch] Calling onSelect...');
-                      onSelect(product);
-                    }
+                    if (canAddMore) onSelect(product);
                   }}
                 >
                   <Plus className="h-3.5 w-3.5" />
@@ -651,7 +666,6 @@ interface SectionManageDialogProps {
   onAddProduct: (product: Product) => Promise<void>;
   onRemoveProduct: (product: Product) => Promise<void>;
   onReorderProduct: (product: Product, direction: 'up' | 'down') => Promise<void>;
-  isLoading: boolean;
 }
 
 function SectionManageDialog({
@@ -662,7 +676,6 @@ function SectionManageDialog({
   onAddProduct,
   onRemoveProduct,
   onReorderProduct,
-  isLoading,
 }: SectionManageDialogProps): React.ReactElement {
   if (config === null) return <></>;
 
@@ -707,7 +720,6 @@ function SectionManageDialog({
               </span>
             </div>
             <ProductSearch
-              key={`search-${products.length}`}
               onSelect={(product) => { void onAddProduct(product); }}
               excludeIds={excludeIds}
               maxSelections={config.maxProducts}
@@ -723,9 +735,6 @@ function SectionManageDialog({
                 <span className="text-xs font-semibold text-text-primary uppercase tracking-wide">
                   Assigned Products
                 </span>
-                {isLoading && (
-                  <Loader2 className="h-3 w-3 animate-spin text-cyan-glow" />
-                )}
               </div>
               <Badge 
                 variant="secondary" 
@@ -768,7 +777,6 @@ export default function HomepageSectionsPage(): React.ReactElement {
   const queryClient = useQueryClient();
   const [activeSection, setActiveSection] = useState<SectionConfig | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
 
   // Single query fetches all sections at once — 1 API call instead of 4
   const allSectionsQuery = useQuery({
@@ -776,6 +784,8 @@ export default function HomepageSectionsPage(): React.ReactElement {
     queryFn: fetchAllSectionProducts,
     staleTime: 30_000,
   });
+
+  const CACHE_KEY = ['admin', 'marketing', 'all-section-products'] as const;
 
   const getSectionProducts = (key: string): Product[] =>
     allSectionsQuery.data?.[key] ?? [];
@@ -785,105 +795,142 @@ export default function HomepageSectionsPage(): React.ReactElement {
     setIsDialogOpen(true);
   };
 
-  const invalidateSection = async (_sectionKey: string) => {
-    await queryClient.refetchQueries({ 
-      queryKey: ['admin', 'marketing', 'all-section-products'],
-    });
-    // Also refetch search queries so excludeIds updates
-    await queryClient.invalidateQueries({ 
-      queryKey: ['admin', 'products', 'search'],
-      refetchType: 'all'
-    });
+  // Background revalidation — non-blocking, syncs server state after optimistic update
+  const backgroundRevalidate = () => {
+    void queryClient.invalidateQueries({ queryKey: [...CACHE_KEY] });
+    void queryClient.invalidateQueries({ queryKey: ['admin', 'products', 'search'] });
   };
 
   const handleAddProduct = async (product: Product) => {
-    console.info('[handleAddProduct] Called with product:', product.id, product.title);
-    console.info('[handleAddProduct] activeSection:', activeSection?.key);
-    if (activeSection === null) {
-      console.info('[handleAddProduct] activeSection is null, returning early');
-      return;
-    }
-    setIsLoading(true);
+    if (activeSection === null) return;
+    const sectionKey = activeSection.key;
+    const currentProducts = getSectionProducts(sectionKey);
+
+    // Prevent duplicates
+    if (currentProducts.some((p) => p.id === product.id)) return;
+
+    // New product goes at the end with the next sequential order
+    const newOrder = currentProducts.length;
+    const updatedProduct: Product = {
+      ...product,
+      featuredSections: [...(product.featuredSections ?? []), sectionKey].filter(
+        (v, i, a) => a.indexOf(v) === i,
+      ),
+      featuredOrder: newOrder,
+    };
+
+    // Also normalize existing products to sequential order (0, 1, 2...)
+    // so the new product's order value doesn't collide
+    const sorted = [...currentProducts].sort((a, b) => (a.featuredOrder ?? 0) - (b.featuredOrder ?? 0));
+    const normalized = sorted.map((p, i) => ({ ...p, featuredOrder: i }));
+
+    // Optimistic update — instant UI
+    queryClient.setQueryData<Record<string, Product[]>>(
+      [...CACHE_KEY],
+      (old) => {
+        if (old == null) return old;
+        return {
+          ...old,
+          [sectionKey]: [...normalized, updatedProduct],
+        };
+      },
+    );
+
+    // Fire API in background
     try {
-      const currentProducts = getSectionProducts(activeSection.key);
-      console.info('[handleAddProduct] currentProducts count:', currentProducts.length);
-      // Use product's featuredSections directly - the addProductToSection handles the merge
-      const currentSections = product.featuredSections ?? [];
-      console.info('[handleAddProduct] currentSections:', currentSections);
-      
-      console.info('[handleAddProduct] Calling addProductToSection...');
-      await addProductToSection(product.id, activeSection.key, currentSections, currentProducts.length);
-      console.info('[handleAddProduct] addProductToSection completed');
-      
-      // Optimistically update the cache with the new product
-      const sectionKey = activeSection.key;
-      const updatedProduct = {
-        ...product,
-        featuredSections: [...currentSections, sectionKey].filter((v, i, a) => a.indexOf(v) === i),
-        featuredOrder: currentProducts.length,
-      };
-      
-      queryClient.setQueryData(
-        ['admin', 'marketing', 'section-products', sectionKey],
-        (oldData: Product[] | undefined) => {
-          const existing = oldData ?? [];
-          // Check if product already exists
-          if (existing.some(p => p.id === product.id)) {
-            return existing;
-          }
-          return [...existing, updatedProduct];
-        }
+      // Persist order normalization for existing products that changed
+      await Promise.all([
+        addProductToSection(
+          product.id,
+          sectionKey,
+          product.featuredSections ?? [],
+          newOrder,
+        ),
+        persistOrderChanges(currentProducts, normalized),
+      ]);
+      backgroundRevalidate();
+    } catch {
+      // Rollback on error
+      queryClient.setQueryData<Record<string, Product[]>>(
+        [...CACHE_KEY],
+        (old) => {
+          if (old == null) return old;
+          return {
+            ...old,
+            [sectionKey]: (old[sectionKey] ?? []).filter((p) => p.id !== product.id),
+          };
+        },
       );
-      console.info('[handleAddProduct] Cache updated optimistically');
-      
-      // Also refetch to ensure server state is synced
-      console.info('[handleAddProduct] Refetching queries...');
-      await queryClient.invalidateQueries({ 
-        queryKey: ['admin', 'products', 'search'],
-        refetchType: 'all'
-      });
-      console.info('[handleAddProduct] Done!');
-    } catch (error) {
-      console.error('[handleAddProduct] Failed to add product:', error);
-      // Refetch on error to restore correct state
-      await queryClient.refetchQueries({ 
-        queryKey: ['admin', 'marketing', 'section-products', activeSection.key] 
-      });
-    } finally {
-      setIsLoading(false);
     }
   };
 
   const handleRemoveProduct = async (product: Product) => {
     if (activeSection === null) return;
-    setIsLoading(true);
+    const sectionKey = activeSection.key;
+    const oldProducts = getSectionProducts(sectionKey);
+
+    // Remove and re-index sequentially to close gaps
+    const remaining = oldProducts
+      .filter((p) => p.id !== product.id)
+      .sort((a, b) => (a.featuredOrder ?? 0) - (b.featuredOrder ?? 0))
+      .map((p, i) => ({ ...p, featuredOrder: i }));
+
+    // Optimistic update — remove immediately with clean order
+    queryClient.setQueryData<Record<string, Product[]>>(
+      [...CACHE_KEY],
+      (old) => {
+        if (old == null) return old;
+        return { ...old, [sectionKey]: remaining };
+      },
+    );
+
+    // Fire API in background
     try {
-      await removeProductFromSection(product.id, activeSection.key, product.featuredSections);
-      await invalidateSection(activeSection.key);
-    } finally {
-      setIsLoading(false);
+      await removeProductFromSection(product.id, sectionKey, product.featuredSections);
+      // Re-index remaining products to close the gap
+      await persistOrderChanges(oldProducts.filter((p) => p.id !== product.id), remaining);
+      backgroundRevalidate();
+    } catch {
+      void queryClient.refetchQueries({ queryKey: [...CACHE_KEY] });
     }
   };
 
   const handleReorderProduct = async (product: Product, direction: 'up' | 'down') => {
     if (activeSection === null) return;
-    const products = getSectionProducts(activeSection.key);
-    const sorted = [...products].sort((a, b) => (a.featuredOrder ?? 0) - (b.featuredOrder ?? 0));
+    const sectionKey = activeSection.key;
+    const oldProducts = getSectionProducts(sectionKey);
+    // Sort by current order to get the display list
+    const sorted = [...oldProducts].sort((a, b) => (a.featuredOrder ?? 0) - (b.featuredOrder ?? 0));
     const currentIndex = sorted.findIndex((p) => p.id === product.id);
-    
+    if (currentIndex === -1) return;
+
     const newIndex = direction === 'up' ? currentIndex - 1 : currentIndex + 1;
     if (newIndex < 0 || newIndex >= sorted.length) return;
 
-    setIsLoading(true);
+    // Splice: remove from old position, insert at new position
+    const reordered = [...sorted];
+    const [moved] = reordered.splice(currentIndex, 1);
+    if (moved === undefined) return;
+    reordered.splice(newIndex, 0, moved);
+
+    // Re-assign sequential featuredOrder values (0, 1, 2, 3...)
+    const reindexed = reordered.map((p, i) => ({ ...p, featuredOrder: i }));
+
+    // Optimistic update — instant UI
+    queryClient.setQueryData<Record<string, Product[]>>(
+      [...CACHE_KEY],
+      (old) => {
+        if (old == null) return old;
+        return { ...old, [sectionKey]: reindexed };
+      },
+    );
+
+    // Persist only changed orders in background
     try {
-      const otherProduct = sorted[newIndex];
-      if (otherProduct !== undefined) {
-        await updateProductOrder(product.id, newIndex);
-        await updateProductOrder(otherProduct.id, currentIndex);
-      }
-      await invalidateSection(activeSection.key);
-    } finally {
-      setIsLoading(false);
+      await persistOrderChanges(oldProducts, reindexed);
+      backgroundRevalidate();
+    } catch {
+      void queryClient.refetchQueries({ queryKey: [...CACHE_KEY] });
     }
   };
 
@@ -1034,7 +1081,6 @@ export default function HomepageSectionsPage(): React.ReactElement {
         onAddProduct={handleAddProduct}
         onRemoveProduct={handleRemoveProduct}
         onReorderProduct={handleReorderProduct}
-        isLoading={isLoading}
       />
 
       {/* Info Alert */}
