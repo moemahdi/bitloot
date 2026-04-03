@@ -766,84 +766,78 @@ export default function AdminCatalogProductsPage(): React.JSX.Element {
               <div className="w-px h-5 sm:h-6 bg-border-subtle hidden sm:block" />
               
               {/* Reprice */}
-              <GlowButton
+              <Button
                 onClick={() => bulkRepriceMutation.mutate(Array.from(selectedProductIds))}
                 disabled={bulkRepriceMutation.isPending || !isOnline}
-                variant="secondary"
+                variant="outline"
                 size="sm"
-                glowColor="cyan"
-                className="border-cyan-glow/40 text-cyan-glow hover:bg-cyan-glow/10 text-xs h-7 sm:h-8 px-2 sm:px-3"
+                className="border-cyan-glow/40 text-cyan-glow hover:bg-cyan-glow/10 hover:text-cyan-glow text-xs h-7 sm:h-8 px-2 sm:px-3"
               >
                 {bulkRepriceMutation.isPending ? <Loader2 className="h-3 w-3 sm:h-4 sm:w-4 animate-spin" /> : <DollarSign className="h-3 w-3 sm:h-4 sm:w-4" />}
                 <span className="hidden xs:inline ml-1">Reprice</span>
-              </GlowButton>
+              </Button>
               
               {/* Publish */}
-              <GlowButton
+              <Button
                 onClick={() => bulkPublishMutation.mutate(Array.from(selectedProductIds))}
                 disabled={bulkPublishMutation.isPending || !isOnline}
-                variant="secondary"
+                variant="outline"
                 size="sm"
-                glowColor="green"
-                className="border-green-success/40 text-green-success hover:bg-green-success/10 text-xs h-7 sm:h-8 px-2 sm:px-3"
+                className="border-green-success/40 text-green-success hover:bg-green-success/10 hover:text-green-success text-xs h-7 sm:h-8 px-2 sm:px-3"
               >
                 {bulkPublishMutation.isPending ? <Loader2 className="h-3 w-3 sm:h-4 sm:w-4 animate-spin" /> : <Eye className="h-3 w-3 sm:h-4 sm:w-4" />}
                 <span className="hidden xs:inline ml-1">Publish</span>
-              </GlowButton>
+              </Button>
               
               {/* Unpublish */}
-              <GlowButton
+              <Button
                 onClick={() => bulkUnpublishMutation.mutate(Array.from(selectedProductIds))}
                 disabled={bulkUnpublishMutation.isPending || !isOnline}
-                variant="secondary"
+                variant="outline"
                 size="sm"
-                glowColor="gray"
-                className="border-border-accent text-text-secondary hover:bg-bg-secondary text-xs h-7 sm:h-8 px-2 sm:px-3"
+                className="border-border-accent text-text-secondary hover:bg-bg-secondary hover:text-text-primary text-xs h-7 sm:h-8 px-2 sm:px-3"
               >
                 {bulkUnpublishMutation.isPending ? <Loader2 className="h-3 w-3 sm:h-4 sm:w-4 animate-spin" /> : <XCircle className="h-3 w-3 sm:h-4 sm:w-4" />}
                 <span className="hidden sm:inline ml-1">Unpublish</span>
-              </GlowButton>
+              </Button>
               
               <div className="w-px h-5 sm:h-6 bg-border-subtle hidden md:block" />
               
               {/* Feature - hidden on mobile */}
-              <GlowButton
+              <Button
                 onClick={() => bulkFeatureMutation.mutate(Array.from(selectedProductIds))}
                 disabled={bulkFeatureMutation.isPending || !isOnline}
-                variant="secondary"
+                variant="outline"
                 size="sm"
-                glowColor="pink"
-                className="border-pink-featured/40 text-pink-featured hover:bg-pink-featured/10 text-xs h-7 sm:h-8 px-2 sm:px-3 hidden md:flex"
+                className="border-pink-featured/40 text-pink-featured hover:bg-pink-featured/10 hover:text-pink-featured text-xs h-7 sm:h-8 px-2 sm:px-3 hidden md:flex"
               >
                 {bulkFeatureMutation.isPending ? <Loader2 className="h-3 w-3 sm:h-4 sm:w-4 animate-spin" /> : <Star className="h-3 w-3 sm:h-4 sm:w-4" />}
                 <span className="ml-1">Feature</span>
-              </GlowButton>
+              </Button>
               
               {/* Unfeature - hidden on mobile */}
-              <GlowButton
+              <Button
                 onClick={() => bulkUnfeatureMutation.mutate(Array.from(selectedProductIds))}
                 disabled={bulkUnfeatureMutation.isPending || !isOnline}
-                variant="secondary"
+                variant="outline"
                 size="sm"
-                glowColor="gray"
-                className="border-border-accent text-text-muted hover:bg-bg-secondary text-xs h-7 sm:h-8 px-2 sm:px-3 hidden md:flex"
+                className="border-border-accent text-text-muted hover:bg-bg-secondary hover:text-text-primary text-xs h-7 sm:h-8 px-2 sm:px-3 hidden md:flex"
               >
                 {bulkUnfeatureMutation.isPending ? <Loader2 className="h-3 w-3 sm:h-4 sm:w-4 animate-spin" /> : <Star className="h-3 w-3 sm:h-4 sm:w-4" />}
                 <span className="ml-1">Unfeature</span>
-              </GlowButton>
+              </Button>
               
               {/* Delete */}
-              <GlowButton
+              <Button
                 onClick={handleBulkDeleteClick}
                 disabled={bulkDeleteMutation.isPending || !isOnline}
-                variant="secondary"
+                variant="outline"
                 size="sm"
-                glowColor="orange"
-                className="border-orange-warning/40 text-orange-warning hover:bg-orange-warning/10 text-xs h-7 sm:h-8 px-2 sm:px-3"
+                className="border-orange-warning/40 text-orange-warning hover:bg-orange-warning/10 hover:text-orange-warning text-xs h-7 sm:h-8 px-2 sm:px-3"
               >
                 {bulkDeleteMutation.isPending ? <Loader2 className="h-3 w-3 sm:h-4 sm:w-4 animate-spin" /> : <Trash2 className="h-3 w-3 sm:h-4 sm:w-4" />}
                 <span className="hidden xs:inline ml-1">Delete</span>
-              </GlowButton>
+              </Button>
               
               {/* Clear */}
               <Button

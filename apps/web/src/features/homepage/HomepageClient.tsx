@@ -89,6 +89,12 @@ const CategoryBrowser = dynamic(
     { ssr: false, loading: () => <div className="py-16" aria-hidden="true" /> }
 );
 
+// Reviews section — lazy loaded, only renders when reviews exist
+const HomepageReviews = dynamic(
+    () => import('@/features/reviews').then((m) => ({ default: m.HomepageReviews })),
+    { ssr: false, loading: () => <div className="py-12" aria-hidden="true" /> }
+);
+
 // ============================================================================
 // TYPE DEFINITIONS
 // ============================================================================
@@ -601,6 +607,9 @@ export default function HomepageClient(): React.ReactElement {
                 
                 {/* Benefits - Why choose BitLoot */}
                 <BenefitsSection />
+                
+                {/* Customer Reviews - Social proof (hidden when no reviews) */}
+                <HomepageReviews />
                 
                 {/* Social Proof - Trust badges + live purchases (HIDDEN - component kept for future use) */}
                 {/* <_SocialProofSection /> */}
