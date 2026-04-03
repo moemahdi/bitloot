@@ -101,7 +101,7 @@ const PS_PLUS_TIERS: PsPlusTier[] = [
       'Cloud streaming on PS5, PS4, PC',
     ],
     plans: [
-      { duration: '1 Month', price: '€20.16', slug: 'playstation-plus-premium-1-month-subscription-acco-64bd05' },
+      { duration: '1 Month', price: '€21.14', slug: 'playstation-plus-deluxe-1-month-subscription-accou-659676' },
       { duration: '3 Months', price: '€45.07', slug: 'playstation-plus-premium-3-months-subscription-acc-648197' },
       { duration: '6 Months', price: '€46.06', slug: 'playstation-plus-premium-6-months-subscription-acc-66604c', badge: 'Best Deal' },
       { duration: '12 Months', price: '€82.75', slug: 'playstation-plus-premium-12-months-subscription-ac-648194' },
@@ -218,7 +218,7 @@ export default function PlayStationPlusGamesPage() {
             <div className="mb-8 flex flex-wrap items-center justify-center gap-3 text-sm text-muted-foreground">
               <span className="rounded-full border border-border bg-card px-3 py-1">✅ Essential from €10.31/mo</span>
               <span className="rounded-full border border-border bg-card px-3 py-1">✅ Extra from €17.92/mo</span>
-              <span className="rounded-full border border-border bg-card px-3 py-1">✅ Premium from €20.16/mo</span>
+              <span className="rounded-full border border-border bg-card px-3 py-1">✅ Premium from €21.14/mo</span>
             </div>
             <Link
               href="/catalog?platform=PlayStation&category=subscriptions"
@@ -352,7 +352,7 @@ export default function PlayStationPlusGamesPage() {
                   ['Classic Games (PS1, PS2, PSP)', '❌', '❌', '✅'],
                   ['PS3 Games via Cloud Streaming', '❌', '❌', '✅'],
                   ['Game Trials (try before buying)', '❌', '❌', '✅'],
-                  ['Starting price/month', '€10.31', '€17.92', '€20.16'],
+                  ['Starting price/month', '€10.31', '€17.92', '€21.14'],
                 ].map(([feature, essential, extra, premium]) => (
                   <tr key={feature} className="bg-card hover:bg-muted/30 transition-colors">
                     <td className="px-4 py-3 text-muted-foreground">{feature}</td>
