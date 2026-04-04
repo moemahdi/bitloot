@@ -188,26 +188,33 @@ export class StorageService {
     orderId: string;
     ipAddress: string;
     userAgent: string;
+    encryptionKey?: Buffer;
   }): Promise<string> {
     try {
       this.logger.debug(`[STORAGE] Retrieving key for order: ${input.orderId}`);
 
-      // Fetch from R2 (this would normally retrieve the encrypted object)
-      // For now, we return a placeholder that can be decrypted
-      const encryptedData = {
-        encryptedKey: 'placeholder', // In real use, fetch from R2
-        iv: 'placeholder',
-        authTag: 'placeholder',
-      };
+      // Fetch encrypted key data from R2
+      const keyData = await this.r2StorageClient.getEncryptedKey(input.orderId);
 
-      // Decrypt (decrypt is synchronous, but we await any potential async operations)
-      const plainKey = await Promise.resolve(
-        decryptKey(
-          encryptedData.encryptedKey,
-          encryptedData.iv,
-          encryptedData.authTag,
-          Buffer.from('0'.repeat(64), 'hex'), // Placeholder encryption key
-        ),
+      if (
+        keyData.encryptedKey === undefined ||
+        keyData.encryptionIv === undefined ||
+        keyData.authTag === undefined
+      ) {
+        throw new Error(`Invalid key data structure for order ${input.orderId}`);
+      }
+
+      // Encryption key must be provided by caller (from Key entity or env var)
+      if (input.encryptionKey === undefined || input.encryptionKey === null) {
+        throw new Error('Encryption key is required for decryption');
+      }
+
+      // Decrypt using the real encryption key
+      const plainKey = decryptKey(
+        keyData.encryptedKey,
+        keyData.encryptionIv,
+        keyData.authTag,
+        input.encryptionKey,
       );
 
       // Log access (audit trail)

@@ -170,9 +170,7 @@ function CountdownTimer({ expiresAt, onExpired }: { expiresAt: string; onExpired
 
   return (
     <motion.div 
-      animate={isCritical ? { scale: [1, 1.02, 1] } : {}}
-      transition={{ duration: 1, repeat: Infinity }}
-      className="relative w-24 h-24"
+      className={`relative w-24 h-24 ${isCritical ? 'animate-pulse' : ''}`}
     >
       <svg className="transform -rotate-90 w-24 h-24">
         <circle
@@ -200,6 +198,8 @@ function CountdownTimer({ expiresAt, onExpired }: { expiresAt: string; onExpired
         <span className={`font-mono text-lg font-bold tabular-nums ${isCritical ? 'text-destructive animate-pulse' : isLow ? 'text-orange-warning' : 'text-text-primary'}`}>
           {String(timeLeft.minutes).padStart(2, '0')}:{String(timeLeft.seconds).padStart(2, '0')}
         </span>
+        {isCritical && <span className="sr-only">Expiring soon</span>}
+        {isLow && !isCritical && <span className="sr-only">Low time remaining</span>}
       </div>
     </motion.div>
   );
@@ -239,7 +239,7 @@ export function EmbeddedPaymentUI({
     refetchInterval: (query) => {
       const status = query.state.data?.status;
       // Stop polling on terminal states
-      if (status === 'paid' || status === 'fulfilled' || status === 'failed') {
+      if (status === 'paid' || status === 'fulfilled' || status === 'failed' || status === 'expired') {
         return false;
       }
       // Poll every 5 seconds while waiting
@@ -256,8 +256,9 @@ export function EmbeddedPaymentUI({
         const result = await paymentsClient.paymentsControllerPollPaymentStatus({ paymentId });
         setNpPaymentStatus(result.paymentStatus ?? null);
         
-        // If fulfillment was triggered, refetch order
-        if (result.fulfillmentTriggered === true) {
+        // If fulfillment was triggered, refetch order (only if not already terminal)
+        const currentOrderStatus = order?.status;
+        if (result.fulfillmentTriggered === true && currentOrderStatus !== 'fulfilled' && currentOrderStatus !== 'failed') {
           void refetch();
         }
         
@@ -270,7 +271,7 @@ export function EmbeddedPaymentUI({
     refetchInterval: (query) => {
       const npStatus = query.state.data?.paymentStatus;
       // Stop polling on terminal states
-      if (npStatus === 'finished' || npStatus === 'confirmed' || npStatus === 'failed') {
+      if (npStatus === 'finished' || npStatus === 'confirmed' || npStatus === 'failed' || npStatus === 'expired') {
         return false;
       }
       // Poll every 10 seconds (less aggressive than order polling)

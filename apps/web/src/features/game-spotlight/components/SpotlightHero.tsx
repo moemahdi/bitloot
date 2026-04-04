@@ -34,7 +34,7 @@ import {
   Clock,
   Zap,
 } from 'lucide-react';
-import { BitcoinIcon, EthereumIcon, SolanaIcon } from '@/components/crypto-icons';
+import { CryptoIcon } from '@/components/crypto-icons';
 import { motion } from 'framer-motion';
 import type { SpotlightHeroProps } from '../types';
 import { CountdownTimer } from './CountdownTimer';
@@ -267,9 +267,9 @@ export function SpotlightHero({
                 <div className="flex items-center gap-2 mb-1">
                   <span className="text-sm uppercase tracking-wide text-text-muted">Pay with crypto</span>
                   <div className="flex items-center gap-1 opacity-80">
-                    <BitcoinIcon size={16} />
-                    <EthereumIcon size={16} />
-                    <SolanaIcon size={16} />
+                    <CryptoIcon code="btc" size={16} />
+                    <CryptoIcon code="eth" size={16} />
+                    <CryptoIcon code="sol" size={16} />
                   </div>
                 </div>
                 <div
@@ -335,19 +335,19 @@ export function SpotlightHero({
               animate={{ y: [0, -10, 0] }}
               transition={{ repeat: Infinity, duration: 3, ease: 'easeInOut' }}
             >
-              <BitcoinIcon size={48} className="drop-shadow-lg" />
+              <CryptoIcon code="btc" size={48} className="drop-shadow-lg" />
             </motion.div>
             <motion.div
               animate={{ y: [0, -10, 0] }}
               transition={{ repeat: Infinity, duration: 3.5, ease: 'easeInOut', delay: 0.5 }}
             >
-              <EthereumIcon size={40} className="drop-shadow-lg" />
+              <CryptoIcon code="eth" size={40} className="drop-shadow-lg" />
             </motion.div>
             <motion.div
               animate={{ y: [0, -10, 0] }}
               transition={{ repeat: Infinity, duration: 4, ease: 'easeInOut', delay: 1 }}
             >
-              <SolanaIcon size={36} className="drop-shadow-lg" />
+              <CryptoIcon code="sol" size={36} className="drop-shadow-lg" />
             </motion.div>
           </motion.div>
         </div>

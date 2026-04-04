@@ -1,7 +1,7 @@
 import { Injectable, Logger, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, LessThan, MoreThan } from 'typeorm';
-import { createHash } from 'crypto';
+import { createHash, timingSafeEqual } from 'crypto';
 import { Session } from '../../database/entities/session.entity';
 
 /**
@@ -56,6 +56,19 @@ export class SessionService {
    */
   private hashToken(token: string): string {
     return createHash('sha256').update(token).digest('hex');
+  }
+
+  /**
+   * Timing-safe comparison of two hex hash strings
+   * Prevents timing attacks on token hash comparison
+   */
+  private safeCompareHashes(a: string, b: string): boolean {
+    if (a.length !== b.length) return false;
+    try {
+      return timingSafeEqual(Buffer.from(a, 'hex'), Buffer.from(b, 'hex'));
+    } catch {
+      return false;
+    }
   }
 
   /**
@@ -212,7 +225,7 @@ export class SessionService {
       lastActiveAt: session.lastActiveAt ?? null,
       createdAt: session.createdAt,
       isCurrent: currentTokenHash !== null && currentTokenHash !== undefined
-                 ? session.refreshTokenHash === currentTokenHash 
+                 ? this.safeCompareHashes(session.refreshTokenHash, currentTokenHash) 
                  : false,
     }));
   }

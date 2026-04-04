@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -94,7 +94,7 @@ export function OTPLogin(): React.ReactElement {
   const searchParams = useSearchParams();
   const router = useRouter();
   // Check 'redirect' first (used by KeyReveal), then 'returnTo' as fallback
-  const returnTo = searchParams.get('redirect') ?? searchParams.get('returnTo') ?? '/account';
+  const returnTo = searchParams.get('redirect') ?? searchParams.get('returnTo') ?? '/profile';
   
   const [step, setStep] = useState<'email' | 'otp'>('email');
   const [email, setEmail] = useState('');
@@ -103,6 +103,37 @@ export function OTPLogin(): React.ReactElement {
   const [countdown, setCountdown] = useState(0);
   const [_captchaToken, _setCaptchaToken] = useState<string | null>(null);
   const turnstileRef = useRef<TurnstileInstance | undefined>(undefined);
+  const countdownTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Cleanup countdown timer on unmount
+  useEffect(() => {
+    return () => {
+      if (countdownTimerRef.current !== null) {
+        clearInterval(countdownTimerRef.current);
+      }
+    };
+  }, []);
+
+  // Start countdown timer safely (clears any existing timer first)
+  const startCountdown = useCallback((seconds: number) => {
+    // Clear any existing timer to prevent race conditions
+    if (countdownTimerRef.current !== null) {
+      clearInterval(countdownTimerRef.current);
+    }
+    setCountdown(seconds);
+    countdownTimerRef.current = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev <= 1) {
+          if (countdownTimerRef.current !== null) {
+            clearInterval(countdownTimerRef.current);
+            countdownTimerRef.current = null;
+          }
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  }, []);
 
   // Email form
   const emailForm = useForm<EmailForm>({
@@ -133,17 +164,7 @@ export function OTPLogin(): React.ReactElement {
       if (turnstileRef.current !== null && turnstileRef.current !== undefined) {
         turnstileRef.current.remove();
       }
-      setCountdown(result.expiresIn ?? 300);
-
-      const timer = setInterval(() => {
-        setCountdown((prev) => {
-          if (prev <= 1) {
-            clearInterval(timer);
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
+      startCountdown(result.expiresIn ?? 300);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unknown error';
       setError(message);

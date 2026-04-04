@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/design-system/primitives/card';
 import { Button } from '@/design-system/primitives/button';
 import { Badge } from '@/design-system/primitives/badge';
@@ -190,6 +190,11 @@ export default function AdminOrdersPage(): React.ReactElement {
     isRefetching
   } = useAdminOrders(tableState);
   const totalPages = (totalItems > 0 && limit > 0) ? Math.ceil(totalItems / limit) : 0;
+
+  // Clear bulk selection when filters or page change
+  useEffect(() => {
+    setSelectedOrders([]);
+  }, [filters, page]);
 
   // Analytics hook
   const { analytics, isLoading: analyticsLoading, refetch: refetchAnalytics } = useOrderAnalytics(30);

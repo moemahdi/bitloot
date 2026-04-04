@@ -66,26 +66,27 @@ function RecentlyViewedCarousel({ products, onAddToCart, onViewProduct }: Recent
   const [activeSegment, setActiveSegment] = useState(0);
   const [totalSegments, setTotalSegments] = useState(1);
   
-  // Check scroll state
+  // Check scroll state (wrapped in rAF to avoid forced reflows)
   const checkScrollState = useCallback(() => {
-    const container = scrollContainerRef.current;
-    if (container === null) return;
-    
-    setCanScrollLeft(container.scrollLeft > 0);
-    setCanScrollRight(
-      container.scrollLeft < container.scrollWidth - container.clientWidth - 10
-    );
-    
-    // Calculate segments based on visible cards
-    const cardWidth = 200; // Approximate card width + gap
-    const visibleCards = Math.floor(container.clientWidth / cardWidth);
-    const segments = Math.max(1, Math.ceil(products.length / Math.max(1, visibleCards)));
-    setTotalSegments(segments);
-    
-    // Calculate active segment
-    const scrollProgress = container.scrollLeft / (container.scrollWidth - container.clientWidth);
-    const currentSegment = Math.min(segments - 1, Math.floor(scrollProgress * segments));
-    setActiveSegment(Number.isNaN(currentSegment) ? 0 : currentSegment);
+    requestAnimationFrame(() => {
+      const container = scrollContainerRef.current;
+      if (container === null) return;
+      
+      const { scrollLeft, scrollWidth, clientWidth } = container;
+      setCanScrollLeft(scrollLeft > 0);
+      setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 10);
+      
+      // Calculate segments based on visible cards
+      const cardWidth = 200; // Approximate card width + gap
+      const visibleCards = Math.floor(clientWidth / cardWidth);
+      const segments = Math.max(1, Math.ceil(products.length / Math.max(1, visibleCards)));
+      setTotalSegments(segments);
+      
+      // Calculate active segment
+      const scrollProgress = scrollLeft / (scrollWidth - clientWidth);
+      const currentSegment = Math.min(segments - 1, Math.floor(scrollProgress * segments));
+      setActiveSegment(Number.isNaN(currentSegment) ? 0 : currentSegment);
+    });
   }, [products.length]);
   
   // Initialize scroll state

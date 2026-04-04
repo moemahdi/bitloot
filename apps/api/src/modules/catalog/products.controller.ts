@@ -62,7 +62,7 @@ function toProductResponseDto(product: Product): ProductResponseDto {
     totalQty,
     inStock,
     
-    imageUrl: product.coverImageUrl, // Map coverImageUrl → imageUrl
+    imageUrl: product.coverImageUrl ?? '/images/placeholder-product.png', // Map coverImageUrl → imageUrl
     createdAt: product.createdAt,
     updatedAt: product.updatedAt,
 

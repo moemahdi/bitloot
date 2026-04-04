@@ -142,6 +142,7 @@ export default function AdminOrderDetailPage(): React.ReactElement | null {
             return await ordersApi.ordersControllerGet({ id });
         },
         enabled: isAdmin && Boolean(id),
+        staleTime: 30 * 1000, // 30 seconds for admin detail pages
     });
 
     const { data: auditTrail, isLoading: isAuditLoading } = useQuery<AdminControllerGetKeyAuditTrail200ResponseInner[]>({
@@ -150,6 +151,7 @@ export default function AdminOrderDetailPage(): React.ReactElement | null {
             return await adminApi.adminControllerGetKeyAuditTrail({ orderId: id });
         },
         enabled: isAdmin && (id !== null && id !== undefined && id.length > 0),
+        staleTime: 60 * 1000, // 1 minute for audit trail
     });
 
     // Order webhook history

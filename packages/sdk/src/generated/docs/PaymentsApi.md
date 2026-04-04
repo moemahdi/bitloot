@@ -5,6 +5,7 @@ All URIs are relative to *http://localhost*
 | Method | HTTP request | Description |
 |------------- | ------------- | -------------|
 | [**paymentsControllerAdminListPayments**](PaymentsApi.md#paymentscontrolleradminlistpayments) | **GET** /payments/admin/list | [ADMIN] List all payments with pagination |
+| [**paymentsControllerCheckCurrency**](PaymentsApi.md#paymentscontrollercheckcurrency) | **GET** /payments/check-currency | Check cryptocurrency availability for order amount |
 | [**paymentsControllerCreate**](PaymentsApi.md#paymentscontrollercreate) | **POST** /payments/create | Create payment invoice (redirect flow) |
 | [**paymentsControllerCreateEmbedded**](PaymentsApi.md#paymentscontrollercreateembedded) | **POST** /payments/embedded | Create embedded payment (no redirect) |
 | [**paymentsControllerGetJobStatus**](PaymentsApi.md#paymentscontrollergetjobstatus) | **GET** /payments/jobs/{jobId}/status | Get payment job status |
@@ -95,6 +96,79 @@ example().catch(console.error);
 | **200** | Paginated payments list |  -  |
 | **401** | Unauthorized or missing JWT |  -  |
 | **403** | Forbidden: user is not admin |  -  |
+
+[[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
+
+
+## paymentsControllerCheckCurrency
+
+> PaymentsControllerCheckCurrency200Response paymentsControllerCheckCurrency(payCurrency, amount, priceCurrency)
+
+Check cryptocurrency availability for order amount
+
+Pre-validates if a cryptocurrency meets the minimum payment amount for a given order total.
+
+### Example
+
+```ts
+import {
+  Configuration,
+  PaymentsApi,
+} from '';
+import type { PaymentsControllerCheckCurrencyRequest } from '';
+
+async function example() {
+  console.log("🚀 Testing  SDK...");
+  const api = new PaymentsApi();
+
+  const body = {
+    // string
+    payCurrency: payCurrency_example,
+    // string
+    amount: amount_example,
+    // string
+    priceCurrency: priceCurrency_example,
+  } satisfies PaymentsControllerCheckCurrencyRequest;
+
+  try {
+    const data = await api.paymentsControllerCheckCurrency(body);
+    console.log(data);
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+// Run the test
+example().catch(console.error);
+```
+
+### Parameters
+
+
+| Name | Type | Description  | Notes |
+|------------- | ------------- | ------------- | -------------|
+| **payCurrency** | `string` |  | [Defaults to `undefined`] |
+| **amount** | `string` |  | [Defaults to `undefined`] |
+| **priceCurrency** | `string` |  | [Defaults to `undefined`] |
+
+### Return type
+
+[**PaymentsControllerCheckCurrency200Response**](PaymentsControllerCheckCurrency200Response.md)
+
+### Authorization
+
+No authorization required
+
+### HTTP request headers
+
+- **Content-Type**: Not defined
+- **Accept**: `application/json`
+
+
+### HTTP response details
+| Status code | Description | Response headers |
+|-------------|-------------|------------------|
+| **200** | Currency availability check result |  -  |
 
 [[Back to top]](#) [[Back to API list]](../README.md#api-endpoints) [[Back to Model list]](../README.md#models) [[Back to README]](../README.md)
 

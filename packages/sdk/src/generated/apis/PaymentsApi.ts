@@ -21,6 +21,7 @@ import type {
   IpnResponseDto,
   PaymentResponseDto,
   PaymentsControllerAdminListPayments200Response,
+  PaymentsControllerCheckCurrency200Response,
   PaymentsControllerPollPaymentStatus200Response,
 } from '../models/index';
 import {
@@ -36,6 +37,8 @@ import {
     PaymentResponseDtoToJSON,
     PaymentsControllerAdminListPayments200ResponseFromJSON,
     PaymentsControllerAdminListPayments200ResponseToJSON,
+    PaymentsControllerCheckCurrency200ResponseFromJSON,
+    PaymentsControllerCheckCurrency200ResponseToJSON,
     PaymentsControllerPollPaymentStatus200ResponseFromJSON,
     PaymentsControllerPollPaymentStatus200ResponseToJSON,
 } from '../models/index';
@@ -46,6 +49,12 @@ export interface PaymentsControllerAdminListPaymentsRequest {
     status: string;
     provider: string;
     orderId: string;
+}
+
+export interface PaymentsControllerCheckCurrencyRequest {
+    payCurrency: string;
+    amount: string;
+    priceCurrency: string;
 }
 
 export interface PaymentsControllerCreateRequest {
@@ -168,6 +177,70 @@ export class PaymentsApi extends runtime.BaseAPI {
      */
     async paymentsControllerAdminListPayments(requestParameters: PaymentsControllerAdminListPaymentsRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PaymentsControllerAdminListPayments200Response> {
         const response = await this.paymentsControllerAdminListPaymentsRaw(requestParameters, initOverrides);
+        return await response.value();
+    }
+
+    /**
+     * Pre-validates if a cryptocurrency meets the minimum payment amount for a given order total.
+     * Check cryptocurrency availability for order amount
+     */
+    async paymentsControllerCheckCurrencyRaw(requestParameters: PaymentsControllerCheckCurrencyRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<runtime.ApiResponse<PaymentsControllerCheckCurrency200Response>> {
+        if (requestParameters['payCurrency'] == null) {
+            throw new runtime.RequiredError(
+                'payCurrency',
+                'Required parameter "payCurrency" was null or undefined when calling paymentsControllerCheckCurrency().'
+            );
+        }
+
+        if (requestParameters['amount'] == null) {
+            throw new runtime.RequiredError(
+                'amount',
+                'Required parameter "amount" was null or undefined when calling paymentsControllerCheckCurrency().'
+            );
+        }
+
+        if (requestParameters['priceCurrency'] == null) {
+            throw new runtime.RequiredError(
+                'priceCurrency',
+                'Required parameter "priceCurrency" was null or undefined when calling paymentsControllerCheckCurrency().'
+            );
+        }
+
+        const queryParameters: any = {};
+
+        if (requestParameters['payCurrency'] != null) {
+            queryParameters['payCurrency'] = requestParameters['payCurrency'];
+        }
+
+        if (requestParameters['amount'] != null) {
+            queryParameters['amount'] = requestParameters['amount'];
+        }
+
+        if (requestParameters['priceCurrency'] != null) {
+            queryParameters['priceCurrency'] = requestParameters['priceCurrency'];
+        }
+
+        const headerParameters: runtime.HTTPHeaders = {};
+
+
+        let urlPath = `/payments/check-currency`;
+
+        const response = await this.request({
+            path: urlPath,
+            method: 'GET',
+            headers: headerParameters,
+            query: queryParameters,
+        }, initOverrides);
+
+        return new runtime.JSONApiResponse(response, (jsonValue) => PaymentsControllerCheckCurrency200ResponseFromJSON(jsonValue));
+    }
+
+    /**
+     * Pre-validates if a cryptocurrency meets the minimum payment amount for a given order total.
+     * Check cryptocurrency availability for order amount
+     */
+    async paymentsControllerCheckCurrency(requestParameters: PaymentsControllerCheckCurrencyRequest, initOverrides?: RequestInit | runtime.InitOverrideFunction): Promise<PaymentsControllerCheckCurrency200Response> {
+        const response = await this.paymentsControllerCheckCurrencyRaw(requestParameters, initOverrides);
         return await response.value();
     }
 

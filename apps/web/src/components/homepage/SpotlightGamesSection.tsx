@@ -178,7 +178,7 @@ function SpotlightCard({ spotlight, index }: SpotlightCardProps): React.ReactEle
 // SKELETON LOADER
 // ============================================================================
 
-function SpotlightSkeleton(): React.ReactElement {
+function _SpotlightSkeleton(): React.ReactElement {
   return (
     <Card className="overflow-hidden bg-bg-secondary border-border-subtle animate-pulse">
       <div className="aspect-video bg-bg-tertiary" />

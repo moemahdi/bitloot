@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException, HttpException, HttpStatus, Logger } from '@nestjs/common';
+import { Injectable, BadRequestException, HttpException, HttpStatus, Logger, type OnModuleDestroy } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { randomInt } from 'crypto';
 import Redis from 'ioredis';
@@ -10,7 +10,7 @@ import { EmailsService } from '../emails/emails.service';
  * Uses Redis for fast storage with automatic expiration (TTL)
  */
 @Injectable()
-export class OtpService {
+export class OtpService implements OnModuleDestroy {
   private readonly redis: Redis;
   private readonly logger = new Logger(OtpService.name);
   private readonly OTP_TTL = 300; // 5 minutes
@@ -63,20 +63,31 @@ export class OtpService {
    * @throws HttpException if rate limit exceeded
    */
   async issue(email: string): Promise<{ success: boolean; expiresIn: number }> {
-    const rateLimitKey = `otp:ratelimit:send:${email}`;
+    // Normalize email to prevent case-based rate limit bypass
+    const normalizedEmail = email.toLowerCase().trim();
+    const rateLimitKey = `otp:ratelimit:send:${normalizedEmail}`;
 
     try {
-      // Check rate limit (5 requests per 15 minutes)
-      const attempts = await this.redis.incr(rateLimitKey);
+      // Atomically increment and set TTL to prevent orphaned keys
+      // (if server crashes between INCR and EXPIRE, key would persist forever)
+      const pipeline = this.redis.pipeline();
+      pipeline.incr(rateLimitKey);
+      pipeline.expire(rateLimitKey, this.REQUEST_WINDOW_SECONDS);
+      const results = await pipeline.exec();
+
+      // Extract attempt count from pipeline result
+      const attempts = (results?.[0]?.[1] as number) ?? 0;
 
       if (attempts > this.MAX_REQUESTS_PER_WINDOW) {
-        console.warn(`⏱️  OTP rate limit exceeded for ${email} (attempt ${attempts})`);
+        const ttl = await this.redis.ttl(rateLimitKey);
+        console.warn(`⏱️  OTP rate limit exceeded for ${normalizedEmail} (attempt ${attempts}, ttl=${ttl}s)`);
         this.metricsService.incrementOtpRateLimit('issue');
         this.logStructured('warn', 'issue:rate_limit_exceeded', 'rate_limit_violation', {
-          email,
+          email: normalizedEmail,
           attempts,
           maxAttempts: this.MAX_REQUESTS_PER_WINDOW,
           windowSeconds: this.REQUEST_WINDOW_SECONDS,
+          remainingTtl: ttl,
         });
         throw new HttpException(
           'Too many OTP requests. Please try again in 15 minutes.',
@@ -84,31 +95,26 @@ export class OtpService {
         );
       }
 
-      // Set rate limit window TTL on first request
-      if (attempts === 1) {
-        await this.redis.expire(rateLimitKey, this.REQUEST_WINDOW_SECONDS);
-      }
-
       // Generate 6-digit OTP
       const code = randomInt(0, 999999).toString().padStart(6, '0');
-      const otpKey = `otp:verify:${email}`;
+      const otpKey = `otp:verify:${normalizedEmail}`;
 
       // Store OTP in Redis with TTL
       await this.redis.set(otpKey, code, 'EX', this.OTP_TTL);
 
       this.logStructured('info', 'issue:success', 'otp_generated', {
-        email,
+        email: normalizedEmail,
         expiresIn: this.OTP_TTL,
         attempt: attempts,
       });
 
       // Log (never full code!)
       console.warn(
-        `✅ OTP issued for ${email} (last 2 digits: ${code.slice(-2)}) - expires in ${this.OTP_TTL}s`,
+        `✅ OTP issued for ${normalizedEmail} (last 2 digits: ${code.slice(-2)}) - expires in ${this.OTP_TTL}s`,
       );
 
       // Send OTP via Resend email (Level 4+)
-      await this.emailsService.sendOtpEmail(email, code);
+      await this.emailsService.sendOtpEmail(normalizedEmail, code);
 
       return {
         success: true,
@@ -119,7 +125,7 @@ export class OtpService {
         throw error;
       }
       this.logStructured('error', 'issue:failed', 'otp_generation_error', {
-        email,
+        email: normalizedEmail,
         error: error instanceof Error ? error.message : String(error),
         errorType: error?.constructor?.name,
       });
@@ -136,18 +142,25 @@ export class OtpService {
    * @throws HttpException if too many failed attempts
    */
   async verify(email: string, code: string): Promise<boolean> {
-    const rateLimitKey = `otp:ratelimit:verify:${email}`;
-    const otpKey = `otp:verify:${email}`;
+    // Normalize email to match issue() normalization
+    const normalizedEmail = email.toLowerCase().trim();
+    const rateLimitKey = `otp:ratelimit:verify:${normalizedEmail}`;
+    const otpKey = `otp:verify:${normalizedEmail}`;
 
     try {
-      // Check rate limit (5 attempts per minute)
-      const attempts = await this.redis.incr(rateLimitKey);
+      // Atomically increment and set TTL to prevent orphaned keys
+      const pipeline = this.redis.pipeline();
+      pipeline.incr(rateLimitKey);
+      pipeline.expire(rateLimitKey, this.VERIFY_WINDOW_SECONDS);
+      const results = await pipeline.exec();
+
+      const attempts = (results?.[0]?.[1] as number) ?? 0;
 
       if (attempts > this.MAX_VERIFY_ATTEMPTS) {
-        console.warn(`❌ OTP verification rate limit exceeded for ${email}`);
+        console.warn(`❌ OTP verification rate limit exceeded for ${normalizedEmail}`);
         this.metricsService.incrementOtpRateLimit('verify');
         this.logStructured('warn', 'verify:rate_limit_exceeded', 'verification_rate_limit', {
-          email,
+          email: normalizedEmail,
           attempts,
           maxAttempts: this.MAX_VERIFY_ATTEMPTS,
           windowSeconds: this.VERIFY_WINDOW_SECONDS,
@@ -158,33 +171,40 @@ export class OtpService {
         );
       }
 
-      // Set rate limit window TTL on first attempt
-      if (attempts === 1) {
-        await this.redis.expire(rateLimitKey, this.VERIFY_WINDOW_SECONDS);
-      }
-
       // Get stored OTP
       const storedCode = await this.redis.get(otpKey);
 
       if (storedCode === null || storedCode === undefined) {
-        console.warn(`❌ OTP expired or not found for ${email}`);
+        console.warn(`❌ OTP expired or not found for ${normalizedEmail}`);
         this.metricsService.incrementOtpVerificationFailed('expired');
         this.logStructured('warn', 'verify:otp_expired', 'verification_failed', {
-          email,
+          email: normalizedEmail,
           attempt: attempts,
           reason: 'otp_not_found_or_expired',
         });
         return false;
       }
 
-      // Verify code (case-insensitive)
-      const isValid = storedCode === code.trim().toUpperCase() || storedCode === code.trim();
+      // Validate OTP format: must be exactly 6 digits
+      const trimmedCode = code.trim();
+      if (!/^\d{6}$/.test(trimmedCode)) {
+        this.metricsService.incrementOtpVerificationFailed('invalid_format');
+        this.logStructured('warn', 'verify:invalid_format', 'verification_failed', {
+          email: normalizedEmail,
+          attempt: attempts,
+          reason: 'invalid_code_format',
+        });
+        return false;
+      }
+
+      // Verify code (exact match — OTP is numeric)
+      const isValid = storedCode === trimmedCode;
 
       if (!isValid) {
-        console.warn(`❌ Invalid OTP for ${email} (attempt ${attempts}/5)`);
+        console.warn(`❌ Invalid OTP for ${normalizedEmail} (attempt ${attempts}/5)`);
         this.metricsService.incrementOtpVerificationFailed('invalid_code');
         this.logStructured('warn', 'verify:invalid_code', 'verification_failed', {
-          email,
+          email: normalizedEmail,
           attempt: attempts,
           maxAttempts: this.MAX_VERIFY_ATTEMPTS,
           reason: 'code_mismatch',
@@ -197,18 +217,18 @@ export class OtpService {
       await this.redis.del(rateLimitKey);
 
       this.logStructured('info', 'verify:success', 'verification_complete', {
-        email,
+        email: normalizedEmail,
         attempt: attempts,
       });
 
-      console.warn(`✅ OTP verified for ${email}`);
+      console.warn(`✅ OTP verified for ${normalizedEmail}`);
       return true;
     } catch (error: unknown) {
       if (error instanceof HttpException) {
         throw error;
       }
       this.logStructured('error', 'verify:failed', 'verification_error', {
-        email,
+        email: normalizedEmail,
         error: error instanceof Error ? error.message : String(error),
         errorType: error?.constructor?.name,
       });
@@ -229,13 +249,16 @@ export class OtpService {
 
   /**
    * Get OTP TTL remaining in seconds
+   * Returns the configured OTP TTL as a constant to prevent email enumeration.
+   * The actual Redis TTL is not exposed to avoid revealing whether an OTP exists.
+   *
    * @param email - User email address
-   * @returns Seconds remaining or -1 if not found
+   * @returns Constant TTL value (OTP_TTL seconds) to prevent enumeration
    */
-  async getTtl(email: string): Promise<number> {
-    const otpKey = `otp:verify:${email}`;
-    const ttl = await this.redis.ttl(otpKey);
-    return ttl;
+  getTtl(_email: string): number {
+    // Return constant value to prevent email enumeration
+    // Attackers cannot distinguish between existing and non-existing OTPs
+    return this.OTP_TTL;
   }
 
   /**
@@ -252,13 +275,30 @@ export class OtpService {
 
   /**
    * TEST ONLY: Get OTP code from Redis (for E2E testing)
+   * Only available in non-production environments.
    * @param email Email address to retrieve OTP for
    * @returns OTP code or null if not found
    */
   async getOtpCodeForTesting(email: string): Promise<string | null> {
+    if (process.env.NODE_ENV === 'production') {
+      this.logger.warn('[SECURITY] getOtpCodeForTesting called in production - denied');
+      return null;
+    }
     const otpKey = `otp:verify:${email}`;
     const code = await this.redis.get(otpKey);
     return code ?? null;
+  }
+
+  /**
+   * Close Redis connection on module destroy (graceful shutdown)
+   */
+  async onModuleDestroy(): Promise<void> {
+    try {
+      await this.redis.quit();
+      this.logger.log('Redis connection closed gracefully');
+    } catch (error) {
+      this.logger.error('Failed to close Redis connection:', error);
+    }
   }
 
   /**

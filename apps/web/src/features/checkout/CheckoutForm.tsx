@@ -390,6 +390,7 @@ export default function CheckoutForm(): React.ReactElement {
             <PaymentMethodForm
               onSubmit={onPaymentSubmit}
               isLoading={isLoading || isPolling}
+              orderTotal={order?.total}
             />
 
             <Button

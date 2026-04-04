@@ -214,7 +214,7 @@ export function useFulfillmentWebSocket(
       reconnection: true,
       reconnectionDelay: 1000,
       reconnectionDelayMax: 5000,
-      reconnectionAttempts: 5,
+      reconnectionAttempts: 30,
     });
 
     // Connection established
@@ -224,6 +224,15 @@ export function useFulfillmentWebSocket(
       setIsConnected(true);
 
       // Auto-subscribe to order if provided
+      if (autoSubscribe && (orderId !== null && orderId !== '')) {
+        subscribe();
+      }
+    });
+
+    // Re-subscribe after reconnection (socket.io loses room membership on reconnect)
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
+    (socket).io.on('reconnect', () => {
+      log('🔄 Reconnected — re-subscribing');
       if (autoSubscribe && (orderId !== null && orderId !== '')) {
         subscribe();
       }

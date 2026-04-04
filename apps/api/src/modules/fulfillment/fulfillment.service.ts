@@ -106,17 +106,29 @@ export class FulfillmentService {
   async fulfillOrder(orderId: string): Promise<FulfillmentResult> {
     this.logger.debug(`[FULFILLMENT] Starting fulfillment for order: ${orderId}`);
 
-    // Load order with items
-    const order = await this.orderRepo.findOne({
-      where: { id: orderId },
-      relations: ['items'],
+    // Use pessimistic locking to prevent concurrent fulfillment of the same order
+    // Note: lock.tables restricts FOR UPDATE to only the orders table,
+    // avoiding "FOR UPDATE cannot be applied to the nullable side of an outer join"
+    const order = await this.orderRepo.manager.transaction(async (manager) => {
+      const lockedOrder = await manager.findOne(Order, {
+        where: { id: orderId },
+        relations: ['items'],
+        lock: { mode: 'pessimistic_write', tables: ['orders'] },
+      });
+
+      if (lockedOrder === null || lockedOrder === undefined) {
+        throw new BadRequestException(`Order not found: ${orderId}`);
+      }
+
+      // Idempotency check: if already fulfilled, return early
+      if (lockedOrder.status === 'fulfilled') {
+        return lockedOrder;
+      }
+
+      return lockedOrder;
     });
 
-    if (order === null || order === undefined) {
-      throw new BadRequestException(`Order not found: ${orderId}`);
-    }
-
-    // Idempotency check: if already fulfilled, return success (handles duplicate jobs)
+    // If already fulfilled, return success without re-processing
     if (order.status === 'fulfilled') {
       this.logger.debug(`[FULFILLMENT] Order ${orderId} is already fulfilled (idempotent success)`);
       return {
@@ -125,7 +137,7 @@ export class FulfillmentService {
           itemId: item.id,
           productId: item.productId,
           signedUrl: item.signedUrl ?? '',
-          encryptionKeySize: 256, // Already stored encrypted key
+          encryptionKeySize: 256,
           status: 'fulfilled' as const,
         })),
         status: 'fulfilled',

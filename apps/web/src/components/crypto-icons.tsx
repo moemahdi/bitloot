@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import Image from 'next/image';
 
 interface CryptoIconProps {
@@ -8,23 +8,229 @@ interface CryptoIconProps {
   size?: number;
 }
 
+// ============================================================================
+// CoinGecko ID Mapping — symbol/code → coingecko-id for CDN icon lookup
+// Covers 500+ tokens including network variants (USDTTRC20, FLOKIBSC, etc.)
+// ============================================================================
+
+const CRYPTO_COINGECKO_IDS: Record<string, string> = {
+  // Top coins
+  btc: 'bitcoin', eth: 'ethereum', usdt: 'tether', bnb: 'binancecoin', sol: 'solana',
+  usdc: 'usd-coin', xrp: 'ripple', doge: 'dogecoin', ton: 'the-open-network', ada: 'cardano',
+  shib: 'shiba-inu', avax: 'avalanche-2', trx: 'tron', dot: 'polkadot', link: 'chainlink',
+  bch: 'bitcoin-cash', near: 'near', matic: 'matic-network', pol: 'matic-network', ltc: 'litecoin',
+  icp: 'internet-computer', dai: 'dai', uni: 'uniswap', etc: 'ethereum-classic', hbar: 'hedera-hashgraph',
+  apt: 'aptos', cro: 'crypto-com-chain', atom: 'cosmos', okb: 'okb', fil: 'filecoin',
+  arb: 'arbitrum', vet: 'vechain', mkr: 'maker', op: 'optimism', pepe: 'pepe',
+  inj: 'injective-protocol', grt: 'the-graph', sui: 'sui', ftm: 'fantom', theta: 'theta-token',
+  rune: 'thorchain', bonk: 'bonk', floki: 'floki',
+  // DeFi
+  aave: 'aave', algo: 'algorand', sand: 'the-sandbox', mana: 'decentraland', axs: 'axie-infinity',
+  xlm: 'stellar', xtz: 'tezos', neo: 'neo', eos: 'eos', cake: 'pancakeswap-token',
+  crv: 'curve-dao-token', '1inch': '1inch', comp: 'compound-governance-token', yfi: 'yearn-finance',
+  snx: 'havven', gala: 'gala', chz: 'chiliz', ape: 'apecoin', bat: 'basic-attention-token',
+  enj: 'enjincoin', lrc: 'loopring', knc: 'kyber-network-crystal', ctsi: 'cartesi',
+  coti: 'coti', rvn: 'ravencoin', icx: 'icon', zil: 'zilliqa', waves: 'waves',
+  ont: 'ontology', qtum: 'qtum', dcr: 'decred', xdc: 'xdce-crowd-sale', egld: 'elrond-erd-2',
+  ilv: 'illuvium', iotx: 'iotex', hot: 'holotoken', omg: 'omg-network', tfuel: 'theta-fuel',
+  gt: 'gatechain-token', mx: 'mx-token', ftt: 'ftx-token', luna: 'terra-luna-2', lunc: 'terra-luna',
+  xvg: 'verge', dgb: 'digibyte', nano: 'nano', xyo: 'xyo-network', vib: 'viberate',
+  // Privacy
+  xmr: 'monero', zec: 'zcash', dash: 'dash',
+  // Stablecoins
+  busd: 'binance-usd', tusd: 'true-usd', usdp: 'paxos-standard', usdd: 'usdd',
+  // Meme
+  babydoge: 'baby-doge-coin',
+  // Storage
+  ar: 'arweave', storj: 'storj',
+  // USDT network variants
+  usdttrc20: 'tether', usdterc20: 'tether', usdtbsc: 'tether', usdtsol: 'tether',
+  usdtmatic: 'tether', usdtarb: 'tether', usdtop: 'tether', usdtalgo: 'tether', usdtton: 'tether',
+  // USDC network variants
+  usdcerc20: 'usd-coin', usdcbsc: 'usd-coin', usdcsol: 'usd-coin', usdcmatic: 'usd-coin',
+  usdcarb: 'usd-coin', usdcbase: 'usd-coin',
+  // BNB network variants
+  bnbbsc: 'binancecoin', bnbmainnet: 'binancecoin',
+  // ETH network variants
+  ethbsc: 'ethereum', etharb: 'ethereum', ethop: 'ethereum', ethbase: 'ethereum',
+  // MATIC/POL variants
+  maticbsc: 'matic-network', maticmainnet: 'matic-network',
+  // AVAX variants
+  avaxc: 'avalanche-2', avaxbsc: 'avalanche-2',
+  // SHIB variants
+  shibbsc: 'shiba-inu',
+  // FLOKI variants
+  flokibsc: 'floki',
+  // DAI variants
+  daiarb: 'dai', daibsc: 'dai',
+  // BUSD variants
+  busdbsc: 'binance-usd',
+  // USDD variants
+  usddtrc20: 'usdd',
+  // BTT variants
+  bttc: 'bittorrent', bttcbsc: 'bittorrent',
+  // SXP variants
+  sxpmainnet: 'swipe',
+  // ETHW
+  ethw: 'ethereum-pow-iou',
+  // Other tokens with network suffixes
+  galaerc20: 'gala', kibabsc: 'kiba-inu', kiba: 'kiba-inu',
+  avabsc: 'concierge-io',
+  chr: 'chromia', c98: 'coin98', bone: 'bone-shibaswap', cult: 'cult-dao', cvc: 'civic',
+  dao: 'dao-maker', fun: 'funtoken', om: 'mantra-dao', tko: 'tokocrypto',
+  super: 'superfarm',
+  // Additional tokens (verified CoinGecko IDs)
+  kishu: 'kishu-inu', leash: 'leash', now: 'changenow', pika: 'pika-protocol',
+  pit: 'pitbull', quack: 'richquack', trvl: 'dtravel', guard: 'guardian-token',
+};
+
+/**
+ * CoinGecko verified image paths — fetched from CoinGecko API.
+ * Maps coingecko-id → '{numericId}/small/{actual_filename}'
+ * Filenames are NOT predictable — they must come from the API.
+ */
+const COINGECKO_IMAGE_PATHS: Record<string, string> = {
+  // Top coins (verified from CoinGecko API 2026-04)
+  'bitcoin': '1/small/bitcoin.png',
+  'ethereum': '279/small/ethereum.png',
+  'tether': '325/small/Tether.png',
+  'binancecoin': '825/small/bnb-icon2_2x.png',
+  'solana': '4128/small/solana.png',
+  'usd-coin': '6319/small/USDC.png',
+  'ripple': '44/small/xrp-symbol-white-128.png',
+  'dogecoin': '5/small/dogecoin.png',
+  'the-open-network': '17980/small/photo_2024-09-10_17.09.00.jpeg',
+  'cardano': '975/small/cardano.png',
+  'shiba-inu': '11939/small/shiba.png',
+  'avalanche-2': '12559/small/Avalanche_Circle_RedWhite_Trans.png',
+  'tron': '1094/small/tron.png',
+  'polkadot': '12171/small/polkadot.jpg',
+  'chainlink': '877/small/Chainlink_Logo_500.png',
+  'bitcoin-cash': '780/small/bitcoin-cash-circle.png',
+  'near': '10365/small/near.jpg',
+  'matic-network': '4713/small/polygon.png',
+  'litecoin': '2/small/litecoin.png',
+  'internet-computer': '14495/small/Internet_Computer_logo.png',
+  'dai': '9956/small/Badge_Dai.png',
+  'uniswap': '12504/small/uniswap-logo.png',
+  'ethereum-classic': '453/small/ethereum-classic-logo.png',
+  'hedera-hashgraph': '3688/small/hbar.png',
+  'aptos': '26455/small/Aptos-Network-Symbol-Black-RGB-1x.png',
+  'crypto-com-chain': '7310/small/cro_token_logo.png',
+  'cosmos': '1481/small/cosmos_hub.png',
+  'okb': '4463/small/WeChat_Image_20220118095654.png',
+  'filecoin': '12817/small/filecoin.png',
+  'arbitrum': '16547/small/arb.jpg',
+  'vechain': '1167/small/VET.png',
+  'maker': '1364/small/Mark_Maker.png',
+  'optimism': '25244/small/Token.png',
+  'pepe': '29850/small/pepe-token.jpeg',
+  'injective-protocol': '12882/small/Other_200x200.png',
+  'the-graph': '13397/small/Graph_Token.png',
+  'sui': '26375/small/sui-ocean-square.png',
+  'fantom': '4001/small/Fantom_round.png',
+  'theta-token': '2538/small/theta-token-logo.png',
+  'thorchain': '6595/small/THORChain_Circle_Gradient__with_Lightning_Bolt_-_Square_Transparent_Background_200px.png',
+  'bonk': '28600/small/bonk.jpg',
+  'floki': '16746/small/PNG_image.png',
+  'aave': '12645/small/aave-token-round.png',
+  'algorand': '4380/small/download.png',
+  'the-sandbox': '12129/small/sandbox_logo.jpg',
+  'decentraland': '878/small/decentraland-mana.png',
+  'axie-infinity': '13029/small/axie_infinity_logo.png',
+  'stellar': '100/small/fmpFRHH_400x400.jpg',
+  'tezos': '976/small/Tezos-logo.png',
+  'neo': '480/small/NEO_512_512.png',
+  'eos': '738/small/CG_EOS_Icon.png',
+  'pancakeswap-token': '12632/small/pancakeswap-cake-logo_%281%29.png',
+  'curve-dao-token': '12124/small/Curve.png',
+  '1inch': '13469/small/1inch-logo.jpeg',
+  'compound-governance-token': '10775/small/COMP.png',
+  'yearn-finance': '11849/small/yearn.jpg',
+  'havven': '3406/small/SNX.png',
+  'gala': '12493/small/GALA_token_image_-_200PNG.png',
+  'chiliz': '8834/small/CHZ_Token_updated.png',
+  'apecoin': '24383/small/APECOIN.png',
+  'basic-attention-token': '677/small/basic-attention-token.png',
+  'enjincoin': '1102/small/Symbol_Only_-_Purple.png',
+  'loopring': '913/small/LRC.png',
+  'ravencoin': '3412/small/ravencoin.png',
+  'zilliqa': '2687/small/Zilliqa-logo.png',
+  'waves': '425/small/waves.png',
+  'ontology': '3447/small/ONT.png',
+  'qtum': '684/small/Qtum_Logo_blue_CG.png',
+  'decred': '329/small/dcr.png',
+  'xdce-crowd-sale': '2912/small/xdc-icon.png',
+  'elrond-erd-2': '12335/small/egld-token-logo.png',
+  'illuvium': '14468/small/logo-200x200.png',
+  'iotex': '3334/small/20250731-171811.png',
+  'holotoken': '3348/small/hot-mark-med.png',
+  'theta-fuel': '8029/small/1_0YugngOrriVg4ZYx4wOFQ.png',
+  'verge': '203/small/Verge_Coin_%28native%29_icon_200x200.jpg',
+  'digibyte': '63/small/digibyte.png',
+  'nano': '756/small/nano.png',
+  'monero': '69/small/monero.png',
+  'zcash': '486/small/zcash.png',
+  'dash': '19/small/dash-logo.png',
+  'binance-usd': '9576/small/BUSDLOGO.jpg',
+  'true-usd': '3449/small/tusd.png',
+  'paxos-standard': '6013/small/Pax_Dollar.png',
+  'baby-doge-coin': '16125/small/babydoge.jpg',
+  'arweave': '4343/small/oRt6SiEN_400x400.jpg',
+  'storj': '949/small/storj.png',
+  'bittorrent': '22457/small/btt_logo.png',
+  'swipe': '9368/small/Solar_Blockchain_Foundation_Sun_CG.png',
+  'terra-luna': '8284/small/01_LunaClassic_color.png',
+  'terra-luna-2': '25767/small/01_Luna_color.png',
+  'mantra-dao': '12151/small/OM_Token.png',
+  'icon': '1060/small/ICON-symbol-coingecko_latest.png',
+  'bone-shibaswap': '16916/small/bone_icon.png',
+  'coin98': '17117/small/logo.png',
+  'civic': '788/small/civic-icon-black-padding.png',
+  'kyber-network-crystal': '14899/small/RwdVsGcw_400x400.jpg',
+  // Additional tokens (verified from CoinGecko API 2026-04)
+  'cult-dao': '23331/small/quxZPrbC_400x400.jpg',
+  'ethereum-pow-iou': '26997/small/logo-clear.png',
+  'guardian-token': '17995/small/LS_wolfDen_logo.0025_Light_200x200.png',
+  'changenow': '8224/small/now_for_coingecko.png',
+  'pika-protocol': '30279/small/Pika_protocol.png',
+  'pitbull': '15927/small/pitbull2.png',
+  'kishu-inu': '14890/small/uVLzCoP.png',
+  'richquack': '16356/small/57198446-0-Get-Rich-Quick-Gober.png',
+  'dtravel': '20911/small/trvl.jpeg',
+  'leash': '15802/small/Leash.png',
+};
+
+const COINGECKO_CDN = 'https://coin-images.coingecko.com/coins/images';
+
+function getCoinGeckoIconUrl(code: string): string | null {
+  const normalized = code.toLowerCase();
+  const coingeckoId = CRYPTO_COINGECKO_IDS[normalized];
+  if (coingeckoId === undefined) return null;
+  const path = COINGECKO_IMAGE_PATHS[coingeckoId];
+  if (path === undefined) return null;
+  return `${COINGECKO_CDN}/${path}`;
+}
+
+// Cache version — increment to bust stale in-memory caches after code changes
+const ICON_CACHE_VERSION = 3;
+let activeCacheVersion = 0;
+
 // In-memory cache for successful CDN URLs (persists during session)
 const cdnCache = new Map<string, string>();
 
 // Cache for failed icons (to avoid retrying on every render)
 const failedIconsCache = new Set<string>();
 
-// CDN URLs for cryptocurrency icons
-const CDN_SOURCES = {
-  // CryptoIcons - Free SVG icons for 500+ cryptocurrencies
-  cryptoicons: (symbol: string) => `https://cryptoicons.org/api/icon/${symbol.toLowerCase()}/200`,
-  // Backup CDN with 500+ icons
-  backup: (symbol: string) => `https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/${symbol.toLowerCase()}.png`,
-  // CoinCap fallback
-  coingecko: (symbol: string) => `https://assets.coincap.io/assets/icons/${symbol.toLowerCase()}@2x.png`,
-};
+function ensureFreshCache() {
+  if (activeCacheVersion !== ICON_CACHE_VERSION) {
+    cdnCache.clear();
+    failedIconsCache.clear();
+    activeCacheVersion = ICON_CACHE_VERSION;
+  }
+}
 
-// Real cryptocurrency icon component that fetches from CDN with caching
+// Real cryptocurrency icon component using CoinGecko CDN with fallbacks
 export function RealCryptoIcon({ 
   code, 
   className = '', 
@@ -36,29 +242,47 @@ export function RealCryptoIcon({
   size?: number;
   fallbackSymbol?: string;
 }) {
-  // Sanitize currency code (remove network suffixes)
+  // Bust stale caches when code changes (e.g., after icon CDN fix)
+  ensureFreshCache();
+  
+  // Sanitize currency code (remove network suffixes for fallback CDNs)
   const cleanCode = useMemo(() => sanitizeCode(code), [code]);
   const symbol = fallbackSymbol ?? cleanCode;
   
   // Check cache first - if we already know this icon failed, skip CDN loading
-  const [imageError, setImageError] = useState(() => failedIconsCache.has(cleanCode));
+  const [imageError, setImageError] = useState(() => failedIconsCache.has(code.toLowerCase()));
   
-  // Get cached CDN URL or start with first CDN
+  // Build CDN URL list: CoinGecko first (uses original code with network suffix), then fallbacks with cleaned code
+  const cdnList = useMemo(() => {
+    const urls: string[] = [];
+    // CoinGecko — best coverage, uses full code (e.g., 'usdttrc20' → tether icon)
+    const coingeckoUrl = getCoinGeckoIconUrl(code);
+    if (coingeckoUrl !== null) urls.push(coingeckoUrl);
+    // Fallback CDNs with cleaned code
+    urls.push(`https://raw.githubusercontent.com/spothq/cryptocurrency-icons/master/128/color/${cleanCode}.png`);
+    urls.push(`https://assets.coincap.io/assets/icons/${cleanCode}@2x.png`);
+    return urls;
+  }, [code, cleanCode]);
+
+  // Get cached CDN URL or start with first source
   const [currentUrl, setCurrentUrl] = useState<string>(() => {
-    // Check if we have a cached successful URL
-    if (cdnCache.has(cleanCode)) {
-      return cdnCache.get(cleanCode)!;
+    const cacheKey = code.toLowerCase();
+    if (cdnCache.has(cacheKey)) {
+      return cdnCache.get(cacheKey)!;
     }
-    // Try first CDN
-    return CDN_SOURCES.cryptoicons(cleanCode);
+    return cdnList[0] ?? '';
   });
-  
-  // CDN sources to try in order
-  const cdnList = useMemo(() => [
-    CDN_SOURCES.cryptoicons(cleanCode),
-    CDN_SOURCES.backup(cleanCode),
-    CDN_SOURCES.coingecko(cleanCode),
-  ], [cleanCode]);
+
+  // Reset state when code changes (e.g., user selects a different coin)
+  useEffect(() => {
+    const cacheKey = code.toLowerCase();
+    setImageError(failedIconsCache.has(cacheKey));
+    if (cdnCache.has(cacheKey)) {
+      setCurrentUrl(cdnCache.get(cacheKey)!);
+    } else {
+      setCurrentUrl(cdnList[0] ?? '');
+    }
+  }, [code, cdnList]);
 
   const handleError = () => {
     const currentIndex = cdnList.indexOf(currentUrl);
@@ -71,14 +295,14 @@ export function RealCryptoIcon({
       }
     } else {
       // All CDNs failed, mark as failed and show fallback
-      failedIconsCache.add(cleanCode);
+      failedIconsCache.add(code.toLowerCase());
       setImageError(true);
     }
   };
 
   const handleLoad = () => {
     // Cache successful URL for future renders
-    cdnCache.set(cleanCode, currentUrl);
+    cdnCache.set(code.toLowerCase(), currentUrl);
   };
 
   // If all CDN sources failed, use dynamic icon
@@ -110,312 +334,18 @@ export function RealCryptoIcon({
   );
 }
 
-// Bitcoin (BTC)
-export function BitcoinIcon({ className = '', size = 24 }: CryptoIconProps) {
-  return (
-    <svg viewBox="0 0 32 32" width={size} height={size} className={className}>
-      <defs>
-        <linearGradient id="btc-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#F7931A" />
-          <stop offset="100%" stopColor="#E87A00" />
-        </linearGradient>
-      </defs>
-      <circle cx="16" cy="16" r="16" fill="url(#btc-gradient)" />
-      <path
-        d="M22.5 14.5c.3-2-1.2-3.1-3.3-3.8l.7-2.7-1.6-.4-.7 2.6c-.4-.1-.9-.2-1.3-.3l.7-2.6-1.6-.4-.7 2.7c-.3-.1-.7-.2-1-.3l-2.2-.5-.4 1.7s1.2.3 1.2.3c.7.2.8.6.8 1l-.8 3.2c0 0 .1 0 .2 0l-.2 0-1.1 4.5c-.1.2-.3.6-.8.4 0 0-1.2-.3-1.2-.3l-.8 1.8 2.1.5c.4.1.8.2 1.2.3l-.7 2.7 1.6.4.7-2.7c.5.1.9.2 1.4.3l-.7 2.7 1.6.4.7-2.7c2.8.5 4.9.3 5.8-2.2.7-2-.1-3.2-1.5-3.9 1.1-.3 1.9-1 2.1-2.5zm-3.8 5.3c-.5 2-4 .9-5.1.6l.9-3.7c1.1.3 4.7.8 4.2 3.1zm.5-5.4c-.5 1.8-3.4.9-4.3.7l.8-3.4c.9.2 4 .6 3.5 2.7z"
-        fill="#ffffff"
-      />
-    </svg>
-  );
-}
-
-// Ethereum (ETH)
-export function EthereumIcon({ className = '', size = 24 }: CryptoIconProps) {
-  return (
-    <svg viewBox="0 0 32 32" width={size} height={size} className={className}>
-      <defs>
-        <linearGradient id="eth-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#8A92B2" />
-          <stop offset="50%" stopColor="#62688F" />
-          <stop offset="100%" stopColor="#454A75" />
-        </linearGradient>
-      </defs>
-      <circle cx="16" cy="16" r="16" fill="url(#eth-gradient)" />
-      <g fill="#fff">
-        <path fillOpacity=".6" d="M16 5l-6 10.5L16 18l6-2.5z" />
-        <path fillOpacity=".9" d="M10 15.5L16 27l6-11.5-6 3z" />
-        <path fillOpacity=".6" d="M16 5v13l6-2.5z" />
-        <path fillOpacity=".9" d="M16 18v9l6-11.5z" />
-      </g>
-    </svg>
-  );
-}
-
-// Litecoin (LTC)
-export function LitecoinIcon({ className = '', size = 24 }: CryptoIconProps) {
-  return (
-    <svg viewBox="0 0 32 32" width={size} height={size} className={className}>
-      <defs>
-        <linearGradient id="ltc-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#BFBBBB" />
-          <stop offset="100%" stopColor="#A5A5A5" />
-        </linearGradient>
-      </defs>
-      <circle cx="16" cy="16" r="16" fill="url(#ltc-gradient)" />
-      <path
-        d="M12.5 25L13.5 21L10 22L10.5 20L14 19L16 12L12 13L12.5 11L17 10L18.5 5H22L20 12L23 11L22.5 13L19.5 14L17.5 21H25L24.5 23H12.5V25Z"
-        fill="#ffffff"
-      />
-    </svg>
-  );
-}
-
-// Tether (USDT)
-export function TetherIcon({ className = '', size = 24 }: CryptoIconProps) {
-  return (
-    <svg viewBox="0 0 32 32" width={size} height={size} className={className}>
-      <defs>
-        <linearGradient id="usdt-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#50AF95" />
-          <stop offset="100%" stopColor="#26A17B" />
-        </linearGradient>
-      </defs>
-      <circle cx="16" cy="16" r="16" fill="url(#usdt-gradient)" />
-      <path
-        d="M17.5 17.3v-.1c-.1 0-1.2.1-2.8.1s-2.6-.1-2.8-.1v.1c-4.1.2-7.2.9-7.2 1.7 0 1 4.3 1.8 9.7 1.8s9.7-.8 9.7-1.8c0-.8-3.1-1.5-7.2-1.7h.6zM17.5 16.5v-1.6h4.2v-3.5H10.3v3.5h4.2v1.6c-4.7.2-8.2 1.1-8.2 2.1 0 1.2 4.5 2.2 10.1 2.2s10.1-1 10.1-2.2c0-1-3.5-1.9-8.2-2.1h-.8z"
-        fill="#fff"
-      />
-    </svg>
-  );
-}
-
-// USD Coin (USDC)
-export function UsdcIcon({ className = '', size = 24 }: CryptoIconProps) {
-  return (
-    <svg viewBox="0 0 32 32" width={size} height={size} className={className}>
-      <defs>
-        <linearGradient id="usdc-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#2775CA" />
-          <stop offset="100%" stopColor="#1A5DAB" />
-        </linearGradient>
-      </defs>
-      <circle cx="16" cy="16" r="16" fill="url(#usdc-gradient)" />
-      <path
-        d="M20.5 18.5c0-2-1.2-2.7-3.5-3-.7-.1-1.3-.2-1.8-.4-.8-.2-1.2-.5-1.2-1s.5-1 1.5-1c.9 0 1.4.3 1.6.9l.1.3h1.8v-.3c-.2-1.3-1.2-2.2-2.5-2.4V10h-2v1.5c-1.6.3-2.7 1.3-2.7 2.7 0 1.9 1.2 2.6 3.3 2.9l1.2.2c1.2.3 1.7.6 1.7 1.2s-.6 1.1-1.7 1.1c-1 0-1.6-.4-1.8-1.1l-.1-.2h-1.9l.1.4c.3 1.4 1.3 2.3 2.9 2.5V22h2v-1.5c1.7-.2 2.8-1.3 2.8-2.8v.8z"
-        fill="#fff"
-      />
-    </svg>
-  );
-}
-
-// Solana (SOL)
-export function SolanaIcon({ className = '', size = 24 }: CryptoIconProps) {
-  return (
-    <svg viewBox="0 0 32 32" width={size} height={size} className={className}>
-      <defs>
-        <linearGradient id="sol-gradient" x1="0%" y1="100%" x2="100%" y2="0%">
-          <stop offset="0%" stopColor="#9945FF" />
-          <stop offset="50%" stopColor="#14F195" />
-          <stop offset="100%" stopColor="#00FFA3" />
-        </linearGradient>
-      </defs>
-      <circle cx="16" cy="16" r="16" fill="#000" />
-      <g transform="translate(6, 8)">
-        <path d="M3.5 12.5l2.5-2.5h13l-2.5 2.5h-13z" fill="url(#sol-gradient)" />
-        <path d="M3.5 3.5l2.5 2.5h13l-2.5-2.5h-13z" fill="url(#sol-gradient)" />
-        <path d="M16.5 8l2.5 2.5h-13l-2.5-2.5h13z" fill="url(#sol-gradient)" />
-      </g>
-    </svg>
-  );
-}
-
-// Tron (TRX)
-export function TronIcon({ className = '', size = 24 }: CryptoIconProps) {
-  return (
-    <svg viewBox="0 0 32 32" width={size} height={size} className={className}>
-      <defs>
-        <linearGradient id="trx-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#EF0027" />
-          <stop offset="100%" stopColor="#C50024" />
-        </linearGradient>
-      </defs>
-      <circle cx="16" cy="16" r="16" fill="url(#trx-gradient)" />
-      <path
-        d="M23.5 10L11 6.5L6.5 23L23.5 10ZM13 10L20 12L12 17L13 10ZM11 18L10 21L12 17L11 18Z"
-        fill="#fff"
-      />
-    </svg>
-  );
-}
-
-// Binance Coin (BNB)
-export function BnbIcon({ className = '', size = 24 }: CryptoIconProps) {
-  return (
-    <svg viewBox="0 0 32 32" width={size} height={size} className={className}>
-      <defs>
-        <linearGradient id="bnb-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#F3BA2F" />
-          <stop offset="100%" stopColor="#E6A800" />
-        </linearGradient>
-      </defs>
-      <circle cx="16" cy="16" r="16" fill="url(#bnb-gradient)" />
-      <g fill="#fff">
-        <path d="M12 16l-3-3 3-3 3 3z" transform="rotate(45 12 13)" />
-        <path d="M20 16l-3-3 3-3 3 3z" transform="rotate(45 20 13)" />
-        <path d="M16 12l-3-3 3-3 3 3z" transform="rotate(45 16 9)" />
-        <path d="M16 20l-3-3 3-3 3 3z" transform="rotate(45 16 17)" />
-        <path d="M16 24l-3-3 3-3 3 3z" transform="rotate(45 16 21)" />
-      </g>
-    </svg>
-  );
-}
-
-// Dogecoin (DOGE)
-export function DogeIcon({ className = '', size = 24 }: CryptoIconProps) {
-  return (
-    <svg viewBox="0 0 32 32" width={size} height={size} className={className}>
-      <defs>
-        <linearGradient id="doge-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#C2A633" />
-          <stop offset="100%" stopColor="#A08420" />
-        </linearGradient>
-      </defs>
-      <circle cx="16" cy="16" r="16" fill="url(#doge-gradient)" />
-      <path
-        d="M13 11h4c3 0 5 2 5 5s-2 5-5 5h-4v-10zm3 8h1c1.6 0 3-1.4 3-3s-1.4-3-3-3h-1v6zm-3-3h3"
-        fill="#fff"
-        stroke="#fff"
-        strokeWidth="1"
-      />
-    </svg>
-  );
-}
-
-// XRP (Ripple)
-export function XrpIcon({ className = '', size = 24 }: CryptoIconProps) {
-  return (
-    <svg viewBox="0 0 32 32" width={size} height={size} className={className}>
-      <circle cx="16" cy="16" r="16" fill="#23292F" />
-      <path
-        d="M23 9h-2.5l-4.5 5-4.5-5H9l6 6.5-6 6.5h2.5l4.5-5 4.5 5H23l-6-6.5z"
-        fill="#fff"
-      />
-    </svg>
-  );
-}
-
-// Cardano (ADA)
-export function CardanoIcon({ className = '', size = 24 }: CryptoIconProps) {
-  return (
-    <svg viewBox="0 0 32 32" width={size} height={size} className={className}>
-      <defs>
-        <linearGradient id="ada-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#0033AD" />
-          <stop offset="100%" stopColor="#001A5D" />
-        </linearGradient>
-      </defs>
-      <circle cx="16" cy="16" r="16" fill="url(#ada-gradient)" />
-      <g fill="#fff">
-        <circle cx="16" cy="8" r="1.5" />
-        <circle cx="16" cy="24" r="1.5" />
-        <circle cx="9" cy="12" r="1.5" />
-        <circle cx="23" cy="12" r="1.5" />
-        <circle cx="9" cy="20" r="1.5" />
-        <circle cx="23" cy="20" r="1.5" />
-        <circle cx="16" cy="16" r="3" />
-        <circle cx="12" cy="16" r="1" />
-        <circle cx="20" cy="16" r="1" />
-      </g>
-    </svg>
-  );
-}
-
-// Polkadot (DOT)
-export function PolkadotIcon({ className = '', size = 24 }: CryptoIconProps) {
-  return (
-    <svg viewBox="0 0 32 32" width={size} height={size} className={className}>
-      <defs>
-        <linearGradient id="dot-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#E6007A" />
-          <stop offset="100%" stopColor="#C50066" />
-        </linearGradient>
-      </defs>
-      <circle cx="16" cy="16" r="16" fill="url(#dot-gradient)" />
-      <g fill="#fff">
-        <ellipse cx="16" cy="10" rx="5" ry="3" />
-        <ellipse cx="16" cy="22" rx="5" ry="3" />
-        <circle cx="16" cy="16" r="3" />
-      </g>
-    </svg>
-  );
-}
-
-// Monero (XMR)
-export function MoneroIcon({ className = '', size = 24 }: CryptoIconProps) {
-  return (
-    <svg viewBox="0 0 32 32" width={size} height={size} className={className}>
-      <defs>
-        <linearGradient id="xmr-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#FF6600" />
-          <stop offset="100%" stopColor="#CC5200" />
-        </linearGradient>
-      </defs>
-      <circle cx="16" cy="16" r="16" fill="url(#xmr-gradient)" />
-      <path
-        d="M16 6L8 18V24H11V15L16 10L21 15V24H24V18L16 6Z"
-        fill="#fff"
-      />
-      <path
-        d="M6 22H10V24H6V22ZM22 22H26V24H22V22Z"
-        fill="#fff"
-      />
-    </svg>
-  );
-}
-
-// TON (Toncoin)
-export function TonIcon({ className = '', size = 24 }: CryptoIconProps) {
-  return (
-    <svg viewBox="0 0 32 32" width={size} height={size} className={className}>
-      <defs>
-        <linearGradient id="ton-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#0098EA" />
-          <stop offset="100%" stopColor="#0076BC" />
-        </linearGradient>
-      </defs>
-      <circle cx="16" cy="16" r="16" fill="url(#ton-gradient)" />
-      <path
-        d="M16 6L8 14H13V26H19V14H24L16 6Z"
-        fill="#fff"
-      />
-    </svg>
-  );
-}
-
-// DAI
-export function DaiIcon({ className = '', size = 24 }: CryptoIconProps) {
-  return (
-    <svg viewBox="0 0 32 32" width={size} height={size} className={className}>
-      <defs>
-        <linearGradient id="dai-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="#F5AC37" />
-          <stop offset="100%" stopColor="#D99422" />
-        </linearGradient>
-      </defs>
-      <circle cx="16" cy="16" r="16" fill="url(#dai-gradient)" />
-      <path
-        d="M10 11H17C20 11 22 13 22 16C22 19 20 21 17 21H10V19H8V17H10V15H8V13H10V11ZM12 13V15H17C18.1 15 19 14.6 19 14C19 13.4 18.1 13 17 13H12ZM12 17V19H17C18.1 19 19 18.6 19 18C19 17.4 18.1 17 17 17H12Z"
-        fill="#fff"
-      />
-    </svg>
-  );
-}
-
 // Helper: Sanitize currency code (remove network suffixes for consistent hashing)
 function sanitizeCode(code: string): string {
+  // Direct alias for coins where NOWPayments code doesn't match standard symbol
+  const SYMBOL_ALIASES: Record<string, string> = {
+    bttc: 'btt', bttcbsc: 'btt', ethw: 'ethw',
+    sxpmainnet: 'sxp', galaerc20: 'gala', kibabsc: 'kiba',
+  };
+  const lower = code.toLowerCase();
+  if (SYMBOL_ALIASES[lower] !== undefined) return SYMBOL_ALIASES[lower];
   // Remove common network suffixes for more consistent visual identity
   const suffixes = ['trc20', 'erc20', 'bsc', 'sol', 'matic', 'arb', 'op', 'algo', 'ton', 'base', 'mainnet'];
-  let cleaned = code.toLowerCase();
+  let cleaned = lower;
   for (const suffix of suffixes) {
     if (cleaned.endsWith(suffix) && cleaned.length > suffix.length) {
       cleaned = cleaned.slice(0, -suffix.length);
@@ -485,42 +415,7 @@ export function DynamicCryptoIcon({
 // Legacy alias for backwards compatibility
 export const GenericCryptoIcon = DynamicCryptoIcon;
 
-// Icon registry for easy lookup
-const CRYPTO_ICONS: Record<string, React.ComponentType<CryptoIconProps>> = {
-  btc: BitcoinIcon,
-  eth: EthereumIcon,
-  ltc: LitecoinIcon,
-  usdt: TetherIcon,
-  usdttrc20: TetherIcon,
-  usdterc20: TetherIcon,
-  usdtbsc: TetherIcon,
-  usdtsol: TetherIcon,
-  usdtmatic: TetherIcon,
-  usdtarb: TetherIcon,
-  usdtop: TetherIcon,
-  usdtalgo: TetherIcon,
-  usdtton: TetherIcon,
-  usdc: UsdcIcon,
-  usdcmatic: UsdcIcon,
-  usdcsol: UsdcIcon,
-  usdcbsc: UsdcIcon,
-  usdcarb: UsdcIcon,
-  usdcbase: UsdcIcon,
-  sol: SolanaIcon,
-  trx: TronIcon,
-  bnbbsc: BnbIcon,
-  bnbmainnet: BnbIcon,
-  doge: DogeIcon,
-  xrp: XrpIcon,
-  ada: CardanoIcon,
-  dot: PolkadotIcon,
-  xmr: MoneroIcon,
-  ton: TonIcon,
-  dai: DaiIcon,
-  daiarb: DaiIcon,
-};
-
-// Main component to get crypto icon by code
+// Main component to get crypto icon by code — all icons from CoinGecko CDN
 export function CryptoIcon({ 
   code, 
   className = '', 
@@ -532,24 +427,12 @@ export function CryptoIcon({
   size?: number;
   fallbackSymbol?: string;
 }) {
-  const normalizedCode = code.toLowerCase();
-  const IconComponent = CRYPTO_ICONS[normalizedCode];
-  
-  // For major cryptocurrencies, use handcrafted SVG icons for better quality
-  if (IconComponent !== null && IconComponent !== undefined) {
-    return <IconComponent className={className} size={size} />;
-  }
-  
-  // For all other currencies, fetch real icons from CDN
   return (
     <RealCryptoIcon 
-      code={normalizedCode}
+      code={code.toLowerCase()}
       className={className} 
       size={size} 
       fallbackSymbol={fallbackSymbol ?? code} 
     />
   );
 }
-
-// Export individual icons for direct use
-export { CRYPTO_ICONS };
