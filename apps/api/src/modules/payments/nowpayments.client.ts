@@ -301,7 +301,7 @@ export class NowPaymentsClient {
     try {
       this.logger.debug(`Getting exchange rate: ${fromCurrency} → ${toCurrency} (${amount})`);
 
-      const response = await this.axios.get<{ rate: number; amount: number }>('/estimate', {
+      const response = await this.axios.get<{ rate: number; estimated_amount: number }>('/estimate', {
         params: {
           amount,
           currency_from: fromCurrency.toLowerCase(),
@@ -311,7 +311,7 @@ export class NowPaymentsClient {
 
       return {
         rate: response.data.rate,
-        amount: response.data.amount,
+        amount: response.data.estimated_amount,
         fromCurrency,
         toCurrency,
       };
@@ -319,6 +319,53 @@ export class NowPaymentsClient {
       const errorMsg = this.extractErrorMessage(error);
       this.logger.error(
         `Failed to get exchange rate: ${errorMsg}`,
+        axios.isAxiosError(error) ? error.stack : undefined,
+      );
+
+      throw new Error(`NOWPayments API Error: ${errorMsg}`);
+    }
+  }
+
+  /**
+   * Get minimum payment amount for a currency pair
+   *
+   * Returns the minimum amount required in the pay currency for a given fiat-to-crypto pair.
+   * Minimums are dynamic and depend on the pair, market conditions, and network fees.
+   *
+   * @param currencyFrom - Source currency (e.g., 'btc', 'eur')
+   * @param currencyTo - Target currency (e.g., 'eur', 'btc'). Optional.
+   * @returns Minimum amount object
+   * @throws Error if API call fails
+   */
+  async getMinAmount(
+    currencyFrom: string,
+    currencyTo?: string,
+  ): Promise<{ currency_from: string; currency_to?: string; min_amount: number }> {
+    try {
+      this.logger.debug(`Getting min amount: ${currencyFrom}${currencyTo !== undefined ? ` → ${currencyTo}` : ''}`);
+
+      const params: Record<string, string> = {
+        currency_from: currencyFrom.toLowerCase(),
+      };
+      if (currencyTo !== undefined) {
+        params['currency_to'] = currencyTo.toLowerCase();
+      }
+
+      const response = await this.axios.get<{
+        currency_from: string;
+        currency_to?: string;
+        min_amount: number;
+      }>('/min-amount', { params });
+
+      this.logger.debug(
+        `Min amount for ${currencyFrom}: ${response.data.min_amount}`,
+      );
+
+      return response.data;
+    } catch (error) {
+      const errorMsg = this.extractErrorMessage(error);
+      this.logger.error(
+        `Failed to get min amount for ${currencyFrom}: ${errorMsg}`,
         axios.isAxiosError(error) ? error.stack : undefined,
       );
 

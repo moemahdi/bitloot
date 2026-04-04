@@ -79,6 +79,13 @@ const ERROR_MAP: Record<string, CheckoutError> = {
     action: 'retry',
     actionText: 'Select Different Currency',
   },
+  AMOUNT_BELOW_MINIMUM: {
+    message: 'Minimum amount not met',
+    description: 'This cryptocurrency requires a higher payment amount. Please choose a different coin or increase your cart total.',
+    isRetryable: true,
+    action: 'retry',
+    actionText: 'Select Different Currency',
+  },
   
   // Cart/Product errors
   CART_EMPTY: {
@@ -165,11 +172,14 @@ function extractErrorCode(error: unknown): string | null {
     const errorObj = error as Record<string, unknown>;
     if (typeof errorObj.code === 'string') return errorObj.code;
     if (typeof errorObj.errorCode === 'string') return errorObj.errorCode;
+    // Check for 'error' field used as code (our API pattern: { error: 'AMOUNT_BELOW_MINIMUM' })
+    if (typeof errorObj.error === 'string' && errorObj.error === errorObj.error.toUpperCase()) return errorObj.error;
     
     // Check nested error
     if (errorObj.error !== null && errorObj.error !== undefined && typeof errorObj.error === 'object') {
       const nested = errorObj.error as Record<string, unknown>;
       if (typeof nested.code === 'string') return nested.code;
+      if (typeof nested.error === 'string' && nested.error === nested.error.toUpperCase()) return nested.error;
     }
   }
   
@@ -215,6 +225,8 @@ function mapStatusCodeToError(status: number): CheckoutError | null {
       return ERROR_MAP['ORDER_NOT_FOUND'] ?? null;
     case 409:
       return { ...DEFAULT_ERROR, message: 'Conflict detected', description: 'This action has already been completed.', isRetryable: false };
+    case 422:
+      return ERROR_MAP['AMOUNT_BELOW_MINIMUM'] ?? { ...DEFAULT_ERROR, message: 'Validation error', description: 'Please check your selection and try again.', action: 'retry' };
     case 429:
       return ERROR_MAP['TOO_MANY_REQUESTS'] ?? null;
     case 500:
@@ -271,6 +283,11 @@ export function parseCheckoutError(error: unknown): CheckoutError {
   if (message.includes('not found')) {
     const notFoundError = ERROR_MAP['ORDER_NOT_FOUND'];
     if (notFoundError !== undefined) return notFoundError;
+  }
+  
+  if (message.includes('minimum') || message.includes('less than minimal') || message.includes('min_amount')) {
+    const minError = ERROR_MAP['AMOUNT_BELOW_MINIMUM'];
+    if (minError !== undefined) return minError;
   }
   
   if (message.includes('email')) {

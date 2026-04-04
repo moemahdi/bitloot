@@ -230,6 +230,67 @@ export class PaymentsController {
   }
 
   /**
+   * Check if a cryptocurrency is available for a given order amount
+   *
+   * Pre-validates minimum amount requirements before the user clicks Pay.
+   * Calls NOWPayments min-amount and estimate endpoints.
+   *
+   * @param payCurrency Cryptocurrency code (e.g., 'btc', 'usdttrc20')
+   * @param amount Order total in fiat
+   * @param priceCurrency Fiat currency (default: 'eur')
+   * @returns Availability result with estimated and minimum amounts
+   */
+  @Get('check-currency')
+  @Throttle({ default: { ttl: 60000, limit: 60 } }) // Read-only check, generous limit for rapid currency browsing
+  @ApiOperation({
+    summary: 'Check cryptocurrency availability for order amount',
+    description:
+      'Pre-validates if a cryptocurrency meets the minimum payment amount for a given order total.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Currency availability check result',
+    schema: {
+      type: 'object',
+      properties: {
+        available: { type: 'boolean' },
+        payCurrency: { type: 'string' },
+        estimatedAmount: { type: 'number', nullable: true },
+        minAmount: { type: 'number', nullable: true },
+        message: { type: 'string', nullable: true },
+      },
+    },
+  })
+  async checkCurrency(
+    @Query('payCurrency') payCurrency: string,
+    @Query('amount') amount: string,
+    @Query('priceCurrency') priceCurrency?: string,
+  ): Promise<{
+    available: boolean;
+    payCurrency: string;
+    estimatedAmount: number | null;
+    minAmount: number | null;
+    message: string | null;
+  }> {
+    if (payCurrency === undefined || payCurrency === '') {
+      throw new HttpException('payCurrency is required', HttpStatus.BAD_REQUEST);
+    }
+    if (amount === undefined || amount === '') {
+      throw new HttpException('amount is required', HttpStatus.BAD_REQUEST);
+    }
+    const fiatAmount = parseFloat(amount);
+    if (isNaN(fiatAmount) || fiatAmount <= 0) {
+      throw new HttpException('amount must be a positive number', HttpStatus.BAD_REQUEST);
+    }
+
+    return this.payments.checkCurrencyAvailability(
+      payCurrency,
+      fiatAmount,
+      priceCurrency ?? 'eur',
+    );
+  }
+
+  /**
    * Get async job status for payment processing
    * Used for polling payment fulfillment progress
    *

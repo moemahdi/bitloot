@@ -257,7 +257,7 @@ export function Footer(): React.ReactElement {
                                     href={social.href}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="flex items-center justify-center w-9 h-9 rounded-lg bg-bg-secondary border border-border-subtle text-text-muted hover:text-cyan-glow hover:border-cyan-glow/50 hover:bg-cyan-glow/10 hover:shadow-glow-cyan-sm transition-all duration-200"
+                                    className="flex items-center justify-center w-9 h-9 rounded-lg bg-bg-secondary border border-border-subtle text-text-muted hover:text-cyan-glow hover:border-cyan-glow/50 hover:bg-cyan-glow/10 hover:shadow-glow-cyan-sm focus-visible:ring-2 focus-visible:ring-cyan-glow focus-visible:outline-none transition-all duration-200"
                                     aria-label={social.label}
                                 >
                                     <social.icon className="h-4 w-4" />

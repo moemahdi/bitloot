@@ -7,6 +7,7 @@ import { NestFactory } from '@nestjs/core';
 import { ValidationPipe, Logger } from '@nestjs/common';
 import { json, urlencoded, type Request, type Response } from 'express';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import helmet from 'helmet';
 
 import { AppModule } from './app.module';
 
@@ -18,6 +19,12 @@ async function bootstrap(): Promise<void> {
     origin: process.env.CORS_ORIGIN?.split(',') ?? ['http://localhost:3000'],
     credentials: true,
   });
+
+  // Security headers via Helmet
+  app.use(helmet({
+    contentSecurityPolicy: false, // CSP managed by Next.js frontend
+    crossOriginEmbedderPolicy: false, // Allow embedded payment widgets
+  }));
 
   // JSON parsing with raw body capture for webhook HMAC verification
   // CRITICAL: Use verify callback to capture raw bytes BEFORE parsing

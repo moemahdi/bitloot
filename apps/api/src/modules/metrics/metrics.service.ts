@@ -182,7 +182,7 @@ export class MetricsService {
    * Increment OTP verification failed counter
    * Call when OTP code doesn't match or is expired
    */
-  incrementOtpVerificationFailed(reason: 'invalid_code' | 'expired'): void {
+  incrementOtpVerificationFailed(reason: 'invalid_code' | 'expired' | 'invalid_format'): void {
     this.otpVerificationFailed.inc({ reason });
   }
 

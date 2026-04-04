@@ -157,10 +157,14 @@ export function KeyReveal({
   };
 
   const copyToClipboard = (text: string): void => {
-    void navigator.clipboard.writeText(text);
-    setCopiedKey(text);
-    toast.success('Copied to clipboard!');
-    setTimeout(() => setCopiedKey(null), 2000);
+    try {
+      void navigator.clipboard.writeText(text);
+      setCopiedKey(text);
+      toast.success('Copied to clipboard!');
+      setTimeout(() => setCopiedKey(null), 2000);
+    } catch {
+      toast.error('Failed to copy — please select and copy manually');
+    }
   };
 
   // ============ ACCESS CONTROL: Check canAccess first (includes session token access) ============

@@ -45,7 +45,7 @@ export async function proxy(request: NextRequest): Promise<NextResponse> {
   // ──────────────────────────────────────────────────────────────────────────
 
   // Routes that require authentication
-  const protectedRoutes = ['/dashboard', '/account', '/admin'];
+  const protectedRoutes = ['/dashboard', '/profile', '/admin'];
 
   // Check if current route is protected
   const isProtectedRoute = protectedRoutes.some((route) => pathname.startsWith(route));
@@ -111,5 +111,5 @@ export async function proxy(request: NextRequest): Promise<NextResponse> {
 
 // Define which routes this proxy applies to
 export const config = {
-  matcher: ['/dashboard/:path*', '/account/:path*', '/admin/:path*', '/product/:path*'],
+  matcher: ['/dashboard/:path*', '/profile/:path*', '/admin/:path*', '/product/:path*'],
 };

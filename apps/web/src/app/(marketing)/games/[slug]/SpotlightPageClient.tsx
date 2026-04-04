@@ -28,13 +28,7 @@ import {
   CheckCircle2,
   Lock,
 } from 'lucide-react';
-import {
-  BitcoinIcon,
-  EthereumIcon,
-  TetherIcon,
-  LitecoinIcon,
-  SolanaIcon,
-} from '@/components/crypto-icons';
+import { CryptoIcon } from '@/components/crypto-icons';
 
 interface FeatureItem {
   title: string;
@@ -311,11 +305,11 @@ export function SpotlightPageClient({ data }: SpotlightPageClientProps): React.J
             {/* Crypto Icons */}
             <div className="flex items-center justify-center gap-4 md:gap-6">
               {[
-                { Icon: BitcoinIcon, name: 'Bitcoin' },
-                { Icon: EthereumIcon, name: 'Ethereum' },
-                { Icon: TetherIcon, name: 'USDT' },
-                { Icon: LitecoinIcon, name: 'Litecoin' },
-                { Icon: SolanaIcon, name: 'Solana' },
+                { code: 'btc', name: 'Bitcoin' },
+                { code: 'eth', name: 'Ethereum' },
+                { code: 'usdt', name: 'USDT' },
+                { code: 'ltc', name: 'Litecoin' },
+                { code: 'sol', name: 'Solana' },
               ].map((crypto) => (
                 <div
                   key={crypto.name}
@@ -323,7 +317,7 @@ export function SpotlightPageClient({ data }: SpotlightPageClientProps): React.J
                   title={crypto.name}
                 >
                   <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-border-subtle bg-bg-primary/60 transition-all group-hover:scale-110 group-hover:border-border-accent md:h-14 md:w-14">
-                    <crypto.Icon size={28} className="transition-transform group-hover:scale-110" />
+                    <CryptoIcon code={crypto.code} size={28} className="transition-transform group-hover:scale-110" />
                   </div>
                   <span className="text-[10px] font-medium text-text-muted md:text-xs">{crypto.name}</span>
                 </div>

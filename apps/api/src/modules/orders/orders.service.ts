@@ -23,6 +23,22 @@ const orderStatusCache = new Map<string, { response: OrderResponseDto; cachedAt:
 const ORDER_CACHE_TTL_MS = 60 * 1000; // 1 minute for non-terminal states
 const ORDER_FULFILLED_CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes for fulfilled orders
 
+// ========== CACHE SIZE LIMITS ==========
+const MAX_ORDER_CACHE_SIZE = 10_000;
+const MAX_IDEMPOTENCY_CACHE_SIZE = 10_000;
+
+// ========== ORDER STATE MACHINE ==========
+const ALLOWED_TRANSITIONS: Record<string, string[]> = {
+  created: ['waiting', 'confirming', 'failed', 'expired'],
+  waiting: ['confirming', 'paid', 'failed', 'expired', 'underpaid'],
+  confirming: ['paid', 'failed', 'expired', 'underpaid'],
+  paid: ['fulfilled', 'failed'],
+  fulfilled: [], // terminal
+  failed: [], // terminal
+  expired: [], // terminal
+  underpaid: [], // terminal
+};
+
 /**
  * Invalidate order status cache for a specific order
  * MUST be called after any order status change to ensure fresh data
@@ -30,6 +46,29 @@ const ORDER_FULFILLED_CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes for fulfilled
 export function invalidateOrderCache(orderId: string): void {
   if (orderStatusCache.has(orderId)) {
     orderStatusCache.delete(orderId);
+  }
+}
+
+/**
+ * Validate that a status transition is allowed by the state machine.
+ * Returns true if allowed, false otherwise.
+ */
+function isTransitionAllowed(from: string, to: string): boolean {
+  const allowed = ALLOWED_TRANSITIONS[from];
+  if (allowed === undefined) return false;
+  return allowed.includes(to);
+}
+
+/**
+ * Evict oldest entries if cache exceeds max size.
+ */
+function enforceMapSize<V>(map: Map<string, V>, maxSize: number): void {
+  if (map.size <= maxSize) return;
+  const entriesToDelete = map.size - maxSize;
+  const iter = map.keys();
+  for (let i = 0; i < entriesToDelete; i++) {
+    const key = iter.next().value;
+    if (key !== undefined) map.delete(key);
   }
 }
 
@@ -48,6 +87,10 @@ setInterval(() => {
       orderStatusCache.delete(key);
     }
   }
+
+  // Enforce cache size limits
+  enforceMapSize(idempotencyCache, MAX_IDEMPOTENCY_CACHE_SIZE);
+  enforceMapSize(orderStatusCache, MAX_ORDER_CACHE_SIZE);
 }, 5 * 60 * 1000);
 
 @Injectable()
@@ -280,8 +323,11 @@ export class OrdersService {
         discountAmount = promoResult.discountAmount;
         finalTotal = totalPrice - parseFloat(promoResult.discountAmount);
 
-        // Ensure final total is never negative
-        if (finalTotal < 0) finalTotal = 0;
+        // Cap discount to never exceed order total
+        if (finalTotal < 0) {
+          finalTotal = 0;
+          discountAmount = totalPrice.toFixed(8);
+        }
 
         this.logger.log(`🎟️ Promo code ${dto.promoCode} applied: -€${promoResult.discountAmount} (${promoResult.message})`);
       } else {
@@ -333,6 +379,7 @@ export class OrdersService {
     // Store in cache to prevent duplicates for 5 minutes
     if (dto.idempotencyKey !== undefined && dto.idempotencyKey.length > 0) {
       const cacheKey = `${dto.email}:${dto.idempotencyKey}`;
+      enforceMapSize(idempotencyCache, MAX_IDEMPOTENCY_CACHE_SIZE);
       idempotencyCache.set(cacheKey, {
         orderId: savedOrder.id,
         expiresAt: Date.now() + 5 * 60 * 1000, // 5 minutes
@@ -388,6 +435,12 @@ export class OrdersService {
         `⏭️ Order ${orderId} already fulfilled, skipping markPaid to prevent status downgrade`,
       );
       return await this.mapToResponse(order, order.items);
+    }
+
+    if (!isTransitionAllowed(order.status, 'paid')) {
+      throw new BadRequestException(
+        `Cannot mark as paid: order status is ${order.status}`,
+      );
     }
 
     order.status = 'paid';
@@ -467,6 +520,7 @@ export class OrdersService {
 
     // ========== CACHE THE RESPONSE ==========
     // Cache all orders, but fulfilled orders are cached longer
+    enforceMapSize(orderStatusCache, MAX_ORDER_CACHE_SIZE);
     orderStatusCache.set(id, { response, cachedAt: Date.now() });
 
     return response;
@@ -481,7 +535,7 @@ export class OrdersService {
     const order = await this.ordersRepo.findOne({ where: { id: orderId }, relations: ['items'] });
     if (order === null) throw new NotFoundException(`Order ${orderId} not found`);
 
-    if (order.status !== 'created') {
+    if (!isTransitionAllowed(order.status, 'waiting')) {
       throw new BadRequestException(
         `Cannot mark as waiting: order status is ${order.status}, expected created`,
       );
@@ -506,7 +560,7 @@ export class OrdersService {
     const order = await this.ordersRepo.findOne({ where: { id: orderId }, relations: ['items'] });
     if (order === null) throw new NotFoundException(`Order ${orderId} not found`);
 
-    if (order.status !== 'waiting' && order.status !== 'created') {
+    if (!isTransitionAllowed(order.status, 'confirming')) {
       throw new BadRequestException(`Cannot mark as confirming: order status is ${order.status}`);
     }
 
@@ -530,7 +584,7 @@ export class OrdersService {
     const order = await this.ordersRepo.findOne({ where: { id: orderId }, relations: ['items'] });
     if (order === null) throw new NotFoundException(`Order ${orderId} not found`);
 
-    if (order.status === 'fulfilled' || order.status === 'paid') {
+    if (!isTransitionAllowed(order.status, 'underpaid')) {
       throw new BadRequestException(
         `Cannot mark as underpaid: order is already in terminal state ${order.status}`,
       );
@@ -573,8 +627,8 @@ export class OrdersService {
     const order = await this.ordersRepo.findOne({ where: { id: orderId }, relations: ['items'] });
     if (order === null) throw new NotFoundException(`Order ${orderId} not found`);
 
-    if (order.status === 'fulfilled') {
-      throw new BadRequestException(`Cannot mark as failed: order is already fulfilled`);
+    if (!isTransitionAllowed(order.status, 'failed')) {
+      throw new BadRequestException(`Cannot mark as failed: order is already in terminal state ${order.status}`);
     }
 
     order.status = 'failed';
@@ -612,14 +666,14 @@ export class OrdersService {
     const order = await this.ordersRepo.findOne({ where: { id: orderId }, relations: ['items'] });
     if (order === null) throw new NotFoundException(`Order ${orderId} not found`);
 
-    if (order.status === 'fulfilled') {
-      throw new BadRequestException(`Cannot mark as expired: order is already fulfilled`);
-    }
-
     // Idempotent: already expired is success
     if (order.status === 'expired') {
       this.logger.debug(`Order ${orderId} is already expired (idempotent success)`);
       return order;
+    }
+
+    if (!isTransitionAllowed(order.status, 'expired')) {
+      throw new BadRequestException(`Cannot mark as expired: order is already in terminal state ${order.status}`);
     }
 
     order.status = 'expired';

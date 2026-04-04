@@ -10,6 +10,8 @@ import { cn } from '@/design-system/utils/utils';
 import { useCheckWatchlist } from '@/features/watchlist/hooks/useWatchlist';
 import { toast } from 'sonner';
 
+const MAX_CART_ITEM_QUANTITY = 99;
+
 interface CartItemRowProps {
   productId: string;
   slug?: string;
@@ -71,13 +73,19 @@ export function CartItemRow({
   };
 
   const handleIncrement = (): void => {
-    // Respect max quantity limit if set
-    if (maxQuantity !== undefined && quantity >= maxQuantity) return;
+    // Respect both stock limit and global max quantity
+    const effectiveMax = maxQuantity !== undefined
+      ? Math.min(maxQuantity, MAX_CART_ITEM_QUANTITY)
+      : MAX_CART_ITEM_QUANTITY;
+    if (quantity >= effectiveMax) return;
     onQuantityChange(quantity + 1);
   };
 
-  // Check if we're at or over the stock limit
-  const isAtStockLimit = maxQuantity !== undefined && quantity >= maxQuantity;
+  // Check if we're at or over the effective limit (stock or global cap)
+  const effectiveMax = maxQuantity !== undefined
+    ? Math.min(maxQuantity, MAX_CART_ITEM_QUANTITY)
+    : MAX_CART_ITEM_QUANTITY;
+  const isAtLimit = quantity >= effectiveMax;
 
   return (
     <motion.div
@@ -194,9 +202,9 @@ export function CartItemRow({
               size="sm"
               onClick={handleIncrement}
               aria-label="Increase quantity"
-              disabled={isAtStockLimit}
+              disabled={isAtLimit}
               className="h-6 w-6 p-0 text-text-muted hover:text-cyan-glow hover:bg-cyan-glow/10 disabled:opacity-30 disabled:cursor-not-allowed"
-              title={isAtStockLimit ? `Only ${maxQuantity} available` : undefined}
+              title={isAtLimit ? (maxQuantity !== undefined && quantity >= maxQuantity ? `Only ${maxQuantity} available` : `Maximum quantity is ${MAX_CART_ITEM_QUANTITY}`) : undefined}
             >
               <Plus className="h-3 w-3" />
             </Button>

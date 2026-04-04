@@ -15,6 +15,7 @@ import {
 } from '@nestjs/common';
 import { Request as ExpressRequest } from 'express';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiParam } from '@nestjs/swagger';
+import { ThrottlerGuard, Throttle } from '@nestjs/throttler';
 import { OtpService } from './otp.service';
 import { AuthService } from './auth.service';
 import { UserService } from './user.service';
@@ -53,6 +54,7 @@ import {
  */
 @ApiTags('Authentication')
 @Controller('auth')
+@UseGuards(ThrottlerGuard)
 export class AuthController {
   private readonly logger = new Logger(AuthController.name);
 
@@ -67,23 +69,26 @@ export class AuthController {
 
   /**
    * Request OTP code via email
-   * Rate limited: 3 requests per 15 minutes per email
+   * Rate limited: 5 requests per 15 minutes per email (Redis) + 5 per 15 min per IP (Throttler)
    *
    * @param dto Request containing email and optional CAPTCHA token
    * @returns Response with success status and expiration time
    */
   @Post('request-otp')
   @HttpCode(200)
+  @Throttle({ default: { ttl: 900000, limit: 5 } }) // 5 requests per 15 min per IP
   @ApiOperation({ summary: 'Request OTP code via email' })
   @ApiResponse({ status: 200, type: OtpResponseDto })
   async requestOtp(@Body() dto: RequestOtpDto): Promise<OtpResponseDto> {
-    this.logger.log(`📧 OTP request for ${dto.email}`);
+    // Normalize email early to ensure consistency across all checks
+    const email = dto.email.toLowerCase().trim();
+    this.logger.log(`📧 OTP request for ${email}`);
 
     try {
       // ✅ Check if email belongs to a deleted account
-      const isDeleted = await this.userService.isEmailDeleted(dto.email);
+      const isDeleted = await this.userService.isEmailDeleted(email);
       if (isDeleted) {
-        this.logger.warn(`🚫 Login attempt for deleted account: ${dto.email}`);
+        this.logger.warn(`🚫 Login attempt for deleted account: ${email}`);
         throw new BadRequestException(
           'This account has been deleted. Please contact support if you believe this is an error.',
         );
@@ -97,10 +102,10 @@ export class AuthController {
           throw new BadRequestException('CAPTCHA token is required');
         }
         await verifyCaptchaToken(captchaToken);
-        this.logger.debug(`✅ CAPTCHA verified for ${dto.email}`);
+        this.logger.debug(`✅ CAPTCHA verified for ${email}`);
       }
 
-      await this.otpService.issue(dto.email);
+      await this.otpService.issue(email);
 
       return {
         success: true,
@@ -112,7 +117,7 @@ export class AuthController {
       }
 
       this.logger.error(
-        `❌ OTP request failed for ${dto.email}: ${error instanceof Error ? error.message : 'unknown'}`,
+        `❌ OTP request failed for ${email}: ${error instanceof Error ? error.message : 'unknown'}`,
       );
 
       throw new BadRequestException(
@@ -123,7 +128,7 @@ export class AuthController {
 
   /**
    * Verify OTP code and issue JWT tokens
-   * Rate limited: 5 attempts per minute per email
+   * Rate limited: 5 attempts per minute per email (Redis) + 10 per minute per IP (Throttler)
    * Auto-creates user on first successful verification
    *
    * @param dto Request containing email and 6-digit code
@@ -131,37 +136,40 @@ export class AuthController {
    */
   @Post('verify-otp')
   @HttpCode(200)
+  @Throttle({ default: { ttl: 60000, limit: 10 } }) // 10 verify attempts per minute per IP
   @ApiOperation({ summary: 'Verify OTP code and get JWT tokens' })
   @ApiResponse({ status: 200, type: AuthResponseDto })
   async verifyOtp(
     @Body() dto: VerifyOtpDto,
     @Req() req: ExpressRequest,
   ): Promise<AuthResponseDto> {
-    this.logger.log(`🔐 OTP verification for ${dto.email}`);
+    // Normalize email to match issue() normalization
+    const email = dto.email.toLowerCase().trim();
+    this.logger.log(`🔐 OTP verification for ${email}`);
 
     try {
       // Verify OTP code
-      const isValid = await this.otpService.verify(dto.email, dto.code);
+      const isValid = await this.otpService.verify(email, dto.code);
 
       if (!isValid) {
         throw new BadRequestException('Invalid or expired OTP code');
       }
 
       // Find or create user
-      let user = await this.userService.findByEmail(dto.email);
+      let user = await this.userService.findByEmail(email);
 
       if (user === null || user === undefined) {
-        user = await this.userService.create(dto.email);
-        this.logger.log(`✨ New user created: ${dto.email}`);
+        user = await this.userService.create(email);
+        this.logger.log(`✨ New user created: ${email}`);
       }
 
       // Mark email as confirmed
-      await this.userService.confirmEmail(dto.email);
+      await this.userService.confirmEmail(email);
 
       // Link any guest orders to this user by email match
-      const linkedOrders = await this.ordersService.linkOrdersByEmail(user.id, dto.email);
+      const linkedOrders = await this.ordersService.linkOrdersByEmail(user.id, email);
       if (linkedOrders > 0) {
-        this.logger.log(`🔗 Linked ${linkedOrders} guest orders to user ${dto.email}`);
+        this.logger.log(`🔗 Linked ${linkedOrders} guest orders to user ${email}`);
       }
 
       // Generate JWT tokens

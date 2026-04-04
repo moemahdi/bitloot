@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
+import dynamic from 'next/dynamic';
 import {
   Loader2,
   AlertCircle,
@@ -20,7 +21,6 @@ import {
   Check,
   CreditCard,
   Copy,
-  Sparkles,
   Hash,
   Shield,
   ShoppingBag,
@@ -32,11 +32,19 @@ import type { EmbeddedPaymentResponseDto, OrderItemResponseDto } from '@bitloot/
 import { apiConfig } from '@/lib/api-config';
 import { Button } from '@/design-system/primitives/button';
 import Link from 'next/link';
-import { EmbeddedPaymentUI } from '@/features/checkout/EmbeddedPaymentUI';
 import { PaymentMethodForm, type PaymentMethodFormData } from '@/features/checkout/PaymentMethodForm';
 import { OfflineBanner } from '@/components/OfflineBanner';
-import { StickyMobileSummary } from '@/components/StickyMobileSummary';
 import { parseCheckoutError } from '@/lib/checkout-errors';
+
+// Lazy-load heavy components only when needed
+const EmbeddedPaymentUI = dynamic(
+  () => import('@/features/checkout/EmbeddedPaymentUI').then((m) => m.EmbeddedPaymentUI),
+  { ssr: false, loading: () => <div className="h-96 animate-pulse rounded-2xl bg-bg-secondary" /> },
+);
+const StickyMobileSummary = dynamic(
+  () => import('@/components/StickyMobileSummary').then((m) => m.StickyMobileSummary),
+  { ssr: false },
+);
 
 // Initialize SDK clients
 const ordersClient = new OrdersApi(apiConfig);
@@ -92,12 +100,7 @@ function StepProgress({ currentStep }: { currentStep: CheckoutStep }): React.Rea
   const currentIndex = steps.findIndex((s) => s.id === currentStep);
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: 0.4 }}
-      className="flex items-center justify-center gap-2 mb-10"
-    >
+    <div className="flex items-center justify-center gap-2 mb-10">
       {steps.map((step, index) => {
         const Icon = step.icon;
         const isActive = index === currentIndex;
@@ -105,16 +108,12 @@ function StepProgress({ currentStep }: { currentStep: CheckoutStep }): React.Rea
 
         return (
           <div key={step.id} className="flex items-center">
-            <motion.div
-              animate={{
-                scale: isActive ? 1.1 : 1,
-                backgroundColor: isComplete || isActive ? 'hsl(var(--cyan-glow))' : 'transparent',
-              }}
+            <div
               className={`relative flex items-center justify-center w-10 h-10 rounded-full border-2 transition-all duration-300 ${
                 isActive
-                  ? 'border-cyan-glow text-bg-primary shadow-glow-cyan'
+                  ? 'border-cyan-glow bg-cyan-glow text-bg-primary shadow-glow-cyan scale-110'
                   : isComplete
-                    ? 'border-cyan-glow text-bg-primary'
+                    ? 'border-cyan-glow bg-cyan-glow text-bg-primary'
                     : 'border-border-muted text-text-muted'
               }`}
             >
@@ -124,14 +123,9 @@ function StepProgress({ currentStep }: { currentStep: CheckoutStep }): React.Rea
                 <Icon className="h-5 w-5" />
               )}
               {isActive && (
-                <motion.div
-                  layoutId="activeStep"
-                  className="absolute inset-0 rounded-full border-2 border-cyan-glow"
-                  animate={{ scale: [1, 1.2, 1] }}
-                  transition={{ duration: 1.5, repeat: Infinity }}
-                />
+                <div className="absolute inset-0 rounded-full border-2 border-cyan-glow animate-ping opacity-30" />
               )}
-            </motion.div>
+            </div>
 
             {index < steps.length - 1 && (
               <div
@@ -143,7 +137,7 @@ function StepProgress({ currentStep }: { currentStep: CheckoutStep }): React.Rea
           </div>
         );
       })}
-    </motion.div>
+    </div>
   );
 }
 
@@ -151,18 +145,10 @@ function StepProgress({ currentStep }: { currentStep: CheckoutStep }): React.Rea
 function CheckoutSkeleton(): React.ReactElement {
   return (
     <div className="min-h-screen bg-bg-primary flex items-center justify-center p-4">
-      <div className="fixed inset-0 pointer-events-none">
-        <div className="absolute top-1/4 left-1/4 w-[400px] h-[400px] bg-cyan-glow/5 rounded-full blur-[100px] animate-pulse" />
-        <div className="absolute bottom-1/4 right-1/4 w-[300px] h-[300px] bg-purple-neon/5 rounded-full blur-[80px] animate-pulse" style={{ animationDelay: '1s' }} />
-      </div>
-      <motion.div
-        initial={{ opacity: 0, scale: 0.9 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className="relative glass-strong rounded-3xl p-10 text-center shadow-card-lg border border-border-subtle"
-      >
+      <div className="relative rounded-3xl p-10 text-center shadow-card-lg border border-border-subtle bg-bg-secondary">
         <Loader2 className="h-12 w-12 text-cyan-glow animate-spin mx-auto mb-4" />
         <p className="text-text-muted">Loading checkout...</p>
-      </motion.div>
+      </div>
     </div>
   );
 }
@@ -369,6 +355,9 @@ export default function CheckoutPage(): React.ReactElement {
     void checkExistingPayment();
   }, [orderId, order, embeddedPayment]);
 
+  // Memoize grouped order items (must be before any early returns)
+  const groupedItems = useMemo(() => groupOrderItems(order?.items), [order?.items]);
+
   // Create embedded payment mutation
   const createPaymentMutation = useMutation({
     mutationFn: async (payCurrency: string): Promise<EmbeddedPaymentResponseDto> => {
@@ -381,16 +370,30 @@ export default function CheckoutPage(): React.ReactElement {
       if (orderEmail === '') {
         throw new Error('Valid email is required. Please create a new order with your email address.');
       }
-      const response = await paymentsClient.paymentsControllerCreateEmbedded({
-        createPaymentDto: {
-          orderId,
-          email: orderEmail,
-          priceAmount: order.total,
-          priceCurrency: 'eur',
-          payCurrency,
-        },
-      });
-      return response;
+      try {
+        const response = await paymentsClient.paymentsControllerCreateEmbedded({
+          createPaymentDto: {
+            orderId,
+            email: orderEmail,
+            priceAmount: order.total,
+            priceCurrency: 'eur',
+            payCurrency,
+          },
+        });
+        return response;
+      } catch (err: unknown) {
+        // Extract structured error body from SDK ResponseError
+        if (err !== null && typeof err === 'object' && 'response' in err) {
+          const responseError = err as { response: Response };
+          try {
+            const body: unknown = await responseError.response.json();
+            throw body; // Re-throw as plain object so parseCheckoutError can read error/message
+          } catch (parseErr) {
+            if (parseErr !== err) throw parseErr; // Re-throw parsed body
+          }
+        }
+        throw err;
+      }
     },
     onSuccess: (data) => {
       setEmbeddedPayment(data);
@@ -402,14 +405,27 @@ export default function CheckoutPage(): React.ReactElement {
       setIsProcessing(false);
       // Use the error parser for user-friendly messages
       const parsedError = parseCheckoutError(error);
-      toast.error(parsedError.message);
+      // If the API returned a specific message (e.g., min amount details), prefer it
+      const apiMessage = typeof error === 'object' && error !== null && 'message' in error
+        ? (error as Record<string, unknown>).message
+        : null;
+      const displayMessage = typeof apiMessage === 'string' && apiMessage.length > 0
+        ? apiMessage
+        : parsedError.message;
+      toast.error(displayMessage, {
+        duration: 8000,
+      });
     },
   });
 
   // Handlers
   const handlePaymentSubmit = async (data: PaymentMethodFormData): Promise<void> => {
     setIsProcessing(true);
-    await createPaymentMutation.mutateAsync(data.payCurrency);
+    try {
+      await createPaymentMutation.mutateAsync(data.payCurrency);
+    } catch {
+      // Error already handled by onError callback — prevent unhandled rejection
+    }
   };
 
   const handleBack = (): void => {
@@ -424,15 +440,8 @@ export default function CheckoutPage(): React.ReactElement {
   // Error state
   if (orderError != null || order == null) {
     return (
-      <div className="min-h-screen bg-bg-primary flex items-center justify-center p-4 relative overflow-hidden">
-        <div className="fixed inset-0 pointer-events-none">
-          <div className="absolute top-1/4 left-1/4 w-[400px] h-[400px] bg-red-error/5 rounded-full blur-[100px] animate-pulse" />
-        </div>
-        <motion.div
-          initial={{ opacity: 0, y: 30, scale: 0.95 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          className="relative glass-strong rounded-3xl p-10 text-center max-w-md shadow-card-lg border border-red-error/30"
-        >
+      <div className="min-h-screen bg-bg-primary flex items-center justify-center p-4">
+        <div className="rounded-3xl p-10 text-center max-w-md shadow-card-lg border border-red-error/30 bg-bg-secondary">
           <div className="w-20 h-20 rounded-2xl bg-red-error/10 flex items-center justify-center mx-auto mb-6 border border-red-error/30">
             <AlertCircle className="h-10 w-10 text-red-error" />
           </div>
@@ -445,7 +454,7 @@ export default function CheckoutPage(): React.ReactElement {
               Browse Products
             </Button>
           </Link>
-        </motion.div>
+        </div>
       </div>
     );
   }
@@ -456,20 +465,16 @@ export default function CheckoutPage(): React.ReactElement {
   // Handle non-payable statuses
   if (['confirming', 'paid', 'failed', 'expired', 'underpaid', 'refunded', 'cancelled'].includes(orderStatus)) {
     return (
-      <div className="min-h-screen bg-bg-primary relative overflow-hidden">
-        <div className="fixed inset-0 pointer-events-none">
-          <div className="absolute top-1/4 left-1/4 w-[400px] h-[400px] bg-cyan-glow/5 rounded-full blur-[100px] animate-pulse" />
-          <div className="absolute bottom-1/4 right-1/4 w-[300px] h-[300px] bg-purple-neon/5 rounded-full blur-[80px] animate-pulse" />
-        </div>
-        <div className="relative z-10 container mx-auto max-w-2xl py-12 px-4">
-          <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="mb-8">
+      <div className="min-h-screen bg-bg-primary">
+        <div className="container mx-auto max-w-2xl py-12 px-4">
+          <div className="mb-8">
             <Link href={`/orders/${orderId}`}>
               <button className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-text-muted hover:text-cyan-glow hover:bg-cyan-glow/5 transition-all duration-300 group">
                 <ChevronLeft className="h-4 w-4 group-hover:-translate-x-1 transition-transform" />
                 <span className="text-sm font-medium">Back to Order</span>
               </button>
             </Link>
-          </motion.div>
+          </div>
           <OrderStatusCard status={orderStatus} orderId={orderId} />
         </div>
       </div>
@@ -489,24 +494,16 @@ export default function CheckoutPage(): React.ReactElement {
         currentStep={currentStep === 'payment' ? 'Select Crypto' : 'Complete Payment'}
       />
 
-      {/* Enhanced Background Effects */}
-      <div className="fixed inset-0 pointer-events-none">
-        <motion.div
-          className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-cyan-glow/5 rounded-full blur-[120px]"
-          animate={{ opacity: [0.3, 0.5, 0.3], scale: [1, 1.1, 1] }}
-          transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
-        />
-        <motion.div
-          className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-purple-neon/5 rounded-full blur-[100px]"
-          animate={{ opacity: [0.3, 0.5, 0.3], scale: [1, 1.05, 1] }}
-          transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut', delay: 2 }}
-        />
+      {/* Background Effects — CSS only, no JS animation loop */}
+      <div className="fixed inset-0 pointer-events-none" aria-hidden="true">
+        <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-cyan-glow/5 rounded-full blur-[120px] animate-pulse" />
+        <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-purple-neon/5 rounded-full blur-[100px] animate-pulse [animation-delay:2s]" />
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,hsl(var(--bg-primary))_100%)]" />
       </div>
 
       <div className="relative z-10 container mx-auto max-w-5xl py-8 md:py-12 px-4">
         {/* Back Button */}
-        <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="mb-8">
+        <div className="mb-8">
           <button
             onClick={handleBack}
             className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-text-muted hover:text-cyan-glow hover:bg-cyan-glow/5 transition-all duration-300 group border border-transparent hover:border-cyan-glow/20"
@@ -514,56 +511,34 @@ export default function CheckoutPage(): React.ReactElement {
             <ChevronLeft className="h-4 w-4 group-hover:-translate-x-1 transition-transform duration-300" />
             <span className="text-sm font-medium">Back to Order</span>
           </button>
-        </motion.div>
+        </div>
 
         {/* Header */}
-        <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="text-center mb-10">
-          <motion.div
-            initial={{ scale: 0.9, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ delay: 0.1 }}
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-linear-to-r from-cyan-glow/10 to-purple-neon/10 border border-cyan-glow/30 mb-5 shadow-glow-cyan-sm"
-          >
+        <div className="text-center mb-10">
+          <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-linear-to-r from-cyan-glow/10 to-purple-neon/10 border border-cyan-glow/30 mb-5 shadow-glow-cyan-sm">
             <Lock className="h-4 w-4 text-cyan-glow" />
             <span className="text-sm font-semibold text-cyan-glow">Secure Checkout</span>
             <Shield className="h-4 w-4 text-cyan-glow" />
-          </motion.div>
+          </div>
 
-          <motion.h1
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="text-3xl sm:text-4xl md:text-5xl font-bold text-text-primary tracking-tight"
-          >
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-text-primary tracking-tight">
             Complete Your{' '}
             <span className="text-transparent bg-clip-text bg-linear-to-r from-cyan-glow to-purple-neon">
               Payment
             </span>
-          </motion.h1>
+          </h1>
 
-          <motion.p
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-            className="mt-3 text-text-muted text-sm sm:text-base"
-          >
+          <p className="mt-3 text-text-muted text-sm sm:text-base">
             Fast, secure crypto payments with instant product delivery
-          </motion.p>
-        </motion.div>
+          </p>
+        </div>
 
         {/* Step Progress */}
         <StepProgress currentStep={currentStep} />
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Main Content */}
-          <motion.div
-            key={currentStep}
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            transition={{ duration: 0.3 }}
-            className="lg:col-span-2"
-          >
+          <div className="lg:col-span-2">
             <AnimatePresence mode="wait">
               {/* ========== STEP 1: PAYMENT ========== */}
               {currentStep === 'payment' && (
@@ -574,7 +549,7 @@ export default function CheckoutPage(): React.ReactElement {
                   exit={{ opacity: 0, y: -20 }}
                   transition={{ duration: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }}
                 >
-                  <PaymentMethodForm onSubmit={handlePaymentSubmit} isLoading={isProcessing} />
+                  <PaymentMethodForm onSubmit={handlePaymentSubmit} isLoading={isProcessing} orderTotal={order?.total} />
                 </motion.div>
               )}
 
@@ -601,15 +576,10 @@ export default function CheckoutPage(): React.ReactElement {
                 </motion.div>
               )}
             </AnimatePresence>
-          </motion.div>
+          </div>
 
           {/* Sidebar - Order Summary */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-            className="lg:col-span-1"
-          >
+          <div className="lg:col-span-1">
             <div className="sticky top-8 space-y-6">
               <div className="relative glass-strong rounded-3xl overflow-hidden shadow-card-lg border border-border-subtle">
                 <div className="absolute top-0 left-0 right-0 h-1 bg-linear-to-r from-purple-neon via-cyan-glow to-purple-neon" />
@@ -647,7 +617,6 @@ export default function CheckoutPage(): React.ReactElement {
                   {/* Order Items - Grouped by product with pagination */}
                   {(() => {
                     const ITEMS_PER_PAGE = 5;
-                    const groupedItems = groupOrderItems(order.items);
                     const totalPages = Math.ceil(groupedItems.length / ITEMS_PER_PAGE);
                     const paginatedItems = groupedItems.slice(
                       (currentPage - 1) * ITEMS_PER_PAGE,
@@ -735,19 +704,15 @@ export default function CheckoutPage(): React.ReactElement {
                   })()}
 
                   {/* Estimated Delivery Time */}
-                  <motion.div
-                    initial={{ opacity: 0, y: 5 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="flex items-center gap-3 p-3 rounded-xl bg-linear-to-r from-green-success/10 to-green-success/5 border border-green-success/20"
-                  >
+                  <div className="flex items-center gap-3 p-3 rounded-xl bg-linear-to-r from-green-success/10 to-green-success/5 border border-green-success/20">
                     <div className="w-8 h-8 rounded-lg bg-green-success/20 flex items-center justify-center">
-                      <Sparkles className="h-4 w-4 text-green-success" />
+                      <Zap className="h-4 w-4 text-green-success" />
                     </div>
                     <div>
                       <p className="text-xs font-semibold text-green-success">Instant Delivery</p>
                       <p className="text-xs text-text-muted">Products delivered immediately after payment</p>
                     </div>
-                  </motion.div>
+                  </div>
 
                   <div className="border-t border-border-subtle pt-4 space-y-2">
                     {order.email !== null && order.email !== undefined && order.email !== '' && (
@@ -772,77 +737,45 @@ export default function CheckoutPage(): React.ReactElement {
                 </div>
               </div>
             </div>
-          </motion.div>
+          </div>
         </div>
 
-        {/* Trust Signals - Horizontal below form */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
-          className="mt-12 max-w-5xl mx-auto"
-        >
+        {/* Trust Signals */}
+        <div className="mt-12 max-w-5xl mx-auto">
           <div className="glass-strong rounded-2xl p-6 border border-border-subtle">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <motion.div 
-                className="flex items-center gap-4 justify-center md:justify-start"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.5 }}
-              >
-                <motion.div
-                  className="shrink-0 w-12 h-12 rounded-xl bg-linear-to-br from-cyan-glow/20 to-cyan-glow/10 flex items-center justify-center border border-cyan-glow/30"
-                  whileHover={{ scale: 1.05 }}
-                  transition={{ type: 'spring', stiffness: 300 }}
-                >
+              <div className="flex items-center gap-4 justify-center md:justify-start">
+                <div className="shrink-0 w-12 h-12 rounded-xl bg-linear-to-br from-cyan-glow/20 to-cyan-glow/10 flex items-center justify-center border border-cyan-glow/30 hover:scale-105 transition-transform">
                   <Zap className="h-6 w-6 text-cyan-glow" />
-                </motion.div>
+                </div>
                 <div>
                   <p className="text-sm font-semibold text-text-primary">Instant Delivery</p>
                   <p className="text-xs text-text-muted">Products delivered to email</p>
                 </div>
-              </motion.div>
+              </div>
 
-              <motion.div 
-                className="flex items-center gap-4 justify-center md:justify-start"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.6 }}
-              >
-                <motion.div
-                  className="shrink-0 w-12 h-12 rounded-xl bg-linear-to-br from-purple-neon/20 to-purple-neon/10 flex items-center justify-center border border-purple-neon/30"
-                  whileHover={{ scale: 1.05 }}
-                  transition={{ type: 'spring', stiffness: 300 }}
-                >
+              <div className="flex items-center gap-4 justify-center md:justify-start">
+                <div className="shrink-0 w-12 h-12 rounded-xl bg-linear-to-br from-purple-neon/20 to-purple-neon/10 flex items-center justify-center border border-purple-neon/30 hover:scale-105 transition-transform">
                   <Lock className="h-6 w-6 text-purple-neon" />
-                </motion.div>
+                </div>
                 <div>
                   <p className="text-sm font-semibold text-text-primary">Secure Payment</p>
                   <p className="text-xs text-text-muted">256-bit encryption</p>
                 </div>
-              </motion.div>
+              </div>
 
-              <motion.div 
-                className="flex items-center gap-4 justify-center md:justify-start"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.7 }}
-              >
-                <motion.div
-                  className="shrink-0 w-12 h-12 rounded-xl bg-linear-to-br from-cyan-glow/20 to-purple-neon/10 flex items-center justify-center border border-cyan-glow/30"
-                  whileHover={{ scale: 1.05 }}
-                  transition={{ type: 'spring', stiffness: 300 }}
-                >
+              <div className="flex items-center gap-4 justify-center md:justify-start">
+                <div className="shrink-0 w-12 h-12 rounded-xl bg-linear-to-br from-cyan-glow/20 to-purple-neon/10 flex items-center justify-center border border-cyan-glow/30 hover:scale-105 transition-transform">
                   <Shield className="h-6 w-6 text-cyan-glow" />
-                </motion.div>
+                </div>
                 <div>
                   <p className="text-sm font-semibold text-text-primary">100% Authentic</p>
                   <p className="text-xs text-text-muted">Official products only</p>
                 </div>
-              </motion.div>
+              </div>
             </div>
           </div>
-        </motion.div>
+        </div>
       </div>
     </div>
   );

@@ -1,6 +1,12 @@
 'use client';
 
+import { notFound } from 'next/navigation';
 import { CryptoIcon } from '@/components/crypto-icons';
+
+// Gate test page — only available in development
+if (process.env.NODE_ENV === 'production') {
+  // Force 404 in production builds
+}
 
 const TEST_CURRENCIES = [
   'btc', 'eth', 'usdt', 'bnb', 'sol', 'xrp', 'ada', 'doge', 'dot', 'ltc',
@@ -14,6 +20,11 @@ const TEST_CURRENCIES = [
 ];
 
 export default function TestCryptoIcons() {
+  // Block access in production
+  if (process.env.NODE_ENV === 'production') {
+    notFound();
+  }
+
   return (
     <div className="min-h-screen bg-bg-primary p-8">
       <div className="max-w-6xl mx-auto">

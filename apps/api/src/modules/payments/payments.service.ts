@@ -3,6 +3,8 @@ import {
   BadRequestException,
   Logger,
   InternalServerErrorException,
+  HttpException,
+  HttpStatus,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -223,6 +225,15 @@ export class PaymentsService {
           });
           this.logger.log(`[Feature Flag] ⏸️ Auto-fulfill disabled - order ${orderId} requires manual fulfillment`);
         } else {
+          // Verify payment record exists before queuing fulfillment
+          if (payment === null || payment === undefined) {
+            this.logStructured('error', 'handleIpn:missing_payment', 'payment_record_not_found', {
+              orderId,
+              paymentId: externalId,
+              message: 'Payment record not found - cannot queue fulfillment safely',
+            });
+            this.logger.error(`[IPN] Payment record not found for externalId ${externalId} - skipping fulfillment queue`);
+          } else {
           try {
             // Fetch order with items to extract details for fulfillment job
             const orderDto = await this.ordersService.get(orderId);
@@ -233,7 +244,7 @@ export class PaymentsService {
               'reserve',
               {
                 orderId,
-                paymentId: payment?.id ?? 'unknown',
+                paymentId: payment.id,
                 kinguinOfferId: firstItem?.productId ?? 'demo-product',
                 userEmail: orderDto.email,
                 quantity,
@@ -273,6 +284,7 @@ export class PaymentsService {
             // Don't fail IPN processing - job queueing should be resilient
             // In production, use dead-letter queue or alerting for queueing failures
           }
+          } // end payment record check
         }
       } else if (status === 'underpaid') {
         await this.ordersService.markUnderpaid(orderId);
@@ -520,15 +532,88 @@ export class PaymentsService {
   }
 
   /**
+   * Check if a cryptocurrency meets the minimum amount for a given order total
+   *
+   * Calls NOWPayments min-amount and estimate endpoints to verify the
+   * estimated crypto amount exceeds the pair's minimum. Returns structured
+   * result instead of throwing.
+   *
+   * @param payCurrency Cryptocurrency code (e.g., 'btc', 'usdttrc20')
+   * @param fiatAmount Order total in fiat
+   * @param priceCurrency Fiat currency (e.g., 'eur')
+   * @returns Availability result with estimated and minimum amounts
+   */
+  async checkCurrencyAvailability(
+    payCurrency: string,
+    fiatAmount: number,
+    priceCurrency: string,
+  ): Promise<{
+    available: boolean;
+    payCurrency: string;
+    estimatedAmount: number | null;
+    minAmount: number | null;
+    message: string | null;
+  }> {
+    try {
+      // Fetch min-amount and estimate in parallel
+      const [minResult, estimateResult] = await Promise.all([
+        this.npClient.getMinAmount(payCurrency, priceCurrency),
+        this.npClient.getEstimatedRate(priceCurrency, payCurrency, fiatAmount),
+      ]);
+
+      const minAmount = minResult.min_amount;
+      const estimatedAmount = estimateResult.amount;
+
+      if (estimatedAmount < minAmount) {
+        this.logger.warn(
+          `Currency ${payCurrency} unavailable for €${fiatAmount}: estimated ${estimatedAmount} < min ${minAmount}`,
+        );
+        return {
+          available: false,
+          payCurrency,
+          estimatedAmount,
+          minAmount,
+          message: `${payCurrency.toUpperCase()} requires a minimum of ${minAmount} ${payCurrency.toUpperCase()}, but your order only converts to ~${estimatedAmount}. Try a different cryptocurrency or increase your cart total.`,
+        };
+      }
+
+      return {
+        available: true,
+        payCurrency,
+        estimatedAmount,
+        minAmount,
+        message: null,
+      };
+    } catch (error) {
+      // If we can't check, let the payment creation attempt proceed
+      // NOWPayments will return a clear error if it fails
+      this.logger.warn(
+        `Could not verify min-amount for ${payCurrency}: ${error instanceof Error ? error.message : 'unknown'}`,
+      );
+      return {
+        available: true,
+        payCurrency,
+        estimatedAmount: null,
+        minAmount: null,
+        message: null,
+      };
+    }
+  }
+
+  /**
    * Create an embedded payment (no redirect to NOWPayments)
    *
    * Uses the NOWPayments Payment API (not Invoice API) to create a payment
    * that returns wallet address and amount for in-app display.
    * Customer pays from their wallet directly without leaving your site.
    *
+   * Pre-validates the currency minimum amount before calling NOWPayments
+   * to prevent raw 500 errors on sub-minimum payments.
+   *
    * @param dto CreatePaymentDto with orderId, email, price, and payCurrency (required for embedded)
    * @returns EmbeddedPaymentResponseDto with wallet address, amount, QR code data
    * @throws BadRequestException if payCurrency not specified
+   * @throws HttpException 422 if amount is below minimum for the currency pair
    */
   async createEmbedded(dto: CreatePaymentDto): Promise<EmbeddedPaymentResponseDto> {
     this.logger.debug(`Creating embedded payment for order ${dto.orderId}, currency: ${dto.payCurrency}`);
@@ -540,6 +625,31 @@ export class PaymentsService {
     }
 
     try {
+      // Pre-validate: check if the crypto amount meets the minimum for this pair
+      const fiatAmount = parseFloat(dto.priceAmount);
+      const availability = await this.checkCurrencyAvailability(
+        paymentCurrency,
+        fiatAmount,
+        dto.priceCurrency,
+      );
+
+      if (!availability.available) {
+        this.logger.warn(
+          `Payment blocked for order ${dto.orderId}: ${paymentCurrency} below minimum (estimated: ${availability.estimatedAmount}, min: ${availability.minAmount})`,
+        );
+        throw new HttpException(
+          {
+            statusCode: HttpStatus.UNPROCESSABLE_ENTITY,
+            error: 'AMOUNT_BELOW_MINIMUM',
+            message: availability.message,
+            payCurrency: paymentCurrency,
+            estimatedAmount: availability.estimatedAmount,
+            minAmount: availability.minAmount,
+          },
+          HttpStatus.UNPROCESSABLE_ENTITY,
+        );
+      }
+
       // Call NOWPayments Payment API (not Invoice API)
       const npPayment = await this.npClient.createPayment({
         price_amount: parseFloat(dto.priceAmount),
@@ -594,9 +704,29 @@ export class PaymentsService {
         estimatedTime: this.getEstimatedConfirmationTime(paymentCurrency),
       };
     } catch (error) {
+      // Re-throw our own HttpExceptions (e.g., AMOUNT_BELOW_MINIMUM)
+      if (error instanceof HttpException) {
+        throw error;
+      }
+
+      // Check if the error message indicates a minimum amount issue from NOWPayments
+      const errorMsg = error instanceof Error ? error.message : 'unknown error';
+      if (errorMsg.includes('less than minimal') || errorMsg.includes('min_amount')) {
+        this.logger.warn(`NOWPayments rejected payment for order ${dto.orderId} due to minimum: ${errorMsg}`);
+        throw new HttpException(
+          {
+            statusCode: HttpStatus.UNPROCESSABLE_ENTITY,
+            error: 'AMOUNT_BELOW_MINIMUM',
+            message: `${paymentCurrency.toUpperCase()} is unavailable for this order amount. The payment total is below the minimum required for this cryptocurrency. Please choose a different cryptocurrency.`,
+            payCurrency: paymentCurrency,
+          },
+          HttpStatus.UNPROCESSABLE_ENTITY,
+        );
+      }
+
       this.logger.error(`Failed to create embedded payment for order ${dto.orderId}:`, error);
       throw new InternalServerErrorException(
-        `Failed to create payment: ${error instanceof Error ? error.message : 'unknown error'}`,
+        `Failed to create payment: ${errorMsg}`,
       );
     }
   }

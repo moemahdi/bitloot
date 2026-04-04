@@ -1,4 +1,5 @@
 import { Body, Controller, Get, Param, Post, Patch, UseGuards, Request, Headers } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { ApiOperation, ApiResponse, ApiTags, ApiBearerAuth, ApiHeader } from '@nestjs/swagger';
 import type { Request as ExpressRequest } from 'express';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -31,6 +32,7 @@ export class OrdersController {
   ) {}
 
   @Post()
+  @Throttle({ default: { ttl: 60000, limit: 10 } })
   @UseGuards(OptionalAuthGuard)
   @ApiBearerAuth('JWT-auth')
   @ApiOperation({ summary: 'Create a new order' })

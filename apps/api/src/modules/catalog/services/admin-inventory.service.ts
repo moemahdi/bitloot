@@ -1012,7 +1012,7 @@ export class AdminInventoryService {
     }
 
     const items = await this.inventoryRepo.find({
-      where: where as Record<string, unknown>,
+      where,
       order: { uploadedAt: 'ASC' },
     });
 

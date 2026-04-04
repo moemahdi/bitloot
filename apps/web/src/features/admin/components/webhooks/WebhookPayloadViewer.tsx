@@ -165,10 +165,17 @@ export function WebhookPayloadViewer({
  * - Null: text-muted (subtle/undefined)
  */
 function JsonHighlight({ json }: { json: string }): React.ReactElement {
-  // Apply BitLoot neon syntax highlighting
-  const highlighted = json
-    .replace(/"([^"]+)":/g, '<span class="text-cyan-glow">"$1"</span>:') // keys → cyan
-    .replace(/: "(.*?)"/g, ': <span class="text-green-success">"$1"</span>') // strings → green
+  // Escape HTML entities first to prevent XSS from webhook payloads
+  const escaped = json
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+
+  // Apply BitLoot neon syntax highlighting on escaped content
+  const highlighted = escaped
+    .replace(/&quot;([^&]*?)&quot;:/g, '<span class="text-cyan-glow">&quot;$1&quot;</span>:') // keys → cyan
+    .replace(/: &quot;(.*?)&quot;/g, ': <span class="text-green-success">&quot;$1&quot;</span>') // strings → green
     .replace(/: (\d+\.?\d*)/g, ': <span class="text-orange-warning">$1</span>') // numbers → orange
     .replace(/: (true|false)/g, ': <span class="text-purple-neon">$1</span>') // booleans → purple
     .replace(/: (null)/g, ': <span class="text-text-muted">$1</span>'); // null → muted

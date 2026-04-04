@@ -51,6 +51,8 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 
 const CART_STORAGE_KEY = 'bitloot-cart';
 
+const MAX_CART_ITEM_QUANTITY = 99;
+
 export function CartProvider({ children }: { children: ReactNode }): React.ReactNode {
   const [items, setItems] = useState<CartItem[]>([]);
   const [promoCode, setPromoCode] = useState('');
@@ -109,10 +111,11 @@ export function CartProvider({ children }: { children: ReactNode }): React.React
     }
     prevItemsRef.current = items;
 
-    // If cart is empty, clear promo
+    // If cart is empty, clear promo with notification
     if (items.length === 0) {
       setAppliedPromo(null);
       setPromoCode('');
+      toast.info('Promo code removed — your cart is empty');
       return;
     }
 
@@ -162,13 +165,18 @@ export function CartProvider({ children }: { children: ReactNode }): React.React
     setItems((prevItems) => {
       const existing = prevItems.find((item) => item.productId === newItem.productId);
       if (existing !== undefined) {
+        const newQty = Math.min(existing.quantity + newItem.quantity, MAX_CART_ITEM_QUANTITY);
+        if (newQty === existing.quantity) {
+          toast.error(`Maximum quantity (${MAX_CART_ITEM_QUANTITY}) reached`);
+          return prevItems;
+        }
         return prevItems.map((item) =>
           item.productId === newItem.productId
-            ? { ...item, quantity: item.quantity + newItem.quantity }
+            ? { ...item, quantity: newQty }
             : item
         );
       }
-      return [...prevItems, newItem];
+      return [...prevItems, { ...newItem, quantity: Math.min(newItem.quantity, MAX_CART_ITEM_QUANTITY) }];
     });
   };
 
@@ -181,9 +189,13 @@ export function CartProvider({ children }: { children: ReactNode }): React.React
       removeItem(productId);
       return;
     }
+    const clampedQty = Math.min(quantity, MAX_CART_ITEM_QUANTITY);
+    if (clampedQty < quantity) {
+      toast.error(`Maximum quantity is ${MAX_CART_ITEM_QUANTITY}`);
+    }
     setItems((prevItems) =>
       prevItems.map((item) =>
-        item.productId === productId ? { ...item, quantity } : item
+        item.productId === productId ? { ...item, quantity: clampedQty } : item
       )
     );
   };

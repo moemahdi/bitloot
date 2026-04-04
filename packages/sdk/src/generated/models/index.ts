@@ -195,6 +195,7 @@ export * from './PaginatedWebhookLogsDto';
 export * from './PaymentResponseDto';
 export * from './PaymentsControllerAdminListPayments200Response';
 export * from './PaymentsControllerAdminListPayments200ResponseDataInner';
+export * from './PaymentsControllerCheckCurrency200Response';
 export * from './PaymentsControllerPollPaymentStatus200Response';
 export * from './PlatformFilterDto';
 export * from './PriceRangeDto';

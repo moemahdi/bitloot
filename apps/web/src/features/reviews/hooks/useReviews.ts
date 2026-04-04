@@ -19,6 +19,7 @@ interface LocalReviewResponse {
   authorName: string;
   isVerifiedPurchase: boolean;
   productName?: string | null;
+  productSlug?: string | null;
   createdAt: Date;
 }
 

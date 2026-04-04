@@ -80,7 +80,7 @@ export function AuthProvider({ children }: { children: ReactNode }): React.React
   const deleteCookie = useCallback((name: string): void => {
     if (typeof document === 'undefined') return;
 
-    document.cookie = `${name}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC`;
+    document.cookie = `${name}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC; Secure; SameSite=Strict`;
   }, []);
 
   // Decode JWT payload

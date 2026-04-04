@@ -118,11 +118,26 @@ export class FulfillmentProcessor extends WorkerHost {
       // ========== FEATURE FLAG CHECK ==========
       // Block fulfillment if feature is disabled - re-queue the job to retry later
       if (!this.featureFlagsService.isEnabled('fulfillment_enabled')) {
-        this.logger.warn(`[Fulfillment] ⏸️ Fulfillment is disabled - delaying job ${job.id} for order ${orderId}`);
+        // Limit re-queues to prevent infinite loop when feature stays disabled
+        let requeueCount = 0;
+        if (typeof jobData === 'object' && jobData !== null && 'featureFlagRequeues' in jobData) {
+          const parsed = Number(jobData.featureFlagRequeues);
+          requeueCount = Number.isNaN(parsed) ? 0 : parsed;
+        }
+        const MAX_FEATURE_FLAG_REQUEUES = 12; // 12 × 5min = 1 hour max wait
+
+        if (requeueCount >= MAX_FEATURE_FLAG_REQUEUES) {
+          this.logger.error(
+            `[Fulfillment] ❌ Fulfillment disabled for too long — giving up on job ${job.id} for order ${orderId} after ${requeueCount} re-queues`,
+          );
+          throw new Error(`Fulfillment feature flag disabled for over ${requeueCount * 5} minutes — job abandoned`);
+        }
+
+        this.logger.warn(`[Fulfillment] ⏸️ Fulfillment is disabled - delaying job ${job.id} for order ${orderId} (requeue ${requeueCount + 1}/${MAX_FEATURE_FLAG_REQUEUES})`);
         // Re-queue the job with a 5-minute delay instead of failing
         await this.fulfillmentQueue.add(
           job.name,
-          job.data,
+          { ...job.data, featureFlagRequeues: requeueCount + 1 },
           { delay: 5 * 60 * 1000 }, // 5 minutes
         );
         return {

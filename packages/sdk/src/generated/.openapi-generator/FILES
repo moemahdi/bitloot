@@ -262,6 +262,7 @@ docs/PaymentResponseDto.md
 docs/PaymentsApi.md
 docs/PaymentsControllerAdminListPayments200Response.md
 docs/PaymentsControllerAdminListPayments200ResponseDataInner.md
+docs/PaymentsControllerCheckCurrency200Response.md
 docs/PaymentsControllerPollPaymentStatus200Response.md
 docs/PlatformFilterDto.md
 docs/PriceRangeDto.md
@@ -552,6 +553,7 @@ models/PaginatedWebhookLogsDto.ts
 models/PaymentResponseDto.ts
 models/PaymentsControllerAdminListPayments200Response.ts
 models/PaymentsControllerAdminListPayments200ResponseDataInner.ts
+models/PaymentsControllerCheckCurrency200Response.ts
 models/PaymentsControllerPollPaymentStatus200Response.ts
 models/PlatformFilterDto.ts
 models/PriceRangeDto.ts
