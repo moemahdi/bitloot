@@ -1451,7 +1451,7 @@ export default function ProfilePage(): React.ReactElement {
                                     ? 'bg-green-success/20 text-green-success border-green-success/30 shadow-glow-success'
                                     : order.status === 'paid'
                                       ? 'bg-cyan-glow/20 text-cyan-glow border-cyan-glow/30 shadow-glow-cyan-sm'
-                                      : order.status === 'failed' || order.status === 'underpaid'
+                                      : order.status === 'failed' || order.status === 'underpaid' || order.status === 'expired' || isOrderPaymentExpired(order)
                                         ? 'bg-destructive/20 text-destructive border-destructive/30 shadow-glow-error'
                                         : 'bg-orange-warning/20 text-orange-warning border-orange-warning/30'
                                   }`}
@@ -1459,10 +1459,10 @@ export default function ProfilePage(): React.ReactElement {
                                   <span className={`status-dot mr-1.5 ${
                                     order.status === 'fulfilled' ? 'status-dot-success' 
                                     : order.status === 'paid' ? 'status-dot-info'
-                                    : order.status === 'failed' || order.status === 'underpaid' ? 'status-dot-error'
+                                    : order.status === 'failed' || order.status === 'underpaid' || isOrderPaymentExpired(order) ? 'status-dot-error'
                                     : 'status-dot-warning'
                                   }`} />
-                                  {order.status ?? 'pending'}
+                                  {isOrderPaymentExpired(order) ? 'expired' : (order.status ?? 'pending')}
                                 </Badge>
                               </div>
                               <ChevronRight className="h-5 w-5 text-text-muted opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -1694,7 +1694,7 @@ export default function ProfilePage(): React.ReactElement {
                                 }`}
                               >
                                 {isFulfilled && <Check className="h-3 w-3 mr-1" />}
-                                {order.status ?? 'pending'}
+                                {isClientExpired ? 'expired' : (order.status ?? 'pending')}
                               </Badge>
                               <span className="crypto-amount font-bold text-lg text-text-primary">
                                 €{formatOrderTotal(order.total)}
@@ -1826,7 +1826,7 @@ export default function ProfilePage(): React.ReactElement {
                                     isPaid ? 'text-cyan-glow' : 
                                     'text-orange-warning'
                                   }`}>
-                                    {(order.status ?? 'pending').charAt(0).toUpperCase() + (order.status ?? 'pending').slice(1)}
+                                    {(() => { const s = isClientExpired ? 'expired' : (order.status ?? 'pending'); return s.charAt(0).toUpperCase() + s.slice(1); })()}
                                   </p>
                                 </div>
                               </div>
