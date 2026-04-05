@@ -44,7 +44,8 @@ const PAYMENT_WINDOW_MS = 60 * 60 * 1000;
 
 /** Check if an order's payment window has expired client-side */
 function isOrderPaymentExpired(order: OrderResponseDto): boolean {
-  if (order.status !== 'created') return false;
+  const pendingStatuses = ['created', 'pending', 'waiting'];
+  if (!pendingStatuses.includes(order.status)) return false;
   const createdAt = new Date(order.createdAt).getTime();
   return Date.now() - createdAt > PAYMENT_WINDOW_MS;
 }
@@ -721,8 +722,8 @@ export default function ProfilePage(): React.ReactElement {
     
     allOrders.forEach((order: OrderResponseDto) => {
       const status = order.status ?? 'pending';
-      // Client-side expired 'created' orders should count as 'failed'
-      const effectiveCategory = (status === 'created' && isOrderPaymentExpired(order))
+      // Client-side expired orders should count as 'failed'
+      const effectiveCategory = isOrderPaymentExpired(order)
         ? 'failed'
         : (statusToCategory[status] ?? 'pending');
       categoryCounts[effectiveCategory] = (categoryCounts[effectiveCategory] ?? 0) + 1;
@@ -775,14 +776,14 @@ export default function ProfilePage(): React.ReactElement {
         const status = order.status ?? 'pending';
         
         if (purchasesStatusFilter === 'failed') {
-          // 'failed' filter includes: failed, underpaid, expired, and client-side expired created orders
-          return status === 'failed' || status === 'underpaid' || status === 'expired' || (status === 'created' && isOrderPaymentExpired(order));
+          // 'failed' filter includes: failed, underpaid, expired, and client-side expired orders
+          return status === 'failed' || status === 'underpaid' || status === 'expired' || isOrderPaymentExpired(order);
         }
         
         if (purchasesStatusFilter === 'pending') {
           // 'pending' filter includes: pending, waiting, confirming, created (only if payment window is still open)
-          if (status === 'created') return !isOrderPaymentExpired(order);
-          return status === 'pending' || status === 'waiting' || status === 'confirming';
+          if (status === 'created' || status === 'pending' || status === 'waiting') return !isOrderPaymentExpired(order);
+          return status === 'confirming';
         }
         
         // Direct match for: fulfilled, paid, refunded, cancelled
@@ -1601,8 +1602,8 @@ export default function ProfilePage(): React.ReactElement {
                     const isClientExpired = isOrderPaymentExpired(order);
                     const isExpired = order.status === 'expired' || isClientExpired;
                     const isFailed = order.status === 'failed' || order.status === 'underpaid' || isExpired;
-                    const isCreatedActive = order.status === 'created' && !isClientExpired;
-                    const isPending = order.status === 'waiting' || order.status === 'pending' || order.status === 'confirming' || isCreatedActive;
+                    const isActivePaymentPending = !isClientExpired && (order.status === 'created' || order.status === 'waiting' || order.status === 'pending');
+                    const isPending = order.status === 'confirming' || isActivePaymentPending;
                     
                     // Map order items to product reveal format using real product titles
                     const keyRevealItems: OrderItem[] = order.items.map((item: OrderItemResponseDto) => ({
@@ -1751,7 +1752,7 @@ export default function ProfilePage(): React.ReactElement {
                                      'Processing...'}
                                   </span>
                                 </div>
-                                {isCreatedActive && (
+                                {isActivePaymentPending && order.status === 'created' && (
                                   <Link href={`/checkout/${order.id}`}>
                                     <Button
                                       size="sm"

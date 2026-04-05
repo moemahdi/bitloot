@@ -448,32 +448,6 @@ export function EmbeddedPaymentUI({
           </motion.div>
         )}
         
-        {isExpiredStatus && (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-            className="mb-6 space-y-3"
-          >
-            <p className="text-sm text-text-muted text-center">Try a different cryptocurrency:</p>
-            <div className="grid grid-cols-3 gap-2">
-              {['BTC', 'ETH', 'USDT'].map((currency) => (
-                <Button 
-                  key={currency} 
-                  variant="outline"
-                  className="border-border-subtle hover:border-cyan-glow/50 hover:bg-cyan-glow/5"
-                  onClick={() => {
-                    toast.info(`Switching to ${currency}...`);
-                    // This would trigger a new payment creation with selected currency
-                  }}
-                >
-                  {currency}
-                </Button>
-              ))}
-            </div>
-          </motion.div>
-        )}
-        
         <motion.div
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
