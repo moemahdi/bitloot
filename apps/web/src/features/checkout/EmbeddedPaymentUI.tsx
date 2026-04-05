@@ -357,7 +357,7 @@ export function EmbeddedPaymentUI({
         className="relative glass-strong rounded-3xl p-10 text-center shadow-glow-success overflow-hidden"
       >
         {/* Animated background gradient */}
-        <div className="absolute inset-0 bg-gradient-to-br from-green-success/10 via-transparent to-cyan-glow/5" />
+        <div className="absolute inset-0 bg-gradient-to-br from-green-success/10 via-transparent to-cyan-glow/5 pointer-events-none" />
         
         <motion.div
           initial={{ scale: 0, rotate: -180 }}
@@ -414,7 +414,7 @@ export function EmbeddedPaymentUI({
         className="relative glass-strong rounded-3xl p-10 text-center overflow-hidden"
       >
         {/* Background gradient */}
-        <div className={`absolute inset-0 ${isExpiredStatus ? 'bg-gradient-to-br from-orange-warning/10 via-transparent to-transparent' : 'bg-gradient-to-br from-red-500/10 via-transparent to-transparent'}`} />
+        <div className={`absolute inset-0 pointer-events-none ${isExpiredStatus ? 'bg-gradient-to-br from-orange-warning/10 via-transparent to-transparent' : 'bg-gradient-to-br from-red-500/10 via-transparent to-transparent'}`} />
         
         <motion.div 
           initial={{ scale: 0 }}

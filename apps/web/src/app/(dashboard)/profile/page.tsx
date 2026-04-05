@@ -39,6 +39,16 @@ const usersClient = new UsersApi(apiConfig);
 const fulfillmentClient = new FulfillmentApi(apiConfig);
 
 // ============ CONSTANTS ============
+/** Payment window duration in milliseconds (1 hour) */
+const PAYMENT_WINDOW_MS = 60 * 60 * 1000;
+
+/** Check if an order's payment window has expired client-side */
+function isOrderPaymentExpired(order: OrderResponseDto): boolean {
+  if (order.status !== 'created') return false;
+  const createdAt = new Date(order.createdAt).getTime();
+  return Date.now() - createdAt > PAYMENT_WINDOW_MS;
+}
+
 /** Order status constants to avoid magic strings */
 const _ORDER_STATUS = {
   FULFILLED: 'fulfilled',
@@ -711,8 +721,11 @@ export default function ProfilePage(): React.ReactElement {
     
     allOrders.forEach((order: OrderResponseDto) => {
       const status = order.status ?? 'pending';
-      const category = statusToCategory[status] ?? 'pending';
-      categoryCounts[category] = (categoryCounts[category] ?? 0) + 1;
+      // Client-side expired 'created' orders should count as 'failed'
+      const effectiveCategory = (status === 'created' && isOrderPaymentExpired(order))
+        ? 'failed'
+        : (statusToCategory[status] ?? 'pending');
+      categoryCounts[effectiveCategory] = (categoryCounts[effectiveCategory] ?? 0) + 1;
     });
 
     // Define display order and styling for each category
@@ -762,13 +775,14 @@ export default function ProfilePage(): React.ReactElement {
         const status = order.status ?? 'pending';
         
         if (purchasesStatusFilter === 'failed') {
-          // 'failed' filter includes: failed, underpaid, expired
-          return status === 'failed' || status === 'underpaid' || status === 'expired';
+          // 'failed' filter includes: failed, underpaid, expired, and client-side expired created orders
+          return status === 'failed' || status === 'underpaid' || status === 'expired' || (status === 'created' && isOrderPaymentExpired(order));
         }
         
         if (purchasesStatusFilter === 'pending') {
-          // 'pending' filter includes: pending, waiting, confirming, created
-          return status === 'pending' || status === 'waiting' || status === 'confirming' || status === 'created';
+          // 'pending' filter includes: pending, waiting, confirming, created (only if payment window is still open)
+          if (status === 'created') return !isOrderPaymentExpired(order);
+          return status === 'pending' || status === 'waiting' || status === 'confirming';
         }
         
         // Direct match for: fulfilled, paid, refunded, cancelled
@@ -1584,9 +1598,11 @@ export default function ProfilePage(): React.ReactElement {
                     const isExpanded = expandedOrders.has(order.id);
                     const isFulfilled = order.status === 'fulfilled';
                     const isPaid = order.status === 'paid';
-                    const isExpired = order.status === 'expired';
+                    const isClientExpired = isOrderPaymentExpired(order);
+                    const isExpired = order.status === 'expired' || isClientExpired;
                     const isFailed = order.status === 'failed' || order.status === 'underpaid' || isExpired;
-                    const isPending = order.status === 'waiting' || order.status === 'pending' || order.status === 'confirming';
+                    const isCreatedActive = order.status === 'created' && !isClientExpired;
+                    const isPending = order.status === 'waiting' || order.status === 'pending' || order.status === 'confirming' || isCreatedActive;
                     
                     // Map order items to product reveal format using real product titles
                     const keyRevealItems: OrderItem[] = order.items.map((item: OrderItemResponseDto) => ({
@@ -1725,19 +1741,33 @@ export default function ProfilePage(): React.ReactElement {
                               </div>
                             )}
                             {isPending && (
-                              <div className="flex items-center gap-2 text-sm text-text-secondary">
-                                <Loader2 className="h-4 w-4 animate-spin-glow text-orange-warning" />
-                                <span>
-                                  {order.status === 'confirming' ? 'Payment being confirmed...' : 
-                                   order.status === 'waiting' ? 'Awaiting payment...' : 
-                                   'Processing...'}
-                                </span>
+                              <div className="flex flex-col gap-2">
+                                <div className="flex items-center gap-2 text-sm text-text-secondary">
+                                  <Loader2 className="h-4 w-4 animate-spin-glow text-orange-warning" />
+                                  <span>
+                                    {order.status === 'confirming' ? 'Payment being confirmed...' : 
+                                     order.status === 'waiting' ? 'Awaiting payment...' : 
+                                     order.status === 'created' ? 'Awaiting payment...' :
+                                     'Processing...'}
+                                  </span>
+                                </div>
+                                {isCreatedActive && (
+                                  <Link href={`/checkout/${order.id}`}>
+                                    <Button
+                                      size="sm"
+                                      className="bg-orange-warning hover:bg-orange-warning/80 text-black"
+                                    >
+                                      <ExternalLink className="h-4 w-4 mr-1" />
+                                      Continue to Checkout
+                                    </Button>
+                                  </Link>
+                                )}
                               </div>
                             )}
                             {isExpired && (
                               <div className="flex items-center gap-2 text-sm text-destructive">
                                 <Clock className="h-4 w-4" />
-                                <span>Payment expired - Order cancelled</span>
+                                <span>Payment window expired</span>
                               </div>
                             )}
                             {isFailed && !isExpired && (

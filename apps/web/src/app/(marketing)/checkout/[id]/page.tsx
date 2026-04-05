@@ -249,7 +249,7 @@ function OrderStatusCard({
       animate={{ opacity: 1, y: 0 }}
       className={`relative glass-strong rounded-3xl overflow-hidden shadow-card-lg border ${config.borderClass}`}
     >
-      <div className={`absolute inset-0 bg-linear-to-br ${config.bgClass} opacity-50`} />
+      <div className={`absolute inset-0 bg-linear-to-br ${config.bgClass} opacity-50 pointer-events-none`} />
       <div className="relative p-8 text-center">
         <motion.div
           initial={{ scale: 0 }}
