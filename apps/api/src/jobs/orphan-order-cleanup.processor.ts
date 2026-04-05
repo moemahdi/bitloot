@@ -98,7 +98,7 @@ export class OrphanOrderCleanupService {
     const expiredPaymentOrders = await this.ordersRepo
       .createQueryBuilder('order')
       .innerJoin(Payment, 'payment', 'payment.orderId = order.id')
-      .where('order.status IN (:...statuses)', { statuses: ['created', 'pending'] })
+      .where('order.status IN (:...statuses)', { statuses: ['created', 'pending', 'waiting'] })
       .andWhere('payment.createdAt < :cutoff', { cutoff: paymentCutoff })
       .andWhere('payment.status NOT IN (:...finalStatuses)', {
         finalStatuses: ['finished', 'confirmed', 'underpaid'],
