@@ -229,6 +229,9 @@ const groupOrderItems = (items: OrderItemResponseDto[] | undefined): GroupedOrde
   return Array.from(grouped.values());
 };
 
+// Payment window duration (1 hour)
+const PAYMENT_WINDOW_MS = 60 * 60 * 1000;
+
 // ========== Main Component ==========
 export default function OrderStatusPage(): React.ReactElement {
   const params = useParams();
@@ -251,9 +254,16 @@ export default function OrderStatusPage(): React.ReactElement {
       return orderData;
     },
     refetchInterval: (query) => {
-      const status = query.state.data?.status;
-      // Poll every 3 seconds for active payment states
-      if (status === 'created' || status === 'waiting' || status === 'pending' || status === 'confirming' || status === 'paid') {
+      const data = query.state.data;
+      const status = data?.status;
+      // Client-side expiration check — stop polling if payment window passed
+      if (status === 'created' || status === 'waiting' || status === 'pending') {
+        const createdAt = new Date(data?.createdAt ?? '').getTime();
+        if (Date.now() - createdAt > PAYMENT_WINDOW_MS) return false;
+        return 3000;
+      }
+      // Poll every 3 seconds for confirming/paid
+      if (status === 'confirming' || status === 'paid') {
         return 3000;
       }
       // Stop polling for terminal states
@@ -265,8 +275,14 @@ export default function OrderStatusPage(): React.ReactElement {
   // Check if user can access order keys
   const orderAccess = useOrderAccess(orderId);
 
-  // Derive status
-  const orderStatus = (order?.status ?? 'pending') as OrderStatus;
+  // Derive status — apply client-side expiration for orders still in pre-payment states
+  const rawStatus = (order?.status ?? 'pending') as OrderStatus;
+  const isClientExpired = (
+    (rawStatus === 'created' || rawStatus === 'waiting' || rawStatus === 'pending') &&
+    order?.createdAt != null &&
+    Date.now() - new Date(order.createdAt).getTime() > PAYMENT_WINDOW_MS
+  );
+  const orderStatus: OrderStatus = isClientExpired ? 'expired' : rawStatus;
   const statusConfig = STATUS_CONFIG[orderStatus] ?? STATUS_CONFIG.pending;
 
   // Pagination state for order items
