@@ -121,6 +121,12 @@ export interface CreateProductDto {
      * @memberof CreateProductDto
      */
     isPublished: boolean;
+    /**
+     * Whether product can only be purchased with credits (no crypto)
+     * @type {boolean}
+     * @memberof CreateProductDto
+     */
+    creditOnly: boolean;
 }
 
 
@@ -170,6 +176,7 @@ export function instanceOfCreateProductDto(value: object): value is CreateProduc
     if (!('price' in value) || value['price'] === undefined) return false;
     if (!('currency' in value) || value['currency'] === undefined) return false;
     if (!('isPublished' in value) || value['isPublished'] === undefined) return false;
+    if (!('creditOnly' in value) || value['creditOnly'] === undefined) return false;
     return true;
 }
 
@@ -200,6 +207,7 @@ export function CreateProductDtoFromJSONTyped(json: any, ignoreDiscriminator: bo
         'price': json['price'],
         'currency': json['currency'],
         'isPublished': json['isPublished'],
+        'creditOnly': json['creditOnly'],
     };
 }
 
@@ -231,6 +239,7 @@ export function CreateProductDtoToJSONTyped(value?: CreateProductDto | null, ign
         'price': value['price'],
         'currency': value['currency'],
         'isPublished': value['isPublished'],
+        'creditOnly': value['creditOnly'],
     };
 }
 

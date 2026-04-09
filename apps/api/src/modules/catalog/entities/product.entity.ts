@@ -123,6 +123,13 @@ export class Product {
   @Column({ type: 'boolean', default: false })
   isFeatured!: boolean;
 
+  /**
+   * Whether this product can ONLY be purchased with BitLoot Credits
+   * When true, crypto payments are blocked for this product
+   */
+  @Column({ type: 'boolean', default: false })
+  creditOnly!: boolean;
+
   // ============================================
   // KINGUIN API EXTENDED FIELDS
   // ============================================

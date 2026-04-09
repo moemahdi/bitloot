@@ -18,6 +18,7 @@ import {
   ToggleLeft,
   ListOrdered,
   Wallet,
+  Coins,
   ClipboardList,
   ShoppingBag,
   Settings,
@@ -62,6 +63,7 @@ const ADMIN_NAV = {
     items: [
       { href: '/admin/payments', label: 'Payments', icon: CreditCard },
       { href: '/admin/balances', label: 'Balances', icon: Wallet },
+      { href: '/admin/credits', label: 'Credits', icon: Coins },
       { href: '/admin/reservations', label: 'Reservations', icon: BookOpen },
     ],
   },

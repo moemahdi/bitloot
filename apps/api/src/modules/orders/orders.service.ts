@@ -3,6 +3,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
 import { Order } from './order.entity';
 import { OrderItem } from './order-item.entity';
 import { Payment } from '../payments/payment.entity';
@@ -12,7 +14,9 @@ import { CatalogService } from '../catalog/catalog.service';
 import { MarketingService } from '../marketing/marketing.service';
 import { Product } from '../catalog/entities/product.entity';
 import { PromosService } from '../promos/promos.service';
+import { CreditsService } from '../credits/credits.service';
 import { FeatureFlagsService } from '../admin/feature-flags.service';
+import { QUEUE_NAMES } from '../../jobs/queues';
 
 // In-memory cache for idempotency keys (in production, use Redis)
 const idempotencyCache = new Map<string, { orderId: string; expiresAt: number }>();
@@ -26,6 +30,9 @@ const ORDER_FULFILLED_CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutes for fulfilled
 // ========== CACHE SIZE LIMITS ==========
 const MAX_ORDER_CACHE_SIZE = 10_000;
 const MAX_IDEMPOTENCY_CACHE_SIZE = 10_000;
+
+// Minimum crypto payment amount (EUR) — prevents micro-payments that processors reject
+const MIN_CRYPTO_PAYMENT = 3.0;
 
 // ========== ORDER STATE MACHINE ==========
 const ALLOWED_TRANSITIONS: Record<string, string[]> = {
@@ -106,9 +113,11 @@ export class OrdersService {
     private readonly catalogService: CatalogService,
     private readonly marketingService: MarketingService,
     private readonly promosService: PromosService,
+    private readonly creditsService: CreditsService,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
     private readonly featureFlagsService: FeatureFlagsService,
+    @InjectQueue(QUEUE_NAMES.FULFILLMENT) private readonly fulfillmentQueue: Queue,
   ) {
     this.jwtSecret = this.configService.get<string>('JWT_SECRET') ?? 'dev-secret-change-in-production';
   }
@@ -243,6 +252,26 @@ export class OrdersService {
       throw new BadRequestException(`Insufficient stock: ${insufficientStockProducts.join('; ')}`);
     }
 
+    // ========== CREDIT-ONLY PRODUCT VALIDATION ==========
+    // Products with creditOnly=true can ONLY be purchased with BitLoot Credits
+    const creditOnlyProducts = products.filter(p => p.creditOnly === true);
+    if (creditOnlyProducts.length > 0) {
+      // Must be logged in to buy credit-only products
+      if (userId === undefined || userId === null || userId === '') {
+        throw new BadRequestException(
+          `The following products can only be purchased with BitLoot Credits (login required): ${creditOnlyProducts.map(p => p.title).join(', ')}`,
+        );
+      }
+      // Must opt-in to use credits
+      if (dto.useCredits !== true) {
+        throw new BadRequestException(
+          `The following products can only be purchased with BitLoot Credits: ${creditOnlyProducts.map(p => p.title).join(', ')}. Please enable "Use Credits" at checkout.`,
+        );
+      }
+      this.logger.log(`🔒 Order contains credit-only products: ${creditOnlyProducts.map(p => p.title).join(', ')}`);
+    }
+    const hasCreditOnlyProducts = creditOnlyProducts.length > 0;
+
     // ========== GET EFFECTIVE PRICES (considering flash deals AND bundle discounts) ==========
     // For bundle purchases, bundle discounts take priority over flash deals
     // For regular purchases, flash deals apply as SOURCE OF TRUTH
@@ -336,14 +365,76 @@ export class OrdersService {
       }
     }
 
-    // Create order with promo fields
+    // ========== CREDITS SPENDING ==========
+    // Apply credits AFTER promo discount, BEFORE payment creation
+    let creditsUsed = '0';
+    let creditsPromoUsed = '0';
+    let creditsCashUsed = '0';
+    let fullyCoveredByCredits = false;
+
+    if (dto.useCredits === true && userId !== undefined && userId !== null && userId !== '' && finalTotal > 0) {
+      try {
+        const balance = await this.creditsService.getBalance(userId);
+        const availableCredits = balance.total;
+
+        if (availableCredits > 0) {
+          let creditsToSpend = Math.min(availableCredits, finalTotal);
+          const remainder = finalTotal - creditsToSpend;
+
+          // Cap credits so crypto remainder meets the minimum payment threshold
+          // Three cases:
+          //   remainder == 0  → fully covered, no crypto needed (OK)
+          //   remainder >= MIN → normal partial payment (OK)
+          //   remainder > 0 && < MIN → reduce credits so remainder = MIN
+          if (remainder > 0 && remainder < MIN_CRYPTO_PAYMENT) {
+            creditsToSpend = Math.max(0, finalTotal - MIN_CRYPTO_PAYMENT);
+          }
+
+          if (creditsToSpend > 0) {
+            const spendResult = await this.creditsService.spendCredits(userId, creditsToSpend, 'pending-order');
+            // Note: referenceId will be updated to actual orderId after order creation
+
+            creditsUsed = (spendResult.promoUsed + spendResult.cashUsed).toFixed(8);
+            creditsPromoUsed = spendResult.promoUsed.toFixed(8);
+            creditsCashUsed = spendResult.cashUsed.toFixed(8);
+            finalTotal = finalTotal - spendResult.promoUsed - spendResult.cashUsed;
+
+            if (finalTotal < 0.01) {
+              finalTotal = 0;
+              fullyCoveredByCredits = true;
+            }
+
+            this.logger.log(
+              `💳 Credits applied: €${creditsToSpend.toFixed(2)} (promo: €${spendResult.promoUsed.toFixed(2)}, cash: €${spendResult.cashUsed.toFixed(2)})${fullyCoveredByCredits ? ' — fully covered' : ''}`,
+            );
+          }
+        }
+      } catch (creditsError) {
+        // Credits spending failed — continue without credits (non-blocking)
+        this.logger.warn(`⚠️ Credits spending failed for user ${userId}:`, creditsError);
+      }
+    }
+
+    // ========== CREDIT-ONLY ENFORCEMENT ==========
+    // If order contains credit-only products, it MUST be fully covered by credits
+    if (hasCreditOnlyProducts && !fullyCoveredByCredits) {
+      throw new BadRequestException(
+        `Orders containing credit-only products must be fully paid with BitLoot Credits. ` +
+        `You need €${finalTotal.toFixed(2)} more in credits to complete this purchase.`,
+      );
+    }
+
+    // Create order with promo + credits fields
     const order = this.ordersRepo.create({
       email: dto.email,
-      status: 'created',
+      status: fullyCoveredByCredits ? 'paid' : 'created',
       totalCrypto: finalTotal.toFixed(8),
       originalTotal: originalTotal,
       promoCodeId: promoCodeId,
       discountAmount: discountAmount,
+      creditsUsed,
+      creditsPromoUsed,
+      creditsCashUsed,
       sourceType: sourceType,
       userId: userId ?? undefined,
     });
@@ -388,6 +479,50 @@ export class OrdersService {
     }
 
     const response = await this.mapToResponse(savedOrder, savedItems);
+
+    // ========== CREDITS: UPDATE TRANSACTION REFERENCES ==========
+    // Replace 'pending-order' with actual order ID in credit transaction records
+    if (parseFloat(creditsUsed) > 0) {
+      try {
+        await this.creditsService.updateSpendReference('pending-order', savedOrder.id);
+      } catch (refError) {
+        this.logger.warn(`Failed to update credit tx references for order ${savedOrder.id}:`, refError);
+      }
+    }
+
+    // ========== FULLY COVERED BY CREDITS: RECORD PROMO & TRIGGER FULFILMENT ==========
+    if (fullyCoveredByCredits) {
+      // Record promo redemption (normally done in markPaid)
+      if (promoCodeId !== undefined && discountAmount !== undefined) {
+        try {
+          await this.promosService.recordRedemption({
+            promoCodeId,
+            orderId: savedOrder.id,
+            userId: savedOrder.userId,
+            email: savedOrder.email,
+            discountApplied: discountAmount,
+            originalTotal: originalTotal,
+            finalTotal: '0',
+          });
+          this.logger.log(`🎟️ Promo redemption recorded for credit-covered order ${savedOrder.id}`);
+        } catch (promoError) {
+          this.logger.error(`Failed to record promo redemption for credit-covered order ${savedOrder.id}:`, promoError);
+        }
+      }
+      // Enqueue fulfillment job for credit-covered order (same pattern as IPN webhook)
+      await this.fulfillmentQueue.add(
+        'reserve',
+        {
+          orderId: savedOrder.id,
+        },
+        {
+          jobId: `fulfill-${savedOrder.id}`,
+          attempts: 5,
+          backoff: { type: 'exponential', delay: 1000 },
+        },
+      );
+      this.logger.log(`✅ Order ${savedOrder.id} fully covered by credits — marked as paid, fulfillment enqueued`);
+    }
 
     // ========== GENERATE ORDER SESSION TOKEN ==========
     // Include session token for immediate guest access (valid 1 hour)
@@ -857,6 +992,10 @@ export class OrdersService {
       promoCodeId: order.promoCodeId,
       promoCode: order.promoCode?.code,
       discountAmount: order.discountAmount,
+      // Credits fields
+      creditsUsed: parseFloat(order.creditsUsed ?? '0') > 0 ? order.creditsUsed : undefined,
+      creditsPromoUsed: parseFloat(order.creditsPromoUsed ?? '0') > 0 ? order.creditsPromoUsed : undefined,
+      creditsCashUsed: parseFloat(order.creditsCashUsed ?? '0') > 0 ? order.creditsCashUsed : undefined,
     };
   }
 

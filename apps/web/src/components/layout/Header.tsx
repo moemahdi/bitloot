@@ -20,6 +20,7 @@ import {
     Monitor,
     Flame,
     RefreshCw,
+    Wallet,
     // Game Genres
     Swords,
     Crosshair,
@@ -37,6 +38,7 @@ import type { LucideIcon } from 'lucide-react';
 import { Sheet, SheetContent, SheetTrigger, SheetClose, SheetTitle } from '@/design-system/primitives/sheet';
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/hooks/useAuth';
+import { useCreditBalance } from '@/features/credits/useCredits';
 import { CartDropdown } from '@/components/cart/CartDropdown';
 
 // ============================================================================
@@ -127,7 +129,32 @@ const NAV_LINKS: NavLink[] = [
     },
 ];
 
+/**
+ * Small credit balance indicator — shown next to Dashboard for authenticated users.
+ * Hidden on mobile, only renders when user has a balance > 0.
+ */
+function CreditBalanceBadge(): React.ReactElement | null {
+    const { data: balance } = useCreditBalance();
+    const total = parseFloat(balance?.total ?? '0');
+    if (total <= 0) return null;
 
+    const formatted = total >= 1000
+        ? `€${(total / 1000).toFixed(1)}k`
+        : `€${total.toFixed(2)}`;
+
+    return (
+        <Link href="/profile?tab=credits" className="hidden sm:block">
+            <Button
+                variant="ghost"
+                size="sm"
+                className="gap-1.5 text-emerald-400 hover:bg-emerald-500/10 hover:text-emerald-300 transition-all duration-200 tabular-nums"
+            >
+                <Wallet className="h-3.5 w-3.5" />
+                <span className="text-xs font-medium">{formatted}</span>
+            </Button>
+        </Link>
+    );
+}
 
 export function Header(): React.ReactElement {
     const pathname = usePathname();
@@ -438,6 +465,8 @@ export function Header(): React.ReactElement {
                                     <span>Dashboard</span>
                                 </Button>
                             </Link>
+                            {/* Credit Balance Badge */}
+                            <CreditBalanceBadge />
                             {/* Mobile Dashboard Icon */}
                             <Link href="/profile" className="sm:hidden">
                                 <Button 

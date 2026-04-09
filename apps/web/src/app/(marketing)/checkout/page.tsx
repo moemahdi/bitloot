@@ -178,7 +178,7 @@ function ErrorState({ message, onRetry }: { message: string; onRetry: () => void
 // This page creates an order from cart items and redirects to /checkout/[id]
 // Guest users must provide email before proceeding
 export default function CheckoutPage(): React.ReactElement {
-  const { items, clearCart, appliedPromo, setAppliedPromo } = useCart();
+  const { items, clearCart, appliedPromo, setAppliedPromo, useCredits, setUseCredits } = useCart();
   const { user } = useAuth();
   const router = useRouter();
   const [hasAttempted, setHasAttempted] = useState(false);
@@ -274,6 +274,7 @@ export default function CheckoutPage(): React.ReactElement {
           idempotencyKey,
           promoCode: appliedPromo?.code,
           captchaToken: captchaToken ?? undefined,
+          useCredits: useCredits || undefined,
         },
       });
 
@@ -287,6 +288,7 @@ export default function CheckoutPage(): React.ReactElement {
       // Clear cart and promo after successful order creation
       clearCart();
       setAppliedPromo(null);
+      setUseCredits(false);
       
       // Save guest email to localStorage for future checkouts
       if (guestEmail !== '' && validateEmail(guestEmail)) {

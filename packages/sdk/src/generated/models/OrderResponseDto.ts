@@ -123,6 +123,24 @@ export interface OrderResponseDto {
      * @memberof OrderResponseDto
      */
     discountAmount?: string;
+    /**
+     * Total credits used on this order (EUR)
+     * @type {string}
+     * @memberof OrderResponseDto
+     */
+    creditsUsed?: string;
+    /**
+     * Promo credits portion used (EUR)
+     * @type {string}
+     * @memberof OrderResponseDto
+     */
+    creditsPromoUsed?: string;
+    /**
+     * Cash credits portion used (EUR)
+     * @type {string}
+     * @memberof OrderResponseDto
+     */
+    creditsCashUsed?: string;
 }
 
 
@@ -177,6 +195,9 @@ export function OrderResponseDtoFromJSONTyped(json: any, ignoreDiscriminator: bo
         'promoCodeId': json['promoCodeId'] == null ? undefined : json['promoCodeId'],
         'promoCode': json['promoCode'] == null ? undefined : json['promoCode'],
         'discountAmount': json['discountAmount'] == null ? undefined : json['discountAmount'],
+        'creditsUsed': json['creditsUsed'] == null ? undefined : json['creditsUsed'],
+        'creditsPromoUsed': json['creditsPromoUsed'] == null ? undefined : json['creditsPromoUsed'],
+        'creditsCashUsed': json['creditsCashUsed'] == null ? undefined : json['creditsCashUsed'],
     };
 }
 
@@ -207,6 +228,9 @@ export function OrderResponseDtoToJSONTyped(value?: OrderResponseDto | null, ign
         'promoCodeId': value['promoCodeId'],
         'promoCode': value['promoCode'],
         'discountAmount': value['discountAmount'],
+        'creditsUsed': value['creditsUsed'],
+        'creditsPromoUsed': value['creditsPromoUsed'],
+        'creditsCashUsed': value['creditsCashUsed'],
     };
 }
 

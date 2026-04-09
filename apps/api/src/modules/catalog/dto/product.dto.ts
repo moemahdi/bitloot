@@ -135,6 +135,13 @@ export class ProductResponseDto {
   })
   isPublished!: boolean;
 
+  @ApiProperty({
+    description: 'Whether product can only be purchased with credits (no crypto)',
+    example: false,
+    required: false,
+  })
+  creditOnly?: boolean;
+
   // ============================================
   // STOCK/AVAILABILITY FIELDS
   // ============================================

@@ -45,6 +45,8 @@ interface CartContextType {
   appliedPromo: AppliedPromo | null;
   setAppliedPromo: (promo: AppliedPromo | null) => void;
   finalTotal: number;      // Total after promo discount
+  useCredits: boolean;
+  setUseCredits: (use: boolean) => void;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -57,6 +59,7 @@ export function CartProvider({ children }: { children: ReactNode }): React.React
   const [items, setItems] = useState<CartItem[]>([]);
   const [promoCode, setPromoCode] = useState('');
   const [appliedPromo, setAppliedPromo] = useState<AppliedPromo | null>(null);
+  const [useCredits, setUseCredits] = useState(false);
   const [isHydrated, setIsHydrated] = useState(false);
 
   // Load from localStorage on mount
@@ -64,10 +67,11 @@ export function CartProvider({ children }: { children: ReactNode }): React.React
     const stored = localStorage.getItem(CART_STORAGE_KEY);
     if (stored !== null) {
       try {
-        const parsed = JSON.parse(stored) as { items?: CartItem[]; promoCode?: string; appliedPromo?: AppliedPromo | null };
+        const parsed = JSON.parse(stored) as { items?: CartItem[]; promoCode?: string; appliedPromo?: AppliedPromo | null; useCredits?: boolean };
         setItems(parsed.items ?? []);
         setPromoCode(parsed.promoCode ?? '');
         setAppliedPromo(parsed.appliedPromo ?? null);
+        setUseCredits(parsed.useCredits ?? false);
       } catch (error) {
         console.error('Failed to load cart from localStorage:', error);
       }
@@ -80,10 +84,10 @@ export function CartProvider({ children }: { children: ReactNode }): React.React
     if (isHydrated) {
       localStorage.setItem(
         CART_STORAGE_KEY,
-        JSON.stringify({ items, promoCode, appliedPromo })
+        JSON.stringify({ items, promoCode, appliedPromo, useCredits })
       );
     }
-  }, [items, promoCode, appliedPromo, isHydrated]);
+  }, [items, promoCode, appliedPromo, useCredits, isHydrated]);
 
   // Track previous items for change detection
   const prevItemsRef = useRef<CartItem[]>([]);
@@ -204,11 +208,12 @@ export function CartProvider({ children }: { children: ReactNode }): React.React
     setItems([]);
     setPromoCode('');
     setAppliedPromo(null);
+    setUseCredits(false);
   };
 
   // Buy Now: Clear cart and add single item for instant checkout
   const buyNow = (item: CartItem): void => {
-    setItems([{ ...item, quantity: 1 }]);
+    setItems([{ ...item, quantity: item.quantity || 1 }]);
     setPromoCode('');
     setAppliedPromo(null);
   };
@@ -258,6 +263,8 @@ export function CartProvider({ children }: { children: ReactNode }): React.React
     appliedPromo,
     setAppliedPromo,
     finalTotal,
+    useCredits,
+    setUseCredits,
   };
 
   return (

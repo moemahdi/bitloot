@@ -140,6 +140,24 @@ export class Order {
   @Column({ type: 'boolean', default: false })
   completionEmailSent!: boolean;
 
+  /**
+   * Total credits used for this order (promo + cash combined)
+   */
+  @Column('decimal', { precision: 20, scale: 8, default: 0 })
+  creditsUsed!: string;
+
+  /**
+   * Promo credits portion used for this order
+   */
+  @Column('decimal', { precision: 20, scale: 8, default: 0 })
+  creditsPromoUsed!: string;
+
+  /**
+   * Cash credits portion used for this order
+   */
+  @Column('decimal', { precision: 20, scale: 8, default: 0 })
+  creditsCashUsed!: string;
+
   @OneToMany(() => OrderItem, (i) => i.order, { cascade: true })
   items!: OrderItem[];
 

@@ -127,6 +127,12 @@ export interface UpdateProductDto {
      * @memberof UpdateProductDto
      */
     featuredOrder?: number;
+    /**
+     * Whether product can only be purchased with credits (no crypto)
+     * @type {boolean}
+     * @memberof UpdateProductDto
+     */
+    creditOnly?: boolean;
 }
 
 
@@ -198,6 +204,7 @@ export function UpdateProductDtoFromJSONTyped(json: any, ignoreDiscriminator: bo
         'currency': json['currency'] == null ? undefined : json['currency'],
         'featuredSections': json['featuredSections'] == null ? undefined : json['featuredSections'],
         'featuredOrder': json['featuredOrder'] == null ? undefined : json['featuredOrder'],
+        'creditOnly': json['creditOnly'] == null ? undefined : json['creditOnly'],
     };
 }
 
@@ -230,6 +237,7 @@ export function UpdateProductDtoToJSONTyped(value?: UpdateProductDto | null, ign
         'currency': value['currency'],
         'featuredSections': value['featuredSections'],
         'featuredOrder': value['featuredOrder'],
+        'creditOnly': value['creditOnly'],
     };
 }
 

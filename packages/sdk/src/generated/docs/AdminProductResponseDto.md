@@ -55,6 +55,7 @@ Name | Type
 `price` | string
 `currency` | string
 `isPublished` | boolean
+`creditOnly` | boolean
 `isCustom` | boolean
 `featuredSections` | Array&lt;string&gt;
 `featuredOrder` | number
@@ -118,6 +119,7 @@ const example = {
   "price": null,
   "currency": null,
   "isPublished": null,
+  "creditOnly": false,
   "isCustom": null,
   "featuredSections": ["trending","featured_games"],
   "featuredOrder": 0,

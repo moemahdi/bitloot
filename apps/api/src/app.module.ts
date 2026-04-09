@@ -35,6 +35,7 @@ import { ReviewsModule } from './modules/reviews/reviews.module';
 import { WatchlistModule } from './modules/watchlist/watchlist.module';
 import { MarketingModule } from './modules/marketing/marketing.module';
 import { PromosModule } from './modules/promos/promos.module';
+import { CreditsModule } from './modules/credits/credits.module';
 import { StatusModule } from './modules/status/status.module';
 
 @Module({
@@ -108,6 +109,8 @@ import { StatusModule } from './modules/status/status.module';
     MarketingModule,
     // Promo codes module (discount codes, redemption tracking)
     PromosModule,
+    // Credits module (promo credits, cash top-up, cashback)
+    CreditsModule,
     // Status module (public maintenance mode check, health)
     StatusModule,
   ],

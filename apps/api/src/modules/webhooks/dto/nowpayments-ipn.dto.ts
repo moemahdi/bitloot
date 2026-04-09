@@ -577,6 +577,11 @@ export interface WebhookProcessingResult {
    * Whether fulfillment was triggered
    */
   fulfillmentTriggered?: boolean;
+
+  /**
+   * Credit top-up ID (if this webhook was for a top-up payment)
+   */
+  topupId?: string;
 }
 
 /**

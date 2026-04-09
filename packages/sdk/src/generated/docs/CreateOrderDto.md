@@ -13,6 +13,7 @@ Name | Type
 `captchaToken` | string
 `idempotencyKey` | string
 `promoCode` | string
+`useCredits` | boolean
 
 ## Example
 
@@ -28,6 +29,7 @@ const example = {
   "captchaToken": null,
   "idempotencyKey": cart-hash-abc123,
   "promoCode": SAVE10,
+  "useCredits": true,
 } satisfies CreateOrderDto
 
 console.log(example)

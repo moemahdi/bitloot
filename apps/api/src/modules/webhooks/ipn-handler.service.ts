@@ -14,6 +14,8 @@ import { Order } from '../orders/order.entity';
 import { Payment } from '../payments/payment.entity';
 import { MetricsService } from '../metrics/metrics.service';
 import { FeatureFlagsService } from '../admin/feature-flags.service';
+import { CreditsService } from '../credits/credits.service';
+import { CreditsTopupService } from '../credits/credits-topup.service';
 import { QUEUE_NAMES } from '../../jobs/queues';
 import { invalidateOrderCache } from '../orders/orders.service';
 
@@ -48,6 +50,8 @@ export class IpnHandlerService {
     private readonly paymentRepo: Repository<Payment>,
     private readonly metrics: MetricsService,
     private readonly featureFlagsService: FeatureFlagsService,
+    private readonly creditsService: CreditsService,
+    private readonly creditsTopupService: CreditsTopupService,
     @InjectQueue(QUEUE_NAMES.FULFILLMENT)
     private readonly fulfillmentQueue: Queue,
   ) {}
@@ -423,6 +427,64 @@ export class IpnHandlerService {
   private async processPaymentStatus(
     payload: NowpaymentsIpnRequestDto,
   ): Promise<WebhookProcessingResult> {
+    // ========== CREDIT TOP-UP DETECTION ==========
+    // Top-up payments use order_id format: 'topup:{topupId}'
+    // Handle them separately - no order lookup needed
+    const orderId = payload.order_id ?? '';
+    if (orderId.startsWith('topup:')) {
+      const topupId = orderId.substring(6); // Extract UUID after 'topup:'
+      
+      if (payload.payment_status === 'finished') {
+        // Payment complete - confirm the top-up (grants cash credits)
+        try {
+          await this.creditsTopupService.confirmTopup(topupId, String(payload.payment_id));
+          this.logger.log(
+            `[IPN] 💳 Credit top-up confirmed: topupId=${topupId}, paymentId=${payload.payment_id}`,
+          );
+          return {
+            success: true,
+            message: 'Credit top-up confirmed',
+            topupId,
+          };
+        } catch (topupError) {
+          const errMsg = topupError instanceof Error ? topupError.message : String(topupError);
+          this.logger.error(`[IPN] Failed to confirm top-up ${topupId}:`, topupError);
+          return {
+            success: false,
+            message: 'Failed to confirm credit top-up',
+            error: errMsg,
+            topupId,
+          };
+        }
+      } else if (
+        payload.payment_status === 'failed' ||
+        payload.payment_status === 'expired' ||
+        payload.payment_status === 'underpaid' ||
+        payload.payment_status === 'partially_paid'
+      ) {
+        // Top-up payment failed - mark as failed (user can retry with new top-up)
+        this.logger.warn(
+          `[IPN] Credit top-up failed: topupId=${topupId}, status=${payload.payment_status}`,
+        );
+        return {
+          success: true,
+          message: `Credit top-up ${payload.payment_status}`,
+          topupId,
+        };
+      } else {
+        // waiting, confirming, sending - intermediate states, just log
+        this.logger.log(
+          `[IPN] Credit top-up status update: topupId=${topupId}, status=${payload.payment_status}`,
+        );
+        return {
+          success: true,
+          message: `Credit top-up status: ${payload.payment_status}`,
+          topupId,
+        };
+      }
+    }
+
+    // ========== REGULAR ORDER PROCESSING ==========
     // 1. Find order by order_id (the actual order UUID)
     const order = await this.orderRepo.findOne({
       where: { id: payload.order_id },
@@ -451,6 +513,9 @@ export class IpnHandlerService {
       case 'finished': {
         // Payment complete - trigger fulfillment
         order.status = 'paid';
+
+        // Note: Top-up payments are handled at the start of processPaymentStatus()
+        // and return early - they never reach this code path.
 
         // ========== AUTO-FULFILL FEATURE FLAG CHECK ==========
         if (!this.featureFlagsService.isEnabled('auto_fulfill_enabled')) {
@@ -508,12 +573,56 @@ export class IpnHandlerService {
       case 'failed':
         order.status = 'failed';
         this.logger.warn(`[IPN] Payment failed for order ${order.id}`);
+
+        // Refund any credits that were spent on this order
+        await this.refundOrderCredits(order);
         break;
 
       case 'underpaid':
         // Non-refundable - customer loses funds
         order.status = 'underpaid';
         this.logger.warn(`[IPN] Payment underpaid for order ${order.id} (non-refundable)`);
+
+        // ========== UNDERPAYMENT RECOVERY CREDITS ==========
+        // Grant CASH credits for the amount actually paid (user paid real money)
+        // Only if user paid at least 20% of order total (minimum threshold)
+        if (order.userId !== undefined && order.userId !== null) {
+          try {
+            const actuallyPaid = parseFloat(String(payload.actually_paid ?? '0'));
+            if (actuallyPaid > 0) {
+              // Convert crypto amount paid to EUR estimate using outcome amount
+              const outcomeAmount = parseFloat(String(payload.outcome_amount ?? '0'));
+              const recoveryAmount = outcomeAmount > 0 ? outcomeAmount : actuallyPaid;
+
+              // 20% minimum threshold check
+              const orderTotal = parseFloat(order.totalCrypto ?? '0');
+              if (orderTotal > 0 && recoveryAmount < orderTotal * 0.2) {
+                this.logger.warn(
+                  `[IPN] Underpayment below 20% threshold for order ${order.id}: ` +
+                  `paid €${recoveryAmount.toFixed(2)} < 20% of €${orderTotal.toFixed(2)} — no recovery credits`,
+                );
+              } else {
+                await this.creditsService.grantCashCredits(
+                  order.userId,
+                  recoveryAmount,
+                  'underpayment_recovery',
+                  'order',
+                  order.id,
+                  `Underpayment recovery for order ${order.id.substring(0, 8)}`,
+                );
+
+                this.logger.log(
+                  `[IPN] 💳 Underpayment recovery: €${recoveryAmount.toFixed(2)} cash credits granted to user ${order.userId}`,
+                );
+              }
+            }
+          } catch (creditsError) {
+            this.logger.error(`[IPN] Failed to grant underpayment recovery credits:`, creditsError);
+          }
+        }
+
+        // Refund credits if this was a mixed payment (credits + crypto) order
+        await this.refundOrderCredits(order);
         break;
 
       case 'sending':
@@ -526,12 +635,53 @@ export class IpnHandlerService {
         // Customer sent less than required - same as underpaid, non-refundable
         order.status = 'underpaid';
         this.logger.warn(`[IPN] Payment partially_paid for order ${order.id} (non-refundable)`);
+
+        // Same recovery logic as underpaid — CASH credits with 20% threshold
+        if (order.userId !== undefined && order.userId !== null) {
+          try {
+            const partialPaid = parseFloat(String(payload.actually_paid ?? '0'));
+            if (partialPaid > 0) {
+              const partialOutcome = parseFloat(String(payload.outcome_amount ?? '0'));
+              const partialRecovery = partialOutcome > 0 ? partialOutcome : partialPaid;
+
+              // 20% minimum threshold check
+              const partialOrderTotal = parseFloat(order.totalCrypto ?? '0');
+              if (partialOrderTotal > 0 && partialRecovery < partialOrderTotal * 0.2) {
+                this.logger.warn(
+                  `[IPN] Partial payment below 20% threshold for order ${order.id}: ` +
+                  `paid €${partialRecovery.toFixed(2)} < 20% of €${partialOrderTotal.toFixed(2)} — no recovery credits`,
+                );
+              } else {
+                await this.creditsService.grantCashCredits(
+                  order.userId,
+                  partialRecovery,
+                  'underpayment_recovery',
+                  'order',
+                  order.id,
+                  `Partial payment recovery for order ${order.id.substring(0, 8)}`,
+                );
+
+                this.logger.log(
+                  `[IPN] 💳 Partial payment recovery: €${partialRecovery.toFixed(2)} cash credits to user ${order.userId}`,
+                );
+              }
+            }
+          } catch (creditsError) {
+            this.logger.error(`[IPN] Failed to grant partial payment recovery credits:`, creditsError);
+          }
+        }
+
+        // Refund credits if this was a mixed payment (credits + crypto) order
+        await this.refundOrderCredits(order);
         break;
 
       case 'expired':
         // Payment window expired on NOWPayments side
         order.status = 'expired';
         this.logger.warn(`[IPN] Payment expired for order ${order.id}`);
+
+        // Refund any credits that were spent on this order
+        await this.refundOrderCredits(order);
         break;
 
       case 'refunded':
@@ -634,6 +784,45 @@ export class IpnHandlerService {
       newStatus: order.status,
       fulfillmentTriggered,
     };
+  }
+
+  /**
+   * Refund credits that were spent on a failed/expired/underpaid order.
+   * Cash credits → always refund as cash.
+   * Promo credits → forfeit (not refunded) on payment failure/expiry/underpaid.
+   *   Promo credits are only restored on fulfillment failure (handled separately).
+   */
+  private async refundOrderCredits(order: Order): Promise<void> {
+    if (order.userId === undefined || order.userId === null) return;
+
+    const promoUsed = parseFloat(order.creditsPromoUsed ?? '0');
+    const cashUsed = parseFloat(order.creditsCashUsed ?? '0');
+
+    if (promoUsed <= 0 && cashUsed <= 0) return;
+
+    try {
+      // Promo credits are forfeited on payment-level failures (not refunded)
+      if (promoUsed > 0) {
+        this.logger.log(
+          `[IPN] 💳 Promo credits €${promoUsed.toFixed(2)} forfeited for ${order.status} order ${order.id} (not refunded per policy)`,
+        );
+      }
+      // Cash credits are always refunded
+      if (cashUsed > 0) {
+        await this.creditsService.refundCredits(
+          order.userId,
+          cashUsed,
+          'cash',
+          order.id,
+          `Refund: order ${order.id.substring(0, 8)} ${order.status}`,
+        );
+      }
+      this.logger.log(
+        `[IPN] 💳 Credits processed for ${order.status} order ${order.id}: promo €${promoUsed.toFixed(2)} forfeited, cash €${cashUsed.toFixed(2)} refunded`,
+      );
+    } catch (refundError) {
+      this.logger.error(`[IPN] Failed to refund credits for order ${order.id}:`, refundError);
+    }
   }
 
   /**

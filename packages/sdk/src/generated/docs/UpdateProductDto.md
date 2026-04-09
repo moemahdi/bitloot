@@ -24,6 +24,7 @@ Name | Type
 `currency` | string
 `featuredSections` | Array&lt;string&gt;
 `featuredOrder` | number
+`creditOnly` | boolean
 
 ## Example
 
@@ -50,6 +51,7 @@ const example = {
   "currency": null,
   "featuredSections": ["trending","featured_games"],
   "featuredOrder": 0,
+  "creditOnly": false,
 } satisfies UpdateProductDto
 
 console.log(example)

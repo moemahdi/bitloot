@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { PaymentsService } from './payments.service';
 import { PaymentsController } from './payments.controller';
@@ -35,9 +35,9 @@ import { PaymentProcessorService } from '../../jobs/payment-processor.service';
     TypeOrmModule.forFeature([Payment, WebhookLog]),
     FulfillmentQueue,
     MetricsModule,
-    EmailsModule,
-    OrdersModule,
-    AdminOpsModule,
+    forwardRef(() => EmailsModule),
+    forwardRef(() => OrdersModule),
+    forwardRef(() => AdminOpsModule),
   ],
   controllers: [PaymentsController],
   providers: [

@@ -21,6 +21,7 @@ Name | Type
 `price` | string
 `currency` | string
 `isPublished` | boolean
+`creditOnly` | boolean
 `qty` | number
 `totalQty` | number
 `inStock` | boolean
@@ -65,6 +66,7 @@ const example = {
   "price": 59.99000000,
   "currency": EUR,
   "isPublished": true,
+  "creditOnly": false,
   "qty": 150,
   "totalQty": 500,
   "inStock": true,

@@ -4,6 +4,7 @@ apis/AdminCatalogPricingApi.ts
 apis/AdminCatalogProductsApi.ts
 apis/AdminCatalogRepricingApi.ts
 apis/AdminCatalogSyncApi.ts
+apis/AdminCreditsApi.ts
 apis/AdminFeatureFlagsApi.ts
 apis/AdminInventoryApi.ts
 apis/AdminInventoryGlobalApi.ts
@@ -20,6 +21,7 @@ apis/AuditLogsApi.ts
 apis/AuthenticationApi.ts
 apis/CatalogApi.ts
 apis/CatalogGroupsApi.ts
+apis/CreditsApi.ts
 apis/EmailsApi.ts
 apis/FulfillmentApi.ts
 apis/HealthApi.ts
@@ -41,6 +43,7 @@ docs/AddBundleProductDto.md
 docs/AddFlashDealProductDto.md
 docs/AddInventoryItemDto.md
 docs/AddToWatchlistDto.md
+docs/AdminAdjustCreditsDto.md
 docs/AdminApi.md
 docs/AdminCatalogKinguinApi.md
 docs/AdminCatalogPricingApi.md
@@ -72,7 +75,10 @@ docs/AdminControllerRetryFulfillment200Response.md
 docs/AdminControllerRetryFulfillmentRequest.md
 docs/AdminControllerUpdateOrderStatus200Response.md
 docs/AdminCreateReviewDto.md
+docs/AdminCreditsApi.md
+docs/AdminCreditsStatsDto.md
 docs/AdminFeatureFlagsApi.md
+docs/AdminGrantCreditsDto.md
 docs/AdminInventoryApi.md
 docs/AdminInventoryControllerBulkDelete200Response.md
 docs/AdminInventoryGlobalApi.md
@@ -105,6 +111,8 @@ docs/AdminOpsControllerGetSystemHealth200ResponseQueues.md
 docs/AdminOpsControllerInvalidateAllCache200Response.md
 docs/AdminOpsControllerInvalidateFeaturedCache200Response.md
 docs/AdminOpsControllerTriggerUserDeletionCleanup200Response.md
+docs/AdminPendingTopupDto.md
+docs/AdminPendingTopupsResultDto.md
 docs/AdminPricingRuleResponseDto.md
 docs/AdminPricingRulesListResponseDto.md
 docs/AdminProductGroupsApi.md
@@ -121,6 +129,10 @@ docs/AdminStockSyncControllerReleaseReservations200Response.md
 docs/AdminStockSyncControllerSyncStockCounts200Response.md
 docs/AdminUpdateReviewDto.md
 docs/AdminUserActivityDto.md
+docs/AdminUserBalanceDto.md
+docs/AdminUserBalancesResultDto.md
+docs/AdminUserCreditsBalanceDto.md
+docs/AdminUserCreditsDetailDto.md
 docs/AdminUserDetailDto.md
 docs/AdminUserListItemDto.md
 docs/AdminUserOrderDto.md
@@ -128,6 +140,7 @@ docs/AdminUserPromoDto.md
 docs/AdminUserReviewDto.md
 docs/AdminUserSessionDto.md
 docs/AdminUserStatsDto.md
+docs/AdminUserTransactionDto.md
 docs/AdminUserWatchlistItemDto.md
 docs/AdminUsersApi.md
 docs/AdminUsersControllerDeleteUser200Response.md
@@ -163,6 +176,7 @@ docs/CategoriesResponseDto.md
 docs/CategoryDto.md
 docs/ChangeUserRoleDto.md
 docs/CheckWatchlistResponseDto.md
+docs/ConfirmTopupResponseDto.md
 docs/CreateAuditLogDto.md
 docs/CreateBundleDealDto.md
 docs/CreateFeatureFlagDto.md
@@ -175,6 +189,12 @@ docs/CreateProductDto.md
 docs/CreateProductGroupDto.md
 docs/CreatePromoCodeDto.md
 docs/CreateReviewDto.md
+docs/CreateTopupDto.md
+docs/CreateTopupPaymentDto.md
+docs/CreditBalanceDto.md
+docs/CreditTransactionDto.md
+docs/CreditTransactionListDto.md
+docs/CreditsApi.md
 docs/DailyVolumeDto.md
 docs/DashboardStatsDto.md
 docs/DashboardStatsDtoRevenueHistoryInner.md
@@ -186,6 +206,7 @@ docs/EffectivePriceResponseDto.md
 docs/EmailChangeResponseDto.md
 docs/EmailsApi.md
 docs/EmbeddedPaymentResponseDto.md
+docs/ExpiringCreditsDto.md
 docs/FaqItemDto.md
 docs/FeatureFlagResponseDto.md
 docs/FeatureItemDto.md
@@ -308,6 +329,7 @@ docs/StatusApi.md
 docs/StatusControllerCheckMaintenance200Response.md
 docs/StatusControllerGetStatus200Response.md
 docs/StatusCountDto.md
+docs/SuccessResponseDto.md
 docs/SuspendUserDto.md
 docs/SyncConfigStatusDto.md
 docs/SyncHistoryResponseDto.md
@@ -318,6 +340,8 @@ docs/SyncJobStatusResponseDtoResult.md
 docs/SystemRequirementDto.md
 docs/ToggleFeatureFlagResponseDto.md
 docs/TopProductDto.md
+docs/TopupResponseDto.md
+docs/TopupStatusResponseDto.md
 docs/UnsubscribeEmailDto.md
 docs/UnsubscribeResponseDto.md
 docs/UpdateAdminUserDto.md
@@ -362,6 +386,7 @@ models/AddBundleProductDto.ts
 models/AddFlashDealProductDto.ts
 models/AddInventoryItemDto.ts
 models/AddToWatchlistDto.ts
+models/AdminAdjustCreditsDto.ts
 models/AdminControllerAdminRevealKey200Response.ts
 models/AdminControllerBulkReplayWebhooksRequest.ts
 models/AdminControllerClearWebhookLogs200Response.ts
@@ -387,6 +412,8 @@ models/AdminControllerRetryFulfillment200Response.ts
 models/AdminControllerRetryFulfillmentRequest.ts
 models/AdminControllerUpdateOrderStatus200Response.ts
 models/AdminCreateReviewDto.ts
+models/AdminCreditsStatsDto.ts
+models/AdminGrantCreditsDto.ts
 models/AdminInventoryControllerBulkDelete200Response.ts
 models/AdminInventoryGlobalControllerExpireItems200Response.ts
 models/AdminInventoryGlobalControllerGetLowStock200ResponseInner.ts
@@ -413,6 +440,8 @@ models/AdminOpsControllerGetSystemHealth200ResponseQueues.ts
 models/AdminOpsControllerInvalidateAllCache200Response.ts
 models/AdminOpsControllerInvalidateFeaturedCache200Response.ts
 models/AdminOpsControllerTriggerUserDeletionCleanup200Response.ts
+models/AdminPendingTopupDto.ts
+models/AdminPendingTopupsResultDto.ts
 models/AdminPricingRuleResponseDto.ts
 models/AdminPricingRulesListResponseDto.ts
 models/AdminProductResponseDto.ts
@@ -425,6 +454,10 @@ models/AdminStockSyncControllerReleaseReservations200Response.ts
 models/AdminStockSyncControllerSyncStockCounts200Response.ts
 models/AdminUpdateReviewDto.ts
 models/AdminUserActivityDto.ts
+models/AdminUserBalanceDto.ts
+models/AdminUserBalancesResultDto.ts
+models/AdminUserCreditsBalanceDto.ts
+models/AdminUserCreditsDetailDto.ts
 models/AdminUserDetailDto.ts
 models/AdminUserListItemDto.ts
 models/AdminUserOrderDto.ts
@@ -432,6 +465,7 @@ models/AdminUserPromoDto.ts
 models/AdminUserReviewDto.ts
 models/AdminUserSessionDto.ts
 models/AdminUserStatsDto.ts
+models/AdminUserTransactionDto.ts
 models/AdminUserWatchlistItemDto.ts
 models/AdminUsersControllerDeleteUser200Response.ts
 models/AdminUsersControllerForceLogout200Response.ts
@@ -462,6 +496,7 @@ models/CategoriesResponseDto.ts
 models/CategoryDto.ts
 models/ChangeUserRoleDto.ts
 models/CheckWatchlistResponseDto.ts
+models/ConfirmTopupResponseDto.ts
 models/CreateAuditLogDto.ts
 models/CreateBundleDealDto.ts
 models/CreateFeatureFlagDto.ts
@@ -474,6 +509,11 @@ models/CreateProductDto.ts
 models/CreateProductGroupDto.ts
 models/CreatePromoCodeDto.ts
 models/CreateReviewDto.ts
+models/CreateTopupDto.ts
+models/CreateTopupPaymentDto.ts
+models/CreditBalanceDto.ts
+models/CreditTransactionDto.ts
+models/CreditTransactionListDto.ts
 models/DailyVolumeDto.ts
 models/DashboardStatsDto.ts
 models/DashboardStatsDtoRevenueHistoryInner.ts
@@ -484,6 +524,7 @@ models/DeliveryLinkDto.ts
 models/EffectivePriceResponseDto.ts
 models/EmailChangeResponseDto.ts
 models/EmbeddedPaymentResponseDto.ts
+models/ExpiringCreditsDto.ts
 models/FaqItemDto.ts
 models/FeatureFlagResponseDto.ts
 models/FeatureItemDto.ts
@@ -594,6 +635,7 @@ models/SpendingStatsDto.ts
 models/StatusControllerCheckMaintenance200Response.ts
 models/StatusControllerGetStatus200Response.ts
 models/StatusCountDto.ts
+models/SuccessResponseDto.ts
 models/SuspendUserDto.ts
 models/SyncConfigStatusDto.ts
 models/SyncHistoryResponseDto.ts
@@ -604,6 +646,8 @@ models/SyncJobStatusResponseDtoResult.ts
 models/SystemRequirementDto.ts
 models/ToggleFeatureFlagResponseDto.ts
 models/TopProductDto.ts
+models/TopupResponseDto.ts
+models/TopupStatusResponseDto.ts
 models/UnsubscribeEmailDto.ts
 models/UnsubscribeResponseDto.ts
 models/UpdateAdminUserDto.ts

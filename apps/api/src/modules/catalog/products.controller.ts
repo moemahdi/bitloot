@@ -56,6 +56,7 @@ function toProductResponseDto(product: Product): ProductResponseDto {
     price: product.price,
     currency: product.currency,
     isPublished: product.isPublished,
+    creditOnly: product.creditOnly ?? false,
     
     // Stock/availability fields
     qty,

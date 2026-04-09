@@ -11,6 +11,7 @@ import { AuthModule } from '../auth/auth.module';
 import { EmailsModule } from '../emails/emails.module';
 import { AuditModule } from '../audit/audit.module';
 import { CatalogModule } from '../catalog/catalog.module';
+import { CreditsModule } from '../credits/credits.module';
 
 /**
  * Admin Ops Module - Feature Flags, System Configuration, Ops Panels
@@ -33,6 +34,7 @@ import { CatalogModule } from '../catalog/catalog.module';
     forwardRef(() => AuthModule),
     forwardRef(() => EmailsModule),
     forwardRef(() => CatalogModule),
+    forwardRef(() => CreditsModule),
     AuditModule,
   ],
   providers: [

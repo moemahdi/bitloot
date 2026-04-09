@@ -219,7 +219,7 @@ export function CartDropdown(): React.ReactElement {
                   className="flex-1 h-8 text-xs bg-cyan-glow text-bg-primary hover:bg-cyan-300 font-semibold"
                   onClick={() => setIsOpen(false)}
                 >
-                  <Link href="/checkout" className="flex items-center justify-center gap-1">
+                  <Link href="/cart" className="flex items-center justify-center gap-1">
                     Checkout
                     <ArrowRight className="h-3.5 w-3.5" />
                   </Link>

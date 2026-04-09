@@ -1055,6 +1055,515 @@ export function genericEmail(params: GenericEmailParams): EmailTemplate {
 }
 
 // ============================================================
+// 12. CREDITS ADDED EMAIL
+// ============================================================
+
+export interface CreditsAddedParams {
+  amount: string;
+  creditType: 'cash' | 'promo';
+  newBalance: string;
+  reason: string;
+  email: string;
+  expiresAt?: string;
+}
+
+export function creditsAddedEmail(params: CreditsAddedParams): EmailTemplate {
+  const { amount, creditType, newBalance, reason, expiresAt } = params;
+  const frontendUrl = process.env.FRONTEND_URL ?? 'https://bitloot.io';
+
+  const typeLabel = creditType === 'cash' ? 'Cash Credits' : 'Promo Credits';
+  const icon = creditType === 'cash' ? '💰' : '🎁';
+
+  const expiryRow = expiresAt !== undefined && expiresAt.length > 0
+    ? `<tr>
+        <td style="padding: 8px 0; color: ${EmailColors.textSecondary}; font-size: 14px;">Expires</td>
+        <td style="padding: 8px 0; color: ${EmailColors.warning}; text-align: right; font-weight: 600; font-size: 14px;">
+          ${new Date(expiresAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+        </td>
+      </tr>`
+    : '';
+
+  const content = `
+    <h2 style="${EmailStyles.heading2}">${icon} Credits Added to Your Account</h2>
+
+    <p style="${EmailStyles.paragraph}">
+      Great news! <strong>${formatEuroPrice(amount)}</strong> in ${typeLabel.toLowerCase()} has been added to your BitLoot wallet.
+    </p>
+
+    <div style="background: ${EmailColors.bgTertiary}; border: 1px solid ${EmailColors.borderAccent}; border-radius: 12px; padding: 20px; margin: 24px 0;">
+      <table style="width: 100%; border-collapse: collapse;">
+        <tr>
+          <td style="padding: 8px 0; color: ${EmailColors.textSecondary}; font-size: 14px;">Amount</td>
+          <td style="padding: 8px 0; color: ${EmailColors.primary}; text-align: right; font-weight: 700; font-size: 18px;">
+            +${formatEuroPrice(amount)}
+          </td>
+        </tr>
+        <tr>
+          <td style="padding: 8px 0; color: ${EmailColors.textSecondary}; font-size: 14px;">Type</td>
+          <td style="padding: 8px 0; color: ${EmailColors.textPrimary}; text-align: right; font-size: 14px;">
+            ${typeLabel}
+          </td>
+        </tr>
+        <tr>
+          <td style="padding: 8px 0; color: ${EmailColors.textSecondary}; font-size: 14px;">Reason</td>
+          <td style="padding: 8px 0; color: ${EmailColors.textPrimary}; text-align: right; font-size: 14px;">
+            ${reason}
+          </td>
+        </tr>
+        ${expiryRow}
+        <tr>
+          <td style="padding: 10px 0 0; border-top: 1px solid ${EmailColors.borderSubtle}; color: ${EmailColors.textSecondary}; font-size: 14px;">New Balance</td>
+          <td style="padding: 10px 0 0; border-top: 1px solid ${EmailColors.borderSubtle}; color: ${EmailColors.textPrimary}; text-align: right; font-weight: 700; font-size: 16px;">
+            ${formatEuroPrice(newBalance)}
+          </td>
+        </tr>
+      </table>
+    </div>
+
+    <div style="text-align: center; margin: 24px 0;">
+      <a href="${frontendUrl}/profile?tab=credits" style="${EmailStyles.buttonPrimary}">
+        View Your Credits →
+      </a>
+    </div>
+
+    <p style="${EmailStyles.paragraph}">
+      Use your credits at checkout — they'll be applied automatically before crypto payment.
+    </p>
+  `;
+
+  return {
+    subject: `${icon} ${formatEuroPrice(amount)} ${typeLabel} Added — BitLoot`,
+    html: wrapEmailTemplate(content, { showFooter: true }),
+  };
+}
+
+// ============================================================
+// 13. UNDERPAYMENT RECOVERY EMAIL
+// ============================================================
+
+export interface UnderpaymentRecoveryParams {
+  orderId: string;
+  amountPaid: string;
+  amountRequired: string;
+  creditsGranted: string;
+  newBalance: string;
+  email: string;
+}
+
+export function underpaymentRecoveryEmail(params: UnderpaymentRecoveryParams): EmailTemplate {
+  const { orderId, amountPaid, amountRequired, creditsGranted, newBalance } = params;
+  const shortOrderId = orderId.substring(0, 8).toUpperCase();
+  const frontendUrl = process.env.FRONTEND_URL ?? 'https://bitloot.io';
+
+  const content = `
+    <h2 style="${EmailStyles.heading2}">💳 Underpayment Recovery — Credits Granted</h2>
+
+    <p style="${EmailStyles.paragraph}">
+      Your payment for order <strong>#${shortOrderId}</strong> was less than the required amount.
+      While we couldn't fulfill your order, we've converted your payment into <strong>store credits</strong>
+      so you don't lose your funds.
+    </p>
+
+    <div style="background: ${EmailColors.bgTertiary}; border: 1px solid ${EmailColors.borderAccent}; border-radius: 12px; padding: 20px; margin: 24px 0;">
+      <table style="width: 100%; border-collapse: collapse;">
+        <tr>
+          <td style="padding: 8px 0; color: ${EmailColors.textSecondary}; font-size: 14px;">Order</td>
+          <td style="padding: 8px 0; color: ${EmailColors.textPrimary}; text-align: right; font-weight: 600; font-size: 14px; font-family: 'SF Mono', monospace;">
+            #${shortOrderId}
+          </td>
+        </tr>
+        <tr>
+          <td style="padding: 8px 0; color: ${EmailColors.textSecondary}; font-size: 14px;">Required Amount</td>
+          <td style="padding: 8px 0; color: ${EmailColors.textPrimary}; text-align: right; font-size: 14px;">
+            ${formatEuroPrice(amountRequired)}
+          </td>
+        </tr>
+        <tr>
+          <td style="padding: 8px 0; color: ${EmailColors.textSecondary}; font-size: 14px;">Amount Paid</td>
+          <td style="padding: 8px 0; color: ${EmailColors.warning}; text-align: right; font-size: 14px;">
+            ${formatEuroPrice(amountPaid)}
+          </td>
+        </tr>
+        <tr>
+          <td style="padding: 10px 0 0; border-top: 1px solid ${EmailColors.borderSubtle}; color: ${EmailColors.textSecondary}; font-size: 14px;">Credits Granted</td>
+          <td style="padding: 10px 0 0; border-top: 1px solid ${EmailColors.borderSubtle}; color: ${EmailColors.primary}; text-align: right; font-weight: 700; font-size: 18px;">
+            +${formatEuroPrice(creditsGranted)}
+          </td>
+        </tr>
+        <tr>
+          <td style="padding: 8px 0; color: ${EmailColors.textSecondary}; font-size: 14px;">New Balance</td>
+          <td style="padding: 8px 0; color: ${EmailColors.textPrimary}; text-align: right; font-weight: 600; font-size: 14px;">
+            ${formatEuroPrice(newBalance)}
+          </td>
+        </tr>
+      </table>
+    </div>
+
+    <div style="${EmailStyles.warningBox}">
+      <p style="margin: 0; color: ${EmailColors.warning};">
+        ⏰ <strong>These promo credits expire in 90 days.</strong> Use them at checkout on any product.
+      </p>
+    </div>
+
+    <div style="text-align: center; margin: 24px 0;">
+      <a href="${frontendUrl}/profile?tab=credits" style="${EmailStyles.buttonPrimary}">
+        View Credits & Shop →
+      </a>
+    </div>
+
+    <p style="${EmailStyles.paragraph}">
+      Need help? Contact our support team and we'll assist you.
+    </p>
+  `;
+
+  return {
+    subject: `💳 ${formatEuroPrice(creditsGranted)} Credits Granted — Underpayment Recovery`,
+    html: wrapEmailTemplate(content, { showFooter: true }),
+  };
+}
+
+// ============================================================
+// 14. CREDITS EXPIRY WARNING EMAIL
+// ============================================================
+
+export interface CreditExpiryWarningParams {
+  email: string;
+  expiringAmount: string;
+  expiresAt: string;
+  currentBalance: string;
+}
+
+export function creditExpiryWarningEmail(params: CreditExpiryWarningParams): EmailTemplate {
+  const { expiringAmount, expiresAt, currentBalance } = params;
+  const frontendUrl = process.env.FRONTEND_URL ?? 'https://bitloot.io';
+
+  const expiryDate = new Date(expiresAt).toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
+
+  const content = `
+    <h2 style="${EmailStyles.heading2}">⏰ Your Credits Are Expiring Soon</h2>
+
+    <p style="${EmailStyles.paragraph}">
+      You have <strong>${formatEuroPrice(expiringAmount)}</strong> in promo credits expiring on <strong>${expiryDate}</strong>.
+    </p>
+
+    <div style="background: ${EmailColors.bgTertiary}; border: 1px solid ${EmailColors.warning}; border-radius: 12px; padding: 20px; margin: 24px 0;">
+      <table style="width: 100%; border-collapse: collapse;">
+        <tr>
+          <td style="padding: 8px 0; color: ${EmailColors.textSecondary}; font-size: 14px;">Expiring Amount</td>
+          <td style="padding: 8px 0; color: ${EmailColors.warning}; text-align: right; font-weight: 700; font-size: 18px;">
+            ${formatEuroPrice(expiringAmount)}
+          </td>
+        </tr>
+        <tr>
+          <td style="padding: 8px 0; color: ${EmailColors.textSecondary}; font-size: 14px;">Expires On</td>
+          <td style="padding: 8px 0; color: ${EmailColors.warning}; text-align: right; font-size: 14px;">
+            ${expiryDate}
+          </td>
+        </tr>
+        <tr>
+          <td style="padding: 10px 0 0; border-top: 1px solid ${EmailColors.borderSubtle}; color: ${EmailColors.textSecondary}; font-size: 14px;">Total Balance</td>
+          <td style="padding: 10px 0 0; border-top: 1px solid ${EmailColors.borderSubtle}; color: ${EmailColors.textPrimary}; text-align: right; font-weight: 700; font-size: 16px;">
+            ${formatEuroPrice(currentBalance)}
+          </td>
+        </tr>
+      </table>
+    </div>
+
+    <div style="text-align: center; margin: 24px 0;">
+      <a href="${frontendUrl}/catalog" style="${EmailStyles.buttonPrimary}">
+        Shop Now & Use Your Credits →
+      </a>
+    </div>
+
+    <p style="${EmailStyles.paragraph}">
+      Don't lose your credits! Use them at checkout before they expire.
+    </p>
+  `;
+
+  return {
+    subject: `⏰ ${formatEuroPrice(expiringAmount)} Credits Expiring Soon`,
+    html: wrapEmailTemplate(content, { showFooter: true }),
+  };
+}
+
+// ============================================================
+// 15. CREDITS EXPIRED EMAIL
+// ============================================================
+
+export interface CreditsExpiredParams {
+  email: string;
+  expiredAmount: string;
+  remainingBalance: string;
+}
+
+export function creditsExpiredEmail(params: CreditsExpiredParams): EmailTemplate {
+  const { expiredAmount, remainingBalance } = params;
+  const frontendUrl = process.env.FRONTEND_URL ?? 'https://bitloot.io';
+
+  const content = `
+    <h2 style="${EmailStyles.heading2}">💸 Credits Have Expired</h2>
+
+    <p style="${EmailStyles.paragraph}">
+      <strong>${formatEuroPrice(expiredAmount)}</strong> in promo credits have expired and been removed from your account.
+    </p>
+
+    <div style="background: ${EmailColors.bgTertiary}; border: 1px solid ${EmailColors.borderSubtle}; border-radius: 12px; padding: 20px; margin: 24px 0;">
+      <table style="width: 100%; border-collapse: collapse;">
+        <tr>
+          <td style="padding: 8px 0; color: ${EmailColors.textSecondary}; font-size: 14px;">Expired</td>
+          <td style="padding: 8px 0; color: ${EmailColors.error}; text-align: right; font-weight: 700; font-size: 18px;">
+            -${formatEuroPrice(expiredAmount)}
+          </td>
+        </tr>
+        <tr>
+          <td style="padding: 10px 0 0; border-top: 1px solid ${EmailColors.borderSubtle}; color: ${EmailColors.textSecondary}; font-size: 14px;">Remaining Balance</td>
+          <td style="padding: 10px 0 0; border-top: 1px solid ${EmailColors.borderSubtle}; color: ${EmailColors.textPrimary}; text-align: right; font-weight: 700; font-size: 16px;">
+            ${formatEuroPrice(remainingBalance)}
+          </td>
+        </tr>
+      </table>
+    </div>
+
+    <div style="text-align: center; margin: 24px 0;">
+      <a href="${frontendUrl}/profile?tab=credits" style="${EmailStyles.buttonPrimary}">
+        View Credit History →
+      </a>
+    </div>
+
+    <p style="${EmailStyles.paragraph}">
+      Keep an eye on your promo credits — they expire 90 days after being granted.
+    </p>
+  `;
+
+  return {
+    subject: `💸 ${formatEuroPrice(expiredAmount)} Credits Have Expired`,
+    html: wrapEmailTemplate(content, { showFooter: true }),
+  };
+}
+
+// ============================================================
+// 16. CREDITS SPENT EMAIL
+// ============================================================
+
+export interface CreditsSpentParams {
+  email: string;
+  creditsUsed: string;
+  orderTotal: string;
+  cryptoPaid: string;
+  remainingBalance: string;
+  orderId: string;
+}
+
+export function creditsSpentEmail(params: CreditsSpentParams): EmailTemplate {
+  const { creditsUsed, orderTotal, cryptoPaid, remainingBalance, orderId } = params;
+  const frontendUrl = process.env.FRONTEND_URL ?? 'https://bitloot.io';
+
+  const content = `
+    <h2 style="${EmailStyles.heading2}">💳 Credits Applied to Your Order</h2>
+
+    <p style="${EmailStyles.paragraph}">
+      <strong>${formatEuroPrice(creditsUsed)}</strong> from your BitLoot wallet was applied to your recent purchase.
+    </p>
+
+    <div style="background: ${EmailColors.bgTertiary}; border: 1px solid ${EmailColors.borderAccent}; border-radius: 12px; padding: 20px; margin: 24px 0;">
+      <table style="width: 100%; border-collapse: collapse;">
+        <tr>
+          <td style="padding: 8px 0; color: ${EmailColors.textSecondary}; font-size: 14px;">Order Total</td>
+          <td style="padding: 8px 0; color: ${EmailColors.textPrimary}; text-align: right; font-size: 14px;">
+            ${formatEuroPrice(orderTotal)}
+          </td>
+        </tr>
+        <tr>
+          <td style="padding: 8px 0; color: ${EmailColors.textSecondary}; font-size: 14px;">Credits Used</td>
+          <td style="padding: 8px 0; color: ${EmailColors.success}; text-align: right; font-weight: 700; font-size: 18px;">
+            -${formatEuroPrice(creditsUsed)}
+          </td>
+        </tr>
+        <tr>
+          <td style="padding: 8px 0; color: ${EmailColors.textSecondary}; font-size: 14px;">Crypto Paid</td>
+          <td style="padding: 8px 0; color: ${EmailColors.textPrimary}; text-align: right; font-size: 14px;">
+            ${formatEuroPrice(cryptoPaid)}
+          </td>
+        </tr>
+        <tr>
+          <td style="padding: 10px 0 0; border-top: 1px solid ${EmailColors.borderSubtle}; color: ${EmailColors.textSecondary}; font-size: 14px;">Remaining Balance</td>
+          <td style="padding: 10px 0 0; border-top: 1px solid ${EmailColors.borderSubtle}; color: ${EmailColors.textPrimary}; text-align: right; font-weight: 700; font-size: 16px;">
+            ${formatEuroPrice(remainingBalance)}
+          </td>
+        </tr>
+      </table>
+    </div>
+
+    <div style="text-align: center; margin: 24px 0;">
+      <a href="${frontendUrl}/orders/${orderId}" style="${EmailStyles.buttonPrimary}">
+        View Your Order →
+      </a>
+    </div>
+  `;
+
+  return {
+    subject: `💳 ${formatEuroPrice(creditsUsed)} Credits Used on Order`,
+    html: wrapEmailTemplate(content, { showFooter: true }),
+  };
+}
+
+// ============================================================
+// 17. CREDIT REFUND EMAIL
+// ============================================================
+
+export interface CreditRefundParams {
+  email: string;
+  refundAmount: string;
+  orderId: string;
+  reason: string;
+  newBalance: string;
+  expiresAt?: string;
+}
+
+export function creditRefundEmail(params: CreditRefundParams): EmailTemplate {
+  const { refundAmount, orderId, reason, newBalance, expiresAt } = params;
+  const frontendUrl = process.env.FRONTEND_URL ?? 'https://bitloot.io';
+
+  const expiryRow = expiresAt !== undefined && expiresAt.length > 0
+    ? `<tr>
+        <td style="padding: 8px 0; color: ${EmailColors.textSecondary}; font-size: 14px;">Expires</td>
+        <td style="padding: 8px 0; color: ${EmailColors.warning}; text-align: right; font-size: 14px;">
+          ${new Date(expiresAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+        </td>
+      </tr>`
+    : '';
+
+  const content = `
+    <h2 style="${EmailStyles.heading2}">💰 Refund Issued as Credits</h2>
+
+    <p style="${EmailStyles.paragraph}">
+      A refund of <strong>${formatEuroPrice(refundAmount)}</strong> has been issued to your BitLoot wallet for order <code style="background: ${EmailColors.bgTertiary}; padding: 2px 6px; border-radius: 4px; font-size: 12px;">${orderId.slice(0, 8)}...</code>.
+    </p>
+
+    <div style="background: ${EmailColors.bgTertiary}; border: 1px solid ${EmailColors.borderAccent}; border-radius: 12px; padding: 20px; margin: 24px 0;">
+      <table style="width: 100%; border-collapse: collapse;">
+        <tr>
+          <td style="padding: 8px 0; color: ${EmailColors.textSecondary}; font-size: 14px;">Refund Amount</td>
+          <td style="padding: 8px 0; color: ${EmailColors.success}; text-align: right; font-weight: 700; font-size: 18px;">
+            +${formatEuroPrice(refundAmount)}
+          </td>
+        </tr>
+        <tr>
+          <td style="padding: 8px 0; color: ${EmailColors.textSecondary}; font-size: 14px;">Reason</td>
+          <td style="padding: 8px 0; color: ${EmailColors.textPrimary}; text-align: right; font-size: 14px;">
+            ${reason}
+          </td>
+        </tr>
+        ${expiryRow}
+        <tr>
+          <td style="padding: 10px 0 0; border-top: 1px solid ${EmailColors.borderSubtle}; color: ${EmailColors.textSecondary}; font-size: 14px;">New Balance</td>
+          <td style="padding: 10px 0 0; border-top: 1px solid ${EmailColors.borderSubtle}; color: ${EmailColors.textPrimary}; text-align: right; font-weight: 700; font-size: 16px;">
+            ${formatEuroPrice(newBalance)}
+          </td>
+        </tr>
+      </table>
+    </div>
+
+    <div style="text-align: center; margin: 24px 0;">
+      <a href="${frontendUrl}/profile?tab=credits" style="${EmailStyles.buttonPrimary}">
+        View Your Credits →
+      </a>
+    </div>
+
+    <p style="${EmailStyles.paragraph}">
+      Use your credits at checkout — they'll be applied automatically before crypto payment.
+    </p>
+  `;
+
+  return {
+    subject: `💰 ${formatEuroPrice(refundAmount)} Refund Issued as Credits`,
+    html: wrapEmailTemplate(content, { showFooter: true }),
+  };
+}
+
+// ============================================================
+// 18. BALANCE ADJUSTED EMAIL
+// ============================================================
+
+export interface BalanceAdjustedParams {
+  email: string;
+  adjustmentAmount: string;
+  isDebit: boolean;
+  reason: string;
+  newBalance: string;
+  adminNote?: string;
+}
+
+export function balanceAdjustedEmail(params: BalanceAdjustedParams): EmailTemplate {
+  const { adjustmentAmount, isDebit, reason, newBalance, adminNote } = params;
+  const frontendUrl = process.env.FRONTEND_URL ?? 'https://bitloot.io';
+
+  const sign = isDebit ? '-' : '+';
+  const color = isDebit ? EmailColors.error : EmailColors.success;
+  const icon = isDebit ? '📉' : '📈';
+
+  const adminNoteRow = adminNote !== undefined && adminNote.length > 0
+    ? `<tr>
+        <td style="padding: 8px 0; color: ${EmailColors.textSecondary}; font-size: 14px;">Note</td>
+        <td style="padding: 8px 0; color: ${EmailColors.textPrimary}; text-align: right; font-size: 14px;">
+          ${adminNote}
+        </td>
+      </tr>`
+    : '';
+
+  const content = `
+    <h2 style="${EmailStyles.heading2}">${icon} Your Credit Balance Has Been Adjusted</h2>
+
+    <p style="${EmailStyles.paragraph}">
+      An admin has ${isDebit ? 'removed' : 'added'} <strong>${formatEuroPrice(adjustmentAmount)}</strong> ${isDebit ? 'from' : 'to'} your BitLoot wallet.
+    </p>
+
+    <div style="background: ${EmailColors.bgTertiary}; border: 1px solid ${EmailColors.borderSubtle}; border-radius: 12px; padding: 20px; margin: 24px 0;">
+      <table style="width: 100%; border-collapse: collapse;">
+        <tr>
+          <td style="padding: 8px 0; color: ${EmailColors.textSecondary}; font-size: 14px;">Adjustment</td>
+          <td style="padding: 8px 0; color: ${color}; text-align: right; font-weight: 700; font-size: 18px;">
+            ${sign}${formatEuroPrice(adjustmentAmount)}
+          </td>
+        </tr>
+        <tr>
+          <td style="padding: 8px 0; color: ${EmailColors.textSecondary}; font-size: 14px;">Reason</td>
+          <td style="padding: 8px 0; color: ${EmailColors.textPrimary}; text-align: right; font-size: 14px;">
+            ${reason}
+          </td>
+        </tr>
+        ${adminNoteRow}
+        <tr>
+          <td style="padding: 10px 0 0; border-top: 1px solid ${EmailColors.borderSubtle}; color: ${EmailColors.textSecondary}; font-size: 14px;">New Balance</td>
+          <td style="padding: 10px 0 0; border-top: 1px solid ${EmailColors.borderSubtle}; color: ${EmailColors.textPrimary}; text-align: right; font-weight: 700; font-size: 16px;">
+            ${formatEuroPrice(newBalance)}
+          </td>
+        </tr>
+      </table>
+    </div>
+
+    <div style="text-align: center; margin: 24px 0;">
+      <a href="${frontendUrl}/profile?tab=credits" style="${EmailStyles.buttonPrimary}">
+        View Credit History →
+      </a>
+    </div>
+
+    <p style="${EmailStyles.paragraph}">
+      If you have questions about this adjustment, please contact support.
+    </p>
+  `;
+
+  return {
+    subject: `${icon} Your Credit Balance Has Been ${isDebit ? 'Reduced' : 'Increased'}`,
+    html: wrapEmailTemplate(content, { showFooter: true }),
+  };
+}
+
+// ============================================================
 // EXPORT ALL TEMPLATES
 // ============================================================
 
@@ -1070,6 +1579,13 @@ export const EmailTemplates = {
   deletionScheduled: deletionScheduledEmail,
   deletionCancelled: deletionCancelledEmail,
   generic: genericEmail,
+  creditsAdded: creditsAddedEmail,
+  underpaymentRecovery: underpaymentRecoveryEmail,
+  creditExpiryWarning: creditExpiryWarningEmail,
+  creditsExpired: creditsExpiredEmail,
+  creditsSpent: creditsSpentEmail,
+  creditRefund: creditRefundEmail,
+  balanceAdjusted: balanceAdjustedEmail,
 } as const;
 
 export type EmailTemplateType = keyof typeof EmailTemplates;

@@ -66,13 +66,19 @@ import { AddCostRangeToPricingRules1780100000000 } from './migrations/1780100000
 import { AddUserSuspendFields1780200000000 } from './migrations/1780200000000-AddUserSuspendFields';
 import { CreateProductInventory1780300000000 } from './migrations/1780300000000-CreateProductInventory';
 import { AddSpotlightFields1790000000000 } from './migrations/1790000000000-AddSpotlightFields';
+import { UserCredits } from '../modules/credits/entities/user-credits.entity';
+import { CreditTransaction } from '../modules/credits/entities/credit-transaction.entity';
+import { CreditTopup } from '../modules/credits/entities/credit-topup.entity';
+import { CreateCreditsSchema1800000000000 } from './migrations/1800000000000-CreateCreditsSchema';
+import { AddProductCreditOnly1801000000000 } from './migrations/1801000000000-AddProductCreditOnly';
+import { AddCreditTopupNpPaymentId1801000000001 } from './migrations/1801000000001-AddCreditTopupNpPaymentId';
 
 dotenv.config({ path: path.resolve(__dirname, '../../../../.env') });
 
 export default new DataSource({
   type: 'postgres',
   url: process.env.DATABASE_URL,
-  entities: [Order, OrderItem, Key, Payment, WebhookLog, User, AuditLog, EmailBounce, Review, WatchlistItem, Product, ProductOffer, ProductGroup, DynamicPricingRule, Session, FlashDeal, FlashDealProduct, BundleDeal, BundleProduct, SectionAnalytics, PromoCode, PromoRedemption, FeatureFlag],
+  entities: [Order, OrderItem, Key, Payment, WebhookLog, User, AuditLog, EmailBounce, Review, WatchlistItem, Product, ProductOffer, ProductGroup, DynamicPricingRule, Session, FlashDeal, FlashDealProduct, BundleDeal, BundleProduct, SectionAnalytics, PromoCode, PromoRedemption, FeatureFlag, UserCredits, CreditTransaction, CreditTopup],
   migrations: [
     InitOrders1710000000000,
     AddKeysReservation1720000000000,
@@ -116,6 +122,9 @@ export default new DataSource({
     AddUserSuspendFields1780200000000,
     CreateProductInventory1780300000000,
     AddSpotlightFields1790000000000,
+    CreateCreditsSchema1800000000000,
+    AddProductCreditOnly1801000000000,
+    AddCreditTopupNpPaymentId1801000000001,
   ],
   logging: true,
   synchronize: false,

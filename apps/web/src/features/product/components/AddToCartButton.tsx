@@ -12,6 +12,8 @@ interface AddToCartButtonProps {
   title: string;
   price: number;
   image?: string;
+  platform?: string;
+  category?: string;
   disabled?: boolean;
   className?: string;
 }
@@ -22,6 +24,8 @@ export function AddToCartButton({
   title, 
   price, 
   image,
+  platform,
+  category,
   disabled = false,
   className = '',
 }: AddToCartButtonProps): React.ReactElement {
@@ -44,6 +48,8 @@ export function AddToCartButton({
       price: price,
       quantity: 1,
       image: image,
+      platform: platform,
+      category: category,
     });
     
     setIsAdding(false);

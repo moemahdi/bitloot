@@ -23,6 +23,7 @@ import { CatalogModule } from '../catalog/catalog.module';
 import { AdminOpsModule } from '../admin/admin-ops.module';
 import { MarketingModule } from '../marketing/marketing.module';
 import { PromosModule } from '../promos/promos.module';
+import { CreditsModule } from '../credits/credits.module';
 import { FulfillmentController } from './fulfillment.controller';
 import { FulfillmentGateway as _FulfillmentGateway } from './fulfillment.gateway';
 
@@ -77,6 +78,9 @@ import { FulfillmentGateway as _FulfillmentGateway } from './fulfillment.gateway
 
     // Promos module (provides PromosService for OrdersService)
     PromosModule,
+
+    // Credits module (provides CreditsService for OrdersService)
+    CreditsModule,
 
     // JWT module for WebSocket authentication
     JwtModule.register({

@@ -22,6 +22,13 @@ import {
   type DeletionScheduledParams,
   type DeletionCancelledParams,
   type GenericEmailParams,
+  type CreditsAddedParams,
+  type UnderpaymentRecoveryParams,
+  type CreditExpiryWarningParams,
+  type CreditsExpiredParams,
+  type CreditsSpentParams,
+  type CreditRefundParams,
+  type BalanceAdjustedParams,
 } from './templates';
 
 // ========== EMAIL DEDUPLICATION CACHE ==========
@@ -138,11 +145,13 @@ export class EmailsService {
       emailType: string;
       skipSuppressionCheck?: boolean;
       maxRetries?: number;
+      idempotencyKey?: string;
     },
   ): Promise<void> {
     const { priority = 'high', emailType, skipSuppressionCheck = false, maxRetries = 3 } = options;
     const headers = this.generateEmailHeaders(priority);
-    const idempotencyKey = headers['Idempotency-Key'];
+    // Use provided idempotency key or fall back to generated UUID
+    const idempotencyKey = options.idempotencyKey ?? headers['Idempotency-Key'];
 
     // In mock mode, just log
     if (this.resendApiKey.length === 0) {
@@ -490,6 +499,109 @@ export class EmailsService {
     
     await this.sendViaResend(to, subject, html, {
       emailType: 'generic',
+      priority: 'normal',
+    });
+  }
+
+  /**
+   * Send credits added notification
+   */
+  async sendCreditsAdded(to: string, params: Omit<CreditsAddedParams, 'email'>): Promise<void> {
+    if (!this.featureFlagsService.isEnabled('email_notifications_enabled')) return;
+
+    const { subject, html } = EmailTemplates.creditsAdded({ ...params, email: to });
+
+    await this.sendViaResend(to, subject, html, {
+      emailType: 'credits_added',
+      priority: 'normal',
+    });
+  }
+
+  /**
+   * Send underpayment recovery notification
+   */
+  async sendUnderpaymentRecovery(to: string, params: Omit<UnderpaymentRecoveryParams, 'email'>): Promise<void> {
+    if (!this.featureFlagsService.isEnabled('email_notifications_enabled')) return;
+
+    const { subject, html } = EmailTemplates.underpaymentRecovery({ ...params, email: to });
+
+    await this.sendViaResend(to, subject, html, {
+      emailType: 'underpayment_recovery',
+      priority: 'high',
+    });
+  }
+
+  /**
+   * Send credit expiry warning (7 days before expiry)
+   */
+  async sendCreditExpiryWarning(to: string, params: Omit<CreditExpiryWarningParams, 'email'>, userId?: string): Promise<void> {
+    if (!this.featureFlagsService.isEnabled('email_notifications_enabled')) return;
+
+    const { subject, html } = EmailTemplates.creditExpiryWarning({ ...params, email: to });
+
+    // Use date-based idempotency key to prevent duplicate warning emails per user per day
+    const today = new Date().toISOString().split('T')[0];
+    const idempotencyKey = userId !== undefined ? `credit-expiry-warning-${userId}-${today}` : undefined;
+
+    await this.sendViaResend(to, subject, html, {
+      emailType: 'credit_expiry_warning',
+      priority: 'normal',
+      idempotencyKey,
+    });
+  }
+
+  /**
+   * Send credits expired notification
+   */
+  async sendCreditsExpired(to: string, params: Omit<CreditsExpiredParams, 'email'>): Promise<void> {
+    if (!this.featureFlagsService.isEnabled('email_notifications_enabled')) return;
+
+    const { subject, html } = EmailTemplates.creditsExpired({ ...params, email: to });
+
+    await this.sendViaResend(to, subject, html, {
+      emailType: 'credits_expired',
+      priority: 'normal',
+    });
+  }
+
+  /**
+   * Send credits spent notification (after checkout with credits)
+   */
+  async sendCreditsSpent(to: string, params: Omit<CreditsSpentParams, 'email'>): Promise<void> {
+    if (!this.featureFlagsService.isEnabled('email_notifications_enabled')) return;
+
+    const { subject, html } = EmailTemplates.creditsSpent({ ...params, email: to });
+
+    await this.sendViaResend(to, subject, html, {
+      emailType: 'credits_spent',
+      priority: 'normal',
+    });
+  }
+
+  /**
+   * Send credit refund notification
+   */
+  async sendCreditRefund(to: string, params: Omit<CreditRefundParams, 'email'>): Promise<void> {
+    if (!this.featureFlagsService.isEnabled('email_notifications_enabled')) return;
+
+    const { subject, html } = EmailTemplates.creditRefund({ ...params, email: to });
+
+    await this.sendViaResend(to, subject, html, {
+      emailType: 'credit_refund',
+      priority: 'high',
+    });
+  }
+
+  /**
+   * Send balance adjusted notification (admin action)
+   */
+  async sendBalanceAdjusted(to: string, params: Omit<BalanceAdjustedParams, 'email'>): Promise<void> {
+    if (!this.featureFlagsService.isEnabled('email_notifications_enabled')) return;
+
+    const { subject, html } = EmailTemplates.balanceAdjusted({ ...params, email: to });
+
+    await this.sendViaResend(to, subject, html, {
+      emailType: 'balance_adjusted',
       priority: 'normal',
     });
   }

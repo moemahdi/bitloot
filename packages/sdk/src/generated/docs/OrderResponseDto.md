@@ -22,6 +22,9 @@ Name | Type
 `promoCodeId` | string
 `promoCode` | string
 `discountAmount` | string
+`creditsUsed` | string
+`creditsPromoUsed` | string
+`creditsCashUsed` | string
 
 ## Example
 
@@ -46,6 +49,9 @@ const example = {
   "promoCodeId": null,
   "promoCode": SAVE10,
   "discountAmount": 5.00,
+  "creditsUsed": 10.00,
+  "creditsPromoUsed": 5.00,
+  "creditsCashUsed": 5.00,
 } satisfies OrderResponseDto
 
 console.log(example)

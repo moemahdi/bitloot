@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { IpnHandlerService } from './ipn-handler.service';
 import { IpnHandlerController } from './ipn-handler.controller';
@@ -10,6 +10,7 @@ import { EmailsModule } from '../emails/emails.module';
 import { AdminOpsModule } from '../admin/admin-ops.module';
 import { ResendBounceController } from './resend-bounce.controller';
 import { FulfillmentQueue } from '../../jobs/queues';
+import { CreditsModule } from '../credits/credits.module';
 
 /**
  * Webhooks Module
@@ -49,6 +50,7 @@ import { FulfillmentQueue } from '../../jobs/queues';
     EmailsModule,
     AdminOpsModule, // Provides FeatureFlagsService for auto_fulfill check
     FulfillmentQueue, // Enable IpnHandlerService to queue fulfillment jobs
+    forwardRef(() => CreditsModule), // Credits top-up confirmation + underpayment recovery
   ],
   controllers: [IpnHandlerController, ResendBounceController],
   providers: [IpnHandlerService],

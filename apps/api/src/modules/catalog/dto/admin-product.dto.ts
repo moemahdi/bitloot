@@ -164,6 +164,15 @@ export class CreateProductDto {
   @IsOptional()
   @IsBoolean()
   isPublished?: boolean;
+
+  @ApiProperty({
+    description: 'Whether product can only be purchased with credits (no crypto)',
+    default: false,
+    example: false,
+  })
+  @IsOptional()
+  @IsBoolean()
+  creditOnly?: boolean;
 }
 
 export class UpdateProductDto {
@@ -299,6 +308,15 @@ export class UpdateProductDto {
   @IsInt()
   @Min(0)
   featuredOrder?: number;
+
+  @ApiProperty({
+    description: 'Whether product can only be purchased with credits (no crypto)',
+    required: false,
+    example: false,
+  })
+  @IsOptional()
+  @IsBoolean()
+  creditOnly?: boolean;
 }
 
 export class PublishProductDto {
@@ -635,6 +653,12 @@ export class AdminProductResponseDto {
 
   @ApiProperty()
   isPublished!: boolean;
+
+  @ApiProperty({
+    description: 'Whether product can only be purchased with credits (no crypto)',
+    example: false,
+  })
+  creditOnly!: boolean;
 
   @ApiProperty()
   isCustom!: boolean;

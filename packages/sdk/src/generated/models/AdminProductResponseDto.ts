@@ -336,6 +336,12 @@ export interface AdminProductResponseDto {
      */
     isPublished: boolean;
     /**
+     * Whether product can only be purchased with credits (no crypto)
+     * @type {boolean}
+     * @memberof AdminProductResponseDto
+     */
+    creditOnly: boolean;
+    /**
      * 
      * @type {boolean}
      * @memberof AdminProductResponseDto
@@ -424,6 +430,7 @@ export function instanceOfAdminProductResponseDto(value: object): value is Admin
     if (!('price' in value) || value['price'] === undefined) return false;
     if (!('currency' in value) || value['currency'] === undefined) return false;
     if (!('isPublished' in value) || value['isPublished'] === undefined) return false;
+    if (!('creditOnly' in value) || value['creditOnly'] === undefined) return false;
     if (!('isCustom' in value) || value['isCustom'] === undefined) return false;
     if (!('createdAt' in value) || value['createdAt'] === undefined) return false;
     if (!('updatedAt' in value) || value['updatedAt'] === undefined) return false;
@@ -489,6 +496,7 @@ export function AdminProductResponseDtoFromJSONTyped(json: any, ignoreDiscrimina
         'price': json['price'],
         'currency': json['currency'],
         'isPublished': json['isPublished'],
+        'creditOnly': json['creditOnly'],
         'isCustom': json['isCustom'],
         'featuredSections': json['featuredSections'] == null ? undefined : json['featuredSections'],
         'featuredOrder': json['featuredOrder'] == null ? undefined : json['featuredOrder'],
@@ -558,6 +566,7 @@ export function AdminProductResponseDtoToJSONTyped(value?: AdminProductResponseD
         'price': value['price'],
         'currency': value['currency'],
         'isPublished': value['isPublished'],
+        'creditOnly': value['creditOnly'],
         'isCustom': value['isCustom'],
         'featuredSections': value['featuredSections'],
         'featuredOrder': value['featuredOrder'],

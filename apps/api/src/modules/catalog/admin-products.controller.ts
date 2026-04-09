@@ -141,6 +141,7 @@ export class AdminProductsController {
       
       // Status
       isPublished: product.isPublished,
+      creditOnly: product.creditOnly ?? false,
       isCustom: product.isCustom,
       
       // Business category and featured

@@ -69,6 +69,12 @@ export interface CreateOrderDto {
      * @memberof CreateOrderDto
      */
     promoCode?: string;
+    /**
+     * Whether to apply available credits to this order
+     * @type {boolean}
+     * @memberof CreateOrderDto
+     */
+    useCredits?: boolean;
 }
 
 /**
@@ -96,6 +102,7 @@ export function CreateOrderDtoFromJSONTyped(json: any, ignoreDiscriminator: bool
         'captchaToken': json['captchaToken'] == null ? undefined : json['captchaToken'],
         'idempotencyKey': json['idempotencyKey'] == null ? undefined : json['idempotencyKey'],
         'promoCode': json['promoCode'] == null ? undefined : json['promoCode'],
+        'useCredits': json['useCredits'] == null ? undefined : json['useCredits'],
     };
 }
 
@@ -117,6 +124,7 @@ export function CreateOrderDtoToJSONTyped(value?: CreateOrderDto | null, ignoreD
         'captchaToken': value['captchaToken'],
         'idempotencyKey': value['idempotencyKey'],
         'promoCode': value['promoCode'],
+        'useCredits': value['useCredits'],
     };
 }
 

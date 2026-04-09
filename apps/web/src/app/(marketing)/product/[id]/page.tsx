@@ -1164,12 +1164,15 @@ export default function ProductPage(): React.ReactElement {
                         if (isOutOfStock) return;
                         buyNow({
                           productId: product.id ?? '',
+                          slug: product.slug,
                           title: product.title ?? 'Product',
                           price: displayPrice,
                           quantity: quantity,
                           image: product.imageUrl,
+                          platform: product.platform ?? undefined,
+                          category: product.category ?? undefined,
                         });
-                        router.push('/checkout');
+                        router.push('/cart');
                       }}
                     >
                       {isOutOfStock ? (
@@ -1206,6 +1209,8 @@ export default function ProductPage(): React.ReactElement {
                             price: displayPrice,
                             quantity: quantity,
                             image: product.imageUrl,
+                            platform: product.platform ?? undefined,
+                            category: product.category ?? undefined,
                           });
                           
                           setIsAddingToCart(false);

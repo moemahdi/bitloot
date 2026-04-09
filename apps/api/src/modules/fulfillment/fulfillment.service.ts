@@ -1,4 +1,5 @@
 import { Injectable, Logger, BadRequestException, ForbiddenException, Inject, forwardRef } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { InjectQueue } from '@nestjs/bullmq';
@@ -15,6 +16,7 @@ import { OrdersService, invalidateOrderCache } from '../orders/orders.service';
 import { Product, type ProductSourceType } from '../catalog/entities/product.entity';
 import { AdminOpsService } from '../admin/admin-ops.service';
 import { AdminInventoryService } from '../catalog/services/admin-inventory.service';
+import { CreditsService } from '../credits/credits.service';
 import {
   ProductDeliveryType,
   DeliveryContent,
@@ -59,6 +61,8 @@ export class FulfillmentService {
     private readonly emailsService: EmailsService,
     private readonly ordersService: OrdersService,
     private readonly adminOpsService: AdminOpsService,
+    private readonly creditsService: CreditsService,
+    private readonly configService: ConfigService,
     @Inject(forwardRef(() => AdminInventoryService))
     private readonly inventoryService: AdminInventoryService,
   ) { }
@@ -203,6 +207,9 @@ export class FulfillmentService {
     
     // CRITICAL: Invalidate cache after status change to 'fulfilled'
     invalidateOrderCache(order.id);
+
+    // Grant cashback to registered users
+    await this.grantCashback(order);
 
     // Send completion email
     await this.sendCompletionEmail(order, results);
@@ -543,6 +550,9 @@ export class FulfillmentService {
     
     // CRITICAL: Invalidate cache after status change to 'fulfilled'
     invalidateOrderCache(order.id);
+
+    // Grant cashback to registered users
+    await this.grantCashback(order);
 
     // Send completion email
     await this.sendCompletionEmail(order, results);
@@ -1069,6 +1079,12 @@ export class FulfillmentService {
       await this.ordersService.markFulfilled(orderId);
       this.logger.log(`[RECOVERY] Order ${orderId} marked as fulfilled after recovery`);
 
+      // Grant cashback to registered users (recovery path)
+      const orderForCashback = await this.orderRepo.findOne({ where: { id: orderId } });
+      if (orderForCashback) {
+        await this.grantCashback(orderForCashback);
+      }
+
       // Send delivery email
       try {
         const freshOrder = await this.orderRepo.findOne({
@@ -1363,6 +1379,116 @@ export class FulfillmentService {
     }
 
     return baseContent;
+  }
+
+  /**
+   * Grant cashback promo credits after successful fulfillment
+   * 
+   * Logic:
+   * 1. Only grant to registered users (userId exists)
+   * 2. Use configurable cashback rate (default 3%)
+   * 3. Calculate based on original order total (before credits/discounts)
+   * 4. Respect daily per-user cap of €50
+   * 5. Grant as promo credits with 180-day expiry
+   * 6. Send cashback email notification
+   * 
+   * @param order The fulfilled order
+   */
+  private async grantCashback(order: Order): Promise<void> {
+    // Only grant cashback to registered users
+    if (order.userId === undefined || order.userId === null || order.userId === '') {
+      this.logger.debug(`[CASHBACK] Skipping cashback for guest order ${order.id}`);
+      return;
+    }
+
+    // Get cashback rate from config (default 3%)
+    const cashbackRate = this.configService.get<number>('CASHBACK_PERCENT', 3) / 100;
+    if (cashbackRate <= 0) {
+      this.logger.debug(`[CASHBACK] Cashback disabled (rate is 0)`);
+      return;
+    }
+
+    // Calculate cashback based on original total (before credits/discounts were applied)
+    // This ensures users who use credits still get cashback on the full value
+    const orderTotal = parseFloat(order.originalTotal ?? order.totalCrypto);
+    const cashbackAmount = orderTotal * cashbackRate;
+
+    if (cashbackAmount < 0.01) {
+      this.logger.debug(`[CASHBACK] Amount too small (€${cashbackAmount.toFixed(2)}), skipping`);
+      return;
+    }
+
+    // Check daily per-user limit (€50/day in automated promo credits)
+    const DAILY_LIMIT = 50;
+    try {
+      // Get today's cashback grants for this user
+      const todayStart = new Date();
+      todayStart.setHours(0, 0, 0, 0);
+
+      const todayGrants = await this.creditsService.getTransactionHistory(order.userId, 1, 100, 'promo');
+      const todayCashback = todayGrants.items
+        .filter(tx => 
+          tx.createdAt >= todayStart && 
+          tx.referenceType === 'order' &&
+          tx.type === 'cashback'
+        )
+        .reduce((sum, tx) => sum + parseFloat(tx.amount), 0);
+
+      if (todayCashback + cashbackAmount > DAILY_LIMIT) {
+        const available = Math.max(0, DAILY_LIMIT - todayCashback);
+        if (available < 0.01) {
+          this.logger.warn(
+            `[CASHBACK] User ${order.userId} hit daily limit (€${todayCashback.toFixed(2)}/€${DAILY_LIMIT}), skipping`
+          );
+          return;
+        }
+        this.logger.warn(
+          `[CASHBACK] Capping cashback to €${available.toFixed(2)} due to daily limit`
+        );
+        // We could grant the partial amount, but for simplicity, skip if near limit
+        return;
+      }
+
+      // Grant promo credits with 180-day expiry
+      await this.creditsService.grantPromoCredits(
+        order.userId,
+        cashbackAmount,
+        'cashback' as 'cashback',
+        'order',
+        order.id,
+        `Cashback for order ${order.id.slice(0, 8)}...`,
+        180, // 180-day expiry for cashback
+      );
+
+      this.logger.log(
+        `[CASHBACK] Granted €${cashbackAmount.toFixed(2)} cashback to user ${order.userId} for order ${order.id}`
+      );
+
+      // Send cashback email notification
+      if (order.email !== undefined && order.email !== '') {
+        try {
+          const balance = await this.creditsService.getBalance(order.userId);
+          await this.emailsService.sendCreditsAdded(order.email, {
+            amount: cashbackAmount.toFixed(2),
+            creditType: 'promo',
+            newBalance: balance.total.toFixed(2),
+            reason: `${(cashbackRate * 100).toFixed(0)}% cashback on your order`,
+            expiresAt: new Date(Date.now() + 180 * 24 * 60 * 60 * 1000).toISOString(),
+          });
+        } catch (emailError) {
+          this.logger.warn(
+            `[CASHBACK] Failed to send cashback email to ${order.email}:`,
+            emailError instanceof Error ? emailError.message : emailError
+          );
+        }
+      }
+    } catch (error) {
+      // Cashback failure should not break fulfillment
+      this.logger.error(
+        `[CASHBACK] Failed to grant cashback for order ${order.id}:`,
+        error instanceof Error ? error.stack : error
+      );
+    }
   }
 }
 

@@ -23,6 +23,7 @@ Name | Type
 `price` | string
 `currency` | string
 `isPublished` | boolean
+`creditOnly` | boolean
 
 ## Example
 
@@ -48,6 +49,7 @@ const example = {
   "price": 59.99,
   "currency": null,
   "isPublished": null,
+  "creditOnly": false,
 } satisfies CreateProductDto
 
 console.log(example)

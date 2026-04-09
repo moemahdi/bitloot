@@ -8,6 +8,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { UsersApi, FulfillmentApi, AuthenticationApi, SessionsApi, type OrderResponseDto, type OrderItemResponseDto, type UserOrderStatsDto } from '@bitloot/sdk';
 import { apiConfig } from '@/lib/api-config';
 import { useWatchlistCount, WatchlistTabContent } from '@/features/watchlist';
+import { CreditsTabContent, useCreditBalance } from '@/features/credits';
 import { KeyReveal, type OrderItem } from '@/features/orders';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/design-system/primitives/card';
 import { Button } from '@/design-system/primitives/button';
@@ -24,7 +25,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/design-system/primitives/alert-dialog';
-import { Loader2, User, Shield, Key, Package, DollarSign, Check, Copy, ShoppingBag, LogOut, LayoutDashboard, Eye, HelpCircle, Mail, Hash, Crown, ShieldCheck, AlertCircle, Fingerprint, Info, Heart, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, RefreshCw, Smartphone, Monitor, Trash2, X, AlertTriangle, MessageSquare, Book, LifeBuoy, Clock, Globe, Activity, Search, RotateCcw, XCircle, ExternalLink } from 'lucide-react';
+import { Loader2, User, Shield, Key, Package, DollarSign, Check, Copy, ShoppingBag, LogOut, LayoutDashboard, Eye, HelpCircle, Mail, Hash, Crown, ShieldCheck, AlertCircle, Fingerprint, Info, Heart, ChevronDown, ChevronUp, ChevronLeft, ChevronRight, RefreshCw, Smartphone, Monitor, Trash2, X, AlertTriangle, MessageSquare, Book, LifeBuoy, Clock, Globe, Activity, Search, RotateCcw, XCircle, ExternalLink, Wallet } from 'lucide-react';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 import { DashboardStatCard } from '@/components/dashboard/DashboardStatCard';
@@ -245,7 +246,7 @@ export default function ProfilePage(): React.ReactElement {
   
   // Sync activeTab with URL query params
   const urlTab = searchParams.get('tab');
-  const validTabs = ['overview', 'purchases', 'watchlist', 'security', 'account', 'help'];
+  const validTabs = ['overview', 'purchases', 'watchlist', 'credits', 'security', 'account', 'help'];
   const [activeTab, setActiveTab] = useState(() => 
     urlTab !== null && validTabs.includes(urlTab) ? urlTab : 'overview'
   );
@@ -1035,7 +1036,7 @@ export default function ProfilePage(): React.ReactElement {
 
       {/* Main Tabs Section */}
       <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
-        <TabsList className="glass flex w-full overflow-x-auto border border-border-subtle bg-bg-secondary/50 p-1 backdrop-blur-sm sm:grid sm:grid-cols-6">
+        <TabsList className="glass flex w-full overflow-x-auto border border-border-subtle bg-bg-secondary/50 p-1 backdrop-blur-sm sm:grid sm:grid-cols-7">
           <TabsTrigger
             value="overview"
             aria-label="Overview tab - view dashboard summary"
@@ -1062,6 +1063,15 @@ export default function ProfilePage(): React.ReactElement {
             <Heart className="h-4 w-4 shrink-0" />
             <span className="hidden xs:inline sm:hidden">Saved</span>
             <span className="hidden sm:inline">Watchlist</span>
+          </TabsTrigger>
+          <TabsTrigger
+            value="credits"
+            aria-label="Credits tab - view your credit balance and history"
+            className="flex items-center justify-center gap-1.5 text-xs sm:text-sm transition-all duration-200 focus-visible:ring-2 focus-visible:ring-cyan-glow/50 focus-visible:ring-offset-2 focus-visible:ring-offset-bg-primary data-[state=active]:bg-cyan-glow/10 data-[state=active]:text-cyan-glow data-[state=active]:shadow-glow-sm"
+          >
+            <Wallet className="h-4 w-4 shrink-0" />
+            <span className="hidden xs:inline sm:hidden">Credits</span>
+            <span className="hidden sm:inline">Credits</span>
           </TabsTrigger>
           <TabsTrigger
             value="account"
@@ -2756,6 +2766,11 @@ export default function ProfilePage(): React.ReactElement {
         {/* Watchlist Tab */}
         <TabsContent value="watchlist" className="space-y-6">
           <WatchlistTabContent />
+        </TabsContent>
+
+        {/* Credits Tab */}
+        <TabsContent value="credits" className="space-y-6">
+          <CreditsTabContent />
         </TabsContent>
 
         {/* Help Tab */}

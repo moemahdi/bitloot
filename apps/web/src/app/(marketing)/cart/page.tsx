@@ -28,6 +28,7 @@ import {
   Lock
 } from 'lucide-react';
 import { PromoCodeInput } from '@/features/checkout/PromoCodeInput';
+import { CreditsSummary } from '@/features/credits/CreditsSummary';
 import { useAddToWatchlist } from '@/features/watchlist/hooks/useWatchlist';
 import { CatalogProductCard } from '@/features/catalog/components/CatalogProductCard';
 import { cn } from '@/design-system/utils/utils';
@@ -256,7 +257,9 @@ export default function CartPage(): React.ReactElement {
     itemCount, 
     appliedPromo, 
     setAppliedPromo,
-    finalTotal 
+    finalTotal,
+    useCredits,
+    setUseCredits,
   } = useCart();
   const router = useRouter();
   const { isAuthenticated } = useAuth();
@@ -403,6 +406,10 @@ export default function CartPage(): React.ReactElement {
     toast.success(`${product.name} added to cart`);
   }, [addItem]);
 
+  // Credit discount state — must be before any early returns to maintain hook order
+  const [creditDiscount, setCreditDiscount] = useState(0);
+  const estimatedTotal = Math.max(0, finalTotal - creditDiscount);
+
   // Empty cart state
   if (items.length === 0) {
     return (
@@ -446,8 +453,6 @@ export default function CartPage(): React.ReactElement {
       </div>
     );
   }
-
-  const estimatedTotal = finalTotal;
 
   const handleCheckout = (): void => {
     router.push('/checkout');
@@ -616,6 +621,14 @@ export default function CartPage(): React.ReactElement {
                   />
                 </div>
 
+                {/* Credits Section */}
+                <CreditsSummary
+                  orderTotal={finalTotal}
+                  useCredits={useCredits}
+                  onToggle={setUseCredits}
+                  onCreditAmountChange={setCreditDiscount}
+                />
+
                 {/* Pricing Breakdown */}
                 <div className="space-y-3 p-3 rounded-xl bg-bg-tertiary/30">
                   <div className="flex justify-between text-sm">
@@ -651,6 +664,18 @@ export default function CartPage(): React.ReactElement {
                     <span className="text-text-muted">Processing Fee</span>
                     <span className="text-green-success font-medium">Free</span>
                   </div>
+
+                  {creditDiscount > 0 && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-emerald-400 flex items-center gap-1.5">
+                        <div className="p-0.5 rounded bg-emerald-400/10">
+                          <Wallet className="h-3.5 w-3.5" />
+                        </div>
+                        Credits Applied
+                      </span>
+                      <span className="text-emerald-400 font-semibold">-€{creditDiscount.toFixed(2)}</span>
+                    </div>
+                  )}
                 </div>
 
                 {/* Total with glow effect */}

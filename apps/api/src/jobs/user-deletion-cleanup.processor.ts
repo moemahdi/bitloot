@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { UserService } from '../modules/auth/user.service';
 import { EmailsService } from '../modules/emails/emails.service';
+import { CreditsService } from '../modules/credits/credits.service';
 
 /**
  * User Deletion Cleanup Job
@@ -24,6 +25,7 @@ export class UserDeletionCleanupService {
   constructor(
     private readonly userService: UserService,
     private readonly emailsService: EmailsService,
+    private readonly creditsService: CreditsService,
   ) {}
 
   /**
@@ -61,6 +63,31 @@ export class UserDeletionCleanupService {
             `Processing deletion for user ${user.email} (requested ${gracePeriodDays} days ago)`,
           );
 
+          // Forfeit any remaining credits BEFORE deletion
+          let forfeitedCreditsMessage = '';
+          try {
+            const forfeited = await this.creditsService.forfeitAllCredits(user.id);
+            if (forfeited.total > 0) {
+              forfeitedCreditsMessage = `
+                <p><strong>BitLoot Credits Forfeited:</strong></p>
+                <ul>
+                  ${forfeited.cashForfeited > 0 ? `<li>Cash Balance: €${forfeited.cashForfeited.toFixed(2)}</li>` : ''}
+                  ${forfeited.promoForfeited > 0 ? `<li>Promo Credits: €${forfeited.promoForfeited.toFixed(2)}</li>` : ''}
+                  <li><strong>Total: €${forfeited.total.toFixed(2)}</strong></li>
+                </ul>
+                <p style="color: #cc0000;">Note: These credits cannot be recovered.</p>
+              `;
+              this.logger.log(
+                `Forfeited €${forfeited.total.toFixed(2)} credits for user ${user.email}`,
+              );
+            }
+          } catch (creditsError) {
+            // Log but don't block deletion if credits forfeiture fails
+            this.logger.warn(
+              `Failed to forfeit credits for ${user.email}: ${creditsError instanceof Error ? creditsError.message : 'unknown'}`,
+            );
+          }
+
           // Send final confirmation email BEFORE deletion
           // (so we still have access to user email)
           try {
@@ -70,6 +97,7 @@ export class UserDeletionCleanupService {
               html: `
                 <h2>Account Deleted</h2>
                 <p>Your BitLoot account has been permanently deleted as per your request made ${gracePeriodDays} days ago.</p>
+                ${forfeitedCreditsMessage}
                 <p>All your personal data has been removed from our systems.</p>
                 <p>If you wish to use BitLoot again in the future, you're welcome to create a new account.</p>
                 <hr>

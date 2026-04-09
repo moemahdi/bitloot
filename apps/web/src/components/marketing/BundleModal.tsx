@@ -119,8 +119,8 @@ export function BundleModal({ bundle, isOpen, onClose }: BundleModalProps): Reac
     
     toast.success(`${bundle.name} added to cart!`);
     
-    // Navigate to checkout
-    router.push('/checkout');
+    // Navigate to cart for review before checkout
+    router.push('/cart');
     onClose();
   };
 

@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEmail, IsNotEmpty, IsOptional, IsString, IsArray, ValidateNested, IsInt, Min, IsUUID, IsNumber, Max } from 'class-validator';
+import { IsEmail, IsNotEmpty, IsOptional, IsString, IsArray, ValidateNested, IsInt, Min, IsUUID, IsNumber, Max, IsBoolean } from 'class-validator';
 import { Type } from 'class-transformer';
 
 /**
@@ -93,6 +93,16 @@ export class CreateOrderDto {
   @IsOptional()
   @IsString()
   promoCode?: string;
+
+  @ApiProperty({
+    required: false,
+    description: 'Whether to apply available credits to this order',
+    example: true,
+    default: false,
+  })
+  @IsOptional()
+  @IsBoolean()
+  useCredits?: boolean;
 }
 
 export class OrderItemResponseDto {
@@ -203,6 +213,27 @@ export class OrderResponseDto {
     example: '5.00'
   })
   discountAmount?: string;
+
+  @ApiProperty({
+    description: 'Total credits used on this order (EUR)',
+    required: false,
+    example: '10.00'
+  })
+  creditsUsed?: string;
+
+  @ApiProperty({
+    description: 'Promo credits portion used (EUR)',
+    required: false,
+    example: '5.00'
+  })
+  creditsPromoUsed?: string;
+
+  @ApiProperty({
+    description: 'Cash credits portion used (EUR)',
+    required: false,
+    example: '5.00'
+  })
+  creditsCashUsed?: string;
 }
 
 /**

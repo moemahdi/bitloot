@@ -132,6 +132,12 @@ export interface ProductResponseDto {
      */
     isPublished: boolean;
     /**
+     * Whether product can only be purchased with credits (no crypto)
+     * @type {boolean}
+     * @memberof ProductResponseDto
+     */
+    creditOnly?: boolean;
+    /**
      * Available quantity from cheapest offers (Kinguin products)
      * @type {number}
      * @memberof ProductResponseDto
@@ -311,6 +317,7 @@ export function ProductResponseDtoFromJSONTyped(json: any, ignoreDiscriminator: 
         'price': json['price'],
         'currency': json['currency'],
         'isPublished': json['isPublished'],
+        'creditOnly': json['creditOnly'] == null ? undefined : json['creditOnly'],
         'qty': json['qty'] == null ? undefined : json['qty'],
         'totalQty': json['totalQty'] == null ? undefined : json['totalQty'],
         'inStock': json['inStock'] == null ? undefined : json['inStock'],
@@ -361,6 +368,7 @@ export function ProductResponseDtoToJSONTyped(value?: ProductResponseDto | null,
         'price': value['price'],
         'currency': value['currency'],
         'isPublished': value['isPublished'],
+        'creditOnly': value['creditOnly'],
         'qty': value['qty'],
         'totalQty': value['totalQty'],
         'inStock': value['inStock'],
