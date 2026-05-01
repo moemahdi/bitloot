@@ -2,12 +2,12 @@
 NODE_ENV = "production"
 
 [phases.install]
-cmds = ["npm install"]
+cmds = ["npm install --include=dev"]
 
 [phases.build]
 cmds = [
   "rm -rf apps/web/.next",
-  "npm install",
+  "npm install --include=dev",
   "npm --workspace packages/sdk run build",
   "npm run build"
 ]
