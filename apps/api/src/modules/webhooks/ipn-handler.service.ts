@@ -126,6 +126,9 @@ export class IpnHandlerService {
     // 1. Create webhook log entry (for recovery/audit)
     const webhookLog = await this.logWebhookReceived(payload, signature);
 
+    // Track signature validity across try/catch boundary
+    let signatureVerified = false;
+
     try {
       // 2. Verify signature (timing-safe HMAC comparison)
       // Use raw body if available (preferred), otherwise fall back to re-serializing payload
@@ -157,6 +160,8 @@ export class IpnHandlerService {
         paymentId,
         webhookId: webhookLog.id,
       });
+
+      signatureVerified = true;
 
       // 3. Check idempotency (already processed?)
       const existing = await this.checkIdempotency(String(payload.payment_id));
@@ -245,6 +250,7 @@ export class IpnHandlerService {
       );
 
       const errorLog = this.webhookLogRepo.merge(webhookLog, {
+        signatureValid: signatureVerified,
         result: { success: false, error: errorMessage },
         processed: false,
       });
