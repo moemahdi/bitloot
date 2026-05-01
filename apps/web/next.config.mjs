@@ -5,10 +5,6 @@ const nextConfig = {
   output: 'standalone',
   compress: true,
   poweredByHeader: false,
-  eslint: {
-    // Ignore ESLint during builds - lint is run separately in CI
-    ignoreDuringBuilds: true,
-  },
   experimental: {
     // Tree-shake specific package imports to reduce bundle size
     optimizePackageImports: [
