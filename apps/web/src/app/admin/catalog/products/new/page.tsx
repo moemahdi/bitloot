@@ -126,7 +126,6 @@ interface FormData {
     currency: string;
     isPublished: boolean;
     isFeatured: boolean;
-    creditOnly: boolean;
 }
 
 const initialFormData: FormData = {
@@ -147,7 +146,6 @@ const initialFormData: FormData = {
     currency: 'USD',
     isPublished: false,
     isFeatured: false,
-    creditOnly: false,
 };
 
 export default function AdminCreateProductPage(): React.JSX.Element {
@@ -243,7 +241,6 @@ export default function AdminCreateProductPage(): React.JSX.Element {
             currency: formData.currency,
             isPublished: formData.isPublished,
             isFeatured: formData.isFeatured,
-            creditOnly: formData.creditOnly,
         };
 
         createMutation.mutate(productData);
