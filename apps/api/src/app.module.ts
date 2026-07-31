@@ -4,6 +4,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { HttpModule } from '@nestjs/axios';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { ScheduleModule } from '@nestjs/schedule';
+import { resolve } from 'path';
 
 import { HealthController } from './health/health.controller';
 import { Order } from './modules/orders/order.entity';
@@ -41,7 +42,10 @@ import { StatusModule } from './modules/status/status.module';
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: 'C:/Users/beast/bitloot/.env',
+      envFilePath: [
+        resolve(process.cwd(), '.env'),
+        resolve(process.cwd(), '../../.env'),
+      ],
     }),
     HttpModule,
     // Schedule module for cron jobs (orphan order cleanup, etc.)
